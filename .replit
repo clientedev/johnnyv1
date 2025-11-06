@@ -47,6 +47,10 @@ externalPort = 3003
 localPort = 43565
 externalPort = 3001
 
+[[ports]]
+localPort = 46557
+externalPort = 4200
+
 [nix]
 channel = "stable-25_05"
 packages = ["cargo", "freetype", "iana-etc", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zlib"]

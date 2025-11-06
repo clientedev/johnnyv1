@@ -10,9 +10,18 @@ Sistema web completo para gestão de empresas, funcionários, preços e relatór
 - Arquivos de deploy para Railway configurados
 - Criação automática de tabelas do banco de dados implementada
 - WebSocket funcionando para notificações em tempo real
-- **Interface 100% Mobile-First com Bottom Navigation** (novo!)
+- **Sistema de Classificação por Estrelas (1-5)** implementado
+  - API robusta com validações completas
+  - Configurações por tipo de placa (leve, pesada, misturada)
+  - Valores configuráveis por kg para cada nível
+- **Painel de Administração Completo**
+  - Gerenciamento de funcionários (CRUD)
+  - Configuração de preços por estrelas
+  - Interface com abas intuitivas
+- **Interface 100% Mobile-First com Bottom Navigation**
   - Layout estilo app mobile moderno
-  - Bottom Navigation Bar fixa com 4 ícones
+  - Bottom Navigation Bar fixa com 5 ícones (Administração, Dashboard, Scanner, Relatórios, Empresas)
+  - Header superior apenas com sino de notificação
   - FAB Button (Floating Action Button) central para scanner
   - Scanner de placas com upload de imagem
   - Sistema completo de gerenciamento de placas
@@ -47,7 +56,9 @@ Sistema web completo para gestão de empresas, funcionários, preços e relatór
 │   │   ├── precos.py        # Gerenciamento de preços
 │   │   ├── relatorios.py    # Geração de relatórios
 │   │   ├── notificacoes.py  # Sistema de notificações
-│   │   └── dashboard.py     # Dashboard
+│   │   ├── dashboard.py     # Dashboard
+│   │   ├── placas.py        # Gerenciamento de placas
+│   │   └── configuracoes.py # Configurações de preços por estrelas
 │   ├── static/              # Arquivos estáticos
 │   │   ├── css/
 │   │   ├── js/
@@ -105,16 +116,32 @@ Sistema web completo para gestão de empresas, funcionários, preços e relatór
 - **Estatísticas:** Total de placas por empresa, peso total, valor total
 - **Associação com Relatórios:** Placas podem ser vinculadas a relatórios
 
-### 8. Interface Mobile-First com Bottom Navigation ✨
-- **Bottom Navigation Bar:** Menu inferior fixo com 4 ícones (mobile)
-  - Notificações, Dashboard, Relatórios, Empresas
+### 8. Sistema de Classificação por Estrelas ✨ (NOVO - 06/11/2025)
+- **Configurações de Preços:** Sistema de 1 a 5 estrelas para classificar preços
+- **Valores por Kg:** Configure valores específicos por kg para cada nível de estrela
+- **Três Tipos de Placa:** Configurações separadas para leve, pesada e misturada
+- **Flexibilidade:** Cada tipo de placa pode ter valores diferentes por estrela
+- **Interface Administrativa:** Página dedicada para gerenciar todas as configurações
+- **Validação Robusta:** API protegida com validações contra erros 500
+
+### 9. Painel de Administração ✨ (NOVO - 06/11/2025)
+- **Gerenciamento de Funcionários:** CRUD completo (criar, editar, excluir)
+- **Configuração de Preços por Estrelas:** Interface intuitiva para definir valores
+- **Controle de Acesso:** Apenas administradores podem acessar
+- **Duas Abas:** Funcionários e Classificações de Preços
+- **Validação de Usuários:** Sistema verifica tipo de usuário antes de permitir acesso
+
+### 10. Interface Mobile-First com Bottom Navigation ✨
+- **Bottom Navigation Bar:** Menu inferior fixo com 5 ícones (mobile)
+  - **Administração, Dashboard, FAB Scanner, Relatórios, Empresas**
+- **Header Superior:** Apenas sino de notificação no canto superior direito
 - **FAB Button:** Botão central circular elevado para scanner de placas
 - **Modal Scanner:** Interface intuitiva para registrar placas
 - **Touch-Friendly:** Todos os botões e links com 44x44px mínimo
 - **Formulários Mobile:** Input types específicos (tel, email, number) com autocomplete
 - **Sem Zoom:** Font-size 16px nos inputs para evitar zoom automático no iOS
 - **Responsivo:** Mobile-first, esconde bottom nav em desktop (768px+)
-- **Header Simplificado:** Título da página atual centralizado
+- **Header Simplificado:** Logo, título da página e sino de notificação
 - **Breakpoints:** 768px (tablet), 1024px (desktop)
 - **Acessibilidade:** Focus visível, prefers-reduced-motion, high-contrast support
 
@@ -123,6 +150,8 @@ Sistema web completo para gestão de empresas, funcionários, preços e relatór
 ### Modelos Principais
 - **Usuario:** Usuários do sistema (admin/funcionário)
 - **Empresa:** Empresas cadastradas
+- **ConfiguracaoPrecoEstrela:** Valores por kg para cada nível de estrela (1-5) por tipo de placa
+- **Preco:** Preços de empresas com campo de classificação por estrelas (1-5)
 - **Funcionario:** Funcionários vinculados às empresas
 - **Preco:** Histórico de preços por empresa
 - **Placa:** Sistema de registro de placas com imagens (NOVO)
