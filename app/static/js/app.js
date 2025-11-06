@@ -253,3 +253,67 @@ function fecharBannerPWA() {
         banner.classList.remove('show');
     }
 }
+
+// Scanner Modal Functions
+function openScanner() {
+    const modal = document.getElementById('scannerModal');
+    if (modal) {
+        modal.classList.add('active');
+        carregarEmpresasScanner();
+    }
+}
+
+function closeScanner() {
+    const modal = document.getElementById('scannerModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.getElementById('formScanner').reset();
+        document.getElementById('imagePreview').classList.remove('active');
+    }
+}
+
+async function carregarEmpresasScanner() {
+    try {
+        const data = await fetchAPI('/empresas');
+        const select = document.getElementById('scannerEmpresa');
+        if (select) {
+            select.innerHTML = '<option value="">Escolha uma empresa...</option>';
+            data.forEach(empresa => {
+                const option = document.createElement('option');
+                option.value = empresa.id;
+                option.textContent = empresa.nome;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao carregar empresas:', error);
+    }
+}
+
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('imagePreview');
+            const img = document.getElementById('previewImg');
+            if (preview && img) {
+                img.src = e.target.result;
+                preview.classList.add('active');
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Set active bottom nav item
+function setActiveNavItem() {
+    const currentPath = window.location.pathname;
+    const navItems = document.querySelectorAll('.bottom-nav-item');
+    
+    navItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('href') === currentPath) {
+            item.classList.add('active');
+        }
+    });
+}
