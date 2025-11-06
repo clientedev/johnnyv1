@@ -1,6 +1,6 @@
-# 🔌 Sistema de Gestão de Compras de Placas Eletrônicas
+# ⚙️ MetalGest - Gestão de Metais e Eletrônicos
 
-Sistema web completo para controlar compras de placas de lixo eletrônico feitas por funcionários em diferentes empresas, com registro de fotos, localização GPS, peso das placas e aprovação administrativa.
+Sistema profissional completo para controlar compras de metais e eletrônicos feitas por funcionários em diferentes empresas, com registro de fotos, localização GPS, peso dos materiais e aprovação administrativa.
 
 ## ✨ Funcionalidades
 
