@@ -11,19 +11,23 @@
 </head>
 <body>
     <header>
-        <div class="header-content" style="justify-content: center;">
+        <div class="header-content" style="justify-content: space-between;">
             <div class="logo">
                 <img src="/static/images/mrx-logo.png" alt="MRX">
                 <span>Empresas</span>
+            </div>
+            <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
+                <i class="fas fa-bell"></i>
+                <span class="notification-count" id="headerNotificationCount" style="display: none;">0</span>
             </div>
         </div>
     </header>
 
     <!-- Bottom Navigation (Mobile) -->
     <nav class="bottom-nav">
-        <a href="/notificacoes.html" class="bottom-nav-item">
-            <i class="fas fa-bell icon"></i>
-            <span>Notificações</span>
+        <a href="/administracao.html" class="bottom-nav-item">
+            <i class="fas fa-cog icon"></i>
+            <span>Administração</span>
         </a>
         <a href="/dashboard.html" class="bottom-nav-item">
             <i class="fas fa-chart-line icon"></i>
@@ -167,9 +171,6 @@
         async function carregarPagina() {
             const user = await verificarAuth();
             if (!user) return;
-
-            const userData = await getCurrentUser();
-            document.getElementById('userName').textContent = userData.nome;
 
             await carregarEmpresas();
             await atualizarNotificacoes();

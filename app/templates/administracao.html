@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração - MRX Systems</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content" style="justify-content: space-between;">
+            <div class="logo">
+                <img src="/static/images/mrx-logo.png" alt="MRX">
+                <span>Administração</span>
+            </div>
+            <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
+                <i class="fas fa-bell"></i>
+                <span class="notification-count" id="headerNotificationCount" style="display: none;">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav">
+        <a href="/administracao.html" class="bottom-nav-item active">
+            <i class="fas fa-cog icon"></i>
+            <span>Administração</span>
+        </a>
+        <a href="/dashboard.html" class="bottom-nav-item">
+            <i class="fas fa-chart-line icon"></i>
+            <span>Dashboard</span>
+        </a>
+        <div class="fab-container">
+            <button class="fab-button" onclick="openScanner()" aria-label="Scanner">
+                <i class="fas fa-camera icon"></i>
+            </button>
+        </div>
+        <a href="/relatorios.html" class="bottom-nav-item">
+            <i class="fas fa-file-alt icon"></i>
+            <span>Relatórios</span>
+        </a>
+        <a href="/empresas.html" class="bottom-nav-item">
+            <i class="fas fa-building icon"></i>
+            <span>Empresas</span>
+        </a>
+    </nav>
+
+    <!-- Scanner Modal -->
+    <div class="scanner-modal" id="scannerModal">
+        <div class="scanner-modal-content">
+            <div class="scanner-modal-header">
+                <h2>Escanear Placa</h2>
+                <button class="scanner-close" onclick="closeScanner()">&times;</button>
+            </div>
+            <form id="formScanner">
+                <div class="form-group">
+                    <label>Selecionar Empresa</label>
+                    <select id="scannerEmpresa" required>
+                        <option value="">Escolha uma empresa...</option>
+                    </select>
+                </div>
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-camera icon" style="font-size: 3rem; color: var(--primary-color);"></i>
+                    <p>Toque para capturar ou selecionar imagem</p>
+                    <input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;" onchange="previewImage(this)">
+                </div>
+                <div class="image-preview" id="imagePreview">
+                    <img id="previewImg" alt="Preview">
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Placa</label>
+                    <select id="tipoPlaca" required>
+                        <option value="">Selecione...</option>
+                        <option value="leve">Leve</option>
+                        <option value="pesada">Pesada</option>
+                        <option value="misturada">Misturada</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Peso (kg)</label>
+                    <input type="number" id="pesoPlaca" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" id="valorPlaca" step="0.01" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Registrar Placa</button>
+            </form>
+        </div>
+    </div>
+
+    <main class="container mt-4">
+        <h1 style="font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: var(--spacing-lg);">Painel de Administração</h1>
+
+        <!-- Tabs de Navegação -->
+        <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg); flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="mostrarAba('funcionarios')">
+                <i class="fas fa-users"></i> Funcionários
+            </button>
+            <button class="btn btn-secondary" onclick="mostrarAba('classificacoes')">
+                <i class="fas fa-star"></i> Classificações de Preços
+            </button>
+        </div>
+
+        <!-- Aba de Funcionários -->
+        <div id="abaFuncionarios" class="aba-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg); flex-wrap: wrap; gap: var(--spacing-md);">
+                <h2>Gerenciar Funcionários</h2>
+                <button class="btn btn-primary" onclick="abrirModalNovoFuncionario()">
+                    <i class="fas fa-plus"></i> Novo Funcionário
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Tipo</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaFuncionarios">
+                            <tr><td colspan="4" class="loading">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba de Classificações -->
+        <div id="abaClassificacoes" class="aba-content" style="display: none;">
+            <h2 style="margin-bottom: var(--spacing-lg);">Valores por Kg - Sistema de Estrelas</h2>
+            
+            <div class="card" style="margin-bottom: var(--spacing-lg); background: var(--gray-100);">
+                <p><i class="fas fa-info-circle"></i> <strong>Como funciona:</strong> Defina o valor por kg para cada nível de classificação (1 a 5 estrelas) por tipo de placa. Ao cadastrar preços de empresas, você poderá classificá-las com estrelas, e o sistema automaticamente usará o valor correspondente.</p>
+            </div>
+
+            <!-- Placa Leve -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-box"></i> Placa Leve</h3>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i> 1 Estrela - Valor por Kg (R$)</label>
+                    <input type="number" id="leve_1_estrela" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 2 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="leve_2_estrelas" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 3 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="leve_3_estrelas" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 4 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="leve_4_estrelas" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 5 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="leve_5_estrelas" step="0.01" class="form-control">
+                </div>
+                <button class="btn btn-primary" onclick="salvarConfiguracao('leve')">
+                    <i class="fas fa-save"></i> Salvar Configuração Leve
+                </button>
+            </div>
+
+            <!-- Placa Pesada -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-weight-hanging"></i> Placa Pesada</h3>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i> 1 Estrela - Valor por Kg (R$)</label>
+                    <input type="number" id="pesada_1_estrela" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 2 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="pesada_2_estrelas" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 3 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="pesada_3_estrelas" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 4 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="pesada_4_estrelas" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 5 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="pesada_5_estrelas" step="0.01" class="form-control">
+                </div>
+                <button class="btn btn-primary" onclick="salvarConfiguracao('pesada')">
+                    <i class="fas fa-save"></i> Salvar Configuração Pesada
+                </button>
+            </div>
+
+            <!-- Placa Misturada -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-layer-group"></i> Placa Misturada</h3>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i> 1 Estrela - Valor por Kg (R$)</label>
+                    <input type="number" id="misturada_1_estrela" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 2 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="misturada_2_estrelas" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 3 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="misturada_3_estrelas" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 4 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="misturada_4_estrelas" step="0.01" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i><i class="fas fa-star" style="color: gold;"></i> 5 Estrelas - Valor por Kg (R$)</label>
+                    <input type="number" id="misturada_5_estrelas" step="0.01" class="form-control">
+                </div>
+                <button class="btn btn-primary" onclick="salvarConfiguracao('misturada')">
+                    <i class="fas fa-save"></i> Salvar Configuração Misturada
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Novo Funcionário -->
+    <div class="modal" id="modalNovoFuncionario">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Novo Funcionário</h2>
+                <span class="modal-close" onclick="fecharModalNovoFuncionario()">&times;</span>
+            </div>
+            <form id="formNovoFuncionario">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input type="text" id="nomeFuncionario" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="emailFuncionario" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="senhaFuncionario" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="tipoFuncionario" required>
+                        <option value="funcionario">Funcionário</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Criar Funcionário</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Editar Funcionário -->
+    <div class="modal" id="modalEditarFuncionario">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Funcionário</h2>
+                <span class="modal-close" onclick="fecharModalEditarFuncionario()">&times;</span>
+            </div>
+            <form id="formEditarFuncionario">
+                <input type="hidden" id="editFuncionarioId">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input type="text" id="editNomeFuncionario" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="editEmailFuncionario" required>
+                </div>
+                <div class="form-group">
+                    <label>Nova Senha (deixe em branco para manter a atual)</label>
+                    <input type="password" id="editSenhaFuncionario" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="editTipoFuncionario" required>
+                        <option value="funcionario">Funcionário</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Salvar Alterações</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        let abaAtual = 'funcionarios';
+
+        function mostrarAba(aba) {
+            document.getElementById('abaFuncionarios').style.display = aba === 'funcionarios' ? 'block' : 'none';
+            document.getElementById('abaClassificacoes').style.display = aba === 'classificacoes' ? 'block' : 'none';
+            abaAtual = aba;
+            
+            // Atualizar estilo dos botões
+            const botoes = document.querySelectorAll('.container > div button');
+            botoes.forEach(btn => {
+                if (btn.textContent.includes('Funcionários')) {
+                    btn.className = aba === 'funcionarios' ? 'btn btn-primary' : 'btn btn-secondary';
+                } else if (btn.textContent.includes('Classificações')) {
+                    btn.className = aba === 'classificacoes' ? 'btn btn-primary' : 'btn btn-secondary';
+                }
+            });
+            
+            if (aba === 'classificacoes') {
+                carregarConfiguracoes();
+            } else {
+                carregarFuncionarios();
+            }
+        }
+
+        async function carregarPagina() {
+            const user = await verificarAuth();
+            if (!user) return;
+            
+            if (user.tipo !== 'admin') {
+                showAlert('Acesso negado. Apenas administradores podem acessar esta página.');
+                window.location.href = '/dashboard.html';
+                return;
+            }
+            
+            await carregarFuncionarios();
+            await atualizarNotificacoes();
+        }
+
+        async function carregarFuncionarios() {
+            const response = await fetchAPI('/usuarios');
+            const funcionarios = await response.json();
+            
+            const tbody = document.getElementById('tabelaFuncionarios');
+            
+            if (funcionarios.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4">Nenhum funcionário cadastrado</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = funcionarios.map(f => `
+                <tr>
+                    <td>${f.nome}</td>
+                    <td>${f.email}</td>
+                    <td><span class="badge ${f.tipo === 'admin' ? 'badge-success' : 'badge-secondary'}">${f.tipo === 'admin' ? 'Admin' : 'Funcionário'}</span></td>
+                    <td>
+                        <button class="btn btn-small btn-secondary" onclick="editarFuncionario(${f.id})">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn btn-small btn-danger" onclick="excluirFuncionario(${f.id}, '${f.nome}')">
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function carregarConfiguracoes() {
+            // Inicializar configurações se não existirem
+            try {
+                await fetchAPI('/configuracoes/precos-estrelas/inicializar', { method: 'POST' });
+            } catch (err) {
+                // Ignorar erro se já existirem
+            }
+            
+            const tipos = ['leve', 'pesada', 'misturada'];
+            
+            for (const tipo of tipos) {
+                try {
+                    const response = await fetchAPI(`/configuracoes/precos-estrelas/${tipo}`);
+                    const config = await response.json();
+                    
+                    document.getElementById(`${tipo}_1_estrela`).value = config.valor_1_estrela || 0;
+                    document.getElementById(`${tipo}_2_estrelas`).value = config.valor_2_estrelas || 0;
+                    document.getElementById(`${tipo}_3_estrelas`).value = config.valor_3_estrelas || 0;
+                    document.getElementById(`${tipo}_4_estrelas`).value = config.valor_4_estrelas || 0;
+                    document.getElementById(`${tipo}_5_estrelas`).value = config.valor_5_estrelas || 0;
+                } catch (err) {
+                    console.error(`Erro ao carregar configuração ${tipo}:`, err);
+                }
+            }
+        }
+
+        async function salvarConfiguracao(tipo) {
+            const config = {
+                tipo_placa: tipo,
+                valor_1_estrela: parseFloat(document.getElementById(`${tipo}_1_estrela`).value) || 0,
+                valor_2_estrelas: parseFloat(document.getElementById(`${tipo}_2_estrelas`).value) || 0,
+                valor_3_estrelas: parseFloat(document.getElementById(`${tipo}_3_estrelas`).value) || 0,
+                valor_4_estrelas: parseFloat(document.getElementById(`${tipo}_4_estrelas`).value) || 0,
+                valor_5_estrelas: parseFloat(document.getElementById(`${tipo}_5_estrelas`).value) || 0
+            };
+            
+            try {
+                await fetchAPI('/configuracoes/precos-estrelas', {
+                    method: 'POST',
+                    body: JSON.stringify(config)
+                });
+                showAlert(`Configuração de placa ${tipo} salva com sucesso!`);
+            } catch (error) {
+                showAlert('Erro ao salvar configuração: ' + error.message);
+            }
+        }
+
+        function abrirModalNovoFuncionario() {
+            document.getElementById('modalNovoFuncionario').style.display = 'flex';
+        }
+
+        function fecharModalNovoFuncionario() {
+            document.getElementById('modalNovoFuncionario').style.display = 'none';
+            document.getElementById('formNovoFuncionario').reset();
+        }
+
+        document.getElementById('formNovoFuncionario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const dados = {
+                nome: document.getElementById('nomeFuncionario').value,
+                email: document.getElementById('emailFuncionario').value,
+                senha: document.getElementById('senhaFuncionario').value,
+                tipo: document.getElementById('tipoFuncionario').value
+            };
+            
+            try {
+                await fetchAPI('/usuarios', {
+                    method: 'POST',
+                    body: JSON.stringify(dados)
+                });
+                
+                showAlert('Funcionário criado com sucesso!');
+                fecharModalNovoFuncionario();
+                await carregarFuncionarios();
+            } catch (error) {
+                showAlert('Erro ao criar funcionário: ' + error.message);
+            }
+        });
+
+        async function editarFuncionario(id) {
+            const response = await fetchAPI(`/usuarios/${id}`);
+            const funcionario = await response.json();
+            
+            document.getElementById('editFuncionarioId').value = funcionario.id;
+            document.getElementById('editNomeFuncionario').value = funcionario.nome;
+            document.getElementById('editEmailFuncionario').value = funcionario.email;
+            document.getElementById('editTipoFuncionario').value = funcionario.tipo;
+            document.getElementById('editSenhaFuncionario').value = '';
+            
+            document.getElementById('modalEditarFuncionario').style.display = 'flex';
+        }
+
+        function fecharModalEditarFuncionario() {
+            document.getElementById('modalEditarFuncionario').style.display = 'none';
+            document.getElementById('formEditarFuncionario').reset();
+        }
+
+        document.getElementById('formEditarFuncionario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = document.getElementById('editFuncionarioId').value;
+            const dados = {
+                nome: document.getElementById('editNomeFuncionario').value,
+                email: document.getElementById('editEmailFuncionario').value,
+                tipo: document.getElementById('editTipoFuncionario').value
+            };
+            
+            const novaSenha = document.getElementById('editSenhaFuncionario').value;
+            if (novaSenha) {
+                dados.senha = novaSenha;
+            }
+            
+            try {
+                await fetchAPI(`/usuarios/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(dados)
+                });
+                
+                showAlert('Funcionário atualizado com sucesso!');
+                fecharModalEditarFuncionario();
+                await carregarFuncionarios();
+            } catch (error) {
+                showAlert('Erro ao atualizar funcionário: ' + error.message);
+            }
+        });
+
+        async function excluirFuncionario(id, nome) {
+            if (!confirm(`Tem certeza que deseja excluir o funcionário ${nome}?`)) {
+                return;
+            }
+            
+            try {
+                await fetchAPI(`/usuarios/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                showAlert('Funcionário excluído com sucesso!');
+                await carregarFuncionarios();
+            } catch (error) {
+                showAlert('Erro ao excluir funcionário: ' + error.message);
+            }
+        }
+
+        carregarPagina();
+    </script>
+</body>
+</html>

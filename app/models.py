@@ -47,6 +47,30 @@ class Empresa(db.Model):
             'observacoes': self.observacoes
         }
 
+class ConfiguracaoPrecoEstrela(db.Model):
+    __tablename__ = 'configuracao_preco_estrelas'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tipo_placa = db.Column(db.String(20), nullable=False, unique=True)
+    valor_1_estrela = db.Column(db.Float, nullable=False, default=0.0)
+    valor_2_estrelas = db.Column(db.Float, nullable=False, default=0.0)
+    valor_3_estrelas = db.Column(db.Float, nullable=False, default=0.0)
+    valor_4_estrelas = db.Column(db.Float, nullable=False, default=0.0)
+    valor_5_estrelas = db.Column(db.Float, nullable=False, default=0.0)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tipo_placa': self.tipo_placa,
+            'valor_1_estrela': self.valor_1_estrela,
+            'valor_2_estrelas': self.valor_2_estrelas,
+            'valor_3_estrelas': self.valor_3_estrelas,
+            'valor_4_estrelas': self.valor_4_estrelas,
+            'valor_5_estrelas': self.valor_5_estrelas,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
 class Preco(db.Model):
     __tablename__ = 'precos'
     
@@ -54,13 +78,15 @@ class Preco(db.Model):
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresas.id'), nullable=False)
     tipo_placa = db.Column(db.String(20), nullable=False)
     preco_por_kg = db.Column(db.Float, nullable=False)
+    classificacao_estrelas = db.Column(db.Integer, nullable=True, default=3)
     
     def to_dict(self):
         return {
             'id': self.id,
             'empresa_id': self.empresa_id,
             'tipo_placa': self.tipo_placa,
-            'preco_por_kg': self.preco_por_kg
+            'preco_por_kg': self.preco_por_kg,
+            'classificacao_estrelas': self.classificacao_estrelas
         }
 
 class Relatorio(db.Model):
