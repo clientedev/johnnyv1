@@ -10,35 +10,82 @@
 </head>
 <body>
     <header>
-        <div class="header-content">
-            <button class="menu-toggle" aria-label="Menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
+        <div class="header-content" style="justify-content: center;">
             <div class="logo">
                 <img src="/static/images/mrx-logo.png" alt="MRX">
-                <span>MRX Systems</span>
-            </div>
-            <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
-                🔔
-                <span class="notification-count" style="display: none;">0</span>
+                <span>Relatórios</span>
             </div>
         </div>
-        <div class="nav-overlay"></div>
-        <nav>
-            <ul>
-                <li><a href="/dashboard.html">📊 Dashboard</a></li>
-                <li><a href="/relatorios.html">📋 Relatórios</a></li>
-                <li><a href="/empresas.html">🏢 Empresas</a></li>
-                <li><a href="/funcionarios.html">👥 Funcionários</a></li>
-                <li class="user-info">
-                    <span id="userName"></span>
-                    <button class="btn btn-secondary w-full" onclick="logout()">Sair</button>
-                </li>
-            </ul>
-        </nav>
     </header>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav">
+        <a href="/notificacoes.html" class="bottom-nav-item">
+            <span class="icon">🔔</span>
+            <span>Notificações</span>
+        </a>
+        <a href="/dashboard.html" class="bottom-nav-item">
+            <span class="icon">📊</span>
+            <span>Dashboard</span>
+        </a>
+        <div class="fab-container">
+            <button class="fab-button" onclick="openScanner()" aria-label="Scanner">
+                <span class="icon">📷</span>
+            </button>
+        </div>
+        <a href="/relatorios.html" class="bottom-nav-item active">
+            <span class="icon">📋</span>
+            <span>Relatórios</span>
+        </a>
+        <a href="/empresas.html" class="bottom-nav-item">
+            <span class="icon">🏢</span>
+            <span>Empresas</span>
+        </a>
+    </nav>
+
+    <!-- Scanner Modal -->
+    <div class="scanner-modal" id="scannerModal">
+        <div class="scanner-modal-content">
+            <div class="scanner-modal-header">
+                <h2>Escanear Placa</h2>
+                <button class="scanner-close" onclick="closeScanner()">&times;</button>
+            </div>
+            <form id="formScanner">
+                <div class="form-group">
+                    <label>Selecionar Empresa</label>
+                    <select id="scannerEmpresa" required>
+                        <option value="">Escolha uma empresa...</option>
+                    </select>
+                </div>
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div class="icon">📷</div>
+                    <p>Toque para capturar ou selecionar imagem</p>
+                    <input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;" onchange="previewImage(this)">
+                </div>
+                <div class="image-preview" id="imagePreview">
+                    <img id="previewImg" alt="Preview">
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Placa</label>
+                    <select id="tipoPlaca" required>
+                        <option value="">Selecione...</option>
+                        <option value="leve">Leve</option>
+                        <option value="pesada">Pesada</option>
+                        <option value="misturada">Misturada</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Peso (kg)</label>
+                    <input type="number" id="pesoPlaca" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" id="valorPlaca" step="0.01" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Registrar Placa</button>
+            </form>
+        </div>
+    </div>
 
     <main class="container mt-4">
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
