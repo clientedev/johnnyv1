@@ -11,18 +11,27 @@
 <body>
     <header>
         <div class="header-content">
-            <div class="logo"><img src="/static/images/mrx-logo.png" alt="MRX" style="height: 40px; vertical-align: middle; margin-right: 10px; border-radius: 50%;">MRX Systems</div>
-            <nav>
-                <ul id="navLinks">
-                </ul>
-            </nav>
+            <button class="menu-toggle" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="logo">
+                <img src="/static/images/mrx-logo.png" alt="MRX">
+                <span>MRX Systems</span>
+            </div>
         </div>
+        <div class="nav-overlay"></div>
+        <nav>
+            <ul id="navLinks">
+            </ul>
+        </nav>
     </header>
 
-    <main class="container" style="margin-top: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h1>Notificações</h1>
-            <button class="btn btn-secondary" onclick="marcarTodasLidas()">Marcar todas como lidas</button>
+    <main class="container mt-4">
+        <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
+            <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Notificações</h1>
+            <button class="btn btn-secondary btn-small" onclick="marcarTodasLidas()">Marcar como lidas</button>
         </div>
 
         <div id="listaNotificacoes"></div>
@@ -40,22 +49,24 @@
             const navLinks = document.getElementById('navLinks');
             if (userData.tipo === 'admin') {
                 navLinks.innerHTML = `
-                    <li><a href="/dashboard.html">Dashboard</a></li>
-                    <li><a href="/relatorios.html">Relatórios</a></li>
-                    <li><a href="/empresas.html">Empresas</a></li>
-                    <li><a href="/funcionarios.html">Funcionários</a></li>
+                    <li><a href="/dashboard.html">📊 Dashboard</a></li>
+                    <li><a href="/relatorios.html">📋 Relatórios</a></li>
+                    <li><a href="/empresas.html">🏢 Empresas</a></li>
+                    <li><a href="/funcionarios.html">👥 Funcionários</a></li>
+                    <li><a href="/notificacoes.html">🔔 Notificações</a></li>
                     <li class="user-info">
                         <span>${userData.nome}</span>
-                        <button class="btn btn-secondary" onclick="logout()">Sair</button>
+                        <button class="btn btn-secondary w-full" onclick="logout()">Sair</button>
                     </li>
                 `;
             } else {
                 navLinks.innerHTML = `
-                    <li><a href="/funcionario.html">Meus Relatórios</a></li>
-                    <li><a href="/empresas-lista.html">Empresas</a></li>
+                    <li><a href="/funcionario.html">📋 Meus Relatórios</a></li>
+                    <li><a href="/empresas-lista.html">🏢 Empresas</a></li>
+                    <li><a href="/notificacoes.html">🔔 Notificações</a></li>
                     <li class="user-info">
                         <span>${userData.nome}</span>
-                        <button class="btn btn-secondary" onclick="logout()">Sair</button>
+                        <button class="btn btn-secondary w-full" onclick="logout()">Sair</button>
                     </li>
                 `;
             }

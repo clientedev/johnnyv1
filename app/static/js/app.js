@@ -14,6 +14,45 @@ function removeToken() {
     localStorage.removeItem('token');
 }
 
+function initMobileMenu() {
+    const menuToggle = document.querySelector('.menu-toggle');
+    const nav = document.querySelector('nav');
+    const navOverlay = document.querySelector('.nav-overlay');
+    
+    if (!menuToggle) return;
+    
+    menuToggle.addEventListener('click', () => {
+        menuToggle.classList.toggle('active');
+        nav.classList.toggle('active');
+        if (navOverlay) {
+            navOverlay.classList.toggle('active');
+        }
+    });
+    
+    if (navOverlay) {
+        navOverlay.addEventListener('click', () => {
+            menuToggle.classList.remove('active');
+            nav.classList.remove('active');
+            navOverlay.classList.remove('active');
+        });
+    }
+    
+    const navLinks = nav.querySelectorAll('a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            menuToggle.classList.remove('active');
+            nav.classList.remove('active');
+            if (navOverlay) {
+                navOverlay.classList.remove('active');
+            }
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initMobileMenu();
+});
+
 async function fetchAPI(endpoint, options = {}) {
     const token = getToken();
     const headers = {
