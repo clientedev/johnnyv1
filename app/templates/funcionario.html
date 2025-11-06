@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meus Relatórios - MetalGest</title>
+    <title>Meus Relatórios - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -11,7 +11,7 @@
 <body>
     <header>
         <div class="header-content">
-            <div class="logo">⚙️ MetalGest</div>
+            <div class="logo"><img src="/static/images/mrx-logo.png" alt="MRX" style="height: 40px; vertical-align: middle; margin-right: 10px; border-radius: 50%;">MRX Systems</div>
             <nav>
                 <ul>
                     <li><a href="/funcionario.html">Meus Relatórios</a></li>
@@ -74,14 +74,29 @@
                         <option value="media">Média</option>
                         <option value="pesada">Pesada</option>
                     </select>
+                    <button type="button" class="btn btn-secondary" onclick="escanearPlaca()" style="margin-top: 0.5rem;">📸 Scanear Placa (Em Manutenção)</button>
                 </div>
                 <div class="form-group">
                     <label>Peso (kg)</label>
                     <input type="number" id="pesoKg" step="0.01" min="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label>Foto da Placa</label>
-                    <input type="file" id="foto" accept="image/*" required>
+                    <label>Adicionar Imagem</label>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <input type="file" id="foto" accept="image/*" required capture="environment" style="display: none;">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('foto').click()">📷 Adicionar Imagem</button>
+                        <div id="imagePreview" style="display: none; text-align: center;">
+                            <img id="previewImg" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                            <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--gray-600);" id="imageName"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Localização</label>
+                    <button type="button" class="btn btn-secondary" onclick="obterLocalizacao()" id="btnLocalizacao">📍 Obter Localização Atual</button>
+                    <div id="enderecoInfo" style="margin-top: 0.5rem; padding: 0.75rem; background: var(--gray-100); border-radius: 6px; display: none;">
+                        <p style="margin: 0; font-size: 0.875rem;" id="enderecoTexto"></p>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Observações</label>
@@ -174,17 +189,16 @@
             formData.append('foto', document.getElementById('foto').files[0]);
             formData.append('observacoes', document.getElementById('observacoes').value);
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    formData.append('localizacao_lat', position.coords.latitude);
-                    formData.append('localizacao_lng', position.coords.longitude);
-                    await enviarRelatorio(formData);
-                }, async () => {
-                    await enviarRelatorio(formData);
-                });
-            } else {
-                await enviarRelatorio(formData);
+            // Adicionar localização e endereço se disponível
+            if (currentLat && currentLng) {
+                formData.append('localizacao_lat', currentLat);
+                formData.append('localizacao_lng', currentLng);
+                if (currentEndereco) {
+                    formData.append('endereco_completo', currentEndereco);
+                }
             }
+
+            await enviarRelatorio(formData);
         });
 
         async function enviarRelatorio(formData) {
@@ -217,12 +231,101 @@
                 <p><strong>Peso:</strong> ${relatorio.peso_kg} kg</p>
                 <p><strong>Status:</strong> <span class="badge badge-${relatorio.status}">${relatorio.status}</span></p>
                 <p><strong>Data:</strong> ${formatDate(relatorio.data_envio)}</p>
+                ${relatorio.endereco_completo ? `<p><strong>📍 Localização:</strong> ${relatorio.endereco_completo}</p>` : (relatorio.localizacao_lat ? `<p><strong>📍 Localização:</strong> Coordenadas: ${relatorio.localizacao_lat.toFixed(6)}, ${relatorio.localizacao_lng.toFixed(6)}</p>` : '')}
                 ${relatorio.observacoes ? `<p><strong>Observações:</strong> ${relatorio.observacoes}</p>` : ''}
-                ${relatorio.foto_url ? `<p><strong>Foto:</strong><br><img src="${relatorio.foto_url}" style="max-width: 100%; border-radius: 8px;"></p>` : ''}
+                ${relatorio.foto_url ? `<p><strong>Foto:</strong><br><img src="${relatorio.foto_url}" style="max-width: 100%; border-radius: 8px; margin-top: 0.5rem;"></p>` : ''}
             `;
 
             document.getElementById('detalhesConteudo').innerHTML = conteudo;
             document.getElementById('modalDetalhes').classList.add('active');
+        }
+
+        // Preview de imagem
+        document.getElementById('foto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('previewImg').src = event.target.result;
+                    document.getElementById('imageName').textContent = file.name;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Variáveis para armazenar localização
+        let currentLat = null;
+        let currentLng = null;
+        let currentEndereco = null;
+
+        // Função para obter localização e converter em endereço
+        async function obterLocalizacao() {
+            const btn = document.getElementById('btnLocalizacao');
+            btn.disabled = true;
+            btn.textContent = '⏳ Obtendo localização...';
+
+            if (!navigator.geolocation) {
+                showAlert('Geolocalização não é suportada pelo seu navegador');
+                btn.disabled = false;
+                btn.textContent = '📍 Obter Localização Atual';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                currentLat = position.coords.latitude;
+                currentLng = position.coords.longitude;
+
+                try {
+                    // Usar Nominatim API para geocoding reverso
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}&addressdetails=1`, {
+                        headers: {
+                            'User-Agent': 'MRX-Systems-App'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data && data.address) {
+                        const addr = data.address;
+                        const rua = addr.road || addr.street || addr.pedestrian || 'Rua não identificada';
+                        const numero = addr.house_number || 's/n';
+                        const bairro = addr.neighbourhood || addr.suburb || '';
+                        const cidade = addr.city || addr.town || addr.village || '';
+                        const estado = addr.state || '';
+                        const cep = addr.postcode || 'CEP não disponível';
+                        
+                        currentEndereco = `${rua}, ${numero}${bairro ? ', ' + bairro : ''} - ${cidade}/${estado} - CEP: ${cep}`;
+                        
+                        document.getElementById('enderecoTexto').textContent = currentEndereco;
+                        document.getElementById('enderecoInfo').style.display = 'block';
+                        
+                        btn.textContent = '✅ Localização Obtida';
+                        showAlert('Localização obtida com sucesso!', 'success');
+                    } else {
+                        throw new Error('Não foi possível obter o endereço');
+                    }
+                } catch (error) {
+                    console.error('Erro ao obter endereço:', error);
+                    currentEndereco = `Coordenadas: ${currentLat.toFixed(6)}, ${currentLng.toFixed(6)}`;
+                    document.getElementById('enderecoTexto').textContent = currentEndereco;
+                    document.getElementById('enderecoInfo').style.display = 'block';
+                    btn.textContent = '✅ Localização Obtida (Coordenadas)';
+                    showAlert('Localização obtida (endereço não disponível)', 'success');
+                }
+                
+                btn.disabled = false;
+            }, (error) => {
+                console.error('Erro ao obter localização:', error);
+                showAlert('Não foi possível obter a localização. Verifique as permissões.');
+                btn.disabled = false;
+                btn.textContent = '📍 Obter Localização Atual';
+            });
+        }
+
+        // Função para scanear placa (em manutenção)
+        function escanearPlaca() {
+            showAlert('🔧 Funcionalidade em manutenção. Em breve você poderá usar IA para identificar automaticamente o tipo de placa!', 'info');
         }
 
         carregarPagina();

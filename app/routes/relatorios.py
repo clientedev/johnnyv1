@@ -22,6 +22,7 @@ def listar_relatorios():
     
     status = request.args.get('status')
     empresa_id = request.args.get('empresa_id', type=int)
+    busca = request.args.get('busca', '')
     
     query = Relatorio.query
     
@@ -33,6 +34,14 @@ def listar_relatorios():
     
     if empresa_id:
         query = query.filter_by(empresa_id=empresa_id)
+    
+    if busca:
+        query = query.join(Empresa).join(Usuario).filter(
+            db.or_(
+                Empresa.nome.ilike(f'%{busca}%'),
+                Usuario.nome.ilike(f'%{busca}%')
+            )
+        )
     
     relatorios = query.order_by(Relatorio.data_envio.desc()).all()
     
@@ -79,6 +88,7 @@ def criar_relatorio():
     peso_kg = request.form.get('peso_kg', type=float)
     localizacao_lat = request.form.get('localizacao_lat', type=float)
     localizacao_lng = request.form.get('localizacao_lng', type=float)
+    endereco_completo = request.form.get('endereco_completo', '')
     observacoes = request.form.get('observacoes', '')
     
     if not empresa_id or not tipo_placa or not peso_kg:
@@ -102,6 +112,7 @@ def criar_relatorio():
         foto_url=f'/uploads/{filename}',
         localizacao_lat=localizacao_lat,
         localizacao_lng=localizacao_lng,
+        endereco_completo=endereco_completo,
         observacoes=observacoes,
         status='pendente'
     )

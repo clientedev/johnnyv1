@@ -73,6 +73,7 @@ class Relatorio(db.Model):
     foto_url = db.Column(db.String(500))
     localizacao_lat = db.Column(db.Float)
     localizacao_lng = db.Column(db.Float)
+    endereco_completo = db.Column(db.String(500))
     status = db.Column(db.String(20), default='pendente', nullable=False)
     observacoes = db.Column(db.Text)
     data_envio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -89,6 +90,7 @@ class Relatorio(db.Model):
             'foto_url': self.foto_url,
             'localizacao_lat': self.localizacao_lat,
             'localizacao_lng': self.localizacao_lng,
+            'endereco_completo': self.endereco_completo,
             'status': self.status,
             'observacoes': self.observacoes,
             'data_envio': self.data_envio.isoformat() if self.data_envio else None

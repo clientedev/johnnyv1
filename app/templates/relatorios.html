@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatórios - MetalGest</title>
+    <title>Relatórios - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -11,7 +11,7 @@
 <body>
     <header>
         <div class="header-content">
-            <div class="logo">⚙️ MetalGest</div>
+            <div class="logo"><img src="/static/images/mrx-logo.png" alt="MRX" style="height: 40px; vertical-align: middle; margin-right: 10px; border-radius: 50%;">MRX Systems</div>
             <nav>
                 <ul>
                     <li><a href="/dashboard.html">Dashboard</a></li>
@@ -32,14 +32,21 @@
     </header>
 
     <main class="container" style="margin-top: 2rem;">
-        <h1>Gerenciar Relatórios</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Gerenciar Relatórios</h1>
+            <button class="btn btn-primary" onclick="exportarRelatorios()">📥 Exportar Relatórios</button>
+        </div>
 
         <div class="card" style="margin-bottom: 1.5rem;">
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
                 <button class="btn btn-primary" onclick="filtrarStatus('todos')">Todos</button>
                 <button class="btn btn-warning" onclick="filtrarStatus('pendente')">Pendentes</button>
                 <button class="btn btn-success" onclick="filtrarStatus('aprovado')">Aprovados</button>
                 <button class="btn btn-danger" onclick="filtrarStatus('reprovado')">Reprovados</button>
+                <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="buscaRelatorio" placeholder="Buscar por empresa ou funcionário..." style="padding: 0.5rem; border: 1px solid var(--gray-300); border-radius: 6px; min-width: 250px;">
+                    <button class="btn btn-secondary" onclick="buscarRelatorios()">🔍 Buscar</button>
+                </div>
             </div>
         </div>
 
@@ -147,8 +154,8 @@
                 <p><strong>Status:</strong> <span class="badge badge-${relatorioAtual.status}">${relatorioAtual.status}</span></p>
                 <p><strong>Data:</strong> ${formatDate(relatorioAtual.data_envio)}</p>
                 ${relatorioAtual.observacoes ? `<p><strong>Observações:</strong> ${relatorioAtual.observacoes}</p>` : ''}
-                ${relatorioAtual.localizacao_lat ? `<p><strong>Localização:</strong> ${relatorioAtual.localizacao_lat}, ${relatorioAtual.localizacao_lng}</p>` : ''}
-                ${relatorioAtual.foto_url ? `<p><strong>Foto:</strong><br><img src="${relatorioAtual.foto_url}" style="max-width: 100%; border-radius: 8px;"></p>` : ''}
+                ${relatorioAtual.endereco_completo ? `<p><strong>📍 Localização:</strong> ${relatorioAtual.endereco_completo}</p>` : (relatorioAtual.localizacao_lat ? `<p><strong>📍 Localização:</strong> Coordenadas: ${relatorioAtual.localizacao_lat.toFixed(6)}, ${relatorioAtual.localizacao_lng.toFixed(6)}</p>` : '')}
+                ${relatorioAtual.foto_url ? `<p><strong>Foto:</strong><br><img src="${relatorioAtual.foto_url}" style="max-width: 100%; border-radius: 8px; margin-top: 0.5rem;"></p>` : ''}
             `;
 
             document.getElementById('detalhesConteudo').innerHTML = conteudo;
@@ -199,6 +206,107 @@
         function fecharModal() {
             document.getElementById('modalDetalhes').classList.remove('active');
         }
+
+        let todosRelatorios = [];
+
+        async function buscarRelatorios() {
+            const termo = document.getElementById('buscaRelatorio').value.toLowerCase();
+            if (!termo) {
+                carregarRelatorios();
+                return;
+            }
+
+            const filtrados = todosRelatorios.filter(r => 
+                r.empresa_nome.toLowerCase().includes(termo) || 
+                r.funcionario_nome.toLowerCase().includes(termo)
+            );
+
+            const tbody = document.getElementById('tabelaRelatorios');
+            if (filtrados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Nenhum relatório encontrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtrados.map(r => `
+                <tr>
+                    <td>${r.id}</td>
+                    <td>${formatDate(r.data_envio)}</td>
+                    <td>${r.funcionario_nome}</td>
+                    <td>${r.empresa_nome}</td>
+                    <td>${r.tipo_placa}</td>
+                    <td>${r.peso_kg}</td>
+                    <td><span class="badge badge-${r.status}">${r.status}</span></td>
+                    <td>
+                        <button class="btn btn-secondary" onclick="verDetalhes(${r.id})">Ver</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function exportarRelatorios() {
+            const response = await fetchAPI('/relatorios');
+            const relatorios = await response.json();
+
+            if (relatorios.length === 0) {
+                showAlert('Nenhum relatório para exportar');
+                return;
+            }
+
+            let csv = 'ID,Data,Funcionário,Empresa,Tipo de Placa,Peso (kg),Status,Localização,Observações\n';
+            
+            relatorios.forEach(r => {
+                const data = new Date(r.data_envio).toLocaleDateString('pt-BR');
+                const localizacao = r.endereco_completo || (r.localizacao_lat ? `${r.localizacao_lat}, ${r.localizacao_lng}` : 'N/A');
+                csv += `${r.id},"${data}","${r.funcionario_nome}","${r.empresa_nome}","${r.tipo_placa}",${r.peso_kg},"${r.status}","${localizacao}","${r.observacoes || ''}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `relatorios_mrx_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showAlert('Relatórios exportados com sucesso!', 'success');
+        }
+
+        carregarRelatorios = async function(status = null) {
+            const url = status ? `/relatorios?status=${status}` : '/relatorios';
+            const response = await fetchAPI(url);
+            const relatorios = await response.json();
+            todosRelatorios = relatorios;
+
+            const tbody = document.getElementById('tabelaRelatorios');
+
+            if (relatorios.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Nenhum relatório encontrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = relatorios.map(r => `
+                <tr>
+                    <td>${r.id}</td>
+                    <td>${formatDate(r.data_envio)}</td>
+                    <td>${r.funcionario_nome}</td>
+                    <td>${r.empresa_nome}</td>
+                    <td>${r.tipo_placa}</td>
+                    <td>${r.peso_kg}</td>
+                    <td><span class="badge badge-${r.status}">${r.status}</span></td>
+                    <td>
+                        <button class="btn btn-secondary" onclick="verDetalhes(${r.id})">Ver</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('buscaRelatorio')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                buscarRelatorios();
+            }
+        });
 
         carregarPagina();
     </script>

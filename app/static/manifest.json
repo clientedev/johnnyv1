@@ -1,7 +1,7 @@
 {
-  "name": "MetalGest - Gestão de Metais e Eletrônicos",
-  "short_name": "MetalGest",
-  "description": "Sistema profissional para gestão de compras de metais e eletrônicos",
+  "name": "MRX Systems",
+  "short_name": "MRX Systems",
+  "description": "Sistema de gestão MRX Systems",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
