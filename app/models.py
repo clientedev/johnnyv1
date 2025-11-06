@@ -35,6 +35,7 @@ class Empresa(db.Model):
     
     precos = db.relationship('Preco', backref='empresa', lazy=True, cascade='all, delete-orphan')
     relatorios = db.relationship('Relatorio', backref='empresa', lazy=True, cascade='all, delete-orphan')
+    placas = db.relationship('Placa', backref='empresa', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
         return {
@@ -94,6 +95,39 @@ class Relatorio(db.Model):
             'status': self.status,
             'observacoes': self.observacoes,
             'data_envio': self.data_envio.isoformat() if self.data_envio else None
+        }
+
+class Placa(db.Model):
+    __tablename__ = 'placas'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresas.id'), nullable=False)
+    funcionario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    relatorio_id = db.Column(db.Integer, db.ForeignKey('relatorios.id'), nullable=True)
+    tipo_placa = db.Column(db.String(20), nullable=False)
+    peso_kg = db.Column(db.Float, nullable=False)
+    valor = db.Column(db.Float, nullable=False)
+    imagem_url = db.Column(db.String(500))
+    data_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    observacoes = db.Column(db.Text)
+    
+    funcionario = db.relationship('Usuario', backref='placas')
+    relatorio = db.relationship('Relatorio', backref='placas')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'empresa_id': self.empresa_id,
+            'empresa_nome': self.empresa.nome if self.empresa else None,
+            'funcionario_id': self.funcionario_id,
+            'funcionario_nome': self.funcionario.nome if self.funcionario else None,
+            'relatorio_id': self.relatorio_id,
+            'tipo_placa': self.tipo_placa,
+            'peso_kg': self.peso_kg,
+            'valor': self.valor,
+            'imagem_url': self.imagem_url,
+            'data_registro': self.data_registro.isoformat() if self.data_registro else None,
+            'observacoes': self.observacoes
         }
 
 class Notificacao(db.Model):

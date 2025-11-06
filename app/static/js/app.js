@@ -317,3 +317,51 @@ function setActiveNavItem() {
         }
     });
 }
+
+// Submit Scanner Form
+document.addEventListener('DOMContentLoaded', () => {
+    const formScanner = document.getElementById('formScanner');
+    if (formScanner) {
+        formScanner.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('empresa_id', document.getElementById('scannerEmpresa').value);
+            formData.append('tipo_placa', document.getElementById('tipoPlaca').value);
+            formData.append('peso_kg', document.getElementById('pesoPlaca').value);
+            formData.append('valor', document.getElementById('valorPlaca').value);
+            
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length > 0) {
+                formData.append('imagem', fileInput.files[0]);
+            }
+            
+            try {
+                const token = getToken();
+                const response = await fetch(`${API_URL}/placas`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    alert('Placa registrada com sucesso!');
+                    closeScanner();
+                    if (typeof carregarPlacas === 'function') {
+                        carregarPlacas();
+                    }
+                } else {
+                    const error = await response.json();
+                    alert('Erro ao registrar placa: ' + (error.error || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao registrar placa');
+            }
+        });
+    }
+    
+    setActiveNavItem();
+});
