@@ -10,3 +10,14 @@ python-dotenv==1.0.0
 gunicorn==21.2.0
 python-socketio==5.11.1
 eventlet==0.35.2
+bcrypt
+flask
+flask-cors
+flask-jwt-extended
+flask-socketio
+flask-sqlalchemy
+gunicorn
+pillow
+psycopg2-binary
+python-dotenv
+python-socketio

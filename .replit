@@ -1,4 +1,4 @@
-modules = ["python-3.11"]
+modules = ["web", "python-3.12", "nodejs-20"]
 [agent]
 expertMode = true
 integrations = ["python_database:1.0.0", "javascript_websocket:1.0.0"]
@@ -34,3 +34,11 @@ externalPort = 80
 [[ports]]
 localPort = 32775
 externalPort = 3000
+
+[[ports]]
+localPort = 35173
+externalPort = 3001
+
+[nix]
+channel = "stable-25_05"
+packages = ["cargo", "freetype", "iana-etc", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zlib"]
