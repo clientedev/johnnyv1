@@ -980,14 +980,21 @@ main {
     min-height: calc(100vh - 150px);
 }
 
-/* Hide bottom nav on desktop */
+/* Adjust for desktop */
 @media (min-width: 768px) {
     .bottom-nav {
-        display: none;
+        display: flex; /* Mantém visível em desktop também */
+        justify-content: center;
+        gap: var(--spacing-md);
+        padding: 0 var(--spacing-xl);
+    }
+    
+    .bottom-nav-item {
+        max-width: 120px;
     }
     
     body {
-        padding-bottom: 0;
+        padding-bottom: 80px; /* Mantém espaço para barra */
     }
     
     main {
