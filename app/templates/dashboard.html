@@ -6,6 +6,7 @@
     <title>Dashboard - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -24,24 +25,24 @@
     <!-- Bottom Navigation (Mobile) -->
     <nav class="bottom-nav">
         <a href="/notificacoes.html" class="bottom-nav-item">
-            <span class="icon">🔔</span>
+            <i class="fas fa-bell icon"></i>
             <span>Notificações</span>
         </a>
         <a href="/dashboard.html" class="bottom-nav-item active">
-            <span class="icon">📊</span>
+            <i class="fas fa-chart-line icon"></i>
             <span>Dashboard</span>
         </a>
         <div class="fab-container">
             <button class="fab-button" onclick="openScanner()" aria-label="Scanner">
-                <span class="icon">📷</span>
+                <i class="fas fa-camera icon"></i>
             </button>
         </div>
         <a href="/relatorios.html" class="bottom-nav-item">
-            <span class="icon">📋</span>
+            <i class="fas fa-file-alt icon"></i>
             <span>Relatórios</span>
         </a>
         <a href="/empresas.html" class="bottom-nav-item">
-            <span class="icon">🏢</span>
+            <i class="fas fa-building icon"></i>
             <span>Empresas</span>
         </a>
     </nav>
@@ -61,7 +62,7 @@
                     </select>
                 </div>
                 <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                    <div class="icon">📷</div>
+                    <i class="fas fa-camera icon" style="font-size: 3rem; color: var(--primary-color);"></i>
                     <p>Toque para capturar ou selecionar imagem</p>
                     <input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;" onchange="previewImage(this)">
                 </div>

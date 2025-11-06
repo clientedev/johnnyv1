@@ -133,8 +133,8 @@ header {
     object-fit: cover;
 }
 
-/* Navigation Drawer (Mobile) */
-nav {
+/* Navigation Drawer (Mobile) - Menu lateral hamburguer */
+nav.side-drawer {
     position: fixed;
     top: 0;
     right: -100%;
@@ -148,7 +148,7 @@ nav {
     padding-top: 70px;
 }
 
-nav.active {
+nav.side-drawer.active {
     right: 0;
 }
 
@@ -171,18 +171,18 @@ nav.active {
     opacity: 1;
 }
 
-nav ul {
+nav.side-drawer ul {
     list-style: none;
     display: flex;
     flex-direction: column;
     padding: var(--spacing-md);
 }
 
-nav li {
+nav.side-drawer li {
     margin-bottom: var(--spacing-xs);
 }
 
-nav a {
+nav.side-drawer a {
     display: block;
     text-decoration: none;
     color: var(--gray-700);
@@ -195,8 +195,8 @@ nav a {
     align-items: center;
 }
 
-nav a:hover,
-nav a:active {
+nav.side-drawer a:hover,
+nav.side-drawer a:active {
     background: var(--gray-100);
     color: var(--primary-color);
 }
