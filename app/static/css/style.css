@@ -904,7 +904,7 @@ textarea:focus-visible {
     justify-content: space-around;
     align-items: center;
     height: 70px;
-    z-index: 90;
+    z-index: 999;
     padding: 0 var(--spacing-sm);
 }
 

@@ -235,6 +235,25 @@
         }
 
         carregarDashboard();
+        
+        // Debug para verificar a navegação
+        setTimeout(() => {
+            const bottomNav = document.querySelector('.bottom-nav');
+            if (bottomNav) {
+                const styles = window.getComputedStyle(bottomNav);
+                console.log('Bottom Nav encontrado!', {
+                    display: styles.display,
+                    position: styles.position,
+                    bottom: styles.bottom,
+                    zIndex: styles.zIndex,
+                    visibility: styles.visibility,
+                    height: bottomNav.offsetHeight,
+                    width: bottomNav.offsetWidth
+                });
+            } else {
+                console.error('Bottom Nav NÃO encontrado no DOM!');
+            }
+        }, 1000);
     </script>
 </body>
 </html>
