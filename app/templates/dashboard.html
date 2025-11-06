@@ -101,10 +101,9 @@
         let map;
 
         async function carregarDashboard() {
-            const user = await verificarAuth();
-            if (!user) return;
+            const userData = await verificarAuth();
+            if (!userData) return;
 
-            const userData = await getCurrentUser();
             if (userData.tipo !== 'admin') {
                 window.location.href = '/funcionario.html';
                 return;

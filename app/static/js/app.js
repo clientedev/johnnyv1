@@ -57,15 +57,24 @@ async function login(email, senha) {
 }
 
 async function getCurrentUser() {
-    const response = await fetchAPI('/auth/me');
-    
-    if (response.ok) {
-        const data = await response.json();
-        currentUser = data;
-        return data;
+    try {
+        const response = await fetchAPI('/auth/me');
+        
+        if (!response) {
+            return null;
+        }
+        
+        if (response.ok) {
+            const data = await response.json();
+            currentUser = data;
+            return data;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Erro ao obter usuário atual:', error);
+        return null;
     }
-    
-    return null;
 }
 
 function logout() {
@@ -144,7 +153,7 @@ async function verificarAuth() {
         if (window.location.pathname !== '/' && !window.location.pathname.includes('index.html')) {
             window.location.href = '/';
         }
-        return false;
+        return null;
     }
 
     const user = await getCurrentUser();
@@ -152,11 +161,11 @@ async function verificarAuth() {
     if (!user) {
         removeToken();
         window.location.href = '/';
-        return false;
+        return null;
     }
 
     initWebSocket();
-    return true;
+    return user;
 }
 
 if ('serviceWorker' in navigator) {
