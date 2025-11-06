@@ -1,138 +1,206 @@
-# ⚙️ MetalGest - Gestão de Metais e Eletrônicos
+# Sistema de Gestão de Empresas e Preços
 
 ## Visão Geral
-Sistema profissional completo para controlar compras de metais e eletrônicos feitas por funcionários em diferentes empresas. O sistema permite registro de fotos, localização GPS, peso dos materiais e aprovação administrativa de cada compra.
+Sistema web completo para gestão de empresas, funcionários, preços e relatórios. Construído com Flask, PostgreSQL, WebSocket para notificações em tempo real, e autenticação JWT.
 
-## Tecnologias Utilizadas
-- **Backend:** Python 3.11 + Flask
-- **Banco de Dados:** PostgreSQL (via Replit Database)
-- **ORM:** SQLAlchemy
+## Estado Atual (06/11/2025)
+✅ **Projeto totalmente funcional e pronto para deploy**
+- Aplicação rodando localmente sem erros
+- Todas as dependências instaladas
+- Arquivos de deploy para Railway configurados
+- Criação automática de tabelas do banco de dados implementada
+- WebSocket funcionando para notificações em tempo real
+
+## Arquitetura do Projeto
+
+### Stack Tecnológica
+- **Backend:** Flask 3.0.0 + Flask-SocketIO
+- **Banco de Dados:** PostgreSQL com SQLAlchemy
 - **Autenticação:** JWT (Flask-JWT-Extended)
-- **Senha:** bcrypt
-- **WebSocket:** Flask-SocketIO (notificações em tempo real)
-- **Frontend:** HTML5, CSS3, JavaScript vanilla
-- **Gráficos:** Chart.js
-- **Mapas:** Leaflet.js
-- **PWA:** Service Worker + Manifest.json
+- **WebSocket:** Socket.IO para notificações em tempo real
+- **Frontend:** HTML/CSS/JavaScript vanilla
+- **Deploy:** Railway (configurado)
 
-## Estrutura do Projeto
+### Estrutura de Diretórios
 ```
 .
 ├── app/
-│   ├── __init__.py           # Inicialização do Flask
-│   ├── models.py             # Modelos do banco de dados
-│   ├── auth.py               # Autenticação e decoradores
-│   ├── routes/               # Rotas da API REST
-│   │   ├── auth.py
-│   │   ├── empresas.py
-│   │   ├── usuarios.py
-│   │   ├── precos.py
-│   │   ├── relatorios.py
-│   │   ├── notificacoes.py
-│   │   └── dashboard.py
-│   ├── static/               # Arquivos estáticos
+│   ├── __init__.py          # Inicialização da aplicação e configuração
+│   ├── models.py            # Modelos de banco de dados
+│   ├── auth.py              # Funções de autenticação
+│   ├── routes/              # Rotas da API
+│   │   ├── auth.py          # Login, registro
+│   │   ├── empresas.py      # CRUD de empresas
+│   │   ├── usuarios.py      # Gerenciamento de usuários
+│   │   ├── precos.py        # Gerenciamento de preços
+│   │   ├── relatorios.py    # Geração de relatórios
+│   │   ├── notificacoes.py  # Sistema de notificações
+│   │   └── dashboard.py     # Dashboard
+│   ├── static/              # Arquivos estáticos
 │   │   ├── css/
-│   │   │   └── style.css
 │   │   ├── js/
-│   │   │   ├── app.js
-│   │   │   └── sw.js (Service Worker)
-│   │   ├── images/           # Ícones PWA
-│   │   └── manifest.json
-│   └── templates/            # Templates HTML
-│       ├── index.html
-│       ├── dashboard.html
-│       ├── funcionario.html
-│       ├── relatorios.html
-│       ├── empresas.html
-│       ├── funcionarios.html
-│       ├── empresas-lista.html
-│       └── notificacoes.html
-├── uploads/                  # Fotos enviadas
-├── app.py                    # Arquivo principal
-└── requirements.txt
+│   │   └── images/
+│   └── templates/           # Templates HTML
+├── uploads/                 # Arquivos de upload
+├── app.py                   # Ponto de entrada da aplicação
+├── requirements.txt         # Dependências Python
+├── Procfile                 # Configuração Gunicorn para Railway
+├── nixpacks.toml            # Configuração de build do Railway
+├── runtime.txt              # Versão do Python
+└── DEPLOY_RAILWAY.md        # Guia completo de deploy
 ```
 
 ## Funcionalidades Principais
 
-### Administrador
-- ✅ CRUD completo de empresas, funcionários e tabelas de preços
-- ✅ Visualização e aprovação/reprovação de relatórios
-- ✅ Dashboard com estatísticas:
-  - Contadores de relatórios (pendentes/aprovados/reprovados)
-  - Quilos totais por tipo de placa
-  - Valor total movimentado
-  - Ranking de empresas
-  - Gráfico mensal de movimentação
-  - Mapa interativo com geolocalização
-- ✅ Notificações em tempo real (novos relatórios)
+### 1. Sistema de Autenticação
+- Login/Registro de usuários
+- Autenticação JWT com tokens de 24 horas
+- Dois tipos de usuário: Admin e Funcionário
+- WebSocket autenticado para notificações
 
-### Funcionário
-- ✅ Login com email e senha
-- ✅ Visualização de empresas cadastradas
-- ✅ Criação de relatórios com:
-  - Upload de foto
-  - Seleção de tipo de placa (leve/média/pesada)
-  - Peso em kg
-  - Captura automática de GPS
-  - Observações
-- ✅ Visualização de histórico de relatórios
-- ✅ Notificações em tempo real (aprovação/reprovação)
+### 2. Gestão de Empresas
+- CRUD completo de empresas
+- Upload de logotipos
+- Vinculação de funcionários às empresas
+- Histórico de alterações
 
-### PWA (Progressive Web App)
-- ✅ Manifest.json configurado
-- ✅ Service Worker para cache básico
-- ✅ Banner de instalação em dispositivos móveis
-- ✅ Ícones para tela inicial
+### 3. Gestão de Funcionários
+- Cadastro e gerenciamento de funcionários
+- Vinculação com empresas
+- Controle de permissões
 
-## Banco de Dados
+### 4. Gestão de Preços
+- Registro de preços por empresa
+- Histórico de preços
+- Notificações em tempo real de novos preços
 
-### Tabelas
-- **usuarios:** id, nome, email, senha_hash, tipo
-- **empresas:** id, nome, cnpj, endereco, telefone, observacoes
-- **precos:** id, empresa_id, tipo_placa, preco_por_kg
-- **relatorios:** id, funcionario_id, empresa_id, tipo_placa, peso_kg, foto_url, localizacao_lat, localizacao_lng, status, observacoes, data_envio
-- **notificacoes:** id, usuario_id, titulo, mensagem, lida, data_envio
+### 5. Relatórios
+- Relatórios de empresas
+- Relatórios de preços
+- Exportação de dados
 
-## Credenciais Padrão
-- **Administrador:** 
-  - Email: admin@sistema.com
-  - Senha: admin123
+### 6. Notificações em Tempo Real
+- WebSocket para notificações instantâneas
+- Salas separadas para admins e usuários
+- Notificações de novos preços e alterações
 
-## Como Usar
+## Configuração do Banco de Dados
 
-1. **Acessar o sistema:** Abra o navegador e faça login
-2. **Administrador:** Acesse o dashboard para gerenciar empresas, funcionários e aprovar relatórios
-3. **Funcionário:** Crie relatórios de compra com foto e GPS
-4. **Notificações:** Ambos recebem notificações em tempo real via WebSocket
-5. **PWA:** Em dispositivos móveis, clique em "Instalar" para adicionar à tela inicial
+### Modelos Principais
+- **Usuario:** Usuários do sistema (admin/funcionário)
+- **Empresa:** Empresas cadastradas
+- **Funcionario:** Funcionários vinculados às empresas
+- **Preco:** Histórico de preços por empresa
+- **Notificacao:** Sistema de notificações
 
-## Deploy (Railway)
+### Criação Automática de Tabelas
+O sistema cria automaticamente todas as tabelas ao iniciar (`db.create_all()` em `app/__init__.py`).
 
-### Variáveis de Ambiente Necessárias
-- `DATABASE_URL`: URL do banco PostgreSQL (automático no Railway)
-- `JWT_SECRET_KEY`: Chave secreta para tokens JWT (gerar senha forte)
-- `SESSION_SECRET`: Chave secreta para sessões (gerar senha forte)
-- `ADMIN_EMAIL`: Email do administrador (padrão: admin@sistema.com)
-- `ADMIN_PASSWORD`: Senha do administrador (OBRIGATÓRIO mudar em produção!)
+### Usuário Admin Padrão
+Ao iniciar, o sistema cria automaticamente um usuário admin:
+- **Email:** admin@sistema.com (ou variável `ADMIN_EMAIL`)
+- **Senha:** admin123 (ou variável `ADMIN_PASSWORD`)
 
-### Configuração
-- O sistema usa Gunicorn com worker eventlet para WebSocket
-- Porta: 5000 (configurável via PORT)
-- WebSocket configurado para notificações em tempo real
-- **IMPORTANTE:** Configure ADMIN_EMAIL e ADMIN_PASSWORD no Railway antes do deploy!
+⚠️ **IMPORTANTE:** Altere estas credenciais em produção!
 
-### Comandos para Deploy
+## Variáveis de Ambiente
+
+### Obrigatórias
+- `DATABASE_URL` - URL de conexão com PostgreSQL
+- `SESSION_SECRET` - Chave secreta para sessões
+- `JWT_SECRET_KEY` - Chave secreta para tokens JWT
+
+### Opcionais
+- `ADMIN_EMAIL` - Email do admin padrão (default: admin@sistema.com)
+- `ADMIN_PASSWORD` - Senha do admin padrão (default: admin123)
+- `PORT` - Porta do servidor (default: 5000, auto no Railway)
+
+## Deploy
+
+### Railway (Recomendado)
+✅ **Projeto já configurado para Railway**
+
+Siga o guia completo em `DEPLOY_RAILWAY.md` com instruções passo a passo:
+1. Fazer push para GitHub
+2. Criar projeto no Railway
+3. Adicionar PostgreSQL
+4. Configurar variáveis de ambiente
+5. Deploy automático
+
+### Arquivos de Configuração para Deploy
+- `Procfile` - Comando para iniciar com Gunicorn
+- `nixpacks.toml` - Configuração de build do Railway
+- `runtime.txt` - Python 3.12
+- `requirements.txt` - Dependências limpas e organizadas
+
+## Desenvolvimento Local
+
+### Requisitos
+- Python 3.12
+- PostgreSQL (ou usar integração do Replit)
+
+### Como Executar
 ```bash
-# O Procfile já está configurado
-# Railway executará automaticamente: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT app:app
+# Instalar dependências (já instaladas)
+pip install -r requirements.txt
+
+# Executar aplicação
+python app.py
 ```
 
-## Melhorias Futuras
-- Reconhecimento automático de tipo de placa via ML/IA
-- Exportação de relatórios em PDF/CSV
-- Filtros avançados por período, empresa, status
-- Perfil de usuário com alteração de senha
-- Modo offline completo para criação de relatórios
+A aplicação estará disponível em `http://0.0.0.0:5000`
 
-## Última Atualização
-06/11/2025 - Sistema completo implementado com todas as funcionalidades MVP
+## Integrações Replit
+
+### Configuradas (precisam setup)
+- `python_database==1.0.0` - Integração com PostgreSQL
+- `javascript_websocket==1.0.0` - Integração WebSocket
+
+Use as ferramentas de integração do Replit para configurá-las se necessário.
+
+## Segurança
+
+### Implementado
+✅ Autenticação JWT
+✅ Hash de senhas com bcrypt
+✅ CORS configurado
+✅ Tokens com expiração (24h)
+✅ WebSocket autenticado
+
+### Recomendações para Produção
+- [ ] Configurar `SESSION_SECRET` e `JWT_SECRET_KEY` fortes
+- [ ] Alterar credenciais do admin padrão
+- [ ] Implementar rate limiting
+- [ ] Configurar HTTPS (Railway faz automaticamente)
+- [ ] Implementar validação de dados mais robusta
+- [ ] Adicionar logs de auditoria
+
+## Próximos Passos
+
+### Para Deploy
+1. ✅ Configurar arquivos de deploy (concluído)
+2. Seguir guia em `DEPLOY_RAILWAY.md`
+3. Configurar variáveis de ambiente no Railway
+4. Testar aplicação em produção
+5. Alterar credenciais padrão do admin
+
+### Melhorias Futuras (Sugestões)
+- Implementar sistema de recuperação de senha
+- Adicionar paginação nas listagens
+- Implementar filtros avançados
+- Adicionar gráficos e dashboards
+- Implementar exportação de relatórios em PDF/Excel
+- Adicionar testes automatizados
+- Implementar cache para melhor performance
+
+## Contato e Suporte
+
+Para problemas com o deploy no Railway, consulte:
+- Documentação oficial: https://docs.railway.com/guides/flask
+- Guia local: `DEPLOY_RAILWAY.md`
+- Logs do Railway: Dashboard → Deployments → Ver logs
+
+---
+
+**Última atualização:** 06/11/2025
+**Status:** ✅ Pronto para deploy no Railway
