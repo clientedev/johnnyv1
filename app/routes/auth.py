@@ -17,7 +17,7 @@ def login():
     if not usuario or not verificar_senha(data['senha'], usuario.senha_hash):
         return jsonify({'erro': 'Email ou senha incorretos'}), 401
     
-    access_token = create_access_token(identity=usuario.id)
+    access_token = create_access_token(identity=str(usuario.id))
     
     return jsonify({
         'token': access_token,
@@ -27,7 +27,7 @@ def login():
 @bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
-    usuario_id = get_jwt_identity()
+    usuario_id = int(get_jwt_identity())
     usuario = Usuario.query.get(usuario_id)
     
     if not usuario:
