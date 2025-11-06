@@ -67,7 +67,10 @@ def create_placa():
             file.save(filepath)
             imagem_url = f'/uploads/placas/{filename}'
     
-    data = request.form if request.files else request.get_json()
+    data = request.form if request.form else request.get_json()
+    
+    if not data:
+        return jsonify({'error': 'Dados não fornecidos'}), 400
     
     empresa_id = data.get('empresa_id')
     tipo_placa = data.get('tipo_placa')

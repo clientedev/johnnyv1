@@ -165,8 +165,6 @@
                 return;
             }
 
-            document.getElementById('userName').textContent = userData.nome;
-
             const statsResponse = await fetchAPI('/dashboard/stats');
             const stats = await statsResponse.json();
 

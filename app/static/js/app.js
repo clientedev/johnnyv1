@@ -56,9 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
 async function fetchAPI(endpoint, options = {}) {
     const token = getToken();
     const headers = {
-        'Content-Type': 'application/json',
         ...options.headers
     };
+
+    if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
 
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -274,7 +277,8 @@ function closeScanner() {
 
 async function carregarEmpresasScanner() {
     try {
-        const data = await fetchAPI('/empresas');
+        const response = await fetchAPI('/empresas');
+        const data = await response.json();
         const select = document.getElementById('scannerEmpresa');
         if (select) {
             select.innerHTML = '<option value="">Escolha uma empresa...</option>';
