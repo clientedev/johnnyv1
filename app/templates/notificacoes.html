@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificações - Sistema de Gestão de Placas</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">🔌 Gestão de Placas</div>
+            <nav>
+                <ul id="navLinks">
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Notificações</h1>
+            <button class="btn btn-secondary" onclick="marcarTodasLidas()">Marcar todas como lidas</button>
+        </div>
+
+        <div id="listaNotificacoes"></div>
+    </main>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        async function carregarPagina() {
+            const user = await verificarAuth();
+            if (!user) return;
+
+            const userData = await getCurrentUser();
+
+            const navLinks = document.getElementById('navLinks');
+            if (userData.tipo === 'admin') {
+                navLinks.innerHTML = `
+                    <li><a href="/dashboard.html">Dashboard</a></li>
+                    <li><a href="/relatorios.html">Relatórios</a></li>
+                    <li><a href="/empresas.html">Empresas</a></li>
+                    <li><a href="/funcionarios.html">Funcionários</a></li>
+                    <li class="user-info">
+                        <span>${userData.nome}</span>
+                        <button class="btn btn-secondary" onclick="logout()">Sair</button>
+                    </li>
+                `;
+            } else {
+                navLinks.innerHTML = `
+                    <li><a href="/funcionario.html">Meus Relatórios</a></li>
+                    <li><a href="/empresas-lista.html">Empresas</a></li>
+                    <li class="user-info">
+                        <span>${userData.nome}</span>
+                        <button class="btn btn-secondary" onclick="logout()">Sair</button>
+                    </li>
+                `;
+            }
+
+            await carregarNotificacoes();
+        }
+
+        async function carregarNotificacoes() {
+            const response = await fetchAPI('/notificacoes');
+            const notificacoes = await response.json();
+
+            const container = document.getElementById('listaNotificacoes');
+
+            if (notificacoes.length === 0) {
+                container.innerHTML = '<div class="card"><p>Nenhuma notificação</p></div>';
+                return;
+            }
+
+            container.innerHTML = notificacoes.map(n => `
+                <div class="card" style="background: ${n.lida ? 'white' : 'var(--gray-100)'}; cursor: pointer;" onclick="marcarLida(${n.id})">
+                    <h3 style="margin-bottom: 0.5rem;">${n.titulo}</h3>
+                    <p style="color: var(--gray-600);">${n.mensagem}</p>
+                    <small style="color: var(--gray-400);">${formatDate(n.data_envio)}</small>
+                </div>
+            `).join('');
+        }
+
+        async function marcarLida(id) {
+            await fetchAPI(`/notificacoes/${id}/marcar-lida`, {
+                method: 'PUT'
+            });
+
+            await carregarNotificacoes();
+            await atualizarNotificacoes();
+        }
+
+        async function marcarTodasLidas() {
+            await fetchAPI('/notificacoes/marcar-todas-lidas', {
+                method: 'PUT'
+            });
+
+            showAlert('Todas as notificações foram marcadas como lidas', 'success');
+            await carregarNotificacoes();
+            await atualizarNotificacoes();
+        }
+
+        carregarPagina();
+    </script>
+</body>
+</html>

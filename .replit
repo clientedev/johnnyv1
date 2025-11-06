@@ -1,2 +1,36 @@
+modules = ["python-3.11"]
 [agent]
 expertMode = true
+integrations = ["python_database:1.0.0", "javascript_websocket:1.0.0"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "flask-server"
+
+[[workflows.workflow]]
+name = "flask-server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python app.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 32775
+externalPort = 3000

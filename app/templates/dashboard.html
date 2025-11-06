@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Gestão de Placas</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">🔌 Gestão de Placas</div>
+            <nav>
+                <ul>
+                    <li><a href="/dashboard.html">Dashboard</a></li>
+                    <li><a href="/relatorios.html">Relatórios</a></li>
+                    <li><a href="/empresas.html">Empresas</a></li>
+                    <li><a href="/funcionarios.html">Funcionários</a></li>
+                    <li class="user-info">
+                        <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
+                            🔔
+                            <span class="notification-count" style="display: none;">0</span>
+                        </div>
+                        <span id="userName"></span>
+                        <button class="btn btn-secondary" onclick="logout()">Sair</button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="margin-top: 2rem;">
+        <h1>Dashboard Administrativo</h1>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Relatórios Pendentes</div>
+                <div class="stat-value" id="statPendentes">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Relatórios Aprovados</div>
+                <div class="stat-value" id="statAprovados">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Relatórios Reprovados</div>
+                <div class="stat-value" id="statReprovados">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Valor Total</div>
+                <div class="stat-value" id="statValorTotal">R$ 0,00</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Quilos por Tipo de Placa</h2>
+            </div>
+            <div class="stats-grid">
+                <div>
+                    <strong>Leve:</strong> <span id="kgLeve">0</span> kg
+                </div>
+                <div>
+                    <strong>Média:</strong> <span id="kgMedia">0</span> kg
+                </div>
+                <div>
+                    <strong>Pesada:</strong> <span id="kgPesada">0</span> kg
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Movimentação Mensal</h2>
+            </div>
+            <canvas id="chartMensal"></canvas>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Ranking de Empresas</h2>
+            </div>
+            <div id="rankingEmpresas"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Mapa de Localizações</h2>
+            </div>
+            <div id="map"></div>
+        </div>
+    </main>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        let map;
+
+        async function carregarDashboard() {
+            const user = await verificarAuth();
+            if (!user) return;
+
+            const userData = await getCurrentUser();
+            if (userData.tipo !== 'admin') {
+                window.location.href = '/funcionario.html';
+                return;
+            }
+
+            document.getElementById('userName').textContent = userData.nome;
+
+            const statsResponse = await fetchAPI('/dashboard/stats');
+            const stats = await statsResponse.json();
+
+            document.getElementById('statPendentes').textContent = stats.relatorios.pendentes;
+            document.getElementById('statAprovados').textContent = stats.relatorios.aprovados;
+            document.getElementById('statReprovados').textContent = stats.relatorios.reprovados;
+            document.getElementById('statValorTotal').textContent = formatCurrency(stats.valor_total);
+
+            document.getElementById('kgLeve').textContent = stats.quilos_por_tipo.leve.toFixed(2);
+            document.getElementById('kgMedia').textContent = stats.quilos_por_tipo.media.toFixed(2);
+            document.getElementById('kgPesada').textContent = stats.quilos_por_tipo.pesada.toFixed(2);
+
+            const rankingHTML = stats.ranking_empresas.map((empresa, index) => `
+                <div style="padding: 0.75rem; border-bottom: 1px solid var(--gray-200);">
+                    <strong>${index + 1}. ${empresa.nome}</strong>: ${empresa.total} relatórios
+                </div>
+            `).join('');
+            document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<p>Nenhuma empresa com relatórios aprovados ainda.</p>';
+
+            const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
+            const graficoData = await graficoResponse.json();
+
+            const ctx = document.getElementById('chartMensal').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: graficoData.labels,
+                    datasets: [{
+                        label: 'Relatórios Aprovados',
+                        data: graficoData.data,
+                        borderColor: 'rgb(37, 99, 235)',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+
+            const mapaResponse = await fetchAPI('/dashboard/mapa');
+            const marcadores = await mapaResponse.json();
+
+            map = L.map('map').setView([-15.7801, -47.9292], 4);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            marcadores.forEach(marcador => {
+                L.marker([marcador.lat, marcador.lng])
+                    .addTo(map)
+                    .bindPopup(`
+                        <strong>${marcador.empresa}</strong><br>
+                        Funcionário: ${marcador.funcionario}<br>
+                        Tipo: ${marcador.tipo_placa}<br>
+                        Peso: ${marcador.peso_kg} kg<br>
+                        Data: ${marcador.data}
+                    `);
+            });
+
+            await atualizarNotificacoes();
+        }
+
+        carregarDashboard();
+    </script>
+</body>
+</html>

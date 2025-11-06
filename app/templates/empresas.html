@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empresas - Sistema de Gestão de Placas</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">🔌 Gestão de Placas</div>
+            <nav>
+                <ul>
+                    <li><a href="/dashboard.html">Dashboard</a></li>
+                    <li><a href="/relatorios.html">Relatórios</a></li>
+                    <li><a href="/empresas.html">Empresas</a></li>
+                    <li><a href="/funcionarios.html">Funcionários</a></li>
+                    <li class="user-info">
+                        <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
+                            🔔
+                            <span class="notification-count" style="display: none;">0</span>
+                        </div>
+                        <span id="userName"></span>
+                        <button class="btn btn-secondary" onclick="logout()">Sair</button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Gerenciar Empresas</h1>
+            <button class="btn btn-primary" onclick="abrirModalNovaEmpresa()">+ Nova Empresa</button>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>CNPJ</th>
+                            <th>Telefone</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaEmpresas">
+                        <tr><td colspan="4" class="loading">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal" id="modalEmpresa">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="tituloModal">Nova Empresa</h2>
+                <button class="modal-close" onclick="fecharModal()">&times;</button>
+            </div>
+            <form id="formEmpresa">
+                <input type="hidden" id="empresaId">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input type="text" id="nome" required>
+                </div>
+                <div class="form-group">
+                    <label>CNPJ</label>
+                    <input type="text" id="cnpj" required>
+                </div>
+                <div class="form-group">
+                    <label>Endereço</label>
+                    <input type="text" id="endereco">
+                </div>
+                <div class="form-group">
+                    <label>Telefone</label>
+                    <input type="text" id="telefone">
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <textarea id="observacoes" rows="3"></textarea>
+                </div>
+                <h3>Preços por Tipo de Placa</h3>
+                <div class="form-group">
+                    <label>Leve (R$/kg)</label>
+                    <input type="number" id="precoLeve" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Média (R$/kg)</label>
+                    <input type="number" id="precoMedia" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Pesada (R$/kg)</label>
+                    <input type="number" id="precoPesada" step="0.01" min="0">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        let empresaAtual = null;
+
+        async function carregarPagina() {
+            const user = await verificarAuth();
+            if (!user) return;
+
+            const userData = await getCurrentUser();
+            document.getElementById('userName').textContent = userData.nome;
+
+            await carregarEmpresas();
+            await atualizarNotificacoes();
+        }
+
+        async function carregarEmpresas() {
+            const response = await fetchAPI('/empresas');
+            const empresas = await response.json();
+
+            const tbody = document.getElementById('tabelaEmpresas');
+
+            if (empresas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhuma empresa cadastrada</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = empresas.map(e => `
+                <tr>
+                    <td>${e.nome}</td>
+                    <td>${e.cnpj}</td>
+                    <td>${e.telefone || '-'}</td>
+                    <td>
+                        <button class="btn btn-secondary" onclick="editarEmpresa(${e.id})">Editar</button>
+                        <button class="btn btn-danger" onclick="deletarEmpresa(${e.id}, '${e.nome}')">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function abrirModalNovaEmpresa() {
+            empresaAtual = null;
+            document.getElementById('tituloModal').textContent = 'Nova Empresa';
+            document.getElementById('formEmpresa').reset();
+            document.getElementById('empresaId').value = '';
+            document.getElementById('modalEmpresa').classList.add('active');
+        }
+
+        async function editarEmpresa(id) {
+            const response = await fetchAPI(`/empresas/${id}`);
+            empresaAtual = await response.json();
+
+            document.getElementById('tituloModal').textContent = 'Editar Empresa';
+            document.getElementById('empresaId').value = empresaAtual.id;
+            document.getElementById('nome').value = empresaAtual.nome;
+            document.getElementById('cnpj').value = empresaAtual.cnpj;
+            document.getElementById('endereco').value = empresaAtual.endereco || '';
+            document.getElementById('telefone').value = empresaAtual.telefone || '';
+            document.getElementById('observacoes').value = empresaAtual.observacoes || '';
+
+            if (empresaAtual.precos) {
+                empresaAtual.precos.forEach(preco => {
+                    if (preco.tipo_placa === 'leve') {
+                        document.getElementById('precoLeve').value = preco.preco_por_kg;
+                    } else if (preco.tipo_placa === 'media') {
+                        document.getElementById('precoMedia').value = preco.preco_por_kg;
+                    } else if (preco.tipo_placa === 'pesada') {
+                        document.getElementById('precoPesada').value = preco.preco_por_kg;
+                    }
+                });
+            }
+
+            document.getElementById('modalEmpresa').classList.add('active');
+        }
+
+        document.getElementById('formEmpresa').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('empresaId').value;
+            const dados = {
+                nome: document.getElementById('nome').value,
+                cnpj: document.getElementById('cnpj').value,
+                endereco: document.getElementById('endereco').value,
+                telefone: document.getElementById('telefone').value,
+                observacoes: document.getElementById('observacoes').value
+            };
+
+            let response;
+            if (id) {
+                response = await fetchAPI(`/empresas/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(dados)
+                });
+            } else {
+                response = await fetchAPI('/empresas', {
+                    method: 'POST',
+                    body: JSON.stringify(dados)
+                });
+            }
+
+            if (response.ok) {
+                const empresa = await response.json();
+
+                const precos = [
+                    { tipo: 'leve', valor: document.getElementById('precoLeve').value },
+                    { tipo: 'media', valor: document.getElementById('precoMedia').value },
+                    { tipo: 'pesada', valor: document.getElementById('precoPesada').value }
+                ];
+
+                for (const preco of precos) {
+                    if (preco.valor) {
+                        await fetchAPI('/precos', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                empresa_id: empresa.id,
+                                tipo_placa: preco.tipo,
+                                preco_por_kg: parseFloat(preco.valor)
+                            })
+                        });
+                    }
+                }
+
+                showAlert('Empresa salva com sucesso!', 'success');
+                fecharModal();
+                await carregarEmpresas();
+            } else {
+                const data = await response.json();
+                showAlert(data.erro || 'Erro ao salvar empresa');
+            }
+        });
+
+        async function deletarEmpresa(id, nome) {
+            if (!confirm(`Deseja realmente excluir a empresa "${nome}"?`)) return;
+
+            const response = await fetchAPI(`/empresas/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showAlert('Empresa excluída com sucesso!', 'success');
+                await carregarEmpresas();
+            } else {
+                const data = await response.json();
+                showAlert(data.erro || 'Erro ao excluir empresa');
+            }
+        }
+
+        function fecharModal() {
+            document.getElementById('modalEmpresa').classList.remove('active');
+        }
+
+        carregarPagina();
+    </script>
+</body>
+</html>

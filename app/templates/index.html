@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Gestão de Placas</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="pwa-install-banner">
+        <div>
+            <strong>Instalar App</strong>
+            <p>Adicione à tela inicial para acesso rápido</p>
+        </div>
+        <button class="btn btn-primary" onclick="instalarPWA()">Instalar</button>
+        <button class="btn btn-secondary" onclick="fecharBannerPWA()">Fechar</button>
+    </div>
+
+    <div class="login-container">
+        <div class="login-box">
+            <h1>🔌 Sistema de Gestão de Placas</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%">Entrar</button>
+            </form>
+            <p style="margin-top: 1rem; text-align: center; color: var(--gray-600); font-size: 0.875rem;">
+                Administrador padrão: admin@sistema.com / admin123
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            
+            try {
+                const user = await login(email, senha);
+                
+                if (user.tipo === 'admin') {
+                    window.location.href = '/dashboard.html';
+                } else {
+                    window.location.href = '/funcionario.html';
+                }
+            } catch (error) {
+                showAlert(error.message);
+            }
+        });
+
+        if (getToken()) {
+            getCurrentUser().then(user => {
+                if (user) {
+                    if (user.tipo === 'admin') {
+                        window.location.href = '/dashboard.html';
+                    } else {
+                        window.location.href = '/funcionario.html';
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Relatórios - Sistema de Gestão de Placas</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">🔌 Gestão de Placas</div>
+            <nav>
+                <ul>
+                    <li><a href="/funcionario.html">Meus Relatórios</a></li>
+                    <li><a href="/empresas-lista.html">Empresas</a></li>
+                    <li class="user-info">
+                        <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
+                            🔔
+                            <span class="notification-count" style="display: none;">0</span>
+                        </div>
+                        <span id="userName"></span>
+                        <button class="btn btn-secondary" onclick="logout()">Sair</button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Meus Relatórios</h1>
+            <button class="btn btn-primary" onclick="abrirModalNovoRelatorio()">+ Novo Relatório</button>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Empresa</th>
+                            <th>Tipo</th>
+                            <th>Peso (kg)</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaRelatorios">
+                        <tr><td colspan="6" class="loading">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal" id="modalNovoRelatorio">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Novo Relatório</h2>
+                <button class="modal-close" onclick="fecharModal('modalNovoRelatorio')">&times;</button>
+            </div>
+            <form id="formNovoRelatorio">
+                <div class="form-group">
+                    <label>Empresa</label>
+                    <select id="empresaSelect" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Placa</label>
+                    <select id="tipoPlaca" required>
+                        <option value="leve">Leve</option>
+                        <option value="media">Média</option>
+                        <option value="pesada">Pesada</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Peso (kg)</label>
+                    <input type="number" id="pesoKg" step="0.01" min="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Foto da Placa</label>
+                    <input type="file" id="foto" accept="image/*" required>
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <textarea id="observacoes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%">Enviar Relatório</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalDetalhes">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Detalhes do Relatório</h2>
+                <button class="modal-close" onclick="fecharModal('modalDetalhes')">&times;</button>
+            </div>
+            <div id="detalhesConteudo"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        async function carregarPagina() {
+            const user = await verificarAuth();
+            if (!user) return;
+
+            const userData = await getCurrentUser();
+            if (userData.tipo === 'admin') {
+                window.location.href = '/dashboard.html';
+                return;
+            }
+
+            document.getElementById('userName').textContent = userData.nome;
+
+            await carregarEmpresas();
+            await carregarRelatorios();
+            await atualizarNotificacoes();
+        }
+
+        async function carregarEmpresas() {
+            const response = await fetchAPI('/empresas');
+            const empresas = await response.json();
+
+            const select = document.getElementById('empresaSelect');
+            select.innerHTML = '<option value="">Selecione uma empresa</option>' +
+                empresas.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+        }
+
+        async function carregarRelatorios() {
+            const response = await fetchAPI('/relatorios');
+            const relatorios = await response.json();
+
+            const tbody = document.getElementById('tabelaRelatorios');
+
+            if (relatorios.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Nenhum relatório encontrado</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = relatorios.map(r => `
+                <tr>
+                    <td>${formatDate(r.data_envio)}</td>
+                    <td>${r.empresa_nome}</td>
+                    <td>${r.tipo_placa}</td>
+                    <td>${r.peso_kg}</td>
+                    <td><span class="badge badge-${r.status}">${r.status}</span></td>
+                    <td>
+                        <button class="btn btn-secondary" onclick="verDetalhes(${r.id})">Ver</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function abrirModalNovoRelatorio() {
+            document.getElementById('modalNovoRelatorio').classList.add('active');
+        }
+
+        function fecharModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        document.getElementById('formNovoRelatorio').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('empresa_id', document.getElementById('empresaSelect').value);
+            formData.append('tipo_placa', document.getElementById('tipoPlaca').value);
+            formData.append('peso_kg', document.getElementById('pesoKg').value);
+            formData.append('foto', document.getElementById('foto').files[0]);
+            formData.append('observacoes', document.getElementById('observacoes').value);
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    formData.append('localizacao_lat', position.coords.latitude);
+                    formData.append('localizacao_lng', position.coords.longitude);
+                    await enviarRelatorio(formData);
+                }, async () => {
+                    await enviarRelatorio(formData);
+                });
+            } else {
+                await enviarRelatorio(formData);
+            }
+        });
+
+        async function enviarRelatorio(formData) {
+            const response = await fetch('/api/relatorios', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                showAlert('Relatório enviado com sucesso!', 'success');
+                fecharModal('modalNovoRelatorio');
+                document.getElementById('formNovoRelatorio').reset();
+                await carregarRelatorios();
+            } else {
+                const data = await response.json();
+                showAlert(data.erro || 'Erro ao enviar relatório');
+            }
+        }
+
+        async function verDetalhes(id) {
+            const response = await fetchAPI(`/relatorios/${id}`);
+            const relatorio = await response.json();
+
+            const conteudo = `
+                <p><strong>Empresa:</strong> ${relatorio.empresa_nome}</p>
+                <p><strong>Tipo de Placa:</strong> ${relatorio.tipo_placa}</p>
+                <p><strong>Peso:</strong> ${relatorio.peso_kg} kg</p>
+                <p><strong>Status:</strong> <span class="badge badge-${relatorio.status}">${relatorio.status}</span></p>
+                <p><strong>Data:</strong> ${formatDate(relatorio.data_envio)}</p>
+                ${relatorio.observacoes ? `<p><strong>Observações:</strong> ${relatorio.observacoes}</p>` : ''}
+                ${relatorio.foto_url ? `<p><strong>Foto:</strong><br><img src="${relatorio.foto_url}" style="max-width: 100%; border-radius: 8px;"></p>` : ''}
+            `;
+
+            document.getElementById('detalhesConteudo').innerHTML = conteudo;
+            document.getElementById('modalDetalhes').classList.add('active');
+        }
+
+        carregarPagina();
+    </script>
+</body>
+</html>
