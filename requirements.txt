@@ -12,3 +12,17 @@ python-socketio==5.11.1
 eventlet==0.35.2
 numpy
 opencv-python-headless
+bcrypt
+eventlet
+Flask
+Flask-CORS
+Flask-JWT-Extended
+Flask-SocketIO
+Flask-SQLAlchemy
+gunicorn
+numpy
+opencv-python-headless
+Pillow
+psycopg2-binary
+python-dotenv
+python-socketio
