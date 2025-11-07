@@ -2,15 +2,374 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Dashboard Professional Styles - Mobile First */
+        .dashboard-container {
+            padding: 80px 16px 100px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Período Selector */
+        .period-selector {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px 0;
+            margin-bottom: 24px;
+            scrollbar-width: none;
+        }
+
+        .period-selector::-webkit-scrollbar {
+            display: none;
+        }
+
+        .period-btn {
+            flex-shrink: 0;
+            padding: 10px 20px;
+            border: 2px solid var(--gray-300);
+            background: white;
+            border-radius: 24px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .period-btn:active {
+            transform: scale(0.95);
+        }
+
+        .period-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        /* KPI Cards Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+        }
+
+        .kpi-card:active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .kpi-icon.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .kpi-icon.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .kpi-icon.danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .kpi-icon.info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--gray-600);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .kpi-change {
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .kpi-change.positive {
+            color: var(--success-color);
+        }
+
+        .kpi-change.negative {
+            color: var(--danger-color);
+        }
+
+        /* Chart Cards */
+        .chart-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-type-selector {
+            display: flex;
+            gap: 8px;
+            background: var(--gray-100);
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .chart-type-btn {
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+            color: var(--gray-600);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .chart-type-btn.active {
+            background: white;
+            color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            touch-action: pan-y;
+        }
+
+        /* Stats Grid */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            padding: 16px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-item-label {
+            font-size: 11px;
+            color: var(--gray-600);
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .stat-item-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        /* Ranking List */
+        .ranking-list {
+            list-style: none;
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid var(--gray-200);
+            transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .ranking-item:last-child {
+            border-bottom: none;
+        }
+
+        .ranking-item:active {
+            background: var(--gray-50);
+        }
+
+        .ranking-position {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .ranking-position.gold {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+        }
+
+        .ranking-position.silver {
+            background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+            color: white;
+        }
+
+        .ranking-position.bronze {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+        }
+
+        .ranking-position.regular {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .ranking-info {
+            flex: 1;
+        }
+
+        .ranking-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .ranking-value {
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .ranking-count {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 18px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--gray-500);
+        }
+
+        .spinner {
+            border: 3px solid var(--gray-200);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .dashboard-container {
+                padding: 100px 24px 40px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        /* Touch optimization */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        button, .btn, a {
+            touch-action: manipulation;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -33,7 +392,7 @@
     <nav class="bottom-nav">
         <a href="/administracao.html" class="bottom-nav-item">
             <i class="fas fa-cog icon"></i>
-            <span>Administração</span>
+            <span>Admin</span>
         </a>
         <a href="/dashboard.html" class="bottom-nav-item active">
             <i class="fas fa-chart-line icon"></i>
@@ -104,71 +463,139 @@
         </div>
     </div>
 
-    <main class="container mt-4">
-        <h1 style="font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: var(--spacing-lg);">Dashboard Administrativo</h1>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Solicitações Pendentes</div>
-                <div class="stat-value" id="statPendentes">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Solicitações Aprovados</div>
-                <div class="stat-value" id="statAprovados">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Solicitações Reprovados</div>
-                <div class="stat-value" id="statReprovados">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Valor Total</div>
-                <div class="stat-value" id="statValorTotal">R$ 0,00</div>
-            </div>
+    <main class="dashboard-container">
+        <!-- Period Selector -->
+        <div class="period-selector">
+            <button class="period-btn" onclick="changePeriod('hoje')" data-period="hoje">Hoje</button>
+            <button class="period-btn" onclick="changePeriod('semana')" data-period="semana">Semana</button>
+            <button class="period-btn active" onclick="changePeriod('mes')" data-period="mes">Mês</button>
+            <button class="period-btn" onclick="changePeriod('trimestre')" data-period="trimestre">Trimestre</button>
+            <button class="period-btn" onclick="changePeriod('ano')" data-period="ano">Ano</button>
+            <button class="period-btn" onclick="changePeriod('tudo')" data-period="tudo">Tudo</button>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Quilos por Tipo de Placa</h2>
-            </div>
-            <div class="stats-grid">
-                <div>
-                    <strong>Leve:</strong> <span id="kgLeve">0</span> kg
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon warning">
+                    <i class="fas fa-clock"></i>
                 </div>
-                <div>
-                    <strong>Média:</strong> <span id="kgMedia">0</span> kg
-                </div>
-                <div>
-                    <strong>Pesada:</strong> <span id="kgPesada">0</span> kg
+                <div class="kpi-label">Pendentes</div>
+                <div class="kpi-value" id="kpiPendentes">0</div>
+                <div class="kpi-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>Aguardando</span>
                 </div>
             </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="kpi-label">Aprovados</div>
+                <div class="kpi-value" id="kpiAprovados">0</div>
+                <div class="kpi-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span id="kpiAprovadosChange">+0%</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon danger">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="kpi-label">Reprovados</div>
+                <div class="kpi-value" id="kpiReprovados">0</div>
+                <div class="kpi-change negative">
+                    <i class="fas fa-arrow-down"></i>
+                    <span id="kpiReprovadosChange">-0%</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon info">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="kpi-label">Valor Total</div>
+                <div class="kpi-value" id="kpiValorTotal">R$ 0</div>
+                <div class="kpi-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span id="kpiValorChange">+0%</span>
+                </div>
+            </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Movimentação Mensal</h2>
+        <!-- Peso por Tipo -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <i class="fas fa-weight"></i>
+                    Peso por Tipo de Placa
+                </div>
+                <div class="chart-type-selector">
+                    <button class="chart-type-btn active" onclick="changePesoChart('bar', this)" data-chart="peso">
+                        <i class="fas fa-chart-bar"></i>
+                    </button>
+                    <button class="chart-type-btn" onclick="changePesoChart('pie', this)" data-chart="peso">
+                        <i class="fas fa-chart-pie"></i>
+                    </button>
+                    <button class="chart-type-btn" onclick="changePesoChart('doughnut', this)" data-chart="peso">
+                        <i class="fas fa-circle-notch"></i>
+                    </button>
+                </div>
             </div>
-            <canvas id="chartMensal"></canvas>
+            <div class="chart-container">
+                <canvas id="chartPeso"></canvas>
+            </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Ranking de Empresas</h2>
+        <!-- Movimentação no Período -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <i class="fas fa-chart-line"></i>
+                    <span id="chartMovimentacaoTitle">Movimentação Mensal</span>
+                </div>
+                <div class="chart-type-selector">
+                    <button class="chart-type-btn active" onclick="changeMovimentacaoChart('line', this)" data-chart="movimentacao">
+                        <i class="fas fa-chart-line"></i>
+                    </button>
+                    <button class="chart-type-btn" onclick="changeMovimentacaoChart('bar', this)" data-chart="movimentacao">
+                        <i class="fas fa-chart-bar"></i>
+                    </button>
+                    <button class="chart-type-btn" onclick="changeMovimentacaoChart('area', this)" data-chart="movimentacao">
+                        <i class="fas fa-chart-area"></i>
+                    </button>
+                </div>
             </div>
-            <div id="rankingEmpresas"></div>
+            <div class="chart-container">
+                <canvas id="chartMovimentacao"></canvas>
+            </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Mapa de Localizações</h2>
+        <!-- Ranking de Empresas -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <i class="fas fa-trophy"></i>
+                    Ranking de Empresas
+                </div>
             </div>
-            <div id="map"></div>
+            <ul class="ranking-list" id="rankingEmpresas">
+                <li class="loading">
+                    <div class="spinner"></div>
+                </li>
+            </ul>
         </div>
     </main>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
-        let map;
+        let currentPeriod = 'mes';
+        let chartPeso = null;
+        let chartMovimentacao = null;
+        let dashboardData = null;
 
         async function carregarDashboard() {
             const userData = await verificarAuth();
@@ -179,95 +606,304 @@
                 return;
             }
 
-            const statsResponse = await fetchAPI('/dashboard/stats');
-            const stats = await statsResponse.json();
+            await loadDashboardData();
+            await atualizarNotificacoes();
+        }
 
-            document.getElementById('statPendentes').textContent = stats.relatorios.pendentes;
-            document.getElementById('statAprovados').textContent = stats.relatorios.aprovados;
-            document.getElementById('statReprovados').textContent = stats.relatorios.reprovados;
-            document.getElementById('statValorTotal').textContent = formatCurrency(stats.valor_total);
+        async function loadDashboardData() {
+            try {
+                const statsResponse = await fetchAPI('/dashboard/stats');
+                dashboardData = await statsResponse.json();
 
-            document.getElementById('kgLeve').textContent = stats.quilos_por_tipo.leve.toFixed(2);
-            document.getElementById('kgMedia').textContent = stats.quilos_por_tipo.media.toFixed(2);
-            document.getElementById('kgPesada').textContent = stats.quilos_por_tipo.pesada.toFixed(2);
+                // Update KPIs
+                document.getElementById('kpiPendentes').textContent = dashboardData.relatorios.pendentes;
+                document.getElementById('kpiAprovados').textContent = dashboardData.relatorios.aprovados;
+                document.getElementById('kpiReprovados').textContent = dashboardData.relatorios.reprovados;
+                document.getElementById('kpiValorTotal').textContent = formatCurrency(dashboardData.valor_total);
 
-            const rankingHTML = stats.ranking_empresas.map((empresa, index) => `
-                <div style="padding: 0.75rem; border-bottom: 1px solid var(--gray-200);">
-                    <strong>${index + 1}. ${empresa.nome}</strong>: ${empresa.total} solicitações
-                </div>
-            `).join('');
-            document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<p>Nenhuma empresa com solicitações aprovados ainda.</p>';
+                // Initialize Peso Chart
+                initPesoChart();
 
-            const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
-            const graficoData = await graficoResponse.json();
+                // Load Movimentacao Chart
+                await loadMovimentacaoChart();
 
-            const ctx = document.getElementById('chartMensal').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: graficoData.labels,
-                    datasets: [{
-                        label: 'Solicitações Aprovados',
-                        data: graficoData.data,
-                        borderColor: 'rgb(37, 99, 235)',
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                        tension: 0.3
-                    }]
-                },
+                // Load Ranking
+                loadRanking();
+
+            } catch (error) {
+                console.error('Erro ao carregar dashboard:', error);
+            }
+        }
+
+        function initPesoChart() {
+            const ctx = document.getElementById('chartPeso').getContext('2d');
+            
+            if (chartPeso) {
+                chartPeso.destroy();
+            }
+
+            const data = {
+                labels: ['Leve', 'Média', 'Pesada'],
+                datasets: [{
+                    label: 'Peso (kg)',
+                    data: [
+                        dashboardData.quilos_por_tipo.leve || 0,
+                        dashboardData.quilos_por_tipo.media || 0,
+                        dashboardData.quilos_por_tipo.pesada || 0
+                    ],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(245, 158, 11, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgb(16, 185, 129)',
+                        'rgb(59, 130, 246)',
+                        'rgb(245, 158, 11)'
+                    ],
+                    borderWidth: 2
+                }]
+            };
+
+            chartPeso = new Chart(ctx, {
+                type: 'bar',
+                data: data,
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: true
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y.toFixed(2) + ' kg';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' kg';
+                                }
+                            }
                         }
                     }
                 }
             });
+        }
 
-            const mapaResponse = await fetchAPI('/dashboard/mapa');
-            const marcadores = await mapaResponse.json();
+        async function loadMovimentacaoChart() {
+            try {
+                const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
+                const graficoData = await graficoResponse.json();
 
-            map = L.map('map').setView([-15.7801, -47.9292], 4);
+                const ctx = document.getElementById('chartMovimentacao').getContext('2d');
+                
+                if (chartMovimentacao) {
+                    chartMovimentacao.destroy();
+                }
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+                chartMovimentacao = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: graficoData.labels,
+                        datasets: [{
+                            label: 'Solicitações Aprovadas',
+                            data: graficoData.data,
+                            borderColor: 'rgb(5, 150, 105)',
+                            backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(5, 150, 105)',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Erro ao carregar gráfico de movimentação:', error);
+            }
+        }
 
-            marcadores.forEach(marcador => {
-                L.marker([marcador.lat, marcador.lng])
-                    .addTo(map)
-                    .bindPopup(`
-                        <strong>${marcador.empresa}</strong><br>
-                        Funcionário: ${marcador.funcionario}<br>
-                        Tipo: ${marcador.tipo_placa}<br>
-                        Peso: ${marcador.peso_kg} kg<br>
-                        Data: ${marcador.data}
-                    `);
+        function loadRanking() {
+            const rankingHTML = dashboardData.ranking_empresas.map((empresa, index) => {
+                let positionClass = 'regular';
+                if (index === 0) positionClass = 'gold';
+                else if (index === 1) positionClass = 'silver';
+                else if (index === 2) positionClass = 'bronze';
+
+                return `
+                    <li class="ranking-item">
+                        <div class="ranking-position ${positionClass}">${index + 1}</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">${empresa.nome}</div>
+                            <div class="ranking-value">Total de solicitações aprovadas</div>
+                        </div>
+                        <div class="ranking-count">${empresa.total}</div>
+                    </li>
+                `;
+            }).join('');
+
+            document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<li class="ranking-item"><div class="ranking-info"><div class="ranking-name">Nenhuma empresa com solicitações aprovadas</div></div></li>';
+        }
+
+        function changePeriod(period) {
+            currentPeriod = period;
+            
+            // Update button states
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                if (btn.dataset.period === period) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
             });
 
-            await atualizarNotificacoes();
+            // Update chart title
+            const titles = {
+                'hoje': 'Movimentação de Hoje',
+                'semana': 'Movimentação Semanal',
+                'mes': 'Movimentação Mensal',
+                'trimestre': 'Movimentação Trimestral',
+                'ano': 'Movimentação Anual',
+                'tudo': 'Movimentação Total'
+            };
+            document.getElementById('chartMovimentacaoTitle').textContent = titles[period];
+
+            // Reload data (you can implement API endpoints for different periods)
+            loadDashboardData();
+        }
+
+        function changePesoChart(type, btnElement) {
+            // Update button states
+            document.querySelectorAll('[data-chart="peso"]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            btnElement.classList.add('active');
+
+            // Change chart type
+            if (chartPeso) {
+                chartPeso.destroy();
+            }
+
+            const ctx = document.getElementById('chartPeso').getContext('2d');
+            const data = {
+                labels: ['Leve', 'Média', 'Pesada'],
+                datasets: [{
+                    label: 'Peso (kg)',
+                    data: [
+                        dashboardData.quilos_por_tipo.leve || 0,
+                        dashboardData.quilos_por_tipo.media || 0,
+                        dashboardData.quilos_por_tipo.pesada || 0
+                    ],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(245, 158, 11, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgb(16, 185, 129)',
+                        'rgb(59, 130, 246)',
+                        'rgb(245, 158, 11)'
+                    ],
+                    borderWidth: 2
+                }]
+            };
+
+            chartPeso = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: type === 'pie' || type === 'doughnut',
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed.toFixed(2) + ' kg';
+                                }
+                            }
+                        }
+                    },
+                    scales: type === 'bar' ? {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' kg';
+                                }
+                            }
+                        }
+                    } : {}
+                }
+            });
+        }
+
+        function changeMovimentacaoChart(type, btnElement) {
+            // Update button states
+            document.querySelectorAll('[data-chart="movimentacao"]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            btnElement.classList.add('active');
+
+            // Change chart appearance
+            if (chartMovimentacao) {
+                if (type === 'area') {
+                    chartMovimentacao.config.type = 'line';
+                    chartMovimentacao.data.datasets[0].fill = true;
+                    chartMovimentacao.data.datasets[0].backgroundColor = 'rgba(5, 150, 105, 0.2)';
+                } else {
+                    chartMovimentacao.config.type = type;
+                    chartMovimentacao.data.datasets[0].fill = type === 'line';
+                    chartMovimentacao.data.datasets[0].backgroundColor = type === 'line' ? 'rgba(5, 150, 105, 0.1)' : 'rgba(5, 150, 105, 0.8)';
+                }
+                chartMovimentacao.update();
+            }
         }
 
         carregarDashboard();
-        
-        // Debug para verificar a navegação
-        setTimeout(() => {
-            const bottomNav = document.querySelector('.bottom-nav');
-            if (bottomNav) {
-                const styles = window.getComputedStyle(bottomNav);
-                console.log('Bottom Nav encontrado!', {
-                    display: styles.display,
-                    position: styles.position,
-                    bottom: styles.bottom,
-                    zIndex: styles.zIndex,
-                    visibility: styles.visibility,
-                    height: bottomNav.offsetHeight,
-                    width: bottomNav.offsetWidth
-                });
-            } else {
-                console.error('Bottom Nav NÃO encontrado no DOM!');
-            }
-        }, 1000);
     </script>
 </body>
 </html>
