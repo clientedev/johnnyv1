@@ -75,7 +75,7 @@ def inicializar_configuracoes():
     if usuario.tipo != 'admin':
         return jsonify({'error': 'Acesso negado'}), 403
     
-    tipos_placa = ['leve', 'pesada', 'misturada']
+    tipos_placa = ['leve', 'pesada', 'media']
     
     for tipo in tipos_placa:
         config = ConfiguracaoPrecoEstrela.query.filter_by(tipo_placa=tipo).first()

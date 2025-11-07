@@ -76,7 +76,7 @@
                         <option value="">Selecione...</option>
                         <option value="leve">Leve</option>
                         <option value="pesada">Pesada</option>
-                        <option value="misturada">Misturada</option>
+                        <option value="media">Média</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -168,8 +168,8 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Placa Misturada</label>
-                    <select id="estrelasMisturada" required>
+                    <label>Placa Média</label>
+                    <select id="estrelasMedia" required>
                         <option value="1">⭐ (1 estrela)</option>
                         <option value="2">⭐⭐ (2 estrelas)</option>
                         <option value="3" selected>⭐⭐⭐ (3 estrelas)</option>
@@ -241,7 +241,7 @@
 
             document.getElementById('estrelasLeve').value = empresaAtual.estrelas_leve || 3;
             document.getElementById('estrelasPesada').value = empresaAtual.estrelas_pesada || 3;
-            document.getElementById('estrelasMisturada').value = empresaAtual.estrelas_misturada || 3;
+            document.getElementById('estrelasMedia').value = empresaAtual.estrelas_media || 3;
 
             document.getElementById('modalEmpresa').classList.add('active');
         }
@@ -258,7 +258,7 @@
                 observacoes: document.getElementById('observacoes').value,
                 estrelas_leve: parseInt(document.getElementById('estrelasLeve').value),
                 estrelas_pesada: parseInt(document.getElementById('estrelasPesada').value),
-                estrelas_misturada: parseInt(document.getElementById('estrelasMisturada').value)
+                estrelas_media: parseInt(document.getElementById('estrelasMedia').value)
             };
 
             let response;

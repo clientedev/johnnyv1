@@ -34,7 +34,7 @@ class Empresa(db.Model):
     observacoes = db.Column(db.Text)
     estrelas_leve = db.Column(db.Integer, default=3)
     estrelas_pesada = db.Column(db.Integer, default=3)
-    estrelas_misturada = db.Column(db.Integer, default=3)
+    estrelas_media = db.Column(db.Integer, default=3)
     
     precos = db.relationship('Preco', backref='empresa', lazy=True, cascade='all, delete-orphan')
     relatorios = db.relationship('Relatorio', backref='empresa', lazy=True, cascade='all, delete-orphan')
@@ -50,7 +50,7 @@ class Empresa(db.Model):
             'observacoes': self.observacoes,
             'estrelas_leve': self.estrelas_leve,
             'estrelas_pesada': self.estrelas_pesada,
-            'estrelas_misturada': self.estrelas_misturada
+            'estrelas_media': self.estrelas_media
         }
 
 class ConfiguracaoPrecoEstrela(db.Model):

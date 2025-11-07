@@ -22,7 +22,7 @@ def analisar_placa_automatica(imagem_bytes):
     Analisa automaticamente uma imagem de placa eletrônica e classifica como:
     - leve: Poucos componentes (< 150 contornos)
     - pesada: Muitos componentes (>= 500 contornos)
-    - misturada: Quantidade moderada (150-499 contornos)
+    - media: Quantidade moderada (150-499 contornos)
     
     Retorna: dict com 'classificacao' e 'componentes_detectados'
     """
@@ -56,7 +56,7 @@ def analisar_placa_automatica(imagem_bytes):
         if component_count < 150:
             classificacao = "leve"
         elif component_count < 500:
-            classificacao = "misturada"
+            classificacao = "media"
         else:
             classificacao = "pesada"
         
@@ -75,7 +75,7 @@ def analisar_placa_endpoint():
     """
     Endpoint para analisar automaticamente uma imagem de placa eletrônica
     Espera: imagem no form-data
-    Retorna: classificação (leve/pesada/misturada) e número de componentes detectados
+    Retorna: classificação (leve/pesada/media) e número de componentes detectados
     """
     if 'imagem' not in request.files:
         return jsonify({'erro': 'Nenhuma imagem enviada'}), 400

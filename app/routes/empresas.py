@@ -10,7 +10,7 @@ def criar_precos_por_estrelas(empresa):
     tipos_placas = [
         ('leve', empresa.estrelas_leve),
         ('pesada', empresa.estrelas_pesada),
-        ('misturada', empresa.estrelas_misturada)
+        ('media', empresa.estrelas_media)
     ]
     
     for tipo_placa, estrelas in tipos_placas:
@@ -90,7 +90,7 @@ def criar_empresa():
         observacoes=data.get('observacoes', ''),
         estrelas_leve=data.get('estrelas_leve', 3),
         estrelas_pesada=data.get('estrelas_pesada', 3),
-        estrelas_misturada=data.get('estrelas_misturada', 3)
+        estrelas_media=data.get('estrelas_media', 3)
     )
     
     db.session.add(empresa)
@@ -129,8 +129,8 @@ def atualizar_empresa(id):
     if 'estrelas_pesada' in data:
         empresa.estrelas_pesada = data['estrelas_pesada']
         atualizar_precos = True
-    if 'estrelas_misturada' in data:
-        empresa.estrelas_misturada = data['estrelas_misturada']
+    if 'estrelas_media' in data:
+        empresa.estrelas_media = data['estrelas_media']
         atualizar_precos = True
     
     db.session.commit()
