@@ -304,6 +304,80 @@
             document.getElementById('modalEmpresa').classList.remove('active');
         }
 
+        function openScanner() {
+            document.getElementById('scannerModal').classList.add('active');
+        }
+
+        function closeScanner() {
+            document.getElementById('scannerModal').classList.remove('active');
+            document.getElementById('formScanner').reset();
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+
+        async function previewImage(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const preview = document.getElementById('previewImg');
+                    preview.src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                    
+                    showAlert('Analisando placa automaticamente...', 'info');
+                    
+                    await analisarPlacaAutomatica(file);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function analisarPlacaAutomatica(file) {
+            try {
+                const formData = new FormData();
+                formData.append('imagem', file);
+                
+                const response = await fetchAPI('/api/placas/analisar', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const resultado = await response.json();
+                    
+                    const tipoPlacaSelect = document.getElementById('tipoPlaca');
+                    tipoPlacaSelect.value = resultado.classificacao;
+                    
+                    const mensagemDiv = document.createElement('div');
+                    mensagemDiv.className = 'alert alert-success';
+                    mensagemDiv.style.marginTop = '10px';
+                    mensagemDiv.innerHTML = `
+                        <strong>✅ ${resultado.mensagem}</strong><br>
+                        <small>Componentes detectados: ${resultado.componentes_detectados}</small><br>
+                        <small>Você pode editar a classificação se necessário</small>
+                    `;
+                    
+                    const tipoPlacaGroup = tipoPlacaSelect.closest('.form-group');
+                    const existingAlert = tipoPlacaGroup.querySelector('.alert');
+                    if (existingAlert) {
+                        existingAlert.remove();
+                    }
+                    tipoPlacaGroup.appendChild(mensagemDiv);
+                    
+                    setTimeout(() => {
+                        mensagemDiv.remove();
+                    }, 8000);
+                    
+                    showAlert(resultado.mensagem, 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || 'Erro ao analisar placa', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao analisar placa:', error);
+                showAlert('Erro ao analisar placa. Selecione manualmente.', 'error');
+            }
+        }
+
         carregarPagina();
     </script>
 </body>

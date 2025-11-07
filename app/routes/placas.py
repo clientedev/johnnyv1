@@ -4,6 +4,10 @@ from app.models import db, Placa, Empresa, Usuario
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
+import cv2
+import numpy as np
+from PIL import Image
+import io
 
 placas_bp = Blueprint('placas', __name__)
 
@@ -12,6 +16,90 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def analisar_placa_automatica(imagem_bytes):
+    """
+    Analisa automaticamente uma imagem de placa eletrônica e classifica como:
+    - leve: Poucos componentes (< 150 contornos)
+    - pesada: Muitos componentes (>= 500 contornos)
+    - misturada: Quantidade moderada (150-499 contornos)
+    
+    Retorna: dict com 'classificacao' e 'componentes_detectados'
+    """
+    try:
+        nparr = np.frombuffer(imagem_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return {'erro': 'Imagem inválida'}
+        
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        
+        lower_green = np.array([35, 40, 40])
+        upper_green = np.array([85, 255, 255])
+        mask_green = cv2.inRange(hsv, lower_green, upper_green)
+        
+        kernel = np.ones((5,5), np.uint8)
+        mask_green = cv2.morphologyEx(mask_green, cv2.MORPH_CLOSE, kernel)
+        mask_green = cv2.morphologyEx(mask_green, cv2.MORPH_OPEN, kernel)
+        
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+        
+        edges = cv2.Canny(gray, 50, 150)
+        
+        contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        component_count = len([c for c in contours if cv2.contourArea(c) > 10])
+        
+        if component_count < 150:
+            classificacao = "leve"
+        elif component_count < 500:
+            classificacao = "misturada"
+        else:
+            classificacao = "pesada"
+        
+        return {
+            'classificacao': classificacao,
+            'componentes_detectados': component_count,
+            'mensagem': f'Analisada com sucesso! A placa foi classificada como: {classificacao.upper()}'
+        }
+        
+    except Exception as e:
+        return {'erro': f'Erro ao processar imagem: {str(e)}'}
+
+@placas_bp.route('/api/placas/analisar', methods=['POST'])
+@jwt_required()
+def analisar_placa_endpoint():
+    """
+    Endpoint para analisar automaticamente uma imagem de placa eletrônica
+    Espera: imagem no form-data
+    Retorna: classificação (leve/pesada/misturada) e número de componentes detectados
+    """
+    if 'imagem' not in request.files:
+        return jsonify({'erro': 'Nenhuma imagem enviada'}), 400
+    
+    file = request.files['imagem']
+    
+    if file.filename == '':
+        return jsonify({'erro': 'Nome de arquivo vazio'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'erro': 'Formato de arquivo não permitido'}), 400
+    
+    try:
+        imagem_bytes = file.read()
+        
+        resultado = analisar_placa_automatica(imagem_bytes)
+        
+        if 'erro' in resultado:
+            return jsonify(resultado), 400
+        
+        return jsonify(resultado), 200
+        
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao processar imagem: {str(e)}'}), 500
 
 @placas_bp.route('/placas', methods=['GET'])
 @jwt_required()

@@ -34,3 +34,5 @@ Pillow
 psycopg2-binary
 python-dotenv
 python-socketio
+numpy
+opencv-python-headless
