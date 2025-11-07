@@ -32,6 +32,9 @@ class Empresa(db.Model):
     endereco = db.Column(db.String(300))
     telefone = db.Column(db.String(20))
     observacoes = db.Column(db.Text)
+    estrelas_leve = db.Column(db.Integer, default=3)
+    estrelas_pesada = db.Column(db.Integer, default=3)
+    estrelas_misturada = db.Column(db.Integer, default=3)
     
     precos = db.relationship('Preco', backref='empresa', lazy=True, cascade='all, delete-orphan')
     relatorios = db.relationship('Relatorio', backref='empresa', lazy=True, cascade='all, delete-orphan')
@@ -44,7 +47,10 @@ class Empresa(db.Model):
             'cnpj': self.cnpj,
             'endereco': self.endereco,
             'telefone': self.telefone,
-            'observacoes': self.observacoes
+            'observacoes': self.observacoes,
+            'estrelas_leve': self.estrelas_leve,
+            'estrelas_pesada': self.estrelas_pesada,
+            'estrelas_misturada': self.estrelas_misturada
         }
 
 class ConfiguracaoPrecoEstrela(db.Model):

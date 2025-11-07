@@ -1,9 +1,55 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import db, Empresa, Preco
+from app.models import db, Empresa, Preco, ConfiguracaoPrecoEstrela
 from app.auth import admin_required
 
 bp = Blueprint('empresas', __name__, url_prefix='/api/empresas')
+
+def criar_precos_por_estrelas(empresa):
+    """Cria ou atualiza os preços da empresa baseado nas estrelas configuradas"""
+    tipos_placas = [
+        ('leve', empresa.estrelas_leve),
+        ('pesada', empresa.estrelas_pesada),
+        ('misturada', empresa.estrelas_misturada)
+    ]
+    
+    for tipo_placa, estrelas in tipos_placas:
+        if estrelas is None:
+            continue
+            
+        config = ConfiguracaoPrecoEstrela.query.filter_by(tipo_placa=tipo_placa).first()
+        
+        if not config:
+            continue
+        
+        valor_por_estrela = {
+            1: config.valor_1_estrela,
+            2: config.valor_2_estrelas,
+            3: config.valor_3_estrelas,
+            4: config.valor_4_estrelas,
+            5: config.valor_5_estrelas
+        }
+        
+        preco_por_kg = valor_por_estrela.get(estrelas, config.valor_3_estrelas)
+        
+        preco_existente = Preco.query.filter_by(
+            empresa_id=empresa.id,
+            tipo_placa=tipo_placa
+        ).first()
+        
+        if preco_existente:
+            preco_existente.preco_por_kg = preco_por_kg
+            preco_existente.classificacao_estrelas = estrelas
+        else:
+            novo_preco = Preco(
+                empresa_id=empresa.id,
+                tipo_placa=tipo_placa,
+                preco_por_kg=preco_por_kg,
+                classificacao_estrelas=estrelas
+            )
+            db.session.add(novo_preco)
+    
+    db.session.commit()
 
 @bp.route('', methods=['GET'])
 @jwt_required()
@@ -41,11 +87,16 @@ def criar_empresa():
         cnpj=data['cnpj'],
         endereco=data.get('endereco', ''),
         telefone=data.get('telefone', ''),
-        observacoes=data.get('observacoes', '')
+        observacoes=data.get('observacoes', ''),
+        estrelas_leve=data.get('estrelas_leve', 3),
+        estrelas_pesada=data.get('estrelas_pesada', 3),
+        estrelas_misturada=data.get('estrelas_misturada', 3)
     )
     
     db.session.add(empresa)
     db.session.commit()
+    
+    criar_precos_por_estrelas(empresa)
     
     return jsonify(empresa.to_dict()), 201
 
@@ -59,6 +110,8 @@ def atualizar_empresa(id):
     
     data = request.get_json()
     
+    atualizar_precos = False
+    
     if data.get('nome'):
         empresa.nome = data['nome']
     if data.get('cnpj'):
@@ -70,7 +123,20 @@ def atualizar_empresa(id):
     if 'observacoes' in data:
         empresa.observacoes = data['observacoes']
     
+    if 'estrelas_leve' in data:
+        empresa.estrelas_leve = data['estrelas_leve']
+        atualizar_precos = True
+    if 'estrelas_pesada' in data:
+        empresa.estrelas_pesada = data['estrelas_pesada']
+        atualizar_precos = True
+    if 'estrelas_misturada' in data:
+        empresa.estrelas_misturada = data['estrelas_misturada']
+        atualizar_precos = True
+    
     db.session.commit()
+    
+    if atualizar_precos:
+        criar_precos_por_estrelas(empresa)
     
     return jsonify(empresa.to_dict()), 200
 

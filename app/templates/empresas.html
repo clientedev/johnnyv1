@@ -145,18 +145,37 @@
                     <label>Observações</label>
                     <textarea id="observacoes" rows="3"></textarea>
                 </div>
-                <h3>Preços por Tipo de Placa</h3>
+                <h3>Classificação por Estrelas</h3>
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Os preços serão calculados automaticamente com base nas estrelas configuradas</p>
                 <div class="form-group">
-                    <label>Leve (R$/kg)</label>
-                    <input type="number" id="precoLeve" step="0.01" min="0">
+                    <label>Placa Leve</label>
+                    <select id="estrelasLeve" required>
+                        <option value="1">⭐ (1 estrela)</option>
+                        <option value="2">⭐⭐ (2 estrelas)</option>
+                        <option value="3" selected>⭐⭐⭐ (3 estrelas)</option>
+                        <option value="4">⭐⭐⭐⭐ (4 estrelas)</option>
+                        <option value="5">⭐⭐⭐⭐⭐ (5 estrelas)</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label>Média (R$/kg)</label>
-                    <input type="number" id="precoMedia" step="0.01" min="0">
+                    <label>Placa Pesada</label>
+                    <select id="estrelasPesada" required>
+                        <option value="1">⭐ (1 estrela)</option>
+                        <option value="2">⭐⭐ (2 estrelas)</option>
+                        <option value="3" selected>⭐⭐⭐ (3 estrelas)</option>
+                        <option value="4">⭐⭐⭐⭐ (4 estrelas)</option>
+                        <option value="5">⭐⭐⭐⭐⭐ (5 estrelas)</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label>Pesada (R$/kg)</label>
-                    <input type="number" id="precoPesada" step="0.01" min="0">
+                    <label>Placa Misturada</label>
+                    <select id="estrelasMisturada" required>
+                        <option value="1">⭐ (1 estrela)</option>
+                        <option value="2">⭐⭐ (2 estrelas)</option>
+                        <option value="3" selected>⭐⭐⭐ (3 estrelas)</option>
+                        <option value="4">⭐⭐⭐⭐ (4 estrelas)</option>
+                        <option value="5">⭐⭐⭐⭐⭐ (5 estrelas)</option>
+                    </select>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%">Salvar</button>
             </form>
@@ -220,17 +239,9 @@
             document.getElementById('telefone').value = empresaAtual.telefone || '';
             document.getElementById('observacoes').value = empresaAtual.observacoes || '';
 
-            if (empresaAtual.precos) {
-                empresaAtual.precos.forEach(preco => {
-                    if (preco.tipo_placa === 'leve') {
-                        document.getElementById('precoLeve').value = preco.preco_por_kg;
-                    } else if (preco.tipo_placa === 'media') {
-                        document.getElementById('precoMedia').value = preco.preco_por_kg;
-                    } else if (preco.tipo_placa === 'pesada') {
-                        document.getElementById('precoPesada').value = preco.preco_por_kg;
-                    }
-                });
-            }
+            document.getElementById('estrelasLeve').value = empresaAtual.estrelas_leve || 3;
+            document.getElementById('estrelasPesada').value = empresaAtual.estrelas_pesada || 3;
+            document.getElementById('estrelasMisturada').value = empresaAtual.estrelas_misturada || 3;
 
             document.getElementById('modalEmpresa').classList.add('active');
         }
@@ -244,7 +255,10 @@
                 cnpj: document.getElementById('cnpj').value,
                 endereco: document.getElementById('endereco').value,
                 telefone: document.getElementById('telefone').value,
-                observacoes: document.getElementById('observacoes').value
+                observacoes: document.getElementById('observacoes').value,
+                estrelas_leve: parseInt(document.getElementById('estrelasLeve').value),
+                estrelas_pesada: parseInt(document.getElementById('estrelasPesada').value),
+                estrelas_misturada: parseInt(document.getElementById('estrelasMisturada').value)
             };
 
             let response;
@@ -261,28 +275,7 @@
             }
 
             if (response.ok) {
-                const empresa = await response.json();
-
-                const precos = [
-                    { tipo: 'leve', valor: document.getElementById('precoLeve').value },
-                    { tipo: 'media', valor: document.getElementById('precoMedia').value },
-                    { tipo: 'pesada', valor: document.getElementById('precoPesada').value }
-                ];
-
-                for (const preco of precos) {
-                    if (preco.valor) {
-                        await fetchAPI('/precos', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                empresa_id: empresa.id,
-                                tipo_placa: preco.tipo,
-                                preco_por_kg: parseFloat(preco.valor)
-                            })
-                        });
-                    }
-                }
-
-                showAlert('Empresa salva com sucesso!', 'success');
+                showAlert('Empresa salva com sucesso! Preços calculados automaticamente.', 'success');
                 fecharModal();
                 await carregarEmpresas();
             } else {
