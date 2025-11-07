@@ -37,8 +37,8 @@
             <span>Dashboard</span>
         </a>
         <div class="fab-container">
-            <button class="fab-button" onclick="openScanner()" aria-label="Scanner">
-                <i class="fas fa-camera icon"></i>
+            <button class="fab-button" onclick="window.location.href='/solicitacoes.html'" aria-label="Nova Solicitação">
+                <i class="fas fa-plus icon"></i>
             </button>
         </div>
         <a href="/solicitacoes.html" class="bottom-nav-item">
@@ -50,57 +50,6 @@
             <span>Fornecedores</span>
         </a>
     </nav>
-
-    <!-- Scanner Modal -->
-    <div class="scanner-modal" id="scannerModal">
-        <div class="scanner-modal-content">
-            <div class="scanner-modal-header">
-                <h2>Escanear Placa</h2>
-                <button class="scanner-close" onclick="closeScanner()">&times;</button>
-            </div>
-            <form id="formScanner">
-                <div class="form-group">
-                    <label>Selecionar Fornecedor</label>
-                    <select id="scannerFornecedor" required>
-                        <option value="">Escolha um fornecedor...</option>
-                    </select>
-                </div>
-                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-camera icon" style="font-size: 3rem; color: var(--primary-color);"></i>
-                    <p>Toque para capturar ou selecionar imagem</p>
-                    <input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;" onchange="previewImage(this)">
-                </div>
-                <div class="image-preview" id="imagePreview">
-                    <img id="previewImg" alt="Preview">
-                </div>
-                <div class="form-group">
-                    <label>Tipo de Placa</label>
-                    <select id="tipoPlaca" required>
-                        <option value="">Selecione...</option>
-                        <option value="leve">Leve</option>
-                        <option value="pesada">Pesada</option>
-                        <option value="media">Média</option>
-                    </select>
-                    <button type="button" class="btn btn-secondary w-full" style="margin-top: 0.5rem;" onclick="analisarPlacaAutomatica()">🤖 Analisar Placa com IA</button>
-                </div>
-                <div class="form-group">
-                    <label>Peso (kg)</label>
-                    <input type="number" id="pesoPlaca" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label>Valor Total (calculado automaticamente)</label>
-                    <div id="valorCalculado" data-valor="0" style="padding: 0.75rem; background-color: #f0f0f0; border-radius: 5px; font-weight: bold; font-size: 1.1rem; color: #2c3e50;">R$ 0,00</div>
-                </div>
-                <div class="form-group">
-                    <button type="button" class="btn btn-secondary w-full" id="btnCapturarLocalizacao" onclick="capturarLocalizacaoScanner()">
-                        <i class="fas fa-map-marker-alt"></i> Capturar Localização
-                    </button>
-                    <div id="locationInfo" style="margin-top: 0.5rem; padding: 0.75rem; background: #e8f5e9; border-radius: 5px; display: none; font-size: 0.9rem; color: #2e7d32;"></div>
-                </div>
-                <button type="submit" class="btn btn-primary w-full">Registrar Placa</button>
-            </form>
-        </div>
-    </div>
 
     <main class="container mt-4">
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
@@ -348,88 +297,6 @@
 
         function fecharModal() {
             document.getElementById('modalFornecedor').classList.remove('active');
-        }
-
-        function openScanner() {
-            document.getElementById('scannerModal').classList.add('active');
-        }
-
-        function closeScanner() {
-            document.getElementById('scannerModal').classList.remove('active');
-            document.getElementById('formScanner').reset();
-            document.getElementById('imagePreview').style.display = 'none';
-        }
-
-        async function previewImage(input) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    const preview = document.getElementById('previewImg');
-                    preview.src = e.target.result;
-                    document.getElementById('imagePreview').style.display = 'block';
-                    
-                    await analisarPlacaAutomatica(file);
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        async function analisarPlacaAutomatica(file) {
-            try {
-                if (!file) {
-                    const fileInput = document.getElementById('fileInput');
-                    if (!fileInput.files || fileInput.files.length === 0) {
-                        showAlert('Por favor, adicione uma imagem da placa primeiro!', 'error');
-                        return;
-                    }
-                    file = fileInput.files[0];
-                }
-                
-                const formData = new FormData();
-                formData.append('imagem', file);
-                
-                const response = await fetchAPI('/api/placas/analisar', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    const resultado = await response.json();
-                    
-                    const tipoPlacaSelect = document.getElementById('tipoPlaca');
-                    tipoPlacaSelect.value = resultado.classificacao;
-                    
-                    const mensagemDiv = document.createElement('div');
-                    mensagemDiv.className = 'alert alert-success';
-                    mensagemDiv.style.marginTop = '10px';
-                    mensagemDiv.innerHTML = `
-                        <strong>✅ ${resultado.mensagem}</strong><br>
-                        <small>📊 Percentual verde: ${resultado.percentual_verde}%</small><br>
-                        <small>🔧 Componentes detectados: ${resultado.componentes_detectados}</small><br>
-                        <small>Você pode editar a classificação se necessário</small>
-                    `;
-                    
-                    const tipoPlacaGroup = tipoPlacaSelect.closest('.form-group');
-                    const existingAlert = tipoPlacaGroup.querySelector('.alert');
-                    if (existingAlert) {
-                        existingAlert.remove();
-                    }
-                    tipoPlacaGroup.appendChild(mensagemDiv);
-                    
-                    setTimeout(() => {
-                        mensagemDiv.remove();
-                    }, 10000);
-                    
-                    showAlert(resultado.mensagem, 'success');
-                } else {
-                    const error = await response.json();
-                    showAlert(error.erro || 'Erro ao analisar placa', 'error');
-                }
-            } catch (error) {
-                console.error('Erro ao analisar placa:', error);
-                showAlert('Erro ao analisar placa. Selecione manualmente.', 'error');
-            }
         }
 
         carregarPagina();
