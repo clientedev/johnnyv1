@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, Response
 from flask_jwt_extended import jwt_required
-from app.models import db, Placa, Empresa, Fornecedor, Compra, Solicitacao
+from app.models import Fornecedor, Fornecedor, Compra, Solicitacao
 from datetime import datetime
 import csv
 import io
@@ -10,7 +10,7 @@ bp = Blueprint('consulta', __name__, url_prefix='/api/consulta')
 @bp.route('/placas', methods=['GET'])
 @jwt_required()
 def consultar_placas():
-    empresa_id = request.args.get('empresa_id', type=int)
+    fornecedor_id = request.args.get('fornecedor_id', type=int)
     tipo_placa = request.args.get('tipo_placa')
     status = request.args.get('status')
     data_inicio = request.args.get('data_inicio')
@@ -24,8 +24,8 @@ def consultar_placas():
     
     query = Placa.query
     
-    if empresa_id:
-        query = query.filter_by(empresa_id=empresa_id)
+    if fornecedor_id:
+        query = query.filter_by(fornecedor_id=fornecedor_id)
     
     if tipo_placa:
         query = query.filter_by(tipo_placa=tipo_placa)
@@ -72,10 +72,10 @@ def consultar_empresas():
     condicao_pagamento = request.args.get('condicao_pagamento')
     busca = request.args.get('busca', '')
     
-    query = Empresa.query
+    query = Fornecedor.query
     
     if cidade:
-        query = query.filter(Empresa.cidade.ilike(f'%{cidade}%'))
+        query = query.filter(Fornecedor.cidade.ilike(f'%{cidade}%'))
     
     if estado:
         query = query.filter_by(estado=estado)
@@ -89,13 +89,13 @@ def consultar_empresas():
     if busca:
         query = query.filter(
             db.or_(
-                Empresa.nome.ilike(f'%{busca}%'),
-                Empresa.cnpj.ilike(f'%{busca}%')
+                Fornecedor.nome.ilike(f'%{busca}%'),
+                Fornecedor.cnpj.ilike(f'%{busca}%')
             )
         )
     
-    empresas = query.order_by(Empresa.nome).all()
-    return jsonify([empresa.to_dict() for empresa in empresas]), 200
+    empresas = query.order_by(Fornecedor.nome).all()
+    return jsonify([fornecedor.to_dict() for empresa in empresas]), 200
 
 @bp.route('/fornecedores', methods=['GET'])
 @jwt_required()
@@ -168,13 +168,13 @@ def exportar_placas_csv():
     output = io.StringIO()
     writer = csv.writer(output)
     
-    writer.writerow(['ID', 'Tag', 'Empresa', 'Tipo Placa', 'Peso (kg)', 'Valor', 'Status', 'Data Registro'])
+    writer.writerow(['ID', 'Tag', 'Fornecedor', 'Tipo Placa', 'Peso (kg)', 'Valor', 'Status', 'Data Registro'])
     
     for placa in placas:
         writer.writerow([
             placa.id,
             placa.tag,
-            placa.empresa.nome if placa.empresa else '',
+            placa.fornecedor.nome if placa.empresa else '',
             placa.tipo_placa,
             placa.peso_kg,
             placa.valor,

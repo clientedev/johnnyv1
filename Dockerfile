@@ -20,8 +20,5 @@ COPY . .
 # Criar diretórios necessários
 RUN mkdir -p uploads
 
-# Expor porta
-EXPOSE 5000
-
-# Comando de inicialização (usando shell para expandir variáveis de ambiente)
-CMD ["sh", "-c", "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:${PORT:-5000} --timeout 120 app:application"]
+# Usar o app.py que já lê a variável PORT corretamente
+CMD ["python", "app.py"]

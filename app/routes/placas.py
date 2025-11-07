@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Placa, Empresa, Usuario, Vendedor
+from app.models import Fornecedor, Usuario, Vendedor
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
@@ -91,7 +91,7 @@ def analisar_placa_endpoint():
 @placas_bp.route('/api/placas/consulta', methods=['GET'])
 @jwt_required()
 def consultar_placas():
-    empresa_id = request.args.get('empresa_id', type=int)
+    fornecedor_id = request.args.get('fornecedor_id', type=int)
     vendedor_id = request.args.get('vendedor_id', type=int)
     tipo_placa = request.args.get('tipo_placa')
     status = request.args.get('status')
@@ -107,11 +107,11 @@ def consultar_placas():
     
     query = Placa.query
     
-    if empresa_id:
-        query = query.filter_by(empresa_id=empresa_id)
+    if fornecedor_id:
+        query = query.filter_by(fornecedor_id=fornecedor_id)
     
     if vendedor_id:
-        query = query.join(Empresa).filter(Empresa.vendedor_id == vendedor_id)
+        query = query.join(Fornecedor).filter(Fornecedor.vendedor_id == vendedor_id)
     
     if tipo_placa:
         query = query.filter_by(tipo_placa=tipo_placa)
@@ -141,10 +141,10 @@ def consultar_placas():
         query = query.filter(Placa.valor <= valor_max)
     
     if forma_pagamento:
-        query = query.join(Empresa).filter(Empresa.forma_pagamento == forma_pagamento)
+        query = query.join(Fornecedor).filter(Fornecedor.forma_pagamento == forma_pagamento)
     
     if condicao_pagamento:
-        query = query.join(Empresa).filter(Empresa.condicao_pagamento == condicao_pagamento)
+        query = query.join(Fornecedor).filter(Fornecedor.condicao_pagamento == condicao_pagamento)
     
     placas = query.order_by(Placa.data_compra.desc()).all()
     
@@ -159,13 +159,13 @@ def get_placas():
     if not user:
         return jsonify({'error': 'Usuário não encontrado'}), 404
     
-    empresa_id = request.args.get('empresa_id', type=int)
+    fornecedor_id = request.args.get('fornecedor_id', type=int)
     solicitacao_id = request.args.get('solicitacao_id', type=int)
     
     query = Placa.query
     
-    if empresa_id:
-        query = query.filter_by(empresa_id=empresa_id)
+    if fornecedor_id:
+        query = query.filter_by(fornecedor_id=fornecedor_id)
     
     if solicitacao_id:
         query = query.filter_by(solicitacao_id=solicitacao_id)
@@ -181,7 +181,7 @@ def get_placa(id):
         return jsonify({'error': 'Placa não encontrada'}), 404
     
     placa_dict = placa.to_dict()
-    placa_dict['empresa'] = placa.empresa.to_dict() if placa.empresa else None
+    placa_dict['empresa'] = placa.fornecedor.to_dict() if placa.empresa else None
     placa_dict['funcionario'] = placa.funcionario.to_dict() if placa.funcionario else None
     
     return jsonify(placa_dict)
@@ -213,7 +213,7 @@ def create_placa():
     if not data:
         return jsonify({'error': 'Dados não fornecidos'}), 400
     
-    empresa_id = data.get('empresa_id')
+    fornecedor_id = data.get('fornecedor_id')
     tipo_placa = data.get('tipo_placa')
     peso_kg = data.get('peso_kg')
     valor = data.get('valor')
@@ -223,15 +223,15 @@ def create_placa():
     localizacao_lng = data.get('localizacao_lng')
     endereco_completo = data.get('endereco_completo')
     
-    if not all([empresa_id, tipo_placa, peso_kg, valor]):
+    if not all([fornecedor_id, tipo_placa, peso_kg, valor]):
         return jsonify({'error': 'Dados incompletos'}), 400
     
-    empresa = Empresa.query.get(empresa_id)
+    empresa = Fornecedor.query.get(fornecedor_id)
     if not empresa:
-        return jsonify({'error': 'Empresa não encontrada'}), 404
+        return jsonify({'error': 'Fornecedor não encontrada'}), 404
     
     nova_placa = Placa(
-        empresa_id=empresa_id,
+        fornecedor_id=fornecedor_id,
         funcionario_id=user_id,
         solicitacao_id=solicitacao_id if solicitacao_id else None,
         tipo_placa=tipo_placa,
@@ -303,27 +303,27 @@ def delete_placa(id):
 @placas_bp.route('/placas/stats', methods=['GET'])
 @jwt_required()
 def get_placas_stats():
-    empresa_id = request.args.get('empresa_id', type=int)
+    fornecedor_id = request.args.get('fornecedor_id', type=int)
     status = request.args.get('status')
     
     query = Placa.query
     
-    if empresa_id:
-        query = query.filter_by(empresa_id=empresa_id)
+    if fornecedor_id:
+        query = query.filter_by(fornecedor_id=fornecedor_id)
     
     if status:
         query = query.filter_by(status=status)
     
     total_placas = query.count()
     total_peso = db.session.query(db.func.sum(Placa.peso_kg)).filter(
-        Placa.empresa_id == empresa_id if empresa_id else True
+        Placa.fornecedor_id == fornecedor_id if fornecedor_id else True
     )
     if status:
         total_peso = total_peso.filter(Placa.status == status)
     total_peso = total_peso.scalar() or 0
     
     total_valor = db.session.query(db.func.sum(Placa.valor)).filter(
-        Placa.empresa_id == empresa_id if empresa_id else True
+        Placa.fornecedor_id == fornecedor_id if fornecedor_id else True
     )
     if status:
         total_valor = total_valor.filter(Placa.status == status)
@@ -336,8 +336,8 @@ def get_placas_stats():
         db.func.sum(Placa.peso_kg)
     ).group_by(Placa.tipo_placa)
     
-    if empresa_id:
-        tipos_query = tipos_query.filter_by(empresa_id=empresa_id)
+    if fornecedor_id:
+        tipos_query = tipos_query.filter_by(fornecedor_id=fornecedor_id)
     
     if status:
         tipos_query = tipos_query.filter_by(status=status)

@@ -29,15 +29,13 @@ def create_app():
     socketio.init_app(app, cors_allowed_origins="*")
     
     with app.app_context():
-        from app.routes import (auth, empresas, usuarios, precos, relatorios, notificacoes, 
+        from app.routes import (auth, usuarios, precos, notificacoes, 
                                 dashboard, placas, configuracoes, vendedores, solicitacoes, entradas,
-                                funcionarios, fornecedores, compras, classificacoes, validacao, consulta, tabelas)
+                                fornecedores, compras, classificacoes, validacao, consulta, tabelas)
         
         app.register_blueprint(auth.bp)
-        app.register_blueprint(empresas.bp)
         app.register_blueprint(usuarios.bp)
         app.register_blueprint(precos.bp)
-        app.register_blueprint(relatorios.bp)
         app.register_blueprint(solicitacoes.bp)
         app.register_blueprint(entradas.bp)
         app.register_blueprint(vendedores.bp)
@@ -45,7 +43,6 @@ def create_app():
         app.register_blueprint(dashboard.bp)
         app.register_blueprint(placas.placas_bp)
         app.register_blueprint(configuracoes.bp)
-        app.register_blueprint(funcionarios.bp)
         app.register_blueprint(fornecedores.bp)
         app.register_blueprint(compras.bp)
         app.register_blueprint(classificacoes.bp)

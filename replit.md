@@ -3,13 +3,14 @@
 ## Visão Geral
 Sistema web completo para gestão de empresas, funcionários, preços e relatórios. Construído com Flask, PostgreSQL, WebSocket para notificações em tempo real, e autenticação JWT.
 
-## Estado Atual (06/11/2025)
-✅ **Projeto totalmente funcional e pronto para deploy**
+## Estado Atual (07/11/2025)
+✅ **Projeto totalmente funcional e pronto para deploy no Railway**
 - Aplicação rodando localmente sem erros
 - Todas as dependências instaladas
-- Arquivos de deploy para Railway configurados
-- Criação automática de tabelas do banco de dados implementada
+- **Dockerfile corrigido para Railway** (suporta variável $PORT corretamente)
+- Criação automática de tabelas do banco de dados implementada (script init_db.py)
 - WebSocket funcionando para notificações em tempo real
+- **Banco de dados reorganizado e otimizado** (07/11/2025)
 - **Sistema de Classificação por Estrelas (1-5)** implementado
   - API robusta com validações completas
   - Configurações por tipo de placa (leve, pesada, média)
@@ -148,15 +149,32 @@ Sistema web completo para gestão de empresas, funcionários, preços e relatór
 
 ## Configuração do Banco de Dados
 
-### Modelos Principais
+### Modelos Principais (Atualizado 07/11/2025)
 - **Usuario:** Usuários do sistema (admin/funcionário)
-- **Empresa:** Empresas cadastradas
+- **Vendedor:** Vendedores que gerenciam fornecedores
+- **Fornecedor:** Fornecedores de placas (antiga "Empresa" - renomeada e consolidada)
+  - Contém informações de cadastro, preços por estrelas, endereços, dados bancários
+  - Relacionamentos: preços, solicitações, placas, compras, lotes
 - **ConfiguracaoPrecoEstrela:** Valores por kg para cada nível de estrela (1-5) por tipo de placa
-- **Preco:** Preços de empresas com campo de classificação por estrelas (1-5)
-- **Funcionario:** Funcionários vinculados às empresas
-- **Preco:** Histórico de preços por empresa
-- **Placa:** Sistema de registro de placas com imagens (NOVO)
+- **Preco:** Preços de fornecedores com campo de classificação por estrelas (1-5)
+- **Solicitacao:** Solicitações de compra de placas
+- **Placa:** Sistema de registro de placas com imagens, estrelas, peso, valor
+  - Campos adicionados: lote_id, estrelas
+- **Lote:** Agrupamento de placas quando solicita\u00e7\u00e3o fecha ✨ (NOVO)
+  - Calcula peso_total_kg e valor_total
+  - Gera automaticamente uma Compra
+- **Compra:** Compras realizadas de lotes fechados
+  - Atualizado: agora conectado a Lote (lote_id)
+  - Campos: valor_total, peso_total_kg
+- **Entrada:** Controle de entrada de placas
 - **Notificacao:** Sistema de notificações
+- **Classificacao:** Classificações de lotes
+- **Configuracao:** Configurações gerais do sistema
+
+**Tabelas removidas:**
+- Relatorio (funcionalidade substituída por Placa)
+- Funcionario (sem relacionamentos essenciais)
+- Empresa duplicada (consolidada em Fornecedor)
 
 ### Criação Automática de Tabelas
 O sistema cria automaticamente todas as tabelas ao iniciar (`db.create_all()` em `app/__init__.py`).
@@ -267,5 +285,46 @@ Para problemas com o deploy no Railway, consulte:
 
 ---
 
-**Última atualização:** 06/11/2025
+**Última atualização:** 07/11/2025
 **Status:** ✅ Pronto para deploy no Railway
+
+## Mudanças Recentes (07/11/2025)
+
+### 1. Correção do Dockerfile para Railway
+- Simplificado para usar Python diretamente: `CMD ["python", "app.py"]`
+- app.py já lê corretamente a variável PORT via `os.environ.get('PORT', 5000)`
+- Eliminou o erro "$PORT is not a valid port number" no Railway
+
+### 2. Reorganização Completa do Banco de Dados
+**Objetivo:** Consolidar fornecedores e criar fluxo de lotes para compras
+
+**Mudanças estruturais:**
+- Renomeada tabela "Empresa" → "Fornecedor" (consolidada em uma única tabela)
+- Criado modelo **Lote** para agrupar placas quando solicitação fecha
+- Atualizado modelo **Compra** para conectar a Lotes (em vez de Solicitacao)
+- Removidas tabelas sem uso: Relatorio, Funcionario, Fornecedor duplicado
+
+**Fluxo atualizado:**
+```
+Placas (com estrelas) 
+  → Solicitação 
+  → Lote (soma valores/pesos)
+  → Compra (alimenta sistema de compras)
+```
+
+### 3. Script init_db.py Atualizado
+- Agora faz DROP CASCADE antes de criar tabelas (remove estrutura antiga)
+- Cria automaticamente todas as tabelas com a nova estrutura
+- Garante banco de dados limpo e consistente
+
+### 4. Rotas e Blueprints Atualizados
+- Removidos: `/api/empresas`, `/api/relatorios`, `/api/funcionarios`
+- Mantido: `/api/fornecedores` (consolidado)
+- Dashboard atualizado para usar Placa em vez de Relatorio
+- Todos os cálculos usando `valor_total` corretamente
+
+### 5. Próximos Passos para o Usuário
+- [ ] Atualizar frontend para chamar `/api/fornecedores` em vez de `/api/empresas`
+- [ ] Testar deploy no Railway
+- [ ] Implementar lógica de fechamento de lote (quando solicitação é aprovada)
+- [ ] Criar interface para gerenciar lotes

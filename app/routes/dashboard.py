@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import db, Relatorio, Empresa, Preco, Placa, Solicitacao, Entrada, Compra, Fornecedor
+from app.models import db, Fornecedor, Preco, Placa, Solicitacao, Entrada, Compra
 from app.auth import admin_required
 from sqlalchemy import func, extract
 from datetime import datetime, timedelta
@@ -10,14 +10,14 @@ bp = Blueprint('dashboard', __name__, url_prefix='/api/dashboard')
 @bp.route('/stats', methods=['GET'])
 @admin_required
 def obter_estatisticas():
-    total_pendentes = Relatorio.query.filter_by(status='pendente').count()
-    total_aprovados = Relatorio.query.filter_by(status='aprovado').count()
-    total_reprovados = Relatorio.query.filter_by(status='reprovado').count()
+    total_pendentes = Placa.query.filter_by(status='em_analise').count()
+    total_aprovados = Placa.query.filter_by(status='aprovada').count()
+    total_reprovados = Placa.query.filter_by(status='reprovada').count()
     
     quilos_por_tipo = db.session.query(
-        Relatorio.tipo_placa,
-        func.sum(Relatorio.peso_kg).label('total_kg')
-    ).filter(Relatorio.status == 'aprovado').group_by(Relatorio.tipo_placa).all()
+        Placa.tipo_placa,
+        func.sum(Placa.peso_kg).label('total_kg')
+    ).filter(Placa.status == 'aprovada').group_by(Placa.tipo_placa).all()
     
     quilos = {
         'leve': 0,
@@ -28,24 +28,14 @@ def obter_estatisticas():
     for tipo, total in quilos_por_tipo:
         quilos[tipo] = float(total) if total else 0
     
-    valor_total = 0
-    relatorios_aprovados = Relatorio.query.filter_by(status='aprovado').all()
-    
-    for relatorio in relatorios_aprovados:
-        preco = Preco.query.filter_by(
-            empresa_id=relatorio.empresa_id,
-            tipo_placa=relatorio.tipo_placa
-        ).first()
-        
-        if preco:
-            valor_total += relatorio.peso_kg * preco.preco_por_kg
+    valor_total = db.session.query(func.sum(Placa.valor)).filter_by(status='aprovada').scalar() or 0
     
     ranking_empresas = db.session.query(
-        Empresa.nome,
-        func.count(Relatorio.id).label('total_relatorios')
-    ).join(Relatorio).filter(Relatorio.status == 'aprovado').group_by(
-        Empresa.id, Empresa.nome
-    ).order_by(func.count(Relatorio.id).desc()).limit(5).all()
+        Fornecedor.nome,
+        func.count(Placa.id).label('total_placas')
+    ).join(Placa).filter(Placa.status == 'aprovada').group_by(
+        Fornecedor.id, Fornecedor.nome
+    ).order_by(func.count(Placa.id).desc()).limit(5).all()
     
     ranking = [{'nome': nome, 'total': total} for nome, total in ranking_empresas]
     
@@ -56,7 +46,7 @@ def obter_estatisticas():
             'reprovados': total_reprovados
         },
         'quilos_por_tipo': quilos,
-        'valor_total': round(valor_total, 2),
+        'valor_total': round(float(valor_total), 2),
         'ranking_empresas': ranking
     }), 200
 
@@ -66,12 +56,12 @@ def obter_grafico_mensal():
     ano_atual = datetime.now().year
     
     dados_mensais = db.session.query(
-        extract('month', Relatorio.data_envio).label('mes'),
-        func.count(Relatorio.id).label('total')
+        extract('month', Placa.data_registro).label('mes'),
+        func.count(Placa.id).label('total')
     ).filter(
-        extract('year', Relatorio.data_envio) == ano_atual,
-        Relatorio.status == 'aprovado'
-    ).group_by(extract('month', Relatorio.data_envio)).all()
+        extract('year', Placa.data_registro) == ano_atual,
+        Placa.status == 'aprovada'
+    ).group_by(extract('month', Placa.data_registro)).all()
     
     meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     dados = [0] * 12
@@ -87,23 +77,23 @@ def obter_grafico_mensal():
 @bp.route('/mapa', methods=['GET'])
 @admin_required
 def obter_dados_mapa():
-    relatorios = Relatorio.query.filter(
-        Relatorio.status == 'aprovado',
-        Relatorio.localizacao_lat.isnot(None),
-        Relatorio.localizacao_lng.isnot(None)
+    placas = Placa.query.filter(
+        Placa.status == 'aprovada',
+        Placa.localizacao_lat.isnot(None),
+        Placa.localizacao_lng.isnot(None)
     ).all()
     
     marcadores = []
-    for relatorio in relatorios:
+    for placa in placas:
         marcadores.append({
-            'id': relatorio.id,
-            'lat': relatorio.localizacao_lat,
-            'lng': relatorio.localizacao_lng,
-            'empresa': relatorio.empresa.nome,
-            'funcionario': relatorio.funcionario.nome,
-            'tipo_placa': relatorio.tipo_placa,
-            'peso_kg': relatorio.peso_kg,
-            'data': relatorio.data_envio.strftime('%d/%m/%Y %H:%M')
+            'id': placa.id,
+            'lat': placa.localizacao_lat,
+            'lng': placa.localizacao_lng,
+            'empresa': placa.fornecedor.nome,
+            'funcionario': placa.funcionario.nome,
+            'tipo_placa': placa.tipo_placa,
+            'peso_kg': placa.peso_kg,
+            'data': placa.data_registro.strftime('%d/%m/%Y %H:%M')
         })
     
     return jsonify(marcadores), 200
@@ -142,19 +132,18 @@ def dashboard_geral():
 @bp.route('/financeiro', methods=['GET'])
 @admin_required
 def dashboard_financeiro():
-    total_compras = db.session.query(func.sum(Compra.valor)).filter_by(tipo='compra').scalar() or 0
-    total_despesas = db.session.query(func.sum(Compra.valor)).filter_by(tipo='despesa').scalar() or 0
+    total_compras = db.session.query(func.sum(Compra.valor_total)).scalar() or 0
     
-    compras_pendentes = db.session.query(func.sum(Compra.valor)).filter_by(status='pendente').scalar() or 0
-    compras_pagas = db.session.query(func.sum(Compra.valor)).filter_by(status='pago').scalar() or 0
+    compras_pendentes = db.session.query(func.sum(Compra.valor_total)).filter_by(status='pendente').scalar() or 0
+    compras_pagas = db.session.query(func.sum(Compra.valor_total)).filter_by(status='pago').scalar() or 0
     
     valor_placas_aprovadas = db.session.query(func.sum(Placa.valor)).filter_by(status='aprovada').scalar() or 0
     
-    lucro_liquido = float(valor_placas_aprovadas) - float(total_compras) - float(total_despesas)
+    lucro_liquido = float(valor_placas_aprovadas) - float(total_compras)
     
     compras_mes_atual = db.session.query(
         extract('day', Compra.data_compra).label('dia'),
-        func.sum(Compra.valor).label('total')
+        func.sum(Compra.valor_total).label('total')
     ).filter(
         extract('month', Compra.data_compra) == datetime.now().month,
         extract('year', Compra.data_compra) == datetime.now().year
@@ -162,7 +151,6 @@ def dashboard_financeiro():
     
     return jsonify({
         'compras': float(total_compras),
-        'despesas': float(total_despesas),
         'receita': float(valor_placas_aprovadas),
         'lucro_liquido': lucro_liquido,
         'pendentes': float(compras_pendentes),
@@ -213,9 +201,9 @@ def dashboard_fornecedores():
     top_fornecedores = db.session.query(
         Fornecedor.nome,
         func.count(Compra.id).label('total_compras'),
-        func.sum(Compra.valor).label('valor_total')
+        func.sum(Compra.valor_total).label('valor_total')
     ).join(Compra).group_by(Fornecedor.id, Fornecedor.nome).order_by(
-        func.sum(Compra.valor).desc()
+        func.sum(Compra.valor_total).desc()
     ).limit(10).all()
     
     ranking_fornecedores = [{
@@ -225,11 +213,11 @@ def dashboard_fornecedores():
     } for nome, total, valor in top_fornecedores]
     
     ranking_empresas = db.session.query(
-        Empresa.nome,
+        Fornecedor.nome,
         func.count(Placa.id).label('total_placas'),
         func.sum(Placa.peso_kg).label('peso_total')
     ).join(Placa).filter(Placa.status == 'aprovada').group_by(
-        Empresa.id, Empresa.nome
+        Fornecedor.id, Fornecedor.nome
     ).order_by(func.count(Placa.id).desc()).limit(10).all()
     
     ranking_empresas_list = [{
@@ -240,7 +228,7 @@ def dashboard_fornecedores():
     
     total_fornecedores = Fornecedor.query.count()
     fornecedores_ativos = Fornecedor.query.filter_by(ativo=True).count()
-    total_empresas = Empresa.query.count()
+    total_empresas = Fornecedor.query.count()
     
     return jsonify({
         'top_fornecedores': ranking_fornecedores,

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import db, Preco, Empresa
+from app.models import Fornecedor
 from app.auth import admin_required
 
 bp = Blueprint('precos', __name__, url_prefix='/api/precos')
@@ -8,10 +8,10 @@ bp = Blueprint('precos', __name__, url_prefix='/api/precos')
 @bp.route('', methods=['GET'])
 @jwt_required()
 def listar_precos():
-    empresa_id = request.args.get('empresa_id', type=int)
+    fornecedor_id = request.args.get('fornecedor_id', type=int)
     
-    if empresa_id:
-        precos = Preco.query.filter_by(empresa_id=empresa_id).all()
+    if fornecedor_id:
+        precos = Preco.query.filter_by(fornecedor_id=fornecedor_id).all()
     else:
         precos = Preco.query.all()
     
@@ -32,15 +32,15 @@ def obter_preco(id):
 def criar_preco():
     data = request.get_json()
     
-    if not data or not data.get('empresa_id') or not data.get('tipo_placa') or not data.get('preco_por_kg'):
-        return jsonify({'erro': 'Empresa, tipo de placa e preço por kg são obrigatórios'}), 400
+    if not data or not data.get('fornecedor_id') or not data.get('tipo_placa') or not data.get('preco_por_kg'):
+        return jsonify({'erro': 'Fornecedor, tipo de placa e preço por kg são obrigatórios'}), 400
     
-    empresa = Empresa.query.get(data['empresa_id'])
+    empresa = Fornecedor.query.get(data['fornecedor_id'])
     if not empresa:
-        return jsonify({'erro': 'Empresa não encontrada'}), 404
+        return jsonify({'erro': 'Fornecedor não encontrada'}), 404
     
     preco_existente = Preco.query.filter_by(
-        empresa_id=data['empresa_id'],
+        fornecedor_id=data['fornecedor_id'],
         tipo_placa=data['tipo_placa']
     ).first()
     
@@ -48,7 +48,7 @@ def criar_preco():
         return jsonify({'erro': 'Já existe um preço cadastrado para este tipo de placa nesta empresa'}), 400
     
     preco = Preco(
-        empresa_id=data['empresa_id'],
+        fornecedor_id=data['fornecedor_id'],
         tipo_placa=data['tipo_placa'],
         preco_por_kg=data['preco_por_kg']
     )

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Solicitacao, Usuario, Empresa, Notificacao, Placa, Entrada
+from app.models import Fornecedor, Notificacao, Placa, Entrada
 from app.auth import admin_required
 from app import socketio
 from datetime import datetime
@@ -14,7 +14,7 @@ def listar_solicitacoes():
     usuario = Usuario.query.get(usuario_id)
     
     status = request.args.get('status')
-    empresa_id = request.args.get('empresa_id', type=int)
+    fornecedor_id = request.args.get('fornecedor_id', type=int)
     busca = request.args.get('busca', '')
     
     query = Solicitacao.query
@@ -25,13 +25,13 @@ def listar_solicitacoes():
     if status:
         query = query.filter_by(status=status)
     
-    if empresa_id:
-        query = query.filter_by(empresa_id=empresa_id)
+    if fornecedor_id:
+        query = query.filter_by(fornecedor_id=fornecedor_id)
     
     if busca:
-        query = query.join(Empresa).join(Usuario).filter(
+        query = query.join(Fornecedor).join(Usuario).filter(
             db.or_(
-                Empresa.nome.ilike(f'%{busca}%'),
+                Fornecedor.nome.ilike(f'%{busca}%'),
                 Usuario.nome.ilike(f'%{busca}%')
             )
         )
@@ -70,19 +70,19 @@ def criar_solicitacao():
     
     data = request.get_json()
     
-    empresa_id = data.get('empresa_id', type=int)
+    fornecedor_id = data.get('fornecedor_id', type=int)
     observacoes = data.get('observacoes', '')
     
-    if not empresa_id:
-        return jsonify({'erro': 'Empresa é obrigatória'}), 400
+    if not fornecedor_id:
+        return jsonify({'erro': 'Fornecedor é obrigatória'}), 400
     
-    empresa = Empresa.query.get(empresa_id)
+    empresa = Fornecedor.query.get(fornecedor_id)
     if not empresa:
-        return jsonify({'erro': 'Empresa não encontrada'}), 404
+        return jsonify({'erro': 'Fornecedor não encontrada'}), 404
     
     solicitacao = Solicitacao(
         funcionario_id=usuario_id,
-        empresa_id=empresa_id,
+        fornecedor_id=fornecedor_id,
         observacoes=observacoes,
         status='pendente'
     )
@@ -95,7 +95,7 @@ def criar_solicitacao():
         notificacao = Notificacao(
             usuario_id=admin.id,
             titulo='Nova Solicitação Criada',
-            mensagem=f'{usuario.nome} criou uma nova solicitação para a empresa {empresa.nome}.'
+            mensagem=f'{usuario.nome} criou uma nova solicitação para a empresa {fornecedor.nome}.'
         )
         db.session.add(notificacao)
     
@@ -132,7 +132,7 @@ def adicionar_placa_solicitacao(id):
         return jsonify({'erro': 'Tipo de placa, peso e valor são obrigatórios'}), 400
     
     placa = Placa(
-        empresa_id=solicitacao.empresa_id,
+        fornecedor_id=solicitacao.fornecedor_id,
         funcionario_id=usuario_id,
         solicitacao_id=id,
         tipo_placa=tipo_placa,

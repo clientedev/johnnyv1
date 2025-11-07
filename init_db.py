@@ -11,6 +11,10 @@ def init_database():
         app = create_app()
         
         with app.app_context():
+            print("⚠️  Removendo tabelas antigas...")
+            db.drop_all()
+            print("✅ Tabelas antigas removidas!")
+            
             print("Criando todas as tabelas no banco de dados...")
             db.create_all()
             print("✅ Tabelas criadas com sucesso!")

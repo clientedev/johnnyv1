@@ -40,7 +40,7 @@ def obter_fornecedor(id):
     
     fornecedor_dict = fornecedor.to_dict()
     fornecedor_dict['total_compras'] = len(fornecedor.compras)
-    fornecedor_dict['valor_total_compras'] = sum(c.valor for c in fornecedor.compras)
+    fornecedor_dict['valor_total_compras'] = sum(c.valor_total for c in fornecedor.compras)
     
     return jsonify(fornecedor_dict), 200
 
