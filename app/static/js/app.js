@@ -279,6 +279,17 @@ function closeScanner() {
 async function carregarEmpresasScanner() {
     try {
         const response = await fetchAPI('/api/fornecedores');
+        if (!response) {
+            console.error('Erro: Sem resposta do servidor');
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Erro ao carregar fornecedores:', errorData.mensagem || errorData.erro);
+            return;
+        }
+        
         const data = await response.json();
         const select = document.getElementById('scannerFornecedor');
         if (select) {

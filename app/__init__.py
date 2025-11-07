@@ -29,8 +29,38 @@ def create_app():
     
     db.init_app(app)
     CORS(app)
-    JWTManager(app)
+    jwt = JWTManager(app)
     socketio.init_app(app, cors_allowed_origins="*")
+    
+    from flask import jsonify
+    
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        return jsonify({
+            'erro': 'Token expirado',
+            'mensagem': 'Por favor, faça login novamente'
+        }), 401
+    
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        return jsonify({
+            'erro': 'Token inválido',
+            'mensagem': 'Por favor, faça login novamente'
+        }), 401
+    
+    @jwt.unauthorized_loader
+    def unauthorized_callback(error):
+        return jsonify({
+            'erro': 'Token não fornecido',
+            'mensagem': 'Por favor, faça login'
+        }), 401
+    
+    @jwt.revoked_token_loader
+    def revoked_token_callback(jwt_header, jwt_payload):
+        return jsonify({
+            'erro': 'Token revogado',
+            'mensagem': 'Por favor, faça login novamente'
+        }), 401
     
     with app.app_context():
         from app.routes import (auth, usuarios, precos, notificacoes, 
