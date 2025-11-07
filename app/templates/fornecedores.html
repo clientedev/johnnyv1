@@ -205,7 +205,7 @@
         }
 
         async function carregarFornecedores() {
-            const response = await fetchAPI('/empresas');
+            const response = await fetchAPI('/api/fornecedores');
             const empresas = await response.json();
 
             const tbody = document.getElementById('tabelaFornecedores');
@@ -237,7 +237,7 @@
         }
 
         async function editarFornecedor(id) {
-            const response = await fetchAPI(`/empresas/${id}`);
+            const response = await fetchAPI(`/api/fornecedores/${id}`);
             empresaAtual = await response.json();
 
             document.getElementById('tituloModal').textContent = 'Editar Fornecedor';
@@ -272,12 +272,12 @@
 
             let response;
             if (id) {
-                response = await fetchAPI(`/empresas/${id}`, {
+                response = await fetchAPI(`/api/fornecedores/${id}`, {
                     method: 'PUT',
                     body: JSON.stringify(dados)
                 });
             } else {
-                response = await fetchAPI('/empresas', {
+                response = await fetchAPI('/api/fornecedores', {
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
@@ -296,7 +296,7 @@
         async function deletarFornecedor(id, nome) {
             if (!confirm(`Deseja realmente excluir o fornecedor "${nome}"?`)) return;
 
-            const response = await fetchAPI(`/empresas/${id}`, {
+            const response = await fetchAPI(`/api/fornecedores/${id}`, {
                 method: 'DELETE'
             });
 
