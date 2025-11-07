@@ -20,8 +20,5 @@ COPY . .
 # Criar diretórios necessários
 RUN mkdir -p uploads
 
-# Tornar o script de inicialização executável
-RUN chmod +x start.sh
-
-# Usar o script de inicialização que configura o DB e inicia o servidor
-CMD ["./start.sh"]
+# Usar script Python para inicialização (mais compatível que bash)
+CMD ["python", "start.py"]
