@@ -37,7 +37,7 @@
             <span>Dashboard</span>
         </a>
         <div class="fab-container">
-            <button class="fab-button" onclick="window.location.href='/solicitacoes.html'" aria-label="Nova Solicitação">
+            <button class="fab-button" onclick="openScanner()" aria-label="Scanner">
                 <i class="fas fa-plus icon"></i>
             </button>
         </div>
@@ -50,6 +50,57 @@
             <span>Fornecedores</span>
         </a>
     </nav>
+
+    <!-- Scanner Modal -->
+    <div class="scanner-modal" id="scannerModal">
+        <div class="scanner-modal-content">
+            <div class="scanner-modal-header">
+                <h2>Escanear Placa</h2>
+                <button class="scanner-close" onclick="closeScanner()">&times;</button>
+            </div>
+            <form id="formScanner">
+                <div class="form-group">
+                    <label>Selecionar Fornecedor</label>
+                    <select id="scannerEmpresa" required>
+                        <option value="">Escolha um fornecedor...</option>
+                    </select>
+                </div>
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-camera icon" style="font-size: 3rem; color: var(--primary-color);"></i>
+                    <p>Toque para capturar ou selecionar imagem</p>
+                    <input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;" onchange="previewImage(this)">
+                </div>
+                <div class="image-preview" id="imagePreview">
+                    <img id="previewImg" alt="Preview">
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Placa</label>
+                    <select id="tipoPlaca" required>
+                        <option value="">Selecione...</option>
+                        <option value="leve">Leve</option>
+                        <option value="pesada">Pesada</option>
+                        <option value="media">Média</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary w-full" style="margin-top: 0.5rem;" onclick="analisarPlacaAutomatica()">🤖 Analisar Placa com IA</button>
+                </div>
+                <div class="form-group">
+                    <label>Peso (kg)</label>
+                    <input type="number" id="pesoPlaca" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Valor Total (calculado automaticamente)</label>
+                    <div id="valorCalculado" data-valor="0" style="padding: 0.75rem; background-color: #f0f0f0; border-radius: 5px; font-weight: bold; font-size: 1.1rem; color: #2c3e50;">R$ 0,00</div>
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn btn-secondary w-full" id="btnCapturarLocalizacao" onclick="capturarLocalizacaoScanner()">
+                        <i class="fas fa-map-marker-alt"></i> Capturar Localização
+                    </button>
+                    <div id="locationInfo" style="margin-top: 0.5rem; padding: 0.75rem; background: #e8f5e9; border-radius: 5px; display: none; font-size: 0.9rem; color: #2e7d32;"></div>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Registrar Placa</button>
+            </form>
+        </div>
+    </div>
 
     <main class="container mt-4">
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
@@ -298,6 +349,202 @@
         function fecharModal() {
             document.getElementById('modalFornecedor').classList.remove('active');
         }
+
+        function openScanner() {
+            carregarEmpresasScanner();
+            document.getElementById('scannerModal').classList.add('active');
+        }
+
+        function closeScanner() {
+            document.getElementById('scannerModal').classList.remove('active');
+            document.getElementById('formScanner').reset();
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+
+        async function carregarEmpresasScanner() {
+            try {
+                const response = await fetchAPI('/api/fornecedores');
+                if (!response || !response.ok) return;
+                const empresas = await response.json();
+                
+                const select = document.getElementById('scannerEmpresa');
+                select.innerHTML = '<option value="">Escolha um fornecedor...</option>';
+                empresas.forEach(empresa => {
+                    const option = document.createElement('option');
+                    option.value = empresa.id;
+                    option.textContent = empresa.nome;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar fornecedores no scanner:', error);
+            }
+        }
+
+        async function previewImage(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const preview = document.getElementById('previewImg');
+                    preview.src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function analisarPlacaAutomatica() {
+            try {
+                const fileInput = document.getElementById('fileInput');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    showAlert('Por favor, adicione uma imagem da placa primeiro!', 'error');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append('imagem', file);
+                
+                showAlert('Analisando placa com IA...', 'info');
+                
+                const response = await fetchAPI('/api/placas/analisar', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response && response.ok) {
+                    const resultado = await response.json();
+                    
+                    const tipoPlacaSelect = document.getElementById('tipoPlaca');
+                    tipoPlacaSelect.value = resultado.classificacao;
+                    
+                    showAlert(`✅ ${resultado.mensagem} - Percentual verde: ${resultado.percentual_verde}%`, 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || 'Erro ao analisar placa', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao analisar placa:', error);
+                showAlert('Erro ao analisar placa. Selecione manualmente.', 'error');
+            }
+        }
+
+        async function capturarLocalizacaoScanner() {
+            if (!navigator.geolocation) {
+                showAlert('Geolocalização não suportada pelo navegador', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btnCapturarLocalizacao');
+            btn.disabled = true;
+            btn.textContent = 'Capturando...';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('locationInfo').innerHTML = `📍 Localização: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    document.getElementById('locationInfo').style.display = 'block';
+                    btn.textContent = '✓ Localização Capturada';
+                    btn.disabled = false;
+                },
+                (error) => {
+                    showAlert('Erro ao capturar localização: ' + error.message, 'error');
+                    btn.textContent = 'Capturar Localização';
+                    btn.disabled = false;
+                }
+            );
+        }
+
+        document.getElementById('formScanner').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            try {
+                const empresaId = document.getElementById('scannerEmpresa').value;
+                const tipoPlaca = document.getElementById('tipoPlaca').value;
+                const peso = parseFloat(document.getElementById('pesoPlaca').value);
+                const fileInput = document.getElementById('fileInput');
+
+                if (!empresaId || !tipoPlaca || !peso) {
+                    showAlert('Preencha todos os campos obrigatórios', 'error');
+                    return;
+                }
+
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    showAlert('Selecione uma imagem da placa', 'error');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('fornecedor_id', empresaId);
+                formData.append('tipo_placa', tipoPlaca);
+                formData.append('peso_kg', peso);
+                formData.append('imagem', fileInput.files[0]);
+
+                const locationInfo = document.getElementById('locationInfo').style.display;
+                if (locationInfo === 'block') {
+                    const locText = document.getElementById('locationInfo').textContent;
+                    const coords = locText.split(': ')[1];
+                    if (coords) {
+                        formData.append('localizacao', coords);
+                    }
+                }
+
+                const response = await fetchAPI('/api/placas', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response && response.ok) {
+                    const data = await response.json();
+                    showAlert(`Placa registrada com sucesso! Valor: R$ ${data.valor_total.toFixed(2)}`, 'success');
+                    closeScanner();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || 'Erro ao registrar placa', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao enviar placa:', error);
+                showAlert('Erro ao registrar placa. Tente novamente.', 'error');
+            }
+        });
+
+        document.getElementById('tipoPlaca').addEventListener('change', async function() {
+            const empresaId = document.getElementById('scannerEmpresa').value;
+            const tipoPlaca = this.value;
+            const peso = parseFloat(document.getElementById('pesoPlaca').value);
+
+            if (empresaId && tipoPlaca && peso) {
+                try {
+                    const response = await fetchAPI(`/api/fornecedores/${empresaId}/preco/${tipoPlaca}`);
+                    if (response && response.ok) {
+                        const data = await response.json();
+                        const valorTotal = data.preco_por_kg * peso;
+                        document.getElementById('valorCalculado').textContent = `R$ ${valorTotal.toFixed(2)}`;
+                        document.getElementById('valorCalculado').dataset.valor = valorTotal;
+                    }
+                } catch (error) {
+                    console.error('Erro ao calcular valor:', error);
+                }
+            }
+        });
+
+        document.getElementById('pesoPlaca').addEventListener('input', function() {
+            const empresaId = document.getElementById('scannerEmpresa').value;
+            const tipoPlaca = document.getElementById('tipoPlaca').value;
+            const peso = parseFloat(this.value);
+
+            if (empresaId && tipoPlaca && peso) {
+                fetchAPI(`/api/fornecedores/${empresaId}/preco/${tipoPlaca}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const valorTotal = data.preco_por_kg * peso;
+                        document.getElementById('valorCalculado').textContent = `R$ ${valorTotal.toFixed(2)}`;
+                        document.getElementById('valorCalculado').dataset.valor = valorTotal;
+                    })
+                    .catch(error => console.error('Erro ao calcular valor:', error));
+            }
+        });
 
         carregarPagina();
     </script>
