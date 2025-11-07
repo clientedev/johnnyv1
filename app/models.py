@@ -327,3 +327,163 @@ class Relatorio(db.Model):
             'observacoes': self.observacoes,
             'data_envio': self.data_envio.isoformat() if self.data_envio else None
         }
+
+class Funcionario(db.Model):
+    __tablename__ = 'funcionarios'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    cpf = db.Column(db.String(14), unique=True, nullable=False)
+    telefone = db.Column(db.String(20))
+    cargo = db.Column(db.String(100))
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresas.id'), nullable=True)
+    vendedor_id = db.Column(db.Integer, db.ForeignKey('vendedores.id'), nullable=True)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    
+    empresa = db.relationship('Empresa', backref='funcionarios')
+    vendedor = db.relationship('Vendedor', backref='funcionarios')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'cpf': self.cpf,
+            'telefone': self.telefone,
+            'cargo': self.cargo,
+            'empresa_id': self.empresa_id,
+            'empresa_nome': self.empresa.nome if self.empresa else None,
+            'vendedor_id': self.vendedor_id,
+            'vendedor_nome': self.vendedor.nome if self.vendedor else None,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'ativo': self.ativo
+        }
+
+class Fornecedor(db.Model):
+    __tablename__ = 'fornecedores'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(200), nullable=False)
+    nome_social = db.Column(db.String(200))
+    cnpj = db.Column(db.String(18), unique=True)
+    cpf = db.Column(db.String(14), unique=True)
+    
+    endereco_coleta = db.Column(db.String(300))
+    endereco_emissao = db.Column(db.String(300))
+    
+    telefone = db.Column(db.String(20))
+    email = db.Column(db.String(120))
+    
+    conta_bancaria = db.Column(db.String(50))
+    agencia = db.Column(db.String(20))
+    chave_pix = db.Column(db.String(100))
+    banco = db.Column(db.String(100))
+    
+    condicao_pagamento = db.Column(db.String(50))
+    forma_pagamento = db.Column(db.String(50))
+    
+    observacoes = db.Column(db.Text)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    
+    compras = db.relationship('Compra', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'nome_social': self.nome_social,
+            'cnpj': self.cnpj,
+            'cpf': self.cpf,
+            'endereco_coleta': self.endereco_coleta,
+            'endereco_emissao': self.endereco_emissao,
+            'telefone': self.telefone,
+            'email': self.email,
+            'conta_bancaria': self.conta_bancaria,
+            'agencia': self.agencia,
+            'chave_pix': self.chave_pix,
+            'banco': self.banco,
+            'condicao_pagamento': self.condicao_pagamento,
+            'forma_pagamento': self.forma_pagamento,
+            'observacoes': self.observacoes,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'ativo': self.ativo
+        }
+
+class Compra(db.Model):
+    __tablename__ = 'compras'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    solicitacao_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=True)
+    
+    material = db.Column(db.String(200), nullable=False)
+    tipo = db.Column(db.String(20), default='compra', nullable=False)
+    valor = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), default='pendente', nullable=False)
+    
+    comprovante_url = db.Column(db.String(500))
+    observacoes = db.Column(db.Text)
+    
+    data_compra = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_pagamento = db.Column(db.DateTime, nullable=True)
+    
+    solicitacao = db.relationship('Solicitacao', backref='compras')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'fornecedor_id': self.fornecedor_id,
+            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
+            'solicitacao_id': self.solicitacao_id,
+            'material': self.material,
+            'tipo': self.tipo,
+            'valor': self.valor,
+            'status': self.status,
+            'comprovante_url': self.comprovante_url,
+            'observacoes': self.observacoes,
+            'data_compra': self.data_compra.isoformat() if self.data_compra else None,
+            'data_pagamento': self.data_pagamento.isoformat() if self.data_pagamento else None
+        }
+
+class Classificacao(db.Model):
+    __tablename__ = 'classificacoes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False, unique=True)
+    tipo_lote = db.Column(db.String(20), nullable=False)
+    peso_minimo = db.Column(db.Float, default=0.0)
+    peso_maximo = db.Column(db.Float, default=999999.0)
+    observacoes = db.Column(db.Text)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'tipo_lote': self.tipo_lote,
+            'peso_minimo': self.peso_minimo,
+            'peso_maximo': self.peso_maximo,
+            'observacoes': self.observacoes,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None
+        }
+
+class Configuracao(db.Model):
+    __tablename__ = 'configuracoes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    chave = db.Column(db.String(100), unique=True, nullable=False)
+    valor = db.Column(db.Text, nullable=False)
+    descricao = db.Column(db.String(200))
+    tipo = db.Column(db.String(50), default='texto')
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'chave': self.chave,
+            'valor': self.valor,
+            'descricao': self.descricao,
+            'tipo': self.tipo,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
