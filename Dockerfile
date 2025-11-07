@@ -20,5 +20,8 @@ COPY . .
 # Criar diretórios necessários
 RUN mkdir -p uploads
 
-# Usar o app.py que já lê a variável PORT corretamente
-CMD ["python", "app.py"]
+# Tornar o script de inicialização executável
+RUN chmod +x start.sh
+
+# Usar o script de inicialização que configura o DB e inicia o servidor
+CMD ["./start.sh"]
