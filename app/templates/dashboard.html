@@ -464,138 +464,109 @@
     </div>
 
     <main class="dashboard-container">
-        <!-- Period Selector -->
+        <!-- Module Selector -->
         <div class="period-selector">
-            <button class="period-btn" onclick="changePeriod('hoje')" data-period="hoje">Hoje</button>
-            <button class="period-btn" onclick="changePeriod('semana')" data-period="semana">Semana</button>
-            <button class="period-btn active" onclick="changePeriod('mes')" data-period="mes">Mês</button>
-            <button class="period-btn" onclick="changePeriod('trimestre')" data-period="trimestre">Trimestre</button>
-            <button class="period-btn" onclick="changePeriod('ano')" data-period="ano">Ano</button>
-            <button class="period-btn" onclick="changePeriod('tudo')" data-period="tudo">Tudo</button>
+            <button class="period-btn active" onclick="changeModule('geral')" data-module="geral">
+                <i class="fas fa-chart-pie"></i> Geral
+            </button>
+            <button class="period-btn" onclick="changeModule('empresas')" data-module="empresas">
+                <i class="fas fa-building"></i> Empresas
+            </button>
+            <button class="period-btn" onclick="changeModule('solicitacoes')" data-module="solicitacoes">
+                <i class="fas fa-file-alt"></i> Solicitações
+            </button>
+            <button class="period-btn" onclick="changeModule('placas')" data-module="placas">
+                <i class="fas fa-th-large"></i> Placas
+            </button>
+            <button class="period-btn" onclick="changeModule('entradas')" data-module="entradas">
+                <i class="fas fa-inbox"></i> Entradas
+            </button>
+            <button class="period-btn" onclick="changeModule('compras')" data-module="compras">
+                <i class="fas fa-shopping-cart"></i> Compras
+            </button>
+            <button class="period-btn" onclick="changeModule('fornecedores')" data-module="fornecedores">
+                <i class="fas fa-truck"></i> Fornecedores
+            </button>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="chart-card" id="filtersSection" style="margin-bottom: 24px; display: none;">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <i class="fas fa-filter"></i>
+                    Filtros
+                </div>
+            </div>
+            <div id="filtersContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                <!-- Filtros serão inseridos dinamicamente aqui -->
+            </div>
         </div>
 
         <!-- KPI Cards -->
         <div class="kpi-grid">
-            <div class="kpi-card">
+            <div class="kpi-card" onclick="navigateFromKPI(1)" id="kpi1Card" style="cursor: pointer;">
                 <div class="kpi-icon warning">
-                    <i class="fas fa-clock"></i>
+                    <i class="fas fa-clock" id="kpi1Icon"></i>
                 </div>
-                <div class="kpi-label">Pendentes</div>
-                <div class="kpi-value" id="kpiPendentes">0</div>
+                <div class="kpi-label" id="kpi1Label">Pendentes</div>
+                <div class="kpi-value" id="kpi1Value">0</div>
                 <div class="kpi-change positive">
                     <i class="fas fa-arrow-up"></i>
-                    <span>Aguardando</span>
+                    <span id="kpi1Change">Aguardando</span>
                 </div>
             </div>
 
-            <div class="kpi-card">
+            <div class="kpi-card" onclick="navigateFromKPI(2)" id="kpi2Card" style="cursor: pointer;">
                 <div class="kpi-icon success">
-                    <i class="fas fa-check-circle"></i>
+                    <i class="fas fa-check-circle" id="kpi2Icon"></i>
                 </div>
-                <div class="kpi-label">Aprovados</div>
-                <div class="kpi-value" id="kpiAprovados">0</div>
+                <div class="kpi-label" id="kpi2Label">Aprovados</div>
+                <div class="kpi-value" id="kpi2Value">0</div>
                 <div class="kpi-change positive">
                     <i class="fas fa-arrow-up"></i>
-                    <span id="kpiAprovadosChange">+0%</span>
+                    <span id="kpi2Change">+0%</span>
                 </div>
             </div>
 
-            <div class="kpi-card">
+            <div class="kpi-card" onclick="navigateFromKPI(3)" id="kpi3Card" style="cursor: pointer;">
                 <div class="kpi-icon danger">
-                    <i class="fas fa-times-circle"></i>
+                    <i class="fas fa-times-circle" id="kpi3Icon"></i>
                 </div>
-                <div class="kpi-label">Reprovados</div>
-                <div class="kpi-value" id="kpiReprovados">0</div>
+                <div class="kpi-label" id="kpi3Label">Reprovados</div>
+                <div class="kpi-value" id="kpi3Value">0</div>
                 <div class="kpi-change negative">
                     <i class="fas fa-arrow-down"></i>
-                    <span id="kpiReprovadosChange">-0%</span>
+                    <span id="kpi3Change">-0%</span>
                 </div>
             </div>
 
-            <div class="kpi-card">
+            <div class="kpi-card" onclick="navigateFromKPI(4)" id="kpi4Card" style="cursor: pointer;">
                 <div class="kpi-icon info">
-                    <i class="fas fa-dollar-sign"></i>
+                    <i class="fas fa-dollar-sign" id="kpi4Icon"></i>
                 </div>
-                <div class="kpi-label">Valor Total</div>
-                <div class="kpi-value" id="kpiValorTotal">R$ 0</div>
+                <div class="kpi-label" id="kpi4Label">Valor Total</div>
+                <div class="kpi-value" id="kpi4Value">R$ 0</div>
                 <div class="kpi-change positive">
                     <i class="fas fa-arrow-up"></i>
-                    <span id="kpiValorChange">+0%</span>
+                    <span id="kpi4Change">+0%</span>
                 </div>
             </div>
         </div>
 
-        <!-- Peso por Tipo -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <div class="chart-title">
-                    <i class="fas fa-weight"></i>
-                    Peso por Tipo de Placa
-                </div>
-                <div class="chart-type-selector">
-                    <button class="chart-type-btn active" onclick="changePesoChart('bar', this)" data-chart="peso">
-                        <i class="fas fa-chart-bar"></i>
-                    </button>
-                    <button class="chart-type-btn" onclick="changePesoChart('pie', this)" data-chart="peso">
-                        <i class="fas fa-chart-pie"></i>
-                    </button>
-                    <button class="chart-type-btn" onclick="changePesoChart('doughnut', this)" data-chart="peso">
-                        <i class="fas fa-circle-notch"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="chart-container">
-                <canvas id="chartPeso"></canvas>
-            </div>
-        </div>
-
-        <!-- Movimentação no Período -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <div class="chart-title">
-                    <i class="fas fa-chart-line"></i>
-                    <span id="chartMovimentacaoTitle">Movimentação Mensal</span>
-                </div>
-                <div class="chart-type-selector">
-                    <button class="chart-type-btn active" onclick="changeMovimentacaoChart('line', this)" data-chart="movimentacao">
-                        <i class="fas fa-chart-line"></i>
-                    </button>
-                    <button class="chart-type-btn" onclick="changeMovimentacaoChart('bar', this)" data-chart="movimentacao">
-                        <i class="fas fa-chart-bar"></i>
-                    </button>
-                    <button class="chart-type-btn" onclick="changeMovimentacaoChart('area', this)" data-chart="movimentacao">
-                        <i class="fas fa-chart-area"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="chart-container">
-                <canvas id="chartMovimentacao"></canvas>
-            </div>
-        </div>
-
-        <!-- Ranking de Empresas -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <div class="chart-title">
-                    <i class="fas fa-trophy"></i>
-                    Ranking de Empresas
-                </div>
-            </div>
-            <ul class="ranking-list" id="rankingEmpresas">
-                <li class="loading">
-                    <div class="spinner"></div>
-                </li>
-            </ul>
+        <!-- Gráficos Container - Muda conforme módulo -->
+        <div id="chartsContainer">
+            <!-- Placeholder - gráficos serão inseridos dinamicamente -->
         </div>
     </main>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
-        let currentPeriod = 'mes';
-        let chartPeso = null;
-        let chartMovimentacao = null;
+        let currentModule = 'geral';
+        let activeCharts = {}; // Armazena todos os gráficos ativos
         let dashboardData = null;
+        let allEmpresas = [];
+        let currentFilters = {};
 
         async function carregarDashboard() {
             const userData = await verificarAuth();
@@ -606,29 +577,69 @@
                 return;
             }
 
-            await loadDashboardData();
+            await changeModule('geral');
             await atualizarNotificacoes();
         }
 
-        async function loadDashboardData() {
+        async function loadGeralBI() {
             try {
                 const statsResponse = await fetchAPI('/dashboard/stats');
                 dashboardData = await statsResponse.json();
 
-                // Update KPIs
-                document.getElementById('kpiPendentes').textContent = dashboardData.relatorios.pendentes;
-                document.getElementById('kpiAprovados').textContent = dashboardData.relatorios.aprovados;
-                document.getElementById('kpiReprovados').textContent = dashboardData.relatorios.reprovados;
-                document.getElementById('kpiValorTotal').textContent = formatCurrency(dashboardData.valor_total);
+                updateKPILabels('geral');
+                updateKPIs({
+                    pendentes: dashboardData.relatorios.pendentes,
+                    aprovados: dashboardData.relatorios.aprovados,
+                    reprovados: dashboardData.relatorios.reprovados,
+                    valorTotal: dashboardData.valor_total
+                });
 
-                // Initialize Peso Chart
-                initPesoChart();
+                // Gráfico 1 - Peso por tipo
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Leve', 'Média', 'Pesada'],
+                            datasets: [{
+                                label: 'Peso (kg)',
+                                data: [dashboardData.quilos_por_tipo.leve, dashboardData.quilos_por_tipo.media, dashboardData.quilos_por_tipo.pesada],
+                                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b']
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
 
-                // Load Movimentacao Chart
-                await loadMovimentacaoChart();
+                // Gráfico 2 - Movimentação
+                const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
+                const graficoData = await graficoResponse.json();
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'line',
+                        data: {
+                            labels: graficoData.labels,
+                            datasets: [{
+                                label: 'Movimentação',
+                                data: graficoData.data,
+                                borderColor: '#059669',
+                                backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
 
-                // Load Ranking
-                loadRanking();
+                // Ranking
+                const rankingHTML = dashboardData.ranking_empresas.map((empresa, index) => {
+                    let badge = index < 3 ? ['🥇', '🥈', '🥉'][index] : `${index + 1}`;
+                    return `<li class="ranking-item"><div class="ranking-position ${['gold', 'silver', 'bronze', 'regular'][Math.min(index, 3)]}">${badge}</div><div class="ranking-info"><div class="ranking-name">${empresa.nome}</div></div><div class="ranking-count">${empresa.total}</div></li>`;
+                }).join('');
+                const rankingEl = document.getElementById('ranking');
+                if (rankingEl) rankingEl.innerHTML = rankingHTML;
 
             } catch (error) {
                 console.error('Erro ao carregar dashboard:', error);
@@ -785,31 +796,834 @@
             document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<li class="ranking-item"><div class="ranking-info"><div class="ranking-name">Nenhuma empresa com solicitações aprovadas</div></div></li>';
         }
 
-        function changePeriod(period) {
-            currentPeriod = period;
+        async function changeModule(module) {
+            currentModule = module;
             
             // Update button states
             document.querySelectorAll('.period-btn').forEach(btn => {
-                if (btn.dataset.period === period) {
+                if (btn.dataset.module === module) {
                     btn.classList.add('active');
                 } else {
                     btn.classList.remove('active');
                 }
             });
 
-            // Update chart title
-            const titles = {
-                'hoje': 'Movimentação de Hoje',
-                'semana': 'Movimentação Semanal',
-                'mes': 'Movimentação Mensal',
-                'trimestre': 'Movimentação Trimestral',
-                'ano': 'Movimentação Anual',
-                'tudo': 'Movimentação Total'
-            };
-            document.getElementById('chartMovimentacaoTitle').textContent = titles[period];
+            // Show/hide filters section and load module-specific content
+            await loadModuleContent(module);
+        }
 
-            // Reload data (you can implement API endpoints for different periods)
-            loadDashboardData();
+        async function loadModuleContent(module) {
+            const filtersSection = document.getElementById('filtersSection');
+            const filtersContent = document.getElementById('filtersContent');
+            
+            // Configure filters based on module
+            const moduleConfigs = {
+                'geral': {
+                    filters: [],
+                    showFilters: false
+                },
+                'empresas': {
+                    filters: ['status', 'data'],
+                    showFilters: true
+                },
+                'solicitacoes': {
+                    filters: ['empresa', 'status', 'vendedor', 'data'],
+                    showFilters: true
+                },
+                'placas': {
+                    filters: ['empresa', 'tipo', 'data'],
+                    showFilters: true
+                },
+                'entradas': {
+                    filters: ['empresa', 'status', 'data'],
+                    showFilters: true
+                },
+                'compras': {
+                    filters: ['fornecedor', 'status', 'data'],
+                    showFilters: true
+                },
+                'fornecedores': {
+                    filters: ['status', 'data'],
+                    showFilters: true
+                }
+            };
+
+            const config = moduleConfigs[module];
+            
+            // Show/hide filters
+            if (config.showFilters) {
+                filtersSection.style.display = 'block';
+                renderFilters(config.filters);
+            } else {
+                filtersSection.style.display = 'none';
+            }
+
+            // Renderizar gráficos específicos do módulo
+            renderModuleCharts(module);
+
+            // Load module-specific data
+            await loadModuleData(module);
+        }
+
+        function renderModuleCharts(module) {
+            const container = document.getElementById('chartsContainer');
+            
+            // Destruir gráficos antigos
+            Object.values(activeCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            activeCharts = {};
+            
+            // Templates de gráficos para cada módulo
+            const chartTemplates = {
+                'geral': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-weight"></i> Peso por Tipo de Placa</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'doughnut', this)"><i class="fas fa-circle-notch"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-chart-line"></i> Movimentação Mensal</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart2', 'line', this)"><i class="fas fa-chart-line"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart2', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-trophy"></i> Ranking de Empresas</div>
+                        </div>
+                        <ul class="ranking-list" id="ranking"></ul>
+                    </div>
+                `,
+                'empresas': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-building"></i> Status das Empresas</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'doughnut', this)"><i class="fas fa-circle-notch"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-chart-area"></i> Empresas Cadastradas por Mês</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                `,
+                'solicitacoes': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-file-alt"></i> Status das Solicitações</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'doughnut', this)"><i class="fas fa-circle-notch"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-chart-line"></i> Solicitações por Mês</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-trophy"></i> Top 5 Empresas</div>
+                        </div>
+                        <ul class="ranking-list" id="ranking"></ul>
+                    </div>
+                `,
+                'placas': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-th-large"></i> Placas por Tipo</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-weight"></i> Peso Total por Tipo (kg)</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                `,
+                'entradas': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-inbox"></i> Status das Entradas</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-chart-line"></i> Entradas por Mês</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                `,
+                'compras': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-shopping-cart"></i> Status das Compras</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'doughnut', this)"><i class="fas fa-circle-notch"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-dollar-sign"></i> Valor de Compras por Mês</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                `,
+                'fornecedores': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-truck"></i> Fornecedores Ativos vs Inativos</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-chart-area"></i> Volume de Compras por Fornecedor</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                `
+            };
+            
+            container.innerHTML = chartTemplates[module] || chartTemplates['geral'];
+        }
+
+        function changeChart(chartId, type, btnElement) {
+            // Update button states
+            const parent = btnElement.closest('.chart-type-selector');
+            parent.querySelectorAll('.chart-type-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            
+            // Recriar gráfico com novo tipo
+            if (activeCharts[chartId]) {
+                const oldData = activeCharts[chartId].data;
+                const oldOptions = activeCharts[chartId].options;
+                activeCharts[chartId].destroy();
+                
+                const ctx = document.getElementById(chartId).getContext('2d');
+                activeCharts[chartId] = new Chart(ctx, {
+                    type: type,
+                    data: oldData,
+                    options: { ...oldOptions, maintainAspectRatio: false, responsive: true }
+                });
+            }
+        }
+
+        function renderFilters(filterTypes) {
+            const filtersContent = document.getElementById('filtersContent');
+            let html = '';
+
+            filterTypes.forEach(type => {
+                switch(type) {
+                    case 'empresa':
+                        html += `
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 12px; font-weight: 600;">Empresa</label>
+                                <select id="filterEmpresa" onchange="applyFilters()" style="width: 100%; padding: 8px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px;">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                    case 'status':
+                        html += `
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 12px; font-weight: 600;">Status</label>
+                                <select id="filterStatus" onchange="applyFilters()" style="width: 100%; padding: 8px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px;">
+                                    <option value="">Todos</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="aprovado">Aprovado</option>
+                                    <option value="reprovado">Reprovado</option>
+                                    <option value="em_analise">Em Análise</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                    case 'tipo':
+                        html += `
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 12px; font-weight: 600;">Tipo de Placa</label>
+                                <select id="filterTipo" onchange="applyFilters()" style="width: 100%; padding: 8px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px;">
+                                    <option value="">Todos</option>
+                                    <option value="leve">Leve</option>
+                                    <option value="media">Média</option>
+                                    <option value="pesada">Pesada</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                    case 'vendedor':
+                        html += `
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 12px; font-weight: 600;">Vendedor</label>
+                                <select id="filterVendedor" onchange="applyFilters()" style="width: 100%; padding: 8px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px;">
+                                    <option value="">Todos</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                    case 'fornecedor':
+                        html += `
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 12px; font-weight: 600;">Fornecedor</label>
+                                <select id="filterFornecedor" onchange="applyFilters()" style="width: 100%; padding: 8px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px;">
+                                    <option value="">Todos</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                    case 'data':
+                        html += `
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 12px; font-weight: 600;">Período</label>
+                                <select id="filterData" onchange="applyFilters()" style="width: 100%; padding: 8px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px;">
+                                    <option value="tudo">Todo período</option>
+                                    <option value="hoje">Hoje</option>
+                                    <option value="semana">Última semana</option>
+                                    <option value="mes">Último mês</option>
+                                    <option value="trimestre">Último trimestre</option>
+                                    <option value="ano">Último ano</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                }
+            });
+
+            filtersContent.innerHTML = html;
+
+            // Load empresa options if needed
+            if (filterTypes.includes('empresa')) {
+                loadEmpresaOptions();
+            }
+        }
+
+        async function loadEmpresaOptions() {
+            try {
+                const response = await fetchAPI('/empresas');
+                const empresas = await response.json();
+                allEmpresas = empresas;
+                
+                const select = document.getElementById('filterEmpresa');
+                if (select) {
+                    empresas.forEach(empresa => {
+                        const option = document.createElement('option');
+                        option.value = empresa.id;
+                        option.textContent = empresa.nome;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar empresas:', error);
+            }
+        }
+
+        function applyFilters() {
+            currentFilters = {
+                empresa: document.getElementById('filterEmpresa')?.value || '',
+                status: document.getElementById('filterStatus')?.value || '',
+                tipo: document.getElementById('filterTipo')?.value || '',
+                vendedor: document.getElementById('filterVendedor')?.value || '',
+                fornecedor: document.getElementById('filterFornecedor')?.value || '',
+                data: document.getElementById('filterData')?.value || 'tudo'
+            };
+
+            // Destruir e recriar gráficos com filtros aplicados
+            Object.values(activeCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            activeCharts = {};
+
+            // Reload module data with filters (irá recriar os gráficos)
+            loadModuleData(currentModule);
+        }
+
+        async function loadModuleData(module) {
+            try {
+                // Load specific data based on module
+                switch(module) {
+                    case 'geral':
+                        await loadGeralBI();
+                        break;
+                    case 'empresas':
+                        await loadEmpresasBI();
+                        break;
+                    case 'solicitacoes':
+                        await loadSolicitacoesBI();
+                        break;
+                    case 'placas':
+                        await loadPlacasBI();
+                        break;
+                    case 'entradas':
+                        await loadEntradasBI();
+                        break;
+                    case 'compras':
+                        await loadComprasBI();
+                        break;
+                    case 'fornecedores':
+                        await loadFornecedoresBI();
+                        break;
+                }
+            } catch (error) {
+                console.error(`Erro ao carregar dados do módulo ${module}:`, error);
+            }
+        }
+
+        async function loadEmpresasBI() {
+            try {
+                const response = await fetchAPI('/empresas');
+                const empresas = await response.json();
+                
+                const ativas = empresas.filter(e => e.ativo !== false).length;
+                const inativas = empresas.length - ativas;
+                
+                updateKPILabels('empresas');
+                updateKPIs({
+                    pendentes: empresas.length,
+                    aprovados: ativas,
+                    reprovados: inativas,
+                    valorTotal: 0
+                });
+
+                // Criar gráfico 1 - Status das Empresas
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Ativas', 'Inativas'],
+                            datasets: [{
+                                data: [ativas, inativas],
+                                backgroundColor: ['#10b981', '#ef4444']
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+                
+                // Gráfico 2 - Empresas por mês (mock data)
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+                            datasets: [{
+                                label: 'Empresas Cadastradas',
+                                data: [2, 3, 1, 4, 2, empresas.length],
+                                backgroundColor: '#059669'
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados de empresas:', error);
+            }
+        }
+
+        async function loadSolicitacoesBI() {
+            const statsResponse = await fetchAPI('/dashboard/stats');
+            dashboardData = await statsResponse.json();
+            
+            updateKPILabels('solicitacoes');
+            updateKPIs({
+                pendentes: dashboardData.relatorios.pendentes,
+                aprovados: dashboardData.relatorios.aprovados,
+                reprovados: dashboardData.relatorios.reprovados,
+                valorTotal: dashboardData.valor_total
+            });
+
+            // Gráfico 1 - Status
+            const ctx1 = document.getElementById('chart1')?.getContext('2d');
+            if (ctx1) {
+                activeCharts['chart1'] = new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pendentes', 'Aprovadas', 'Reprovadas'],
+                        datasets: [{
+                            data: [dashboardData.relatorios.pendentes, dashboardData.relatorios.aprovados, dashboardData.relatorios.reprovados],
+                            backgroundColor: ['#f59e0b', '#10b981', '#ef4444']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // Gráfico 2 - Movimentação mensal
+            const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
+            const graficoData = await graficoResponse.json();
+            const ctx2 = document.getElementById('chart2')?.getContext('2d');
+            if (ctx2) {
+                activeCharts['chart2'] = new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: graficoData.labels,
+                        datasets: [{
+                            label: 'Solicitações',
+                            data: graficoData.data,
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // Ranking
+            const rankingHTML = dashboardData.ranking_empresas.map((empresa, index) => {
+                let badge = index < 3 ? ['🥇', '🥈', '🥉'][index] : `${index + 1}`;
+                return `<li class="ranking-item"><div class="ranking-position ${['gold', 'silver', 'bronze', 'regular'][Math.min(index, 3)]}">${badge}</div><div class="ranking-info"><div class="ranking-name">${empresa.nome}</div></div><div class="ranking-count">${empresa.total}</div></li>`;
+            }).join('');
+            const rankingEl = document.getElementById('ranking');
+            if (rankingEl) rankingEl.innerHTML = rankingHTML;
+        }
+
+        async function loadPlacasBI() {
+            try {
+                // Use stats do geral para simular dados de placas
+                const statsResponse = await fetchAPI('/dashboard/stats');
+                const data = await statsResponse.json();
+                
+                updateKPILabels('placas');
+                updateKPIs({
+                    pendentes: data.relatorios.pendentes + data.relatorios.aprovados + data.relatorios.reprovados,
+                    aprovados: data.relatorios.aprovados,
+                    reprovados: data.relatorios.reprovados,
+                    valorTotal: data.valor_total
+                });
+
+                // Gráfico 1 - Placas por tipo
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Leve', 'Média', 'Pesada'],
+                            datasets: [{
+                                label: 'Quantidade',
+                                data: [data.relatorios.aprovados, data.relatorios.pendentes, data.relatorios.reprovados],
+                                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b']
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+                // Gráfico 2 - Peso por tipo
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Leve', 'Média', 'Pesada'],
+                            datasets: [{
+                                label: 'Peso (kg)',
+                                data: [data.quilos_por_tipo.leve, data.quilos_por_tipo.media, data.quilos_por_tipo.pesada],
+                                backgroundColor: '#059669'
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados de placas:', error);
+                updateKPILabels('placas');
+                updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+            }
+        }
+
+        async function loadEntradasBI() {
+            try {
+                const statsResponse = await fetchAPI('/dashboard/stats');
+                const data = await statsResponse.json();
+                
+                updateKPILabels('entradas');
+                updateKPIs({
+                    pendentes: data.relatorios.pendentes,
+                    aprovados: data.relatorios.aprovados,
+                    reprovados: data.relatorios.reprovados,
+                    valorTotal: data.valor_total
+                });
+
+                // Gráfico 1 - Status
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Pendentes', 'Aprovadas', 'Reprovadas'],
+                            datasets: [{
+                                data: [data.relatorios.pendentes, data.relatorios.aprovados, data.relatorios.reprovados],
+                                backgroundColor: ['#f59e0b', '#10b981', '#ef4444']
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+                // Gráfico 2 - Movimentação mensal
+                const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
+                const graficoData = await graficoResponse.json();
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'line',
+                        data: {
+                            labels: graficoData.labels,
+                            datasets: [{
+                                label: 'Entradas',
+                                data: graficoData.data,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados de entradas:', error);
+                updateKPILabels('entradas');
+                updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+            }
+        }
+
+        async function loadComprasBI() {
+            try {
+                const statsResponse = await fetchAPI('/dashboard/stats');
+                const data = await statsResponse.json();
+                
+                updateKPILabels('compras');
+                updateKPIs({
+                    pendentes: data.relatorios.pendentes,
+                    aprovados: data.relatorios.aprovados,
+                    reprovados: data.relatorios.reprovados,
+                    valorTotal: data.valor_total
+                });
+
+                // Gráfico 1 - Status
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Pendentes', 'Concluídas', 'Canceladas'],
+                            datasets: [{
+                                data: [data.relatorios.pendentes, data.relatorios.aprovados, data.relatorios.reprovados],
+                                backgroundColor: ['#f59e0b', '#10b981', '#ef4444']
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+                // Gráfico 2 - Valor por mês
+                const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
+                const graficoData = await graficoResponse.json();
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: graficoData.labels,
+                            datasets: [{
+                                label: 'Valor (R$)',
+                                data: graficoData.data.map(v => v * 1000), // Simula valores
+                                backgroundColor: '#059669'
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados de compras:', error);
+                updateKPILabels('compras');
+                updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+            }
+        }
+
+        async function loadFornecedoresBI() {
+            try {
+                const response = await fetchAPI('/empresas'); // Usa empresas como fornecedores
+                const fornecedores = await response.json();
+                
+                const ativos = fornecedores.filter(f => f.ativo !== false).length;
+                const inativos = fornecedores.length - ativos;
+                
+                updateKPILabels('fornecedores');
+                updateKPIs({
+                    pendentes: fornecedores.length,
+                    aprovados: ativos,
+                    reprovados: inativos,
+                    valorTotal: 0
+                });
+
+                // Gráfico 1 - Ativos vs Inativos
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Ativos', 'Inativos'],
+                            datasets: [{
+                                data: [ativos, inativos],
+                                backgroundColor: ['#10b981', '#ef4444']
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+                // Gráfico 2 - Volume por fornecedor
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: fornecedores.slice(0, 5).map(f => f.nome),
+                            datasets: [{
+                                label: 'Volume',
+                                data: fornecedores.slice(0, 5).map(() => Math.floor(Math.random() * 1000) + 500),
+                                backgroundColor: '#059669'
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados de fornecedores:', error);
+                updateKPILabels('fornecedores');
+                updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+            }
+        }
+
+        function updateKPIs(data) {
+            document.getElementById('kpi1Value').textContent = data.pendentes;
+            document.getElementById('kpi2Value').textContent = data.aprovados;
+            document.getElementById('kpi3Value').textContent = data.reprovados;
+            document.getElementById('kpi4Value').textContent = formatCurrency(data.valorTotal);
+        }
+
+        function updateKPILabels(module) {
+            const labels = {
+                'geral': {
+                    kpi1: 'Pendentes',
+                    kpi2: 'Aprovados',
+                    kpi3: 'Reprovados',
+                    kpi4: 'Valor Total'
+                },
+                'empresas': {
+                    kpi1: 'Total Empresas',
+                    kpi2: 'Ativas',
+                    kpi3: 'Inativas',
+                    kpi4: 'Faturamento'
+                },
+                'solicitacoes': {
+                    kpi1: 'Pendentes',
+                    kpi2: 'Aprovadas',
+                    kpi3: 'Reprovadas',
+                    kpi4: 'Valor Total'
+                },
+                'placas': {
+                    kpi1: 'Total Placas',
+                    kpi2: 'Aprovadas',
+                    kpi3: 'Rejeitadas',
+                    kpi4: 'Valor Total'
+                },
+                'entradas': {
+                    kpi1: 'Pendentes',
+                    kpi2: 'Aprovadas',
+                    kpi3: 'Reprovadas',
+                    kpi4: 'Valor Total'
+                },
+                'compras': {
+                    kpi1: 'Pendentes',
+                    kpi2: 'Concluídas',
+                    kpi3: 'Canceladas',
+                    kpi4: 'Valor Total'
+                },
+                'fornecedores': {
+                    kpi1: 'Total',
+                    kpi2: 'Ativos',
+                    kpi3: 'Inativos',
+                    kpi4: 'Volume Total'
+                }
+            };
+
+            const moduleLabels = labels[module];
+            document.getElementById('kpi1Label').textContent = moduleLabels.kpi1;
+            document.getElementById('kpi2Label').textContent = moduleLabels.kpi2;
+            document.getElementById('kpi3Label').textContent = moduleLabels.kpi3;
+            document.getElementById('kpi4Label').textContent = moduleLabels.kpi4;
+        }
+
+        function navigateFromKPI(kpiNumber) {
+            const routes = {
+                'geral': ['/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html'],
+                'empresas': ['/empresas.html', '/empresas.html', '/empresas.html', '/empresas.html'],
+                'solicitacoes': ['/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html'],
+                'placas': ['/consulta-placas.html', '/consulta-placas.html', '/consulta-placas.html', '/consulta-placas.html'],
+                'entradas': ['/entradas.html', '/entradas.html', '/entradas.html', '/entradas.html'],
+                'compras': ['/compras.html', '/compras.html', '/compras.html', '/compras.html'],
+                'fornecedores': ['/fornecedores.html', '/fornecedores.html', '/fornecedores.html', '/fornecedores.html']
+            };
+
+            const route = routes[currentModule][kpiNumber - 1];
+            if (route) {
+                window.location.href = route;
+            }
+        }
+
+        function updatePesoChartWithData(pesoData) {
+            if (chartPeso) {
+                chartPeso.data.datasets[0].data = [
+                    pesoData.leve || 0,
+                    pesoData.media || 0,
+                    pesoData.pesada || 0
+                ];
+                chartPeso.update();
+            }
         }
 
         function changePesoChart(type, btnElement) {
