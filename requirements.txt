@@ -40,3 +40,17 @@ Pillow==10.2.0
 psycopg2-binary==2.9.9
 python-dotenv==1.0.0
 python-socketio==5.11.1
+bcrypt
+eventlet
+flask
+flask-cors
+flask-jwt-extended
+flask-socketio
+flask-sqlalchemy
+gunicorn
+numpy
+opencv-python-headless
+pillow
+psycopg2-binary
+python-dotenv
+python-socketio
