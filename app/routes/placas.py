@@ -166,6 +166,9 @@ def create_placa():
     valor = data.get('valor')
     relatorio_id = data.get('relatorio_id')
     observacoes = data.get('observacoes')
+    localizacao_lat = data.get('localizacao_lat')
+    localizacao_lng = data.get('localizacao_lng')
+    endereco_completo = data.get('endereco_completo')
     
     if not all([empresa_id, tipo_placa, peso_kg, valor]):
         return jsonify({'error': 'Dados incompletos'}), 400
@@ -182,6 +185,9 @@ def create_placa():
         peso_kg=float(peso_kg),
         valor=float(valor),
         imagem_url=imagem_url,
+        localizacao_lat=float(localizacao_lat) if localizacao_lat else None,
+        localizacao_lng=float(localizacao_lng) if localizacao_lng else None,
+        endereco_completo=endereco_completo,
         observacoes=observacoes
     )
     

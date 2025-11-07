@@ -140,6 +140,9 @@ class Placa(db.Model):
     peso_kg = db.Column(db.Float, nullable=False)
     valor = db.Column(db.Float, nullable=False)
     imagem_url = db.Column(db.String(500))
+    localizacao_lat = db.Column(db.Float)
+    localizacao_lng = db.Column(db.Float)
+    endereco_completo = db.Column(db.String(500))
     data_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     observacoes = db.Column(db.Text)
     
@@ -158,6 +161,9 @@ class Placa(db.Model):
             'peso_kg': self.peso_kg,
             'valor': self.valor,
             'imagem_url': self.imagem_url,
+            'localizacao_lat': self.localizacao_lat,
+            'localizacao_lng': self.localizacao_lng,
+            'endereco_completo': self.endereco_completo,
             'data_registro': self.data_registro.isoformat() if self.data_registro else None,
             'observacoes': self.observacoes
         }

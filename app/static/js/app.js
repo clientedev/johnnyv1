@@ -295,6 +295,76 @@ async function carregarEmpresasScanner() {
     }
 }
 
+let currentLocationData = {
+    lat: null,
+    lng: null,
+    endereco: null
+};
+
+async function obterLocalizacaoAutomatica() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            console.warn('Geolocalização não suportada');
+            resolve(null);
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`);
+                
+                const data = await response.json();
+                
+                if (data && data.address) {
+                    const addr = data.address;
+                    const rua = addr.road || addr.street || addr.pedestrian || 'Rua não identificada';
+                    const numero = addr.house_number || 's/n';
+                    const bairro = addr.neighbourhood || addr.suburb || '';
+                    const cidade = addr.city || addr.town || addr.village || '';
+                    const estado = addr.state || '';
+                    const cep = addr.postcode || 'CEP não disponível';
+                    
+                    const enderecoCompleto = `${rua}, ${numero}${bairro ? ', ' + bairro : ''} - ${cidade}/${estado} - CEP: ${cep}`;
+                    
+                    currentLocationData = {
+                        lat: lat,
+                        lng: lng,
+                        endereco: enderecoCompleto
+                    };
+                    
+                    console.log('📍 Localização obtida:', enderecoCompleto);
+                    resolve(currentLocationData);
+                } else {
+                    currentLocationData = {
+                        lat: lat,
+                        lng: lng,
+                        endereco: `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+                    };
+                    resolve(currentLocationData);
+                }
+            } catch (error) {
+                console.error('Erro ao obter endereço:', error);
+                currentLocationData = {
+                    lat: lat,
+                    lng: lng,
+                    endereco: `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+                };
+                resolve(currentLocationData);
+            }
+        }, (error) => {
+            console.warn('Erro ao obter localização:', error);
+            resolve(null);
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        });
+    });
+}
+
 function previewImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -307,6 +377,36 @@ function previewImage(input) {
             }
         };
         reader.readAsDataURL(input.files[0]);
+    }
+}
+
+async function capturarLocalizacaoScanner() {
+    const btn = document.getElementById('btnCapturarLocalizacao');
+    const locationInfo = document.getElementById('locationInfo');
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Obtendo localização...';
+    }
+    
+    const location = await obterLocalizacaoAutomatica();
+    
+    if (location && location.endereco) {
+        currentLocationData = location;
+        if (locationInfo) {
+            locationInfo.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${location.endereco}`;
+            locationInfo.style.display = 'block';
+        }
+        showAlert('📍 Localização capturada com sucesso!', 'success');
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-check"></i> Localização Capturada';
+        }
+    } else {
+        showAlert('Não foi possível obter a localização. Verifique as permissões.', 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Capturar Localização';
+        }
     }
 }
 
@@ -405,6 +505,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileInput = document.getElementById('fileInput');
             if (fileInput.files.length > 0) {
                 formData.append('imagem', fileInput.files[0]);
+            }
+            
+            if (currentLocationData.lat && currentLocationData.lng) {
+                formData.append('localizacao_lat', currentLocationData.lat);
+                formData.append('localizacao_lng', currentLocationData.lng);
+                if (currentLocationData.endereco) {
+                    formData.append('endereco_completo', currentLocationData.endereco);
+                }
             }
             
             try {

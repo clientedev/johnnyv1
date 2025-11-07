@@ -19,9 +19,12 @@
                 <img src="/static/images/mrx-logo.png" alt="MRX">
                 <span>Dashboard</span>
             </div>
-            <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
-                <i class="fas fa-bell"></i>
-                <span class="notification-count" id="headerNotificationCount" style="display: none;">0</span>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count" id="headerNotificationCount" style="display: none;">0</span>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Sair</button>
             </div>
         </div>
     </header>
@@ -89,6 +92,12 @@
                 <div class="form-group">
                     <label>Valor Total (calculado automaticamente)</label>
                     <div id="valorCalculado" data-valor="0" style="padding: 0.75rem; background-color: #f0f0f0; border-radius: 5px; font-weight: bold; font-size: 1.1rem; color: #2c3e50;">R$ 0,00</div>
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn btn-secondary w-full" id="btnCapturarLocalizacao" onclick="capturarLocalizacaoScanner()">
+                        <i class="fas fa-map-marker-alt"></i> Capturar Localização
+                    </button>
+                    <div id="locationInfo" style="margin-top: 0.5rem; padding: 0.75rem; background: #e8f5e9; border-radius: 5px; display: none; font-size: 0.9rem; color: #2e7d32;"></div>
                 </div>
                 <button type="submit" class="btn btn-primary w-full">Registrar Placa</button>
             </form>

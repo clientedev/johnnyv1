@@ -1,11 +1,12 @@
 from app import create_app, socketio
 from flask import send_from_directory, render_template
 from flask_socketio import join_room
-from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from flask_jwt_extended import decode_token
 from app.models import Usuario
 import os
 
-app = create_app()
+application = create_app()
+app = application
 
 @app.route('/uploads/<path:filename>')
 def serve_upload(filename):
