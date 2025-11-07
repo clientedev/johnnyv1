@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Entrada, Solicitacao, Placa, Usuario, Notificacao
+from app.models import db, Entrada, Solicitacao, Placa, Usuario, Notificacao, Lote
 from app.auth import admin_required
 from app import socketio
 from datetime import datetime
+import uuid
 
 bp = Blueprint('entradas', __name__, url_prefix='/api/entradas')
 
@@ -56,16 +57,47 @@ def aprovar_entrada(id):
     entrada.data_processamento = datetime.utcnow()
     entrada.admin_id = usuario_id
     
+    placas_por_tipo = {}
     for placa in entrada.solicitacao.placas:
         placa.status = 'aprovada'
         placa.data_aprovacao = datetime.utcnow()
+        
+        tipo = placa.tipo_placa
+        if tipo not in placas_por_tipo:
+            placas_por_tipo[tipo] = []
+        placas_por_tipo[tipo].append(placa)
     
     entrada.solicitacao.status = 'aprovada'
+    
+    lotes_criados = []
+    for tipo_placa, placas in placas_por_tipo.items():
+        numero_lote = f"LOTE-{uuid.uuid4().hex[:8].upper()}"
+        
+        peso_total = sum(p.peso_kg for p in placas)
+        valor_total = sum(p.valor for p in placas)
+        
+        lote = Lote(
+            numero_lote=numero_lote,
+            fornecedor_id=entrada.solicitacao.fornecedor_id,
+            tipo_material=tipo_placa,
+            peso_total_kg=peso_total,
+            valor_total=valor_total,
+            quantidade_placas=len(placas),
+            status='aberto'
+        )
+        
+        db.session.add(lote)
+        db.session.flush()
+        
+        for placa in placas:
+            placa.lote_id = lote.id
+        
+        lotes_criados.append(numero_lote)
     
     notificacao = Notificacao(
         usuario_id=entrada.solicitacao.funcionario_id,
         titulo='Entrada Aprovada',
-        mensagem=f'A entrada referente à solicitação #{entrada.solicitacao_id} foi aprovada. Todas as {len(entrada.solicitacao.placas)} placas foram inseridas no banco de dados.'
+        mensagem=f'A entrada referente à solicitação #{entrada.solicitacao_id} foi aprovada. Todas as {len(entrada.solicitacao.placas)} placas foram aprovadas e {len(lotes_criados)} lote(s) criado(s): {", ".join(lotes_criados)}.'
     )
     db.session.add(notificacao)
     

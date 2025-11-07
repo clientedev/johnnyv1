@@ -1,10 +1,11 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import uuid
+from typing import Any
 
 db = SQLAlchemy()
 
-class Usuario(db.Model):
+class Usuario(db.Model):  # type: ignore
     __tablename__ = 'usuarios'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -16,6 +17,9 @@ class Usuario(db.Model):
     solicitacoes = db.relationship('Solicitacao', backref='funcionario', lazy=True, cascade='all, delete-orphan')
     notificacoes = db.relationship('Notificacao', backref='usuario', lazy=True, cascade='all, delete-orphan')
     
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -24,7 +28,7 @@ class Usuario(db.Model):
             'tipo': self.tipo
         }
 
-class Vendedor(db.Model):
+class Vendedor(db.Model):  # type: ignore
     __tablename__ = 'vendedores'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -34,6 +38,9 @@ class Vendedor(db.Model):
     cpf = db.Column(db.String(14), unique=True)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     
     def to_dict(self):
         return {
@@ -46,7 +53,7 @@ class Vendedor(db.Model):
             'ativo': self.ativo
         }
 
-class Fornecedor(db.Model):
+class Fornecedor(db.Model):  # type: ignore
     __tablename__ = 'fornecedores'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -93,6 +100,9 @@ class Fornecedor(db.Model):
     
     vendedor = db.relationship('Vendedor', backref='fornecedores')
     
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -125,7 +135,7 @@ class Fornecedor(db.Model):
             'ativo': self.ativo
         }
 
-class ConfiguracaoPrecoEstrela(db.Model):
+class ConfiguracaoPrecoEstrela(db.Model):  # type: ignore
     __tablename__ = 'configuracao_preco_estrelas'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -136,6 +146,9 @@ class ConfiguracaoPrecoEstrela(db.Model):
     valor_4_estrelas = db.Column(db.Float, nullable=False, default=0.0)
     valor_5_estrelas = db.Column(db.Float, nullable=False, default=0.0)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     
     def to_dict(self):
         return {
@@ -149,7 +162,7 @@ class ConfiguracaoPrecoEstrela(db.Model):
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
         }
 
-class Preco(db.Model):
+class Preco(db.Model):  # type: ignore
     __tablename__ = 'precos'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -157,6 +170,9 @@ class Preco(db.Model):
     tipo_placa = db.Column(db.String(20), nullable=False)
     preco_por_kg = db.Column(db.Float, nullable=False)
     classificacao_estrelas = db.Column(db.Integer, nullable=True, default=3)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     
     def to_dict(self):
         return {
@@ -167,7 +183,7 @@ class Preco(db.Model):
             'classificacao_estrelas': self.classificacao_estrelas
         }
 
-class Solicitacao(db.Model):
+class Solicitacao(db.Model):  # type: ignore
     __tablename__ = 'solicitacoes'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -180,7 +196,11 @@ class Solicitacao(db.Model):
     
     placas = db.relationship('Placa', backref='solicitacao', lazy=True, cascade='all, delete-orphan')
     
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
     def to_dict(self):
+        placas_list = list(self.placas) if self.placas else []
         return {
             'id': self.id,
             'funcionario_id': self.funcionario_id,
@@ -191,10 +211,10 @@ class Solicitacao(db.Model):
             'observacoes': self.observacoes,
             'data_envio': self.data_envio.isoformat() if self.data_envio else None,
             'data_confirmacao': self.data_confirmacao.isoformat() if self.data_confirmacao else None,
-            'total_placas': len(self.placas) if self.placas else 0
+            'total_placas': len(placas_list)
         }
 
-class Placa(db.Model):
+class Placa(db.Model):  # type: ignore
     __tablename__ = 'placas'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -225,6 +245,9 @@ class Placa(db.Model):
     
     funcionario = db.relationship('Usuario', backref='placas')
     
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -250,7 +273,7 @@ class Placa(db.Model):
             'observacoes': self.observacoes
         }
 
-class Entrada(db.Model):
+class Entrada(db.Model):  # type: ignore
     __tablename__ = 'entradas'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -265,6 +288,9 @@ class Entrada(db.Model):
     solicitacao = db.relationship('Solicitacao', backref='entradas')
     admin = db.relationship('Usuario', backref='entradas_processadas', foreign_keys=[admin_id])
     
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -277,7 +303,7 @@ class Entrada(db.Model):
             'observacoes': self.observacoes
         }
 
-class Notificacao(db.Model):
+class Notificacao(db.Model):  # type: ignore
     __tablename__ = 'notificacoes'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -286,6 +312,9 @@ class Notificacao(db.Model):
     mensagem = db.Column(db.Text, nullable=False)
     lida = db.Column(db.Boolean, default=False, nullable=False)
     data_envio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     
     def to_dict(self):
         return {
@@ -297,7 +326,7 @@ class Notificacao(db.Model):
             'data_envio': self.data_envio.isoformat() if self.data_envio else None
         }
 
-class Lote(db.Model):
+class Lote(db.Model):  # type: ignore
     __tablename__ = 'lotes'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -319,6 +348,9 @@ class Lote(db.Model):
     placas = db.relationship('Placa', backref='lote', lazy=True)
     compra = db.relationship('Compra', backref='lote', uselist=False, cascade='all, delete-orphan')
     
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -335,7 +367,7 @@ class Lote(db.Model):
             'observacoes': self.observacoes
         }
 
-class Compra(db.Model):
+class Compra(db.Model):  # type: ignore
     __tablename__ = 'compras'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -353,6 +385,9 @@ class Compra(db.Model):
     data_compra = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_pagamento = db.Column(db.DateTime, nullable=True)
     
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -369,7 +404,7 @@ class Compra(db.Model):
             'data_pagamento': self.data_pagamento.isoformat() if self.data_pagamento else None
         }
 
-class Classificacao(db.Model):
+class Classificacao(db.Model):  # type: ignore
     __tablename__ = 'classificacoes'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -379,6 +414,9 @@ class Classificacao(db.Model):
     peso_maximo = db.Column(db.Float, default=999999.0)
     observacoes = db.Column(db.Text)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     
     def to_dict(self):
         return {
@@ -391,7 +429,7 @@ class Classificacao(db.Model):
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None
         }
 
-class Configuracao(db.Model):
+class Configuracao(db.Model):  # type: ignore
     __tablename__ = 'configuracoes'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -400,6 +438,9 @@ class Configuracao(db.Model):
     descricao = db.Column(db.String(200))
     tipo = db.Column(db.String(50), default='texto')
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     
     def to_dict(self):
         return {

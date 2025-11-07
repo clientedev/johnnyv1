@@ -35,7 +35,7 @@ def create_app():
     with app.app_context():
         from app.routes import (auth, usuarios, precos, notificacoes, 
                                 dashboard, placas, configuracoes, vendedores, solicitacoes, entradas,
-                                fornecedores, compras, classificacoes, validacao, consulta, tabelas)
+                                fornecedores, compras, classificacoes, validacao, consulta, tabelas, lotes)
         
         app.register_blueprint(auth.bp)
         app.register_blueprint(usuarios.bp)
@@ -53,6 +53,7 @@ def create_app():
         app.register_blueprint(validacao.bp)
         app.register_blueprint(consulta.bp)
         app.register_blueprint(tabelas.bp)
+        app.register_blueprint(lotes.bp)
         
         db.create_all()
         

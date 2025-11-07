@@ -144,8 +144,12 @@
                     <input type="tel" id="cnpj" inputmode="numeric" pattern="[0-9]*" required>
                 </div>
                 <div class="form-group">
-                    <label>Endereço</label>
-                    <input type="text" id="endereco" autocomplete="street-address">
+                    <label>Rua</label>
+                    <input type="text" id="rua" autocomplete="street-address">
+                </div>
+                <div class="form-group">
+                    <label>Cidade</label>
+                    <input type="text" id="cidade">
                 </div>
                 <div class="form-group">
                     <label>Telefone</label>
@@ -245,7 +249,8 @@
             document.getElementById('empresaId').value = empresaAtual.id;
             document.getElementById('nome').value = empresaAtual.nome;
             document.getElementById('cnpj').value = empresaAtual.cnpj;
-            document.getElementById('endereco').value = empresaAtual.endereco || '';
+            document.getElementById('rua').value = empresaAtual.rua || '';
+            document.getElementById('cidade').value = empresaAtual.cidade || '';
             document.getElementById('telefone').value = empresaAtual.telefone || '';
             document.getElementById('observacoes').value = empresaAtual.observacoes || '';
 
@@ -263,7 +268,8 @@
             const dados = {
                 nome: document.getElementById('nome').value,
                 cnpj: document.getElementById('cnpj').value,
-                endereco: document.getElementById('endereco').value,
+                rua: document.getElementById('rua').value,
+                cidade: document.getElementById('cidade').value,
                 telefone: document.getElementById('telefone').value,
                 observacoes: document.getElementById('observacoes').value,
                 estrelas_leve: parseInt(document.getElementById('estrelasLeve').value),
