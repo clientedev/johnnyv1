@@ -263,6 +263,7 @@ function openScanner() {
     if (modal) {
         modal.classList.add('active');
         carregarEmpresasScanner();
+        setupAutoCalculation();
     }
 }
 
@@ -309,6 +310,65 @@ function previewImage(input) {
     }
 }
 
+async function calcularValorAutomatico() {
+    const empresaId = document.getElementById('scannerEmpresa')?.value;
+    const tipoPlaca = document.getElementById('tipoPlaca')?.value;
+    const pesoKg = parseFloat(document.getElementById('pesoPlaca')?.value);
+    const valorDisplay = document.getElementById('valorCalculado');
+    
+    if (!empresaId || !tipoPlaca || !pesoKg || isNaN(pesoKg)) {
+        if (valorDisplay) {
+            valorDisplay.textContent = 'R$ 0,00';
+            valorDisplay.setAttribute('data-valor', '0');
+        }
+        return;
+    }
+    
+    try {
+        const response = await fetchAPI(`/empresas/${empresaId}/preco/${tipoPlaca}`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            const precoPorKg = data.preco_por_kg;
+            const valorTotal = pesoKg * precoPorKg;
+            
+            if (valorDisplay) {
+                valorDisplay.textContent = formatCurrency(valorTotal);
+                valorDisplay.setAttribute('data-valor', valorTotal);
+            }
+        } else {
+            if (valorDisplay) {
+                valorDisplay.textContent = 'Preço não configurado';
+                valorDisplay.setAttribute('data-valor', '0');
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao calcular valor:', error);
+        if (valorDisplay) {
+            valorDisplay.textContent = 'Erro ao calcular';
+            valorDisplay.setAttribute('data-valor', '0');
+        }
+    }
+}
+
+function setupAutoCalculation() {
+    const empresaSelect = document.getElementById('scannerEmpresa');
+    const tipoPlacaSelect = document.getElementById('tipoPlaca');
+    const pesoInput = document.getElementById('pesoPlaca');
+    
+    if (empresaSelect) {
+        empresaSelect.addEventListener('change', calcularValorAutomatico);
+    }
+    
+    if (tipoPlacaSelect) {
+        tipoPlacaSelect.addEventListener('change', calcularValorAutomatico);
+    }
+    
+    if (pesoInput) {
+        pesoInput.addEventListener('input', calcularValorAutomatico);
+    }
+}
+
 // Set active bottom nav item
 function setActiveNavItem() {
     const currentPath = window.location.pathname;
@@ -329,11 +389,18 @@ document.addEventListener('DOMContentLoaded', () => {
         formScanner.addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const valorCalculado = document.getElementById('valorCalculado')?.getAttribute('data-valor');
+            
+            if (!valorCalculado || parseFloat(valorCalculado) <= 0) {
+                alert('Por favor, preencha todos os campos para calcular o valor automaticamente.');
+                return;
+            }
+            
             const formData = new FormData();
             formData.append('empresa_id', document.getElementById('scannerEmpresa').value);
             formData.append('tipo_placa', document.getElementById('tipoPlaca').value);
             formData.append('peso_kg', document.getElementById('pesoPlaca').value);
-            formData.append('valor', document.getElementById('valorPlaca').value);
+            formData.append('valor', valorCalculado);
             
             const fileInput = document.getElementById('fileInput');
             if (fileInput.files.length > 0) {

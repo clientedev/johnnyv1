@@ -140,6 +140,21 @@ def atualizar_empresa(id):
     
     return jsonify(empresa.to_dict()), 200
 
+@bp.route('/<int:id>/preco/<string:tipo_placa>', methods=['GET'])
+@jwt_required()
+def obter_preco_por_kg(id, tipo_placa):
+    """Retorna o preço por kg para uma empresa e tipo de placa específicos"""
+    preco = Preco.query.filter_by(empresa_id=id, tipo_placa=tipo_placa).first()
+    
+    if not preco:
+        return jsonify({'erro': 'Preço não encontrado para este tipo de placa'}), 404
+    
+    return jsonify({
+        'preco_por_kg': float(preco.preco_por_kg) if preco.preco_por_kg else 0.0,
+        'tipo_placa': tipo_placa,
+        'classificacao_estrelas': preco.classificacao_estrelas
+    }), 200
+
 @bp.route('/<int:id>', methods=['DELETE'])
 @admin_required
 def deletar_empresa(id):

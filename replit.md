@@ -12,7 +12,7 @@ Sistema web completo para gestão de empresas, funcionários, preços e relatór
 - WebSocket funcionando para notificações em tempo real
 - **Sistema de Classificação por Estrelas (1-5)** implementado
   - API robusta com validações completas
-  - Configurações por tipo de placa (leve, pesada, misturada)
+  - Configurações por tipo de placa (leve, pesada, média)
   - Valores configuráveis por kg para cada nível
 - **Painel de Administração Completo**
   - Gerenciamento de funcionários (CRUD)
@@ -111,18 +111,19 @@ Sistema web completo para gestão de empresas, funcionários, preços e relatór
 - **Scanner de Placas:** Botão FAB central para escanear/registrar placas
 - **Upload de Imagens:** Captura via câmera ou seleção de arquivo
 - **Vinculação com Empresas:** Cada placa associada a uma empresa específica
-- **Classificação:** Tipo de placa (leve, pesada, misturada)
-- **Registro Completo:** Peso, valor, imagem, data
+- **Classificação:** Tipo de placa (leve, pesada, média)
+- **Registro Completo:** Peso, valor calculado automaticamente, imagem, data
 - **Estatísticas:** Total de placas por empresa, peso total, valor total
 - **Associação com Relatórios:** Placas podem ser vinculadas a relatórios
 
-### 8. Sistema de Classificação por Estrelas ✨ (NOVO - 06/11/2025)
+### 8. Sistema de Classificação por Estrelas ✨ (ATUALIZADO - 07/11/2025)
 - **Configurações de Preços:** Sistema de 1 a 5 estrelas para classificar preços
 - **Valores por Kg:** Configure valores específicos por kg para cada nível de estrela
-- **Três Tipos de Placa:** Configurações separadas para leve, pesada e misturada
+- **Três Tipos de Placa:** Configurações separadas para leve, pesada e média
 - **Flexibilidade:** Cada tipo de placa pode ter valores diferentes por estrela
 - **Interface Administrativa:** Página dedicada para gerenciar todas as configurações
 - **Validação Robusta:** API protegida com validações contra erros 500
+- **Cálculo Automático:** Sistema calcula automaticamente o valor da placa (peso_kg × preço_por_kg)
 
 ### 9. Painel de Administração ✨ (NOVO - 06/11/2025)
 - **Gerenciamento de Funcionários:** CRUD completo (criar, editar, excluir)
