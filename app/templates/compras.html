@@ -43,7 +43,7 @@
         </a>
         <a href="/fornecedores.html" class="bottom-nav-item">
             <i class="fas fa-building icon"></i>
-            <span>Empresas</span>
+            <span>Fornecedores</span>
         </a>
     </nav>
 
@@ -85,7 +85,7 @@
                     <option value="cancelado">Cancelado</option>
                 </select>
                 <select id="filtroFornecedor" onchange="carregarCompras()">
-                    <option value="">Todas as empresas</option>
+                    <option value="">Todos os fornecedores</option>
                 </select>
             </div>
         </div>
@@ -96,7 +96,7 @@
                     <thead>
                         <tr>
                             <th>Data</th>
-                            <th>Empresa</th>
+                            <th>Fornecedor</th>
                             <th>Material</th>
                             <th>Tipo</th>
                             <th>Valor</th>
@@ -121,7 +121,7 @@
             <form id="formCompra">
                 <input type="hidden" id="compraId">
                 <div class="form-group">
-                    <label>Empresa/Fornecedor *</label>
+                    <label>Fornecedor *</label>
                     <select id="fornecedorId" required>
                         <option value="">Selecione...</option>
                     </select>

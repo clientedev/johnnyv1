@@ -409,7 +409,7 @@
         </a>
         <a href="/fornecedores.html" class="bottom-nav-item">
             <i class="fas fa-building icon"></i>
-            <span>Empresas</span>
+            <span>Fornecedores</span>
         </a>
     </nav>
 
@@ -422,9 +422,9 @@
             </div>
             <form id="formScanner">
                 <div class="form-group">
-                    <label>Selecionar Empresa</label>
+                    <label>Selecionar Fornecedor</label>
                     <select id="scannerEmpresa" required>
-                        <option value="">Escolha uma empresa...</option>
+                        <option value="">Escolha um fornecedor...</option>
                     </select>
                 </div>
                 <div class="upload-area" onclick="document.getElementById('fileInput').click()">
@@ -470,7 +470,7 @@
                 <i class="fas fa-chart-pie"></i> Geral
             </button>
             <button class="period-btn" onclick="changeModule('empresas')" data-module="empresas">
-                <i class="fas fa-building"></i> Empresas
+                <i class="fas fa-building"></i> Fornecedores
             </button>
             <button class="period-btn" onclick="changeModule('solicitacoes')" data-module="solicitacoes">
                 <i class="fas fa-file-alt"></i> Solicitações
@@ -900,7 +900,7 @@
                     </div>
                     <div class="chart-card">
                         <div class="chart-header">
-                            <div class="chart-title"><i class="fas fa-trophy"></i> Ranking de Empresas</div>
+                            <div class="chart-title"><i class="fas fa-trophy"></i> Ranking de Fornecedores</div>
                         </div>
                         <ul class="ranking-list" id="ranking"></ul>
                     </div>
@@ -908,7 +908,7 @@
                 'empresas': `
                     <div class="chart-card">
                         <div class="chart-header">
-                            <div class="chart-title"><i class="fas fa-building"></i> Status das Empresas</div>
+                            <div class="chart-title"><i class="fas fa-building"></i> Status dos Fornecedores</div>
                             <div class="chart-type-selector">
                                 <button class="chart-type-btn active" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
                                 <button class="chart-type-btn" onclick="changeChart('chart1', 'doughnut', this)"><i class="fas fa-circle-notch"></i></button>
@@ -919,7 +919,7 @@
                     </div>
                     <div class="chart-card">
                         <div class="chart-header">
-                            <div class="chart-title"><i class="fas fa-chart-area"></i> Empresas Cadastradas por Mês</div>
+                            <div class="chart-title"><i class="fas fa-chart-area"></i> Fornecedores Cadastrados por Mês</div>
                         </div>
                         <div class="chart-container"><canvas id="chart2"></canvas></div>
                     </div>
@@ -943,7 +943,7 @@
                     </div>
                     <div class="chart-card">
                         <div class="chart-header">
-                            <div class="chart-title"><i class="fas fa-trophy"></i> Top 5 Empresas</div>
+                            <div class="chart-title"><i class="fas fa-trophy"></i> Top 5 Fornecedores</div>
                         </div>
                         <ul class="ranking-list" id="ranking"></ul>
                     </div>
@@ -1222,7 +1222,7 @@
                     valorTotal: 0
                 });
 
-                // Criar gráfico 1 - Status das Empresas
+                // Criar gráfico 1 - Status dos Fornecedores
                 const ctx1 = document.getElementById('chart1')?.getContext('2d');
                 if (ctx1) {
                     activeCharts['chart1'] = new Chart(ctx1, {
@@ -1238,7 +1238,7 @@
                     });
                 }
                 
-                // Gráfico 2 - Empresas por mês (mock data)
+                // Gráfico 2 - Fornecedores por mês (mock data)
                 const ctx2 = document.getElementById('chart2')?.getContext('2d');
                 if (ctx2) {
                     activeCharts['chart2'] = new Chart(ctx2, {
@@ -1246,7 +1246,7 @@
                         data: {
                             labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
                             datasets: [{
-                                label: 'Empresas Cadastradas',
+                                label: 'Fornecedores Cadastrados',
                                 data: [2, 3, 1, 4, 2, empresas.length],
                                 backgroundColor: '#059669'
                             }]
@@ -1554,7 +1554,7 @@
                     kpi4: 'Valor Total'
                 },
                 'empresas': {
-                    kpi1: 'Total Empresas',
+                    kpi1: 'Total Fornecedores',
                     kpi2: 'Ativas',
                     kpi3: 'Inativas',
                     kpi4: 'Faturamento'

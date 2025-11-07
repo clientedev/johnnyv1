@@ -210,8 +210,10 @@
         }
 
         async function carregarFornecedores() {
-            const response = await fetchAPI('/api/fornecedores');
-            const empresas = await response.json();
+            try {
+                const response = await fetchAPI('/api/fornecedores');
+                if (!response || !response.ok) return;
+                const empresas = await response.json();
 
             const tbody = document.getElementById('tabelaFornecedores');
 
@@ -231,6 +233,11 @@
                     </td>
                 </tr>
             `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar fornecedores:', error);
+                const tbody = document.getElementById('tabelaFornecedores');
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Erro ao carregar fornecedores. Faça login novamente.</td></tr>';
+            }
         }
 
         function abrirModalNovoFornecedor() {
@@ -242,8 +249,13 @@
         }
 
         async function editarFornecedor(id) {
-            const response = await fetchAPI(`/api/fornecedores/${id}`);
-            empresaAtual = await response.json();
+            try {
+                const response = await fetchAPI(`/api/fornecedores/${id}`);
+                if (!response || !response.ok) {
+                    showAlert('Erro ao carregar fornecedor');
+                    return;
+                }
+                empresaAtual = await response.json();
 
             document.getElementById('tituloModal').textContent = 'Editar Fornecedor';
             document.getElementById('empresaId').value = empresaAtual.id;
@@ -259,6 +271,10 @@
             document.getElementById('estrelasMedia').value = empresaAtual.estrelas_media || 3;
 
             document.getElementById('modalFornecedor').classList.add('active');
+            } catch (error) {
+                console.error('Erro ao editar fornecedor:', error);
+                showAlert('Erro ao carregar dados do fornecedor');
+            }
         }
 
         document.getElementById('formFornecedor').addEventListener('submit', async (e) => {
