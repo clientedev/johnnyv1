@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gestao-placas-v1';
+const CACHE_NAME = 'gestao-placas-v2';
 const urlsToCache = [
   '/',
   '/static/css/style.css',
@@ -13,9 +13,17 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.url.includes('/api/') || 
+      event.request.url.includes('/uploads/') ||
+      event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
