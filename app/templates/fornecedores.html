@@ -280,55 +280,69 @@
         document.getElementById('formFornecedor').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const id = document.getElementById('empresaId').value;
-            const dados = {
-                nome: document.getElementById('nome').value,
-                cnpj: document.getElementById('cnpj').value,
-                rua: document.getElementById('rua').value,
-                cidade: document.getElementById('cidade').value,
-                telefone: document.getElementById('telefone').value,
-                observacoes: document.getElementById('observacoes').value,
-                estrelas_leve: parseInt(document.getElementById('estrelasLeve').value),
-                estrelas_pesada: parseInt(document.getElementById('estrelasPesada').value),
-                estrelas_media: parseInt(document.getElementById('estrelasMedia').value)
-            };
+            try {
+                const id = document.getElementById('empresaId').value;
+                const dados = {
+                    nome: document.getElementById('nome').value,
+                    cnpj: document.getElementById('cnpj').value,
+                    rua: document.getElementById('rua').value,
+                    cidade: document.getElementById('cidade').value,
+                    telefone: document.getElementById('telefone').value,
+                    observacoes: document.getElementById('observacoes').value,
+                    estrelas_leve: parseInt(document.getElementById('estrelasLeve').value),
+                    estrelas_pesada: parseInt(document.getElementById('estrelasPesada').value),
+                    estrelas_media: parseInt(document.getElementById('estrelasMedia').value)
+                };
 
-            let response;
-            if (id) {
-                response = await fetchAPI(`/api/fornecedores/${id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(dados)
-                });
-            } else {
-                response = await fetchAPI('/api/fornecedores', {
-                    method: 'POST',
-                    body: JSON.stringify(dados)
-                });
-            }
+                let response;
+                if (id) {
+                    response = await fetchAPI(`/api/fornecedores/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(dados)
+                    });
+                } else {
+                    response = await fetchAPI('/api/fornecedores', {
+                        method: 'POST',
+                        body: JSON.stringify(dados)
+                    });
+                }
 
-            if (response.ok) {
-                showAlert('Fornecedor salva com sucesso! Preços calculados automaticamente.', 'success');
-                fecharModal();
-                await carregarFornecedores();
-            } else {
-                const data = await response.json();
-                showAlert(data.erro || 'Erro ao salvar empresa');
+                if (response && response.ok) {
+                    showAlert('Fornecedor salvo com sucesso! Preços calculados automaticamente.', 'success');
+                    fecharModal();
+                    await carregarFornecedores();
+                } else if (response) {
+                    const data = await response.json();
+                    showAlert(data.erro || 'Erro ao salvar fornecedor');
+                } else {
+                    showAlert('Erro ao conectar com o servidor. Verifique sua autenticação.');
+                }
+            } catch (error) {
+                console.error('Erro ao salvar fornecedor:', error);
+                showAlert('Erro ao salvar fornecedor. Faça login novamente.');
             }
         });
 
         async function deletarFornecedor(id, nome) {
             if (!confirm(`Deseja realmente excluir o fornecedor "${nome}"?`)) return;
 
-            const response = await fetchAPI(`/api/fornecedores/${id}`, {
-                method: 'DELETE'
-            });
+            try {
+                const response = await fetchAPI(`/api/fornecedores/${id}`, {
+                    method: 'DELETE'
+                });
 
-            if (response.ok) {
-                showAlert('Fornecedor excluída com sucesso!', 'success');
-                await carregarFornecedores();
-            } else {
-                const data = await response.json();
-                showAlert(data.erro || 'Erro ao excluir empresa');
+                if (response && response.ok) {
+                    showAlert('Fornecedor excluído com sucesso!', 'success');
+                    await carregarFornecedores();
+                } else if (response) {
+                    const data = await response.json();
+                    showAlert(data.erro || 'Erro ao excluir fornecedor');
+                } else {
+                    showAlert('Erro ao conectar com o servidor');
+                }
+            } catch (error) {
+                console.error('Erro ao deletar fornecedor:', error);
+                showAlert('Erro ao excluir fornecedor. Tente novamente.');
             }
         }
 

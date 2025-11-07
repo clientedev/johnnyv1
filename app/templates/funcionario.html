@@ -78,7 +78,7 @@
             </div>
             <form id="formNovoRelatorio">
                 <div class="form-group">
-                    <label>Empresa</label>
+                    <label>Fornecedor</label>
                     <select id="empresaSelect" required></select>
                 </div>
                 <div class="form-group">
@@ -152,16 +152,16 @@
         }
 
         async function carregarEmpresas() {
-            const response = await fetchAPI('/empresas');
+            const response = await fetchAPI('/api/fornecedores');
             const empresas = await response.json();
 
             const select = document.getElementById('empresaSelect');
-            select.innerHTML = '<option value="">Selecione uma empresa</option>' +
+            select.innerHTML = '<option value="">Selecione um fornecedor</option>' +
                 empresas.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
         }
 
         async function carregarRelatorios() {
-            const response = await fetchAPI('/relatorios');
+            const response = await fetchAPI('/api/solicitacoes');
             const relatorios = await response.json();
 
             const tbody = document.getElementById('tabelaRelatorios');
@@ -216,7 +216,7 @@
         });
 
         async function enviarRelatorio(formData) {
-            const response = await fetch('/api/relatorios', {
+            const response = await fetch('/api/solicitacoes', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${getToken()}`
@@ -225,7 +225,7 @@
             });
 
             if (response.ok) {
-                showAlert('Solicitação enviado com sucesso!', 'success');
+                showAlert('Solicitação enviada com sucesso!', 'success');
                 fecharModal('modalNovoRelatorio');
                 document.getElementById('formNovoRelatorio').reset();
                 await carregarRelatorios();
@@ -236,7 +236,7 @@
         }
 
         async function verDetalhes(id) {
-            const response = await fetchAPI(`/relatorios/${id}`);
+            const response = await fetchAPI(`/api/solicitacoes/${id}`);
             const relatorio = await response.json();
 
             const conteudo = `
