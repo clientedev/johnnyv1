@@ -1,7 +1,7 @@
-modules = ["web", "python-3.12", "nodejs-20", "bash"]
+modules = ["web", "nodejs-20", "bash", "python-3.11"]
 [agent]
 expertMode = true
-integrations = ["python_database:1.0.0", "javascript_websocket:1.0.0"]
+integrations = ["python_database:1.0.0", "javascript_websocket:1.0.0", "python_gemini:1.0.0"]
 
 [workflows]
 runButton = "Project"
@@ -64,10 +64,6 @@ localPort = 40609
 externalPort = 8000
 
 [[ports]]
-localPort = 41381
-externalPort = 9000
-
-[[ports]]
 localPort = 41483
 externalPort = 8080
 
@@ -78,6 +74,10 @@ externalPort = 3003
 [[ports]]
 localPort = 43565
 externalPort = 3001
+
+[[ports]]
+localPort = 44729
+externalPort = 9000
 
 [[ports]]
 localPort = 45623

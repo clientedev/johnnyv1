@@ -4,9 +4,8 @@ from app.models import Fornecedor, Usuario, Vendedor, Placa, db
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
-import cv2
-import numpy as np
-from PIL import Image
+from google import genai
+from google.genai import types
 import io
 
 placas_bp = Blueprint('placas', __name__)
@@ -19,43 +18,69 @@ def allowed_file(filename):
 
 def analisar_placa_automatica(imagem_bytes):
     try:
-        nparr = np.frombuffer(imagem_bytes, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        # Integração com Gemini AI blueprint
+        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
-        if img is None:
-            return {'erro': 'Imagem inválida'}
+        prompt = """Você é um especialista em classificação de placas eletrônicas (PCBs). 
+Analise esta imagem de placa eletrônica e classifique como LEVE, MÉDIA ou PESADA.
+
+REGRAS DE CLASSIFICAÇÃO:
+- LEVE: Alta presença de verde visível (áreas grandes da placa sem muitos componentes soldados). 
+  Quanto mais verde aparecer na placa, mais "LEVE" ela é.
+- MÉDIA: Quantidade moderada de componentes, com áreas verdes ainda visíveis.
+- PESADA: Muitos componentes, conectores, chips, resistores, capacitores e grande densidade visual.
+  Pouco verde visível devido à alta quantidade de componentes soldados.
+
+Responda APENAS com:
+1. A classificação (LEVE / MÉDIA / PESADA)
+2. Uma breve justificativa (1 frase)
+3. Um percentual estimado de área verde visível (0-100%)
+4. Número estimado de componentes visíveis
+
+Formato da resposta:
+Classificação: [LEVE/MÉDIA/PESADA] — [justificativa]
+Percentual verde: [0-100]%
+Componentes estimados: [número]"""
         
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=[
+                types.Part.from_bytes(
+                    data=imagem_bytes,
+                    mime_type="image/jpeg",
+                ),
+                prompt
+            ],
+        )
         
-        lower_green = np.array([35, 40, 40])
-        upper_green = np.array([85, 255, 255])
-        mask_green = cv2.inRange(hsv, lower_green, upper_green)
+        if not response.text:
+            return {'erro': 'Erro ao analisar imagem com IA'}
         
-        kernel = np.ones((5,5), np.uint8)
-        mask_green = cv2.morphologyEx(mask_green, cv2.MORPH_CLOSE, kernel)
-        mask_green = cv2.morphologyEx(mask_green, cv2.MORPH_OPEN, kernel)
+        resultado_texto = response.text.strip()
         
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        gray = cv2.GaussianBlur(gray, (5, 5), 0)
-        
-        edges = cv2.Canny(gray, 50, 150)
-        
-        contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        
-        component_count = len([c for c in contours if cv2.contourArea(c) > 10])
-        
-        if component_count < 150:
+        classificacao = "media"
+        if "LEVE" in resultado_texto.upper():
             classificacao = "leve"
-        elif component_count < 500:
-            classificacao = "media"
-        else:
+        elif "PESADA" in resultado_texto.upper():
             classificacao = "pesada"
+        
+        import re
+        percentual_match = re.search(r'(\d+)%', resultado_texto)
+        percentual_verde = int(percentual_match.group(1)) if percentual_match else 50
+        
+        componentes_match = re.search(r'Componentes estimados:\s*(\d+)', resultado_texto)
+        componentes = int(componentes_match.group(1)) if componentes_match else 0
+        
+        justificativa_match = re.search(r'Classificação:.*?—\s*(.+?)(?:\n|Percentual)', resultado_texto, re.DOTALL)
+        justificativa = justificativa_match.group(1).strip() if justificativa_match else resultado_texto.split('\n')[0]
         
         return {
             'classificacao': classificacao,
-            'componentes_detectados': component_count,
-            'mensagem': f'Analisada com sucesso! A placa foi classificada como: {classificacao.upper()}'
+            'componentes_detectados': componentes,
+            'percentual_verde': percentual_verde,
+            'mensagem': f'Classificação: {classificacao.upper()} — {justificativa}',
+            'justificativa': justificativa,
+            'analise_completa': resultado_texto
         }
         
     except Exception as e:
