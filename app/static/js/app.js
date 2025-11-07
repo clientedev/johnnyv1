@@ -67,18 +67,23 @@ async function fetchAPI(endpoint, options = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
-        ...options,
-        headers
-    });
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            headers
+        });
 
-    if (response.status === 401) {
-        removeToken();
-        window.location.href = '/';
-        return;
+        if (response.status === 401) {
+            removeToken();
+            window.location.href = '/';
+            return null;
+        }
+
+        return response;
+    } catch (error) {
+        console.error('Erro ao fazer requisição:', error);
+        return null;
     }
-
-    return response;
 }
 
 async function login(email, senha) {

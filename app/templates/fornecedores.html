@@ -37,7 +37,7 @@
             <span>Dashboard</span>
         </a>
         <div class="fab-container">
-            <button class="fab-button" onclick="abrirModalNovoFornecedor()" aria-label="Novo Fornecedor">
+            <button class="fab-button" onclick="openScanner()" aria-label="Nova Placa">
                 <i class="fas fa-plus icon"></i>
             </button>
         </div>
@@ -81,7 +81,10 @@
                         <option value="pesada">Pesada</option>
                         <option value="media">Média</option>
                     </select>
-                    <button type="button" class="btn btn-secondary w-full" style="margin-top: 0.5rem;" onclick="analisarPlacaAutomatica()">🤖 Analisar Placa com IA</button>
+                    <button type="button" class="btn btn-secondary w-full" onclick="analisarPlacaComIA()" style="margin-top: 0.5rem;">
+                        🤖 Analisar com IA Gemini
+                    </button>
+                    <div id="resultadoAnaliseIA" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #ecfdf5; border-radius: 6px; font-size: 0.85rem; color: #065f46;"></div>
                 </div>
                 <div class="form-group">
                     <label>Peso (kg)</label>
@@ -545,6 +548,61 @@
                     .catch(error => console.error('Erro ao calcular valor:', error));
             }
         });
+
+        // Funções do Scanner com IA
+        async function analisarPlacaComIA() {
+            const fotoInput = document.getElementById('fileInput');
+            if (!fotoInput.files || fotoInput.files.length === 0) {
+                showAlert('Adicione uma foto da placa primeiro!', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('imagem', fotoInput.files[0]);
+
+            const resultadoDiv = document.getElementById('resultadoAnaliseIA');
+            resultadoDiv.innerHTML = '🔄 Analisando com IA Gemini...';
+            resultadoDiv.style.display = 'block';
+
+            try {
+                const response = await fetchAPI('/api/placas/analisar', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response && response.ok) {
+                    const resultado = await response.json();
+                    document.getElementById('tipoPlaca').value = resultado.classificacao;
+                    resultadoDiv.innerHTML = `✅ ${resultado.mensagem}`;
+                    resultadoDiv.style.background = '#ecfdf5';
+                    resultadoDiv.style.color = '#065f46';
+                } else {
+                    const error = response ? await response.json() : {erro: 'Erro de conexão'};
+                    resultadoDiv.innerHTML = `❌ ${error.erro || 'Erro ao analisar'}`;
+                    resultadoDiv.style.background = '#fee2e2';
+                    resultadoDiv.style.color = '#991b1b';
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                resultadoDiv.innerHTML = '❌ Erro ao analisar. Tente novamente.';
+                resultadoDiv.style.background = '#fee2e2';
+                resultadoDiv.style.color = '#991b1b';
+            }
+        }
+
+        function previewImage(input) {
+            const preview = document.getElementById('imagePreview');
+            const img = document.getElementById('previewImg');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    preview.classList.add('active');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
 
         carregarPagina();
     </script>
