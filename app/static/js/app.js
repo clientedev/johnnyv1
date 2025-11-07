@@ -278,12 +278,12 @@ function closeScanner() {
 
 async function carregarEmpresasScanner() {
     try {
-        const response = await fetchAPI('/empresas');
+        const response = await fetchAPI('/api/fornecedores');
         const data = await response.json();
-        const select = document.getElementById('scannerEmpresa');
+        const select = document.getElementById('scannerFornecedor');
         if (select) {
-            select.innerHTML = '<option value="">Escolha uma empresa...</option>';
-            data.forEach(empresa => {
+            select.innerHTML = '<option value="">Escolha um fornecedor...</option>';
+            data.forEach(fornecedor => {
                 const option = document.createElement('option');
                 option.value = fornecedor.id;
                 option.textContent = fornecedor.nome;
@@ -291,7 +291,7 @@ async function carregarEmpresasScanner() {
             });
         }
     } catch (error) {
-        console.error('Erro ao carregar empresas:', error);
+        console.error('Erro ao carregar fornecedores:', error);
     }
 }
 
@@ -411,12 +411,12 @@ async function capturarLocalizacaoScanner() {
 }
 
 async function calcularValorAutomatico() {
-    const empresaId = document.getElementById('scannerEmpresa')?.value;
+    const fornecedorId = document.getElementById('scannerFornecedor')?.value;
     const tipoPlaca = document.getElementById('tipoPlaca')?.value;
     const pesoKg = parseFloat(document.getElementById('pesoPlaca')?.value);
     const valorDisplay = document.getElementById('valorCalculado');
     
-    if (!empresaId || !tipoPlaca || !pesoKg || isNaN(pesoKg)) {
+    if (!fornecedorId || !tipoPlaca || !pesoKg || isNaN(pesoKg)) {
         if (valorDisplay) {
             valorDisplay.textContent = 'R$ 0,00';
             valorDisplay.setAttribute('data-valor', '0');
@@ -425,7 +425,7 @@ async function calcularValorAutomatico() {
     }
     
     try {
-        const response = await fetchAPI(`/empresas/${empresaId}/preco/${tipoPlaca}`);
+        const response = await fetchAPI(`/api/fornecedores/${fornecedorId}/preco/${tipoPlaca}`);
         
         if (response.ok) {
             const data = await response.json();
@@ -452,12 +452,12 @@ async function calcularValorAutomatico() {
 }
 
 function setupAutoCalculation() {
-    const empresaSelect = document.getElementById('scannerEmpresa');
+    const fornecedorSelect = document.getElementById('scannerFornecedor');
     const tipoPlacaSelect = document.getElementById('tipoPlaca');
     const pesoInput = document.getElementById('pesoPlaca');
     
-    if (empresaSelect) {
-        empresaSelect.addEventListener('change', calcularValorAutomatico);
+    if (fornecedorSelect) {
+        fornecedorSelect.addEventListener('change', calcularValorAutomatico);
     }
     
     if (tipoPlacaSelect) {
@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const formData = new FormData();
-            formData.append('empresa_id', document.getElementById('scannerEmpresa').value);
+            formData.append('fornecedor_id', document.getElementById('scannerFornecedor').value);
             formData.append('tipo_placa', document.getElementById('tipoPlaca').value);
             formData.append('peso_kg', document.getElementById('pesoPlaca').value);
             formData.append('valor', valorCalculado);
