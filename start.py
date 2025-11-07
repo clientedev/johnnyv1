@@ -16,6 +16,7 @@ def main():
     print("🌐 Iniciando servidor...")
     port = os.environ.get('PORT', '5000')
     print(f"ℹ️  Usando PORT: {port}")
+    print(f"ℹ️  DATABASE_URL está configurado: {'Sim' if os.environ.get('DATABASE_URL') else 'Não'}")
     
     cmd = [
         "gunicorn",

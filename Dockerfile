@@ -20,5 +20,5 @@ COPY . .
 # Criar diretórios necessários
 RUN mkdir -p uploads
 
-# Usar script Python para inicialização (mais compatível que bash)
-CMD ["python", "start.py"]
+# Usar shell form para permitir expansão de variáveis de ambiente
+CMD python start.py
