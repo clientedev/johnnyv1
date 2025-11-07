@@ -26,3 +26,17 @@ Pillow
 psycopg2-binary
 python-dotenv
 python-socketio
+bcrypt
+eventlet
+Flask
+Flask-CORS
+Flask-JWT-Extended
+Flask-SocketIO
+Flask-SQLAlchemy
+gunicorn
+numpy
+opencv-python-headless
+Pillow
+psycopg2-binary
+python-dotenv
+python-socketio
