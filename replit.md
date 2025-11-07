@@ -4,11 +4,13 @@
 Sistema web completo para gestão de empresas, funcionários, preços e relatórios. Construído com Flask, PostgreSQL, WebSocket para notificações em tempo real, e autenticação JWT.
 
 ## Estado Atual (07/11/2025)
-✅ **Projeto totalmente funcional e pronto para deploy no Railway**
+✅ **Projeto MRX Systems totalmente funcional com automação de lotes e compras**
 - Aplicação rodando localmente sem erros
-- Todas as dependências instaladas
-- **Dockerfile corrigido para Railway** (suporta variável $PORT corretamente)
-- Criação automática de tabelas do banco de dados implementada (script init_db.py)
+- Todas as dependências instaladas (Flask, SQLAlchemy, Gemini AI)
+- **Integração Gemini AI** configurada para classificação automática de placas
+- **Criação automática de lotes** quando entradas são aprovadas
+- **Sistema de gestão de lotes** com aprovação/rejeição
+- **Geração automática de compras** a partir de lotes aprovados
 - WebSocket funcionando para notificações em tempo real
 - **Banco de dados reorganizado e otimizado** (07/11/2025)
 - **Sistema de Classificação por Estrelas (1-5)** implementado
