@@ -1,11 +1,18 @@
-# Guia de Deploy no Railway
+# Guia de Deploy no Railway - ATUALIZADO
+
+## ✅ Correções Implementadas
+
+1. **Problema do $PORT resolvido**: Criado `entrypoint.sh` que expande corretamente a variável PORT
+2. **Criação automática de tabelas**: Script inicializa o banco antes de iniciar o servidor
+3. **Suporte a postgres:// e postgresql://**: Conversão automática no código
 
 ## Arquivos de Configuração
 
 Este projeto usa **Docker** para deployment no Railway:
-- `Dockerfile` - Configuração principal de build
-- `railway.json` - Configuração do Railway
-- `start.py` - Script de inicialização
+- `Dockerfile` - Build da imagem Docker
+- `entrypoint.sh` - **NOVO**: Script que resolve PORT e inicializa DB
+- `railway.json` - Configuração do Railway com startCommand
+- `init_db.py` - Script de criação de tabelas do banco
 
 ## Passo a Passo para Deploy
 
@@ -31,34 +38,53 @@ JWT_SECRET_KEY=sua-chave-jwt-aleatoria-aqui
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-### 4. Deploy Automático
+### 4. Remover Start Command Customizado (IMPORTANTE!)
+**No Railway Dashboard**:
+1. Vá em **Settings** → **Deploy**
+2. Se houver um **Start Command** customizado, **DELETE/REMOVA** ele
+3. Deixe vazio - o `railway.json` já define o comando correto
+4. Salve as alterações
+
+### 5. Deploy Automático
 - Railway detectará o `Dockerfile` automaticamente
-- O build será iniciado automaticamente
+- Usará o `entrypoint.sh` que resolve todos os problemas
 - Railway definirá a variável `PORT` automaticamente
 
-### 5. Verificar o Deploy
-Após o deploy, verifique os logs:
-- As tabelas do banco serão criadas automaticamente
-- O usuário admin padrão será criado
-- O servidor Gunicorn iniciará na porta configurada pelo Railway
+### 6. Verificar o Deploy
+Após o deploy, verifique os logs. Você deve ver:
+```
+🚀 Iniciando aplicação...
+ℹ️  Usando PORT: 8080
+✅ DATABASE_URL está configurado
+📊 Inicializando banco de dados...
+✅ Tabelas criadas/verificadas com sucesso!
+✅ Usuário admin verificado!
+🌐 Iniciando servidor Gunicorn na porta 8080...
+```
 
-## Estrutura de Inicialização
+## Estrutura de Inicialização (ATUALIZADA)
 
-1. `Dockerfile` executa `start.py`
-2. `start.py` executa `init_db.py` para criar tabelas
-3. `start.py` inicia o Gunicorn com eventlet worker
-4. A aplicação fica disponível na porta definida por Railway
+1. `Dockerfile` define `ENTRYPOINT` como `entrypoint.sh`
+2. `entrypoint.sh` expande a variável `$PORT` corretamente (resolve o erro)
+3. `entrypoint.sh` executa `init_db.py` para criar tabelas
+4. `entrypoint.sh` inicia o Gunicorn com eventlet worker
+5. A aplicação fica disponível na porta definida por Railway
 
 ## Solução de Problemas
 
-### Erro: "$PORT is not a valid port number"
-- ✅ **RESOLVIDO**: Removidos Procfile e start.sh conflitantes
-- O Dockerfile agora usa shell form (`CMD python start.py`) para expansão correta de variáveis
+### ✅ Erro: "$PORT is not a valid port number" - RESOLVIDO
+**Solução implementada:**
+- Criado `entrypoint.sh` que usa bash para expandir `$PORT` corretamente
+- Dockerfile usa `ENTRYPOINT` que sempre funciona
+- `railway.json` define `startCommand` explicitamente
+- **Ação necessária**: Remova qualquer Start Command customizado no Railway Dashboard
 
-### Tabelas não sendo criadas
-- ✅ **RESOLVIDO**: DATABASE_URL agora converte `postgres://` para `postgresql://`
-- `init_db.py` é executado antes do servidor iniciar
-- `db.create_all()` também é chamado no `app/__init__.py`
+### ✅ Tabelas não sendo criadas - RESOLVIDO
+**Solução implementada:**
+- DATABASE_URL converte `postgres://` para `postgresql://` automaticamente
+- `entrypoint.sh` executa `init_db.py` ANTES de iniciar o servidor
+- `db.create_all()` também é chamado no `app/__init__.py` como backup
+- Logs mostram confirmação da criação das tabelas
 
 ### Database Connection Issues
 - Verifique se a variável `DATABASE_URL` está configurada no Railway

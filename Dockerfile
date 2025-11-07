@@ -20,5 +20,9 @@ COPY . .
 # Criar diretórios necessários
 RUN mkdir -p uploads
 
-# Usar shell form para permitir expansão de variáveis de ambiente
-CMD python start.py
+# Copiar e dar permissão ao script de entrada
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Usar o script de entrada que trata PORT corretamente
+ENTRYPOINT ["/app/entrypoint.sh"]
