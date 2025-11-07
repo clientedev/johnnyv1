@@ -13,6 +13,16 @@ def init_database(drop_existing=False):
         drop_existing: Se True, remove todas as tabelas antes de criar (padrão: False)
     """
     try:
+        # Verifica se DATABASE_URL está definido
+        database_url = os.environ.get('DATABASE_URL')
+        if not database_url:
+            print("❌ ERRO: DATABASE_URL não está definido!")
+            print("   Configure o PostgreSQL no Railway")
+            return False
+        
+        print(f"🔗 Conectando ao banco de dados...")
+        print(f"   URL: {database_url[:30]}...")
+        
         app = create_app()
         
         with app.app_context():
@@ -24,6 +34,12 @@ def init_database(drop_existing=False):
             print("📊 Criando tabelas no banco de dados...")
             db.create_all()
             print("✅ Tabelas criadas/verificadas com sucesso!")
+            
+            # Lista as tabelas criadas
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            print(f"📋 Tabelas no banco: {', '.join(tables)}")
             
             try:
                 from app.auth import criar_admin_padrao

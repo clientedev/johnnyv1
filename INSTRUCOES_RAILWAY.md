@@ -5,20 +5,25 @@
 Criei scripts que resolvem **TODOS** os problemas que você estava enfrentando:
 
 1. ✅ **Erro `$PORT is not a valid port number`** - RESOLVIDO
-2. ✅ **Tabelas do PostgreSQL não sendo criadas** - RESOLVIDO
+2. ✅ **Tabelas do PostgreSQL não sendo criadas** - RESOLVIDO  
+3. ✅ **Erro 502 Bad Gateway / App failed to load** - RESOLVIDO
+4. ✅ **Failed to find attribute 'application'** - RESOLVIDO
 
 ## 📝 O QUE FOI FEITO
 
 ### Arquivos Criados:
-1. **`entrypoint.sh`** - Script principal que:
+1. **`wsgi.py`** - **NOVO**: Entry point dedicado para Gunicorn (resolve "Failed to find attribute")
+   
+2. **`entrypoint.sh`** - Script principal que:
    - Expande corretamente a variável `$PORT` (resolve o erro)
+   - Verifica todas as variáveis de ambiente
    - Inicializa o banco de dados ANTES de iniciar o servidor
    - Cria todas as tabelas automaticamente
-   - Inicia o Gunicorn corretamente
+   - Inicia o Gunicorn corretamente com wsgi:application
 
-2. **`.dockerignore`** - Otimiza o build do Docker
+3. **`.dockerignore`** - Otimiza o build do Docker
 
-3. **Documentação completa**:
+4. **Documentação completa**:
    - `README_RAILWAY_FIX.md` - Detalhes técnicos
    - `RAILWAY_DEPLOYMENT_GUIDE.md` - Guia completo
 
