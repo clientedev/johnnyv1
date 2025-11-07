@@ -1,4 +1,4 @@
-modules = ["web", "nodejs-20", "python-3.11"]
+modules = ["web", "python-3.12", "nodejs-20", "bash"]
 [agent]
 expertMode = true
 integrations = ["python_database:1.0.0", "javascript_websocket:1.0.0"]
@@ -62,6 +62,10 @@ externalPort = 5173
 [[ports]]
 localPort = 40609
 externalPort = 8000
+
+[[ports]]
+localPort = 41381
+externalPort = 9000
 
 [[ports]]
 localPort = 41483
