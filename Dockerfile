@@ -23,5 +23,5 @@ RUN mkdir -p uploads
 # Expor porta
 EXPOSE 5000
 
-# Comando de inicialização
-CMD gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 120 app:application
+# Comando de inicialização (usando shell para expandir variáveis de ambiente)
+CMD ["sh", "-c", "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:${PORT:-5000} --timeout 120 app:application"]
