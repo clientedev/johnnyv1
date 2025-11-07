@@ -70,7 +70,7 @@ def criar_solicitacao():
     
     data = request.get_json()
     
-    fornecedor_id = data.get('fornecedor_id', type=int)
+    fornecedor_id = data.get('fornecedor_id')
     observacoes = data.get('observacoes', '')
     
     if not fornecedor_id:
@@ -125,8 +125,8 @@ def adicionar_placa_solicitacao(id):
     data = request.get_json()
     
     tipo_placa = data.get('tipo_placa')
-    peso_kg = data.get('peso_kg', type=float)
-    valor = data.get('valor', type=float)
+    peso_kg = data.get('peso_kg')
+    valor = data.get('valor')
     
     if not all([tipo_placa, peso_kg, valor]):
         return jsonify({'erro': 'Tipo de placa, peso e valor são obrigatórios'}), 400

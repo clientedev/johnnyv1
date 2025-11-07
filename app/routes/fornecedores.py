@@ -237,10 +237,10 @@ def obter_preco_por_kg(id, tipo_placa):
 @bp.route('/<int:id>/historico', methods=['GET'])
 @jwt_required()
 def obter_historico_empresa(id):
-    empresa = Fornecedor.query.get(id)
+    fornecedor = Fornecedor.query.get(id)
     
-    if not empresa:
-        return jsonify({'erro': 'Fornecedor não encontrada'}), 404
+    if not fornecedor:
+        return jsonify({'erro': 'Fornecedor não encontrado'}), 404
     
     solicitacoes = [s.to_dict() for s in fornecedor.solicitacoes]
     placas = [p.to_dict() for p in fornecedor.placas]
@@ -253,12 +253,12 @@ def obter_historico_empresa(id):
 @bp.route('/<int:id>', methods=['DELETE'])
 @admin_required
 def deletar_empresa(id):
-    empresa = Fornecedor.query.get(id)
+    fornecedor = Fornecedor.query.get(id)
     
-    if not empresa:
-        return jsonify({'erro': 'Fornecedor não encontrada'}), 404
+    if not fornecedor:
+        return jsonify({'erro': 'Fornecedor não encontrado'}), 404
     
     db.session.delete(fornecedor)
     db.session.commit()
     
-    return jsonify({'mensagem': 'Fornecedor deletada com sucesso'}), 200
+    return jsonify({'mensagem': 'Fornecedor deletado com sucesso'}), 200
