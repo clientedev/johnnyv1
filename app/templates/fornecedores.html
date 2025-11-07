@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Empresas - MRX Systems</title>
+    <title>Fornecedores - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -14,7 +14,7 @@
         <div class="header-content" style="justify-content: space-between;">
             <div class="logo">
                 <img src="/static/images/mrx-logo.png" alt="MRX">
-                <span>Empresas</span>
+                <span>Fornecedores</span>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
@@ -47,7 +47,7 @@
         </a>
         <a href="/fornecedores.html" class="bottom-nav-item active">
             <i class="fas fa-building icon"></i>
-            <span>Empresas</span>
+            <span>Fornecedores</span>
         </a>
     </nav>
 
@@ -60,9 +60,9 @@
             </div>
             <form id="formScanner">
                 <div class="form-group">
-                    <label>Selecionar Empresa</label>
-                    <select id="scannerEmpresa" required>
-                        <option value="">Escolha uma empresa...</option>
+                    <label>Selecionar Fornecedor</label>
+                    <select id="scannerFornecedor" required>
+                        <option value="">Escolha um fornecedor...</option>
                     </select>
                 </div>
                 <div class="upload-area" onclick="document.getElementById('fileInput').click()">
@@ -103,8 +103,8 @@
 
     <main class="container mt-4">
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
-            <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Empresas</h1>
-            <button class="btn btn-primary" onclick="abrirModalNovaEmpresa()">+ Nova Empresa</button>
+            <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Fornecedores</h1>
+            <button class="btn btn-primary" onclick="abrirModalNovoFornecedor()">+ Novo Fornecedor</button>
         </div>
 
         <div class="card">
@@ -118,7 +118,7 @@
                             <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelaEmpresas">
+                    <tbody id="tabelaFornecedores">
                         <tr><td colspan="4" class="loading">Carregando...</td></tr>
                     </tbody>
                 </table>
@@ -126,13 +126,13 @@
         </div>
     </main>
 
-    <div class="modal" id="modalEmpresa">
+    <div class="modal" id="modalFornecedor">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="tituloModal">Nova Empresa</h2>
+                <h2 id="tituloModal">Novo Fornecedor</h2>
                 <button class="modal-close" onclick="fecharModal()">&times;</button>
             </div>
-            <form id="formEmpresa">
+            <form id="formFornecedor">
                 <input type="hidden" id="empresaId">
                 <div class="form-group">
                     <label>Nome</label>
@@ -200,15 +200,15 @@
             const user = await verificarAuth();
             if (!user) return;
 
-            await carregarEmpresas();
+            await carregarFornecedores();
             await atualizarNotificacoes();
         }
 
-        async function carregarEmpresas() {
+        async function carregarFornecedores() {
             const response = await fetchAPI('/empresas');
             const empresas = await response.json();
 
-            const tbody = document.getElementById('tabelaEmpresas');
+            const tbody = document.getElementById('tabelaFornecedores');
 
             if (empresas.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhumo fornecedor cadastrada</td></tr>';
@@ -221,26 +221,26 @@
                     <td>${e.cnpj}</td>
                     <td>${e.telefone || '-'}</td>
                     <td>
-                        <button class="btn btn-secondary" onclick="editarEmpresa(${e.id})">Editar</button>
-                        <button class="btn btn-danger" onclick="deletarEmpresa(${e.id}, '${e.nome}')">Excluir</button>
+                        <button class="btn btn-secondary" onclick="editarFornecedor(${e.id})">Editar</button>
+                        <button class="btn btn-danger" onclick="deletarFornecedor(${e.id}, '${e.nome}')">Excluir</button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        function abrirModalNovaEmpresa() {
+        function abrirModalNovoFornecedor() {
             empresaAtual = null;
-            document.getElementById('tituloModal').textContent = 'Nova Empresa';
-            document.getElementById('formEmpresa').reset();
+            document.getElementById('tituloModal').textContent = 'Novo Fornecedor';
+            document.getElementById('formFornecedor').reset();
             document.getElementById('empresaId').value = '';
-            document.getElementById('modalEmpresa').classList.add('active');
+            document.getElementById('modalFornecedor').classList.add('active');
         }
 
-        async function editarEmpresa(id) {
+        async function editarFornecedor(id) {
             const response = await fetchAPI(`/empresas/${id}`);
             empresaAtual = await response.json();
 
-            document.getElementById('tituloModal').textContent = 'Editar Empresa';
+            document.getElementById('tituloModal').textContent = 'Editar Fornecedor';
             document.getElementById('empresaId').value = empresaAtual.id;
             document.getElementById('nome').value = empresaAtual.nome;
             document.getElementById('cnpj').value = empresaAtual.cnpj;
@@ -252,10 +252,10 @@
             document.getElementById('estrelasPesada').value = empresaAtual.estrelas_pesada || 3;
             document.getElementById('estrelasMedia').value = empresaAtual.estrelas_media || 3;
 
-            document.getElementById('modalEmpresa').classList.add('active');
+            document.getElementById('modalFornecedor').classList.add('active');
         }
 
-        document.getElementById('formEmpresa').addEventListener('submit', async (e) => {
+        document.getElementById('formFornecedor').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const id = document.getElementById('empresaId').value;
@@ -286,14 +286,14 @@
             if (response.ok) {
                 showAlert('Fornecedor salva com sucesso! Preços calculados automaticamente.', 'success');
                 fecharModal();
-                await carregarEmpresas();
+                await carregarFornecedores();
             } else {
                 const data = await response.json();
                 showAlert(data.erro || 'Erro ao salvar empresa');
             }
         });
 
-        async function deletarEmpresa(id, nome) {
+        async function deletarFornecedor(id, nome) {
             if (!confirm(`Deseja realmente excluir o fornecedor "${nome}"?`)) return;
 
             const response = await fetchAPI(`/empresas/${id}`, {
@@ -302,7 +302,7 @@
 
             if (response.ok) {
                 showAlert('Fornecedor excluída com sucesso!', 'success');
-                await carregarEmpresas();
+                await carregarFornecedores();
             } else {
                 const data = await response.json();
                 showAlert(data.erro || 'Erro ao excluir empresa');
@@ -310,7 +310,7 @@
         }
 
         function fecharModal() {
-            document.getElementById('modalEmpresa').classList.remove('active');
+            document.getElementById('modalFornecedor').classList.remove('active');
         }
 
         function openScanner() {
