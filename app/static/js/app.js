@@ -285,8 +285,8 @@ async function carregarEmpresasScanner() {
             select.innerHTML = '<option value="">Escolha uma empresa...</option>';
             data.forEach(empresa => {
                 const option = document.createElement('option');
-                option.value = empresa.id;
-                option.textContent = empresa.nome;
+                option.value = fornecedor.id;
+                option.textContent = fornecedor.nome;
                 select.appendChild(option);
             });
         }

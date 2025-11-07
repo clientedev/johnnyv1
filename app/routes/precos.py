@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import Fornecedor
+from app.models import Fornecedor, Preco, db
 from app.auth import admin_required
 
 bp = Blueprint('precos', __name__, url_prefix='/api/precos')
@@ -35,9 +35,9 @@ def criar_preco():
     if not data or not data.get('fornecedor_id') or not data.get('tipo_placa') or not data.get('preco_por_kg'):
         return jsonify({'erro': 'Fornecedor, tipo de placa e preço por kg são obrigatórios'}), 400
     
-    empresa = Fornecedor.query.get(data['fornecedor_id'])
-    if not empresa:
-        return jsonify({'erro': 'Fornecedor não encontrada'}), 404
+    fornecedor = Fornecedor.query.get(data['fornecedor_id'])
+    if not fornecedor:
+        return jsonify({'erro': 'Fornecedor não encontrado'}), 404
     
     preco_existente = Preco.query.filter_by(
         fornecedor_id=data['fornecedor_id'],
@@ -45,7 +45,7 @@ def criar_preco():
     ).first()
     
     if preco_existente:
-        return jsonify({'erro': 'Já existe um preço cadastrado para este tipo de placa nesta empresa'}), 400
+        return jsonify({'erro': 'Já existe um preço cadastrado para este tipo de placa neste fornecedor'}), 400
     
     preco = Preco(
         fornecedor_id=data['fornecedor_id'],

@@ -41,7 +41,7 @@
             <i class="fas fa-search icon"></i>
             <span>Consulta</span>
         </a>
-        <a href="/empresas.html" class="bottom-nav-item">
+        <a href="/fornecedores.html" class="bottom-nav-item">
             <i class="fas fa-building icon"></i>
             <span>Empresas</span>
         </a>
@@ -179,8 +179,8 @@
             const select = document.getElementById('filtroEmpresa');
             empresas.forEach(empresa => {
                 const option = document.createElement('option');
-                option.value = empresa.id;
-                option.textContent = empresa.nome;
+                option.value = fornecedor.id;
+                option.textContent = fornecedor.nome;
                 select.appendChild(option);
             });
         }

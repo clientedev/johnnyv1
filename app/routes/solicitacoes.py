@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Fornecedor, Notificacao, Placa, Entrada
+from app.models import Fornecedor, Notificacao, Placa, Entrada, Solicitacao, Usuario, db
 from app.auth import admin_required
 from app import socketio
 from datetime import datetime
@@ -74,11 +74,11 @@ def criar_solicitacao():
     observacoes = data.get('observacoes', '')
     
     if not fornecedor_id:
-        return jsonify({'erro': 'Fornecedor é obrigatória'}), 400
+        return jsonify({'erro': 'Fornecedor é obrigatório'}), 400
     
-    empresa = Fornecedor.query.get(fornecedor_id)
-    if not empresa:
-        return jsonify({'erro': 'Fornecedor não encontrada'}), 404
+    fornecedor = Fornecedor.query.get(fornecedor_id)
+    if not fornecedor:
+        return jsonify({'erro': 'Fornecedor não encontrado'}), 404
     
     solicitacao = Solicitacao(
         funcionario_id=usuario_id,
@@ -95,7 +95,7 @@ def criar_solicitacao():
         notificacao = Notificacao(
             usuario_id=admin.id,
             titulo='Nova Solicitação Criada',
-            mensagem=f'{usuario.nome} criou uma nova solicitação para a empresa {fornecedor.nome}.'
+            mensagem=f'{usuario.nome} criou uma nova solicitação para o fornecedor {fornecedor.nome}.'
         )
         db.session.add(notificacao)
     

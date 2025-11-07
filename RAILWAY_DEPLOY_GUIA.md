@@ -1,4 +1,4 @@
-# Guia de Deploy no Railway
+# Guia de Deploy no Railway - ATUALIZADO
 
 Este guia explica como fazer deploy da aplicação no Railway com PostgreSQL.
 
@@ -33,17 +33,19 @@ DROP_TABLES=false  # Mude para 'true' apenas se quiser recriar todas as tabelas
 ```
 
 **Importante:** 
-- NÃO defina a variável `PORT` - o Railway define automaticamente
+- ⚠️ NÃO defina a variável `PORT` manualmente - o Railway define automaticamente
 - Use chaves secretas fortes e únicas
+- O script `start.py` gerencia a porta automaticamente
 
 ### 4. Deploy Automático
 
 O Railway vai:
 1. ✅ Detectar o `Dockerfile` automaticamente
 2. ✅ Fazer build da aplicação
-3. ✅ Executar `start.sh` que:
-   - Inicializa o banco de dados (cria tabelas se não existirem)
+3. ✅ Executar `start.py` (Python) que:
+   - Inicializa o banco de dados automaticamente (cria tabelas se não existirem)
    - Cria o usuário admin padrão
+   - Detecta e configura a porta $PORT corretamente
    - Inicia o servidor Gunicorn na porta correta
 
 ### 5. Verificar Deploy
@@ -65,7 +67,10 @@ Após o deploy:
 
 ### Erro: "$PORT is not a valid port number"
 
-✅ **RESOLVIDO** - O script `start.sh` agora gerencia a variável PORT corretamente.
+✅ **RESOLVIDO** - Agora usamos `start.py` (Python) em vez de shell script para máxima compatibilidade:
+- `start.py` detecta e gerencia a variável PORT automaticamente
+- Funciona em qualquer ambiente Docker/Railway
+- Cria tabelas do banco automaticamente antes de iniciar
 
 ### Tabelas não foram criadas
 

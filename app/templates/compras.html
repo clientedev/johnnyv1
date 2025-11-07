@@ -41,7 +41,7 @@
             <i class="fas fa-shopping-cart icon"></i>
             <span>Compras</span>
         </a>
-        <a href="/empresas.html" class="bottom-nav-item">
+        <a href="/fornecedores.html" class="bottom-nav-item">
             <i class="fas fa-building icon"></i>
             <span>Empresas</span>
         </a>
@@ -182,13 +182,13 @@
             
             fornecedores.forEach(empresa => {
                 const option1 = document.createElement('option');
-                option1.value = empresa.id;
-                option1.textContent = empresa.nome;
+                option1.value = fornecedor.id;
+                option1.textContent = fornecedor.nome;
                 selectFornecedor.appendChild(option1);
 
                 const option2 = document.createElement('option');
-                option2.value = empresa.id;
-                option2.textContent = empresa.nome;
+                option2.value = fornecedor.id;
+                option2.textContent = fornecedor.nome;
                 filtroFornecedor.appendChild(option2);
             });
         }

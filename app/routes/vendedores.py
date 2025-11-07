@@ -37,8 +37,8 @@ def obter_vendedor(id):
         return jsonify({'erro': 'Vendedor não encontrado'}), 404
     
     vendedor_dict = vendedor.to_dict()
-    vendedor_dict['total_empresas'] = len(vendedor.empresas)
-    vendedor_dict['empresas'] = [{'id': e.id, 'nome': e.nome} for e in vendedor.empresas]
+    vendedor_dict['total_fornecedores'] = len(vendedor.fornecedores)
+    vendedor_dict['fornecedores'] = [{'id': f.id, 'nome': f.nome} for f in vendedor.fornecedores]
     
     return jsonify(vendedor_dict), 200
 
@@ -106,8 +106,8 @@ def deletar_vendedor(id):
     if not vendedor:
         return jsonify({'erro': 'Vendedor não encontrado'}), 404
     
-    if len(vendedor.empresas) > 0:
-        return jsonify({'erro': 'Não é possível deletar vendedor com empresas associadas'}), 400
+    if len(vendedor.fornecedores) > 0:
+        return jsonify({'erro': 'Não é possível deletar vendedor com fornecedores associados'}), 400
     
     db.session.delete(vendedor)
     db.session.commit()

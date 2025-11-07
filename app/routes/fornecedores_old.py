@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import Fornecedor, Preco, ConfiguracaoPrecoEstrela, Vendedor
+from app.models import Fornecedor, Preco, ConfiguracaoPrecoEstrela, Vendedor, db
 from app.auth import admin_required
 
-bp = Blueprint('empresas', __name__, url_prefix='/api/empresas')
+bp = Blueprint('fornecedores', __name__, url_prefix='/api/fornecedores')
 
 def criar_precos_por_estrelas(fornecedor):
     tipos_placas = [
@@ -52,7 +52,7 @@ def criar_precos_por_estrelas(fornecedor):
 
 @bp.route('', methods=['GET'])
 @jwt_required()
-def listar_empresas():
+def listar_fornecedores():
     busca = request.args.get('busca', '')
     vendedor_id = request.args.get('vendedor_id', type=int)
     cidade = request.args.get('cidade', '')
@@ -84,16 +84,16 @@ def listar_empresas():
     if condicao_pagamento:
         query = query.filter_by(condicao_pagamento=condicao_pagamento)
     
-    empresas = query.order_by(Fornecedor.nome).all()
-    return jsonify([fornecedor.to_dict() for empresa in empresas]), 200
+    fornecedores = query.order_by(Fornecedor.nome).all()
+    return jsonify([fornecedor.to_dict() for fornecedor in fornecedores]), 200
 
 @bp.route('/<int:id>', methods=['GET'])
 @jwt_required()
-def obter_empresa(id):
-    empresa = Fornecedor.query.get(id)
+def obter_fornecedor(id):
+    fornecedor = Fornecedor.query.get(id)
     
-    if not empresa:
-        return jsonify({'erro': 'Fornecedor não encontrada'}), 404
+    if not fornecedor:
+        return jsonify({'erro': 'Fornecedor não encontrado'}), 404
     
     fornecedor_dict = fornecedor.to_dict()
     fornecedor_dict['precos'] = [preco.to_dict() for preco in fornecedor.precos]
@@ -104,7 +104,7 @@ def obter_empresa(id):
 
 @bp.route('', methods=['POST'])
 @admin_required
-def criar_empresa():
+def criar_fornecedor():
     data = request.get_json()
     
     if not data or not data.get('nome') or not data.get('cnpj'):
@@ -114,7 +114,7 @@ def criar_empresa():
     if fornecedor_existente:
         return jsonify({'erro': 'CNPJ já cadastrado'}), 400
     
-    empresa = Fornecedor(
+    fornecedor = Fornecedor(
         nome=data['nome'],
         nome_social=data.get('nome_social', ''),
         cnpj=data['cnpj'],
@@ -150,11 +150,11 @@ def criar_empresa():
 
 @bp.route('/<int:id>', methods=['PUT'])
 @admin_required
-def atualizar_empresa(id):
-    empresa = Fornecedor.query.get(id)
+def atualizar_fornecedor(id):
+    fornecedor = Fornecedor.query.get(id)
     
-    if not empresa:
-        return jsonify({'erro': 'Fornecedor não encontrada'}), 404
+    if not fornecedor:
+        return jsonify({'erro': 'Fornecedor não encontrado'}), 404
     
     data = request.get_json()
     

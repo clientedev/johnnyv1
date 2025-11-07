@@ -407,7 +407,7 @@
             <i class="fas fa-file-alt icon"></i>
             <span>Solicitações</span>
         </a>
-        <a href="/empresas.html" class="bottom-nav-item">
+        <a href="/fornecedores.html" class="bottom-nav-item">
             <i class="fas fa-building icon"></i>
             <span>Empresas</span>
         </a>
@@ -636,7 +636,7 @@
                 // Ranking
                 const rankingHTML = dashboardData.ranking_empresas.map((empresa, index) => {
                     let badge = index < 3 ? ['🥇', '🥈', '🥉'][index] : `${index + 1}`;
-                    return `<li class="ranking-item"><div class="ranking-position ${['gold', 'silver', 'bronze', 'regular'][Math.min(index, 3)]}">${badge}</div><div class="ranking-info"><div class="ranking-name">${empresa.nome}</div></div><div class="ranking-count">${empresa.total}</div></li>`;
+                    return `<li class="ranking-item"><div class="ranking-position ${['gold', 'silver', 'bronze', 'regular'][Math.min(index, 3)]}">${badge}</div><div class="ranking-info"><div class="ranking-name">${fornecedor.nome}</div></div><div class="ranking-count">${empresa.total}</div></li>`;
                 }).join('');
                 const rankingEl = document.getElementById('ranking');
                 if (rankingEl) rankingEl.innerHTML = rankingHTML;
@@ -785,7 +785,7 @@
                     <li class="ranking-item">
                         <div class="ranking-position ${positionClass}">${index + 1}</div>
                         <div class="ranking-info">
-                            <div class="ranking-name">${empresa.nome}</div>
+                            <div class="ranking-name">${fornecedor.nome}</div>
                             <div class="ranking-value">Total de solicitações aprovadas</div>
                         </div>
                         <div class="ranking-count">${empresa.total}</div>
@@ -793,7 +793,7 @@
                 `;
             }).join('');
 
-            document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<li class="ranking-item"><div class="ranking-info"><div class="ranking-name">Nenhuma empresa com solicitações aprovadas</div></div></li>';
+            document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<li class="ranking-item"><div class="ranking-info"><div class="ranking-name">Nenhumo fornecedor com solicitações aprovadas</div></div></li>';
         }
 
         async function changeModule(module) {
@@ -1145,8 +1145,8 @@
                 if (select) {
                     empresas.forEach(empresa => {
                         const option = document.createElement('option');
-                        option.value = empresa.id;
-                        option.textContent = empresa.nome;
+                        option.value = fornecedor.id;
+                        option.textContent = fornecedor.nome;
                         select.appendChild(option);
                     });
                 }
@@ -1312,7 +1312,7 @@
             // Ranking
             const rankingHTML = dashboardData.ranking_empresas.map((empresa, index) => {
                 let badge = index < 3 ? ['🥇', '🥈', '🥉'][index] : `${index + 1}`;
-                return `<li class="ranking-item"><div class="ranking-position ${['gold', 'silver', 'bronze', 'regular'][Math.min(index, 3)]}">${badge}</div><div class="ranking-info"><div class="ranking-name">${empresa.nome}</div></div><div class="ranking-count">${empresa.total}</div></li>`;
+                return `<li class="ranking-item"><div class="ranking-position ${['gold', 'silver', 'bronze', 'regular'][Math.min(index, 3)]}">${badge}</div><div class="ranking-info"><div class="ranking-name">${fornecedor.nome}</div></div><div class="ranking-count">${empresa.total}</div></li>`;
             }).join('');
             const rankingEl = document.getElementById('ranking');
             if (rankingEl) rankingEl.innerHTML = rankingHTML;
@@ -1601,7 +1601,7 @@
         function navigateFromKPI(kpiNumber) {
             const routes = {
                 'geral': ['/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html'],
-                'empresas': ['/empresas.html', '/empresas.html', '/empresas.html', '/empresas.html'],
+                'empresas': ['/fornecedores.html', '/fornecedores.html', '/fornecedores.html', '/fornecedores.html'],
                 'solicitacoes': ['/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html'],
                 'placas': ['/consulta-placas.html', '/consulta-placas.html', '/consulta-placas.html', '/consulta-placas.html'],
                 'entradas': ['/entradas.html', '/entradas.html', '/entradas.html', '/entradas.html'],

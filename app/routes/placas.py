@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Fornecedor, Usuario, Vendedor
+from app.models import Fornecedor, Usuario, Vendedor, Placa, db
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime

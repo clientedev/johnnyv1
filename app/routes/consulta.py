@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, Response
 from flask_jwt_extended import jwt_required
-from app.models import Fornecedor, Fornecedor, Compra, Solicitacao
+from app.models import Fornecedor, Placa, Compra, Solicitacao, db
 from datetime import datetime
 import csv
 import io
@@ -63,9 +63,9 @@ def consultar_placas():
     placas = query.all()
     return jsonify([placa.to_dict() for placa in placas]), 200
 
-@bp.route('/empresas', methods=['GET'])
+@bp.route('/fornecedores-detalhado', methods=['GET'])
 @jwt_required()
-def consultar_empresas():
+def consultar_fornecedores_detalhado():
     cidade = request.args.get('cidade')
     estado = request.args.get('estado')
     forma_pagamento = request.args.get('forma_pagamento')
@@ -94,8 +94,8 @@ def consultar_empresas():
             )
         )
     
-    empresas = query.order_by(Fornecedor.nome).all()
-    return jsonify([fornecedor.to_dict() for empresa in empresas]), 200
+    fornecedores = query.order_by(Fornecedor.nome).all()
+    return jsonify([fornecedor.to_dict() for fornecedor in fornecedores]), 200
 
 @bp.route('/fornecedores', methods=['GET'])
 @jwt_required()

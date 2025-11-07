@@ -35,7 +35,7 @@
             <i class="fas fa-file-alt icon"></i>
             <span>Solicitações</span>
         </a>
-        <a href="/empresas.html" class="bottom-nav-item">
+        <a href="/fornecedores.html" class="bottom-nav-item">
             <i class="fas fa-building icon"></i>
             <span>Empresas</span>
         </a>
@@ -118,7 +118,7 @@
         async function carregarEmpresas() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/api/empresas', {
+                const response = await fetch('/api/fornecedores', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 

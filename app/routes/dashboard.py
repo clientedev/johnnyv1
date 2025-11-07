@@ -89,7 +89,7 @@ def obter_dados_mapa():
             'id': placa.id,
             'lat': placa.localizacao_lat,
             'lng': placa.localizacao_lng,
-            'empresa': placa.fornecedor.nome,
+            'fornecedor': placa.fornecedor.nome,
             'funcionario': placa.funcionario.nome,
             'tipo_placa': placa.tipo_placa,
             'peso_kg': placa.peso_kg,
@@ -228,12 +228,10 @@ def dashboard_fornecedores():
     
     total_fornecedores = Fornecedor.query.count()
     fornecedores_ativos = Fornecedor.query.filter_by(ativo=True).count()
-    total_empresas = Fornecedor.query.count()
     
     return jsonify({
         'top_fornecedores': ranking_fornecedores,
         'ranking_empresas': ranking_empresas_list,
         'total_fornecedores': total_fornecedores,
-        'fornecedores_ativos': fornecedores_ativos,
-        'total_empresas': total_empresas
+        'fornecedores_ativos': fornecedores_ativos
     }), 200
