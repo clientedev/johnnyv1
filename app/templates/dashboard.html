@@ -44,9 +44,9 @@
                 <i class="fas fa-camera icon"></i>
             </button>
         </div>
-        <a href="/relatorios.html" class="bottom-nav-item">
+        <a href="/solicitacoes.html" class="bottom-nav-item">
             <i class="fas fa-file-alt icon"></i>
-            <span>Relatórios</span>
+            <span>Solicitações</span>
         </a>
         <a href="/empresas.html" class="bottom-nav-item">
             <i class="fas fa-building icon"></i>
@@ -109,15 +109,15 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Relatórios Pendentes</div>
+                <div class="stat-label">Solicitações Pendentes</div>
                 <div class="stat-value" id="statPendentes">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Relatórios Aprovados</div>
+                <div class="stat-label">Solicitações Aprovados</div>
                 <div class="stat-value" id="statAprovados">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Relatórios Reprovados</div>
+                <div class="stat-label">Solicitações Reprovados</div>
                 <div class="stat-value" id="statReprovados">0</div>
             </div>
             <div class="stat-card">
@@ -193,10 +193,10 @@
 
             const rankingHTML = stats.ranking_empresas.map((empresa, index) => `
                 <div style="padding: 0.75rem; border-bottom: 1px solid var(--gray-200);">
-                    <strong>${index + 1}. ${empresa.nome}</strong>: ${empresa.total} relatórios
+                    <strong>${index + 1}. ${empresa.nome}</strong>: ${empresa.total} solicitações
                 </div>
             `).join('');
-            document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<p>Nenhuma empresa com relatórios aprovados ainda.</p>';
+            document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<p>Nenhuma empresa com solicitações aprovados ainda.</p>';
 
             const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
             const graficoData = await graficoResponse.json();
@@ -207,7 +207,7 @@
                 data: {
                     labels: graficoData.labels,
                     datasets: [{
-                        label: 'Relatórios Aprovados',
+                        label: 'Solicitações Aprovados',
                         data: graficoData.data,
                         borderColor: 'rgb(37, 99, 235)',
                         backgroundColor: 'rgba(37, 99, 235, 0.1)',

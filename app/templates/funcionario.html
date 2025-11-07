@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meus Relatórios - MRX Systems</title>
+    <title>Meus Solicitações - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -14,7 +14,7 @@
         <div class="header-content" style="justify-content: space-between;">
             <div class="logo">
                 <img src="/static/images/mrx-logo.png" alt="MRX">
-                <span>Meus Relatórios</span>
+                <span>Meus Solicitações</span>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
@@ -30,10 +30,10 @@
     <nav class="bottom-nav">
         <a href="/funcionario.html" class="bottom-nav-item active">
             <i class="fas fa-file-alt icon"></i>
-            <span>Relatórios</span>
+            <span>Solicitações</span>
         </a>
         <div class="fab-container">
-            <button class="fab-button" onclick="abrirModalNovoRelatorio()" aria-label="Novo Relatório">
+            <button class="fab-button" onclick="abrirModalNovoRelatorio()" aria-label="Novo Solicitação">
                 <i class="fas fa-plus icon"></i>
             </button>
         </div>
@@ -45,8 +45,8 @@
 
     <main class="container" style="margin-top: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h1>Meus Relatórios</h1>
-            <button class="btn btn-primary" onclick="abrirModalNovoRelatorio()">+ Novo Relatório</button>
+            <h1>Meus Solicitações</h1>
+            <button class="btn btn-primary" onclick="abrirModalNovoRelatorio()">+ Novo Solicitação</button>
         </div>
 
         <div class="card">
@@ -73,7 +73,7 @@
     <div class="modal" id="modalNovoRelatorio">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Novo Relatório</h2>
+                <h2>Novo Solicitação</h2>
                 <button class="modal-close" onclick="fecharModal('modalNovoRelatorio')">&times;</button>
             </div>
             <form id="formNovoRelatorio">
@@ -116,7 +116,7 @@
                     <label>Observações</label>
                     <textarea id="observacoes" rows="3"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%">Enviar Relatório</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%">Enviar Solicitação</button>
             </form>
         </div>
     </div>
@@ -124,7 +124,7 @@
     <div class="modal" id="modalDetalhes">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Detalhes do Relatório</h2>
+                <h2>Detalhes do Solicitação</h2>
                 <button class="modal-close" onclick="fecharModal('modalDetalhes')">&times;</button>
             </div>
             <div id="detalhesConteudo"></div>
@@ -167,7 +167,7 @@
             const tbody = document.getElementById('tabelaRelatorios');
 
             if (relatorios.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Nenhum relatório encontrado</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Nenhum solicitação encontrado</td></tr>';
                 return;
             }
 
@@ -225,13 +225,13 @@
             });
 
             if (response.ok) {
-                showAlert('Relatório enviado com sucesso!', 'success');
+                showAlert('Solicitação enviado com sucesso!', 'success');
                 fecharModal('modalNovoRelatorio');
                 document.getElementById('formNovoRelatorio').reset();
                 await carregarRelatorios();
             } else {
                 const data = await response.json();
-                showAlert(data.erro || 'Erro ao enviar relatório');
+                showAlert(data.erro || 'Erro ao enviar solicitação');
             }
         }
 

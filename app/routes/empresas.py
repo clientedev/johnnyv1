@@ -1,12 +1,11 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import db, Empresa, Preco, ConfiguracaoPrecoEstrela
+from app.models import db, Empresa, Preco, ConfiguracaoPrecoEstrela, Vendedor
 from app.auth import admin_required
 
 bp = Blueprint('empresas', __name__, url_prefix='/api/empresas')
 
 def criar_precos_por_estrelas(empresa):
-    """Cria ou atualiza os preços da empresa baseado nas estrelas configuradas"""
     tipos_placas = [
         ('leve', empresa.estrelas_leve),
         ('pesada', empresa.estrelas_pesada),
@@ -54,7 +53,38 @@ def criar_precos_por_estrelas(empresa):
 @bp.route('', methods=['GET'])
 @jwt_required()
 def listar_empresas():
-    empresas = Empresa.query.all()
+    busca = request.args.get('busca', '')
+    vendedor_id = request.args.get('vendedor_id', type=int)
+    cidade = request.args.get('cidade', '')
+    forma_pagamento = request.args.get('forma_pagamento', '')
+    condicao_pagamento = request.args.get('condicao_pagamento', '')
+    
+    query = Empresa.query
+    
+    if busca:
+        query = query.filter(
+            db.or_(
+                Empresa.nome.ilike(f'%{busca}%'),
+                Empresa.nome_social.ilike(f'%{busca}%'),
+                Empresa.cnpj.ilike(f'%{busca}%'),
+                Empresa.cpf.ilike(f'%{busca}%'),
+                Empresa.email.ilike(f'%{busca}%')
+            )
+        )
+    
+    if vendedor_id:
+        query = query.filter_by(vendedor_id=vendedor_id)
+    
+    if cidade:
+        query = query.filter(Empresa.cidade.ilike(f'%{cidade}%'))
+    
+    if forma_pagamento:
+        query = query.filter_by(forma_pagamento=forma_pagamento)
+    
+    if condicao_pagamento:
+        query = query.filter_by(condicao_pagamento=condicao_pagamento)
+    
+    empresas = query.order_by(Empresa.nome).all()
     return jsonify([empresa.to_dict() for empresa in empresas]), 200
 
 @bp.route('/<int:id>', methods=['GET'])
@@ -67,6 +97,8 @@ def obter_empresa(id):
     
     empresa_dict = empresa.to_dict()
     empresa_dict['precos'] = [preco.to_dict() for preco in empresa.precos]
+    empresa_dict['total_solicitacoes'] = len(empresa.solicitacoes)
+    empresa_dict['total_placas'] = len(empresa.placas)
     
     return jsonify(empresa_dict), 200
 
@@ -84,9 +116,25 @@ def criar_empresa():
     
     empresa = Empresa(
         nome=data['nome'],
+        nome_social=data.get('nome_social', ''),
         cnpj=data['cnpj'],
-        endereco=data.get('endereco', ''),
+        cpf=data.get('cpf', ''),
+        endereco_coleta=data.get('endereco_coleta', ''),
+        endereco_emissao=data.get('endereco_emissao', ''),
+        rua=data.get('rua', ''),
+        numero=data.get('numero', ''),
+        cidade=data.get('cidade', ''),
+        cep=data.get('cep', ''),
+        estado=data.get('estado', ''),
         telefone=data.get('telefone', ''),
+        email=data.get('email', ''),
+        vendedor_id=data.get('vendedor_id'),
+        conta_bancaria=data.get('conta_bancaria', ''),
+        agencia=data.get('agencia', ''),
+        chave_pix=data.get('chave_pix', ''),
+        banco=data.get('banco', ''),
+        condicao_pagamento=data.get('condicao_pagamento', 'avista'),
+        forma_pagamento=data.get('forma_pagamento', 'pix'),
         observacoes=data.get('observacoes', ''),
         estrelas_leve=data.get('estrelas_leve', 3),
         estrelas_pesada=data.get('estrelas_pesada', 3),
@@ -114,12 +162,44 @@ def atualizar_empresa(id):
     
     if data.get('nome'):
         empresa.nome = data['nome']
+    if 'nome_social' in data:
+        empresa.nome_social = data['nome_social']
     if data.get('cnpj'):
         empresa.cnpj = data['cnpj']
-    if 'endereco' in data:
-        empresa.endereco = data['endereco']
+    if 'cpf' in data:
+        empresa.cpf = data['cpf']
+    if 'endereco_coleta' in data:
+        empresa.endereco_coleta = data['endereco_coleta']
+    if 'endereco_emissao' in data:
+        empresa.endereco_emissao = data['endereco_emissao']
+    if 'rua' in data:
+        empresa.rua = data['rua']
+    if 'numero' in data:
+        empresa.numero = data['numero']
+    if 'cidade' in data:
+        empresa.cidade = data['cidade']
+    if 'cep' in data:
+        empresa.cep = data['cep']
+    if 'estado' in data:
+        empresa.estado = data['estado']
     if 'telefone' in data:
         empresa.telefone = data['telefone']
+    if 'email' in data:
+        empresa.email = data['email']
+    if 'vendedor_id' in data:
+        empresa.vendedor_id = data['vendedor_id']
+    if 'conta_bancaria' in data:
+        empresa.conta_bancaria = data['conta_bancaria']
+    if 'agencia' in data:
+        empresa.agencia = data['agencia']
+    if 'chave_pix' in data:
+        empresa.chave_pix = data['chave_pix']
+    if 'banco' in data:
+        empresa.banco = data['banco']
+    if 'condicao_pagamento' in data:
+        empresa.condicao_pagamento = data['condicao_pagamento']
+    if 'forma_pagamento' in data:
+        empresa.forma_pagamento = data['forma_pagamento']
     if 'observacoes' in data:
         empresa.observacoes = data['observacoes']
     
@@ -143,7 +223,6 @@ def atualizar_empresa(id):
 @bp.route('/<int:id>/preco/<string:tipo_placa>', methods=['GET'])
 @jwt_required()
 def obter_preco_por_kg(id, tipo_placa):
-    """Retorna o preço por kg para uma empresa e tipo de placa específicos"""
     preco = Preco.query.filter_by(empresa_id=id, tipo_placa=tipo_placa).first()
     
     if not preco:
@@ -153,6 +232,22 @@ def obter_preco_por_kg(id, tipo_placa):
         'preco_por_kg': float(preco.preco_por_kg) if preco.preco_por_kg else 0.0,
         'tipo_placa': tipo_placa,
         'classificacao_estrelas': preco.classificacao_estrelas
+    }), 200
+
+@bp.route('/<int:id>/historico', methods=['GET'])
+@jwt_required()
+def obter_historico_empresa(id):
+    empresa = Empresa.query.get(id)
+    
+    if not empresa:
+        return jsonify({'erro': 'Empresa não encontrada'}), 404
+    
+    solicitacoes = [s.to_dict() for s in empresa.solicitacoes]
+    placas = [p.to_dict() for p in empresa.placas]
+    
+    return jsonify({
+        'solicitacoes': solicitacoes,
+        'placas': placas
     }), 200
 
 @bp.route('/<int:id>', methods=['DELETE'])

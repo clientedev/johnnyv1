@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Placa, Empresa, Usuario
+from app.models import db, Placa, Empresa, Usuario, Vendedor
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
@@ -18,14 +18,6 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def analisar_placa_automatica(imagem_bytes):
-    """
-    Analisa automaticamente uma imagem de placa eletrônica e classifica como:
-    - leve: Poucos componentes (< 150 contornos)
-    - pesada: Muitos componentes (>= 500 contornos)
-    - media: Quantidade moderada (150-499 contornos)
-    
-    Retorna: dict com 'classificacao' e 'componentes_detectados'
-    """
     try:
         nparr = np.frombuffer(imagem_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -72,11 +64,6 @@ def analisar_placa_automatica(imagem_bytes):
 @placas_bp.route('/api/placas/analisar', methods=['POST'])
 @jwt_required()
 def analisar_placa_endpoint():
-    """
-    Endpoint para analisar automaticamente uma imagem de placa eletrônica
-    Espera: imagem no form-data
-    Retorna: classificação (leve/pesada/media) e número de componentes detectados
-    """
     if 'imagem' not in request.files:
         return jsonify({'erro': 'Nenhuma imagem enviada'}), 400
     
@@ -101,6 +88,68 @@ def analisar_placa_endpoint():
     except Exception as e:
         return jsonify({'erro': f'Erro ao processar imagem: {str(e)}'}), 500
 
+@placas_bp.route('/api/placas/consulta', methods=['GET'])
+@jwt_required()
+def consultar_placas():
+    empresa_id = request.args.get('empresa_id', type=int)
+    vendedor_id = request.args.get('vendedor_id', type=int)
+    tipo_placa = request.args.get('tipo_placa')
+    status = request.args.get('status')
+    tag = request.args.get('tag')
+    data_inicio = request.args.get('data_inicio')
+    data_fim = request.args.get('data_fim')
+    peso_min = request.args.get('peso_min', type=float)
+    peso_max = request.args.get('peso_max', type=float)
+    valor_min = request.args.get('valor_min', type=float)
+    valor_max = request.args.get('valor_max', type=float)
+    forma_pagamento = request.args.get('forma_pagamento')
+    condicao_pagamento = request.args.get('condicao_pagamento')
+    
+    query = Placa.query
+    
+    if empresa_id:
+        query = query.filter_by(empresa_id=empresa_id)
+    
+    if vendedor_id:
+        query = query.join(Empresa).filter(Empresa.vendedor_id == vendedor_id)
+    
+    if tipo_placa:
+        query = query.filter_by(tipo_placa=tipo_placa)
+    
+    if status:
+        query = query.filter_by(status=status)
+    
+    if tag:
+        query = query.filter(Placa.tag.ilike(f'%{tag}%'))
+    
+    if data_inicio:
+        query = query.filter(Placa.data_compra >= datetime.fromisoformat(data_inicio))
+    
+    if data_fim:
+        query = query.filter(Placa.data_compra <= datetime.fromisoformat(data_fim))
+    
+    if peso_min is not None:
+        query = query.filter(Placa.peso_kg >= peso_min)
+    
+    if peso_max is not None:
+        query = query.filter(Placa.peso_kg <= peso_max)
+    
+    if valor_min is not None:
+        query = query.filter(Placa.valor >= valor_min)
+    
+    if valor_max is not None:
+        query = query.filter(Placa.valor <= valor_max)
+    
+    if forma_pagamento:
+        query = query.join(Empresa).filter(Empresa.forma_pagamento == forma_pagamento)
+    
+    if condicao_pagamento:
+        query = query.join(Empresa).filter(Empresa.condicao_pagamento == condicao_pagamento)
+    
+    placas = query.order_by(Placa.data_compra.desc()).all()
+    
+    return jsonify([placa.to_dict() for placa in placas]), 200
+
 @placas_bp.route('/placas', methods=['GET'])
 @jwt_required()
 def get_placas():
@@ -111,15 +160,15 @@ def get_placas():
         return jsonify({'error': 'Usuário não encontrado'}), 404
     
     empresa_id = request.args.get('empresa_id', type=int)
-    relatorio_id = request.args.get('relatorio_id', type=int)
+    solicitacao_id = request.args.get('solicitacao_id', type=int)
     
     query = Placa.query
     
     if empresa_id:
         query = query.filter_by(empresa_id=empresa_id)
     
-    if relatorio_id:
-        query = query.filter_by(relatorio_id=relatorio_id)
+    if solicitacao_id:
+        query = query.filter_by(solicitacao_id=solicitacao_id)
     
     placas = query.order_by(Placa.data_registro.desc()).all()
     return jsonify([placa.to_dict() for placa in placas])
@@ -131,7 +180,11 @@ def get_placa(id):
     if not placa:
         return jsonify({'error': 'Placa não encontrada'}), 404
     
-    return jsonify(placa.to_dict())
+    placa_dict = placa.to_dict()
+    placa_dict['empresa'] = placa.empresa.to_dict() if placa.empresa else None
+    placa_dict['funcionario'] = placa.funcionario.to_dict() if placa.funcionario else None
+    
+    return jsonify(placa_dict)
 
 @placas_bp.route('/placas', methods=['POST'])
 @jwt_required()
@@ -164,7 +217,7 @@ def create_placa():
     tipo_placa = data.get('tipo_placa')
     peso_kg = data.get('peso_kg')
     valor = data.get('valor')
-    relatorio_id = data.get('relatorio_id')
+    solicitacao_id = data.get('solicitacao_id')
     observacoes = data.get('observacoes')
     localizacao_lat = data.get('localizacao_lat')
     localizacao_lng = data.get('localizacao_lng')
@@ -180,7 +233,7 @@ def create_placa():
     nova_placa = Placa(
         empresa_id=empresa_id,
         funcionario_id=user_id,
-        relatorio_id=relatorio_id if relatorio_id else None,
+        solicitacao_id=solicitacao_id if solicitacao_id else None,
         tipo_placa=tipo_placa,
         peso_kg=float(peso_kg),
         valor=float(valor),
@@ -188,7 +241,8 @@ def create_placa():
         localizacao_lat=float(localizacao_lat) if localizacao_lat else None,
         localizacao_lng=float(localizacao_lng) if localizacao_lng else None,
         endereco_completo=endereco_completo,
-        observacoes=observacoes
+        observacoes=observacoes,
+        status='em_analise'
     )
     
     db.session.add(nova_placa)
@@ -217,10 +271,12 @@ def update_placa(id):
         placa.peso_kg = float(data['peso_kg'])
     if 'valor' in data:
         placa.valor = float(data['valor'])
-    if 'relatorio_id' in data:
-        placa.relatorio_id = data['relatorio_id']
+    if 'solicitacao_id' in data:
+        placa.solicitacao_id = data['solicitacao_id']
     if 'observacoes' in data:
         placa.observacoes = data['observacoes']
+    if 'status' in data:
+        placa.status = data['status']
     
     db.session.commit()
     
@@ -248,31 +304,45 @@ def delete_placa(id):
 @jwt_required()
 def get_placas_stats():
     empresa_id = request.args.get('empresa_id', type=int)
+    status = request.args.get('status')
     
     query = Placa.query
     
     if empresa_id:
         query = query.filter_by(empresa_id=empresa_id)
     
+    if status:
+        query = query.filter_by(status=status)
+    
     total_placas = query.count()
     total_peso = db.session.query(db.func.sum(Placa.peso_kg)).filter(
         Placa.empresa_id == empresa_id if empresa_id else True
-    ).scalar() or 0
+    )
+    if status:
+        total_peso = total_peso.filter(Placa.status == status)
+    total_peso = total_peso.scalar() or 0
+    
     total_valor = db.session.query(db.func.sum(Placa.valor)).filter(
         Placa.empresa_id == empresa_id if empresa_id else True
-    ).scalar() or 0
+    )
+    if status:
+        total_valor = total_valor.filter(Placa.status == status)
+    total_valor = total_valor.scalar() or 0
     
     placas_por_tipo = {}
-    tipos = db.session.query(
+    tipos_query = db.session.query(
         Placa.tipo_placa,
         db.func.count(Placa.id),
         db.func.sum(Placa.peso_kg)
     ).group_by(Placa.tipo_placa)
     
     if empresa_id:
-        tipos = tipos.filter_by(empresa_id=empresa_id)
+        tipos_query = tipos_query.filter_by(empresa_id=empresa_id)
     
-    for tipo, count, peso in tipos:
+    if status:
+        tipos_query = tipos_query.filter_by(status=status)
+    
+    for tipo, count, peso in tipos_query:
         placas_por_tipo[tipo] = {
             'quantidade': count,
             'peso_total': float(peso) if peso else 0

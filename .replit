@@ -64,13 +64,13 @@ localPort = 43565
 externalPort = 3001
 
 [[ports]]
-localPort = 46429
-externalPort = 8000
-
-[[ports]]
 localPort = 46557
 externalPort = 4200
 
 [nix]
 channel = "stable-25_05"
 packages = ["cargo", "freetype", "iana-etc", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zlib"]
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--workers=2", "app:application"]

@@ -1,0 +1,130 @@
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.models import db, Entrada, Solicitacao, Placa, Usuario, Notificacao
+from app.auth import admin_required
+from app import socketio
+from datetime import datetime
+
+bp = Blueprint('entradas', __name__, url_prefix='/api/entradas')
+
+@bp.route('', methods=['GET'])
+@admin_required
+def listar_entradas():
+    status = request.args.get('status')
+    
+    query = Entrada.query
+    
+    if status:
+        query = query.filter_by(status=status)
+    
+    entradas = query.order_by(Entrada.data_entrada.desc()).all()
+    
+    result = []
+    for entrada in entradas:
+        entrada_dict = entrada.to_dict()
+        entrada_dict['solicitacao'] = entrada.solicitacao.to_dict()
+        entrada_dict['placas'] = [placa.to_dict() for placa in entrada.solicitacao.placas]
+        result.append(entrada_dict)
+    
+    return jsonify(result), 200
+
+@bp.route('/<int:id>', methods=['GET'])
+@admin_required
+def obter_entrada(id):
+    entrada = Entrada.query.get(id)
+    
+    if not entrada:
+        return jsonify({'erro': 'Entrada não encontrada'}), 404
+    
+    entrada_dict = entrada.to_dict()
+    entrada_dict['solicitacao'] = entrada.solicitacao.to_dict()
+    entrada_dict['placas'] = [placa.to_dict() for placa in entrada.solicitacao.placas]
+    
+    return jsonify(entrada_dict), 200
+
+@bp.route('/<int:id>/aprovar', methods=['PUT'])
+@admin_required
+def aprovar_entrada(id):
+    usuario_id = get_jwt_identity()
+    
+    entrada = Entrada.query.get(id)
+    
+    if not entrada:
+        return jsonify({'erro': 'Entrada não encontrada'}), 404
+    
+    entrada.status = 'aprovada'
+    entrada.data_processamento = datetime.utcnow()
+    entrada.admin_id = usuario_id
+    
+    for placa in entrada.solicitacao.placas:
+        placa.status = 'aprovada'
+        placa.data_aprovacao = datetime.utcnow()
+    
+    entrada.solicitacao.status = 'aprovada'
+    
+    notificacao = Notificacao(
+        usuario_id=entrada.solicitacao.funcionario_id,
+        titulo='Entrada Aprovada',
+        mensagem=f'A entrada referente à solicitação #{entrada.solicitacao_id} foi aprovada. Todas as {len(entrada.solicitacao.placas)} placas foram inseridas no banco de dados.'
+    )
+    db.session.add(notificacao)
+    
+    db.session.commit()
+    
+    socketio.emit('nova_notificacao', {'tipo': 'entrada_aprovada'}, room=f'user_{entrada.solicitacao.funcionario_id}')
+    
+    return jsonify(entrada.to_dict()), 200
+
+@bp.route('/<int:id>/reprovar', methods=['PUT'])
+@admin_required
+def reprovar_entrada(id):
+    usuario_id = get_jwt_identity()
+    data = request.get_json()
+    
+    entrada = Entrada.query.get(id)
+    
+    if not entrada:
+        return jsonify({'erro': 'Entrada não encontrada'}), 404
+    
+    entrada.status = 'reprovada'
+    entrada.data_processamento = datetime.utcnow()
+    entrada.admin_id = usuario_id
+    entrada.observacoes = data.get('observacoes', '')
+    
+    for placa in entrada.solicitacao.placas:
+        placa.status = 'reprovada'
+    
+    entrada.solicitacao.status = 'reprovada'
+    
+    notificacao = Notificacao(
+        usuario_id=entrada.solicitacao.funcionario_id,
+        titulo='Entrada Reprovada',
+        mensagem=f'A entrada referente à solicitação #{entrada.solicitacao_id} foi reprovada. Motivo: {entrada.observacoes}'
+    )
+    db.session.add(notificacao)
+    
+    db.session.commit()
+    
+    socketio.emit('nova_notificacao', {'tipo': 'entrada_reprovada'}, room=f'user_{entrada.solicitacao.funcionario_id}')
+    
+    return jsonify(entrada.to_dict()), 200
+
+@bp.route('/estatisticas', methods=['GET'])
+@admin_required
+def obter_estatisticas():
+    total_pendentes = Entrada.query.filter_by(status='pendente').count()
+    total_aprovadas = Entrada.query.filter_by(status='aprovada').count()
+    total_reprovadas = Entrada.query.filter_by(status='reprovada').count()
+    
+    placas_aprovadas = db.session.query(db.func.count(Placa.id)).filter_by(status='aprovada').scalar()
+    peso_total_aprovado = db.session.query(db.func.sum(Placa.peso_kg)).filter_by(status='aprovada').scalar() or 0
+    valor_total_aprovado = db.session.query(db.func.sum(Placa.valor)).filter_by(status='aprovada').scalar() or 0
+    
+    return jsonify({
+        'entradas_pendentes': total_pendentes,
+        'entradas_aprovadas': total_aprovadas,
+        'entradas_reprovadas': total_reprovadas,
+        'placas_aprovadas': placas_aprovadas,
+        'peso_total_kg': float(peso_total_aprovado),
+        'valor_total': float(valor_total_aprovado)
+    }), 200
