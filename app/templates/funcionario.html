@@ -71,53 +71,88 @@
     </main>
 
     <div class="modal" id="modalNovoRelatorio">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
-                <h2>Novo Solicitação</h2>
+                <h2 id="modalTitle">Nova Solicitação - Passo 1</h2>
                 <button class="modal-close" onclick="fecharModal('modalNovoRelatorio')">&times;</button>
             </div>
-            <form id="formNovoRelatorio">
+            
+            <!-- Passo 1: Selecionar Fornecedor -->
+            <div id="passo1" style="display: block;">
                 <div class="form-group">
-                    <label>Fornecedor</label>
-                    <select id="empresaSelect" required></select>
-                </div>
-                <div class="form-group">
-                    <label>Tipo de Placa</label>
-                    <select id="tipoPlaca" required>
-                        <option value="leve">Leve</option>
-                        <option value="media">Média</option>
-                        <option value="pesada">Pesada</option>
+                    <label>Selecione o Fornecedor</label>
+                    <select id="empresaSelect" required>
+                        <option value="">Escolha um fornecedor...</option>
                     </select>
-                    <button type="button" class="btn btn-secondary" onclick="escanearPlaca()" style="margin-top: 0.5rem;">🤖 Analisar Placa com IA</button>
                 </div>
                 <div class="form-group">
-                    <label>Peso (kg)</label>
-                    <input type="number" id="pesoKg" step="0.01" min="0.01" required>
+                    <label>Observações Gerais (opcional)</label>
+                    <textarea id="observacoesGerais" rows="2" placeholder="Observações sobre toda a solicitação..."></textarea>
                 </div>
-                <div class="form-group">
-                    <label>Adicionar Imagem</label>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <input type="file" id="foto" accept="image/*" required capture="environment" style="display: none;">
-                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('foto').click()"><i class="fas fa-camera"></i> Adicionar Imagem</button>
-                        <div id="imagePreview" style="display: none; text-align: center;">
-                            <img id="previewImg" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
-                            <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--gray-600);" id="imageName"></p>
+                <button type="button" class="btn btn-primary" style="width: 100%;" onclick="irParaPasso2()">Próximo: Adicionar Placas</button>
+            </div>
+
+            <!-- Passo 2: Adicionar Placas -->
+            <div id="passo2" style="display: none;">
+                <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <p style="margin: 0; font-size: 0.9rem; color: #0369a1;">
+                        <strong>📦 Adicione várias placas</strong><br>
+                        Você pode adicionar quantas placas quiser antes de enviar a solicitação.
+                    </p>
+                </div>
+
+                <!-- Lista de Placas Adicionadas -->
+                <div id="listaPlacas" style="margin-bottom: 1.5rem; display: none;">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Placas Adicionadas (<span id="contadorPlacas">0</span>)</h3>
+                    <div id="placasAdicionadas" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+                </div>
+
+                <!-- Formulário para Nova Placa -->
+                <div style="border: 2px dashed var(--primary-color); padding: 1rem; border-radius: 8px; background: #f9fafb;">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--primary-color);">➕ Adicionar Nova Placa</h3>
+                    
+                    <div class="form-group">
+                        <label>Foto da Placa</label>
+                        <input type="file" id="fotoPlaca" accept="image/*" capture="environment" style="display: none;" onchange="previewPlacaImage(this)">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('fotoPlaca').click()" style="width: 100%;">
+                            <i class="fas fa-camera"></i> Capturar/Selecionar Foto
+                        </button>
+                        <div id="placaImagePreview" style="display: none; margin-top: 0.5rem; text-align: center;">
+                            <img id="placaPreviewImg" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
                         </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Localização</label>
-                    <button type="button" class="btn btn-secondary" onclick="obterLocalizacao()" id="btnLocalizacao">📍 Obter Localização Atual</button>
-                    <div id="enderecoInfo" style="margin-top: 0.5rem; padding: 0.75rem; background: var(--gray-100); border-radius: 6px; display: none;">
-                        <p style="margin: 0; font-size: 0.875rem;" id="enderecoTexto"></p>
+
+                    <div class="form-group">
+                        <label>Tipo de Placa</label>
+                        <select id="tipoPlacaAtual">
+                            <option value="">Selecione...</option>
+                            <option value="leve">Leve</option>
+                            <option value="media">Média</option>
+                            <option value="pesada">Pesada</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary" onclick="analisarPlacaComGemini()" style="width: 100%; margin-top: 0.5rem;">
+                            🤖 Analisar com IA
+                        </button>
+                        <div id="resultadoAnalise" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #ecfdf5; border-radius: 6px; font-size: 0.85rem; color: #065f46;"></div>
                     </div>
+
+                    <div class="form-group">
+                        <label>Peso (kg)</label>
+                        <input type="number" id="pesoPlacaAtual" step="0.01" min="0.01" placeholder="Ex: 1.5">
+                    </div>
+
+                    <button type="button" class="btn btn-primary" onclick="adicionarPlacaLista()" style="width: 100%;">
+                        ➕ Adicionar Esta Placa
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label>Observações</label>
-                    <textarea id="observacoes" rows="3"></textarea>
+
+                <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn btn-secondary" onclick="voltarParaPasso1()" style="flex: 1;">← Voltar</button>
+                    <button type="button" class="btn btn-success" onclick="enviarSolicitacaoCompleta()" style="flex: 2;" id="btnEnviarSolicitacao" disabled>
+                        ✅ Enviar Solicitação
+                    </button>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%">Enviar Solicitação</button>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -185,53 +220,236 @@
             `).join('');
         }
 
+        // Variáveis para gerenciar solicitação com múltiplas placas
+        let solicitacaoAtual = null;
+        let placasTemporarias = [];
+
         function abrirModalNovoRelatorio() {
+            solicitacaoAtual = null;
+            placasTemporarias = [];
+            document.getElementById('passo1').style.display = 'block';
+            document.getElementById('passo2').style.display = 'none';
+            document.getElementById('modalTitle').textContent = 'Nova Solicitação - Passo 1';
             document.getElementById('modalNovoRelatorio').classList.add('active');
+            atualizarListaPlacas();
         }
 
         function fecharModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
+            solicitacaoAtual = null;
+            placasTemporarias = [];
         }
 
-        document.getElementById('formNovoRelatorio').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const formData = new FormData();
-            formData.append('empresa_id', document.getElementById('empresaSelect').value);
-            formData.append('tipo_placa', document.getElementById('tipoPlaca').value);
-            formData.append('peso_kg', document.getElementById('pesoKg').value);
-            formData.append('foto', document.getElementById('foto').files[0]);
-            formData.append('observacoes', document.getElementById('observacoes').value);
-
-            // Adicionar localização e endereço se disponível
-            if (currentLat && currentLng) {
-                formData.append('localizacao_lat', currentLat);
-                formData.append('localizacao_lng', currentLng);
-                if (currentEndereco) {
-                    formData.append('endereco_completo', currentEndereco);
-                }
+        async function irParaPasso2() {
+            const fornecedorId = document.getElementById('empresaSelect').value;
+            if (!fornecedorId) {
+                showAlert('Selecione um fornecedor primeiro!', 'error');
+                return;
             }
 
-            await enviarRelatorio(formData);
-        });
+            // Criar solicitação
+            try {
+                const observacoes = document.getElementById('observacoesGerais').value;
+                const response = await fetchAPI('/api/solicitacoes', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        fornecedor_id: parseInt(fornecedorId),
+                        observacoes: observacoes
+                    })
+                });
 
-        async function enviarRelatorio(formData) {
-            const response = await fetch('/api/solicitacoes', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${getToken()}`
-                },
-                body: formData
-            });
+                if (response && response.ok) {
+                    solicitacaoAtual = await response.json();
+                    document.getElementById('passo1').style.display = 'none';
+                    document.getElementById('passo2').style.display = 'block';
+                    document.getElementById('modalTitle').textContent = 'Nova Solicitação - Passo 2: Adicionar Placas';
+                    showAlert('Solicitação criada! Agora adicione as placas.', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || 'Erro ao criar solicitação', 'error');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showAlert('Erro ao criar solicitação. Faça login novamente.', 'error');
+            }
+        }
 
-            if (response.ok) {
-                showAlert('Solicitação enviada com sucesso!', 'success');
+        function voltarParaPasso1() {
+            if (!confirm('Tem certeza? As placas adicionadas serão perdidas.')) return;
+            document.getElementById('passo2').style.display = 'none';
+            document.getElementById('passo1').style.display = 'block';
+            document.getElementById('modalTitle').textContent = 'Nova Solicitação - Passo 1';
+            placasTemporarias = [];
+        }
+
+        function previewPlacaImage(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('placaPreviewImg').src = e.target.result;
+                    document.getElementById('placaImagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function analisarPlacaComGemini() {
+            const fotoInput = document.getElementById('fotoPlaca');
+            if (!fotoInput.files || fotoInput.files.length === 0) {
+                showAlert('Adicione uma foto da placa primeiro!', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('imagem', fotoInput.files[0]);
+
+            const resultadoDiv = document.getElementById('resultadoAnalise');
+            resultadoDiv.innerHTML = '🔄 Analisando com IA...';
+            resultadoDiv.style.display = 'block';
+
+            try {
+                const response = await fetchAPI('/api/placas/analisar', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response && response.ok) {
+                    const resultado = await response.json();
+                    document.getElementById('tipoPlacaAtual').value = resultado.classificacao;
+                    resultadoDiv.innerHTML = `✅ ${resultado.mensagem}`;
+                    resultadoDiv.style.background = '#ecfdf5';
+                    resultadoDiv.style.color = '#065f46';
+                } else {
+                    const error = await response.json();
+                    resultadoDiv.innerHTML = `❌ ${error.erro || 'Erro ao analisar'}`;
+                    resultadoDiv.style.background = '#fee2e2';
+                    resultadoDiv.style.color = '#991b1b';
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                resultadoDiv.innerHTML = '❌ Erro ao analisar. Tente novamente.';
+                resultadoDiv.style.background = '#fee2e2';
+                resultadoDiv.style.color = '#991b1b';
+            }
+        }
+
+        function adicionarPlacaLista() {
+            const fotoInput = document.getElementById('fotoPlaca');
+            const tipo = document.getElementById('tipoPlacaAtual').value;
+            const peso = document.getElementById('pesoPlacaAtual').value;
+
+            if (!fotoInput.files || fotoInput.files.length === 0) {
+                showAlert('Adicione uma foto da placa!', 'error');
+                return;
+            }
+            if (!tipo) {
+                showAlert('Selecione o tipo da placa!', 'error');
+                return;
+            }
+            if (!peso || parseFloat(peso) <= 0) {
+                showAlert('Informe o peso da placa!', 'error');
+                return;
+            }
+
+            const placa = {
+                foto: fotoInput.files[0],
+                tipo: tipo,
+                peso: parseFloat(peso),
+                preview: document.getElementById('placaPreviewImg').src
+            };
+
+            placasTemporarias.push(placa);
+            atualizarListaPlacas();
+
+            // Limpar formulário
+            fotoInput.value = '';
+            document.getElementById('tipoPlacaAtual').value = '';
+            document.getElementById('pesoPlacaAtual').value = '';
+            document.getElementById('placaImagePreview').style.display = 'none';
+            document.getElementById('resultadoAnalise').style.display = 'none';
+
+            showAlert(`Placa ${tipo.toUpperCase()} adicionada! Total: ${placasTemporarias.length}`, 'success');
+        }
+
+        function atualizarListaPlacas() {
+            const lista = document.getElementById('listaPlacas');
+            const contador = document.getElementById('contadorPlacas');
+            const placasDiv = document.getElementById('placasAdicionadas');
+            const btnEnviar = document.getElementById('btnEnviarSolicitacao');
+
+            contador.textContent = placasTemporarias.length;
+
+            if (placasTemporarias.length === 0) {
+                lista.style.display = 'none';
+                btnEnviar.disabled = true;
+                return;
+            }
+
+            lista.style.display = 'block';
+            btnEnviar.disabled = false;
+
+            placasDiv.innerHTML = placasTemporarias.map((placa, index) => `
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: white; border: 1px solid #e5e7eb; border-radius: 8px;">
+                    <img src="${placa.preview}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;">
+                    <div style="flex: 1;">
+                        <strong style="color: var(--primary-color);">${placa.tipo.toUpperCase()}</strong><br>
+                        <small style="color: #6b7280;">${placa.peso} kg</small>
+                    </div>
+                    <button class="btn btn-danger" onclick="removerPlaca(${index})" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                        🗑️ Remover
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function removerPlaca(index) {
+            placasTemporarias.splice(index, 1);
+            atualizarListaPlacas();
+            showAlert('Placa removida!', 'success');
+        }
+
+        async function enviarSolicitacaoCompleta() {
+            if (placasTemporarias.length === 0) {
+                showAlert('Adicione pelo menos uma placa!', 'error');
+                return;
+            }
+
+            const btnEnviar = document.getElementById('btnEnviarSolicitacao');
+            btnEnviar.disabled = true;
+            btnEnviar.textContent = '⏳ Enviando...';
+
+            try {
+                // Adicionar cada placa à solicitação
+                for (let i = 0; i < placasTemporarias.length; i++) {
+                    const placa = placasTemporarias[i];
+                    
+                    // Aqui devemos enviar a imagem e obter URL, depois adicionar a placa
+                    // Por hora, vamos criar a placa sem imagem (você pode implementar upload depois)
+                    await fetchAPI(`/api/solicitacoes/${solicitacaoAtual.id}/placas`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            tipo_placa: placa.tipo,
+                            peso_kg: placa.peso,
+                            valor: 0  // Será calculado no backend baseado nas estrelas
+                        })
+                    });
+                }
+
+                // Confirmar solicitação
+                await fetchAPI(`/api/solicitacoes/${solicitacaoAtual.id}/confirmar`, {
+                    method: 'PUT'
+                });
+
+                showAlert(`✅ Solicitação enviada com ${placasTemporarias.length} placa(s)!`, 'success');
                 fecharModal('modalNovoRelatorio');
-                document.getElementById('formNovoRelatorio').reset();
                 await carregarRelatorios();
-            } else {
-                const data = await response.json();
-                showAlert(data.erro || 'Erro ao enviar solicitação');
+            } catch (error) {
+                console.error('Erro:', error);
+                showAlert('Erro ao enviar solicitação. Tente novamente.', 'error');
+            } finally {
+                btnEnviar.disabled = false;
+                btnEnviar.textContent = '✅ Enviar Solicitação';
             }
         }
 

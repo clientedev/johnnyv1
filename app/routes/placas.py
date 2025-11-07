@@ -19,28 +19,33 @@ def allowed_file(filename):
 def analisar_placa_automatica(imagem_bytes):
     try:
         # Integração com Gemini AI blueprint
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            return {'erro': 'Chave da API do Gemini não configurada'}
+            
+        client = genai.Client(api_key=api_key)
         
         prompt = """Você é um especialista em classificação de placas eletrônicas (PCBs). 
 Analise esta imagem de placa eletrônica e classifique como LEVE, MÉDIA ou PESADA.
 
-REGRAS DE CLASSIFICAÇÃO:
+REGRAS DE CLASSIFICAÇÃO IMPORTANTES:
 - LEVE: Alta presença de verde visível (áreas grandes da placa sem muitos componentes soldados). 
   Quanto mais verde aparecer na placa, mais "LEVE" ela é.
 - MÉDIA: Quantidade moderada de componentes, com áreas verdes ainda visíveis.
 - PESADA: Muitos componentes, conectores, chips, resistores, capacitores e grande densidade visual.
   Pouco verde visível devido à alta quantidade de componentes soldados.
 
+A regra é simples: quanto MAIS VERDE VISÍVEL = mais LEVE a placa.
+Quanto MENOS VERDE VISÍVEL (mais componentes) = mais PESADA a placa.
+
 Responda APENAS com:
 1. A classificação (LEVE / MÉDIA / PESADA)
-2. Uma breve justificativa (1 frase)
-3. Um percentual estimado de área verde visível (0-100%)
-4. Número estimado de componentes visíveis
+2. Uma breve justificativa (1 frase curta)
 
-Formato da resposta:
-Classificação: [LEVE/MÉDIA/PESADA] — [justificativa]
-Percentual verde: [0-100]%
-Componentes estimados: [número]"""
+Formato EXATO da resposta:
+Classificação: [LEVE/MÉDIA/PESADA] — [justificativa em 1 frase]
+
+Não adicione informações extras, apenas a classificação e justificativa."""
         
         response = client.models.generate_content(
             model="gemini-2.0-flash-exp",
@@ -54,31 +59,34 @@ Componentes estimados: [número]"""
         )
         
         if not response.text:
-            return {'erro': 'Erro ao analisar imagem com IA'}
+            return {'erro': 'Gemini não retornou resposta'}
         
         resultado_texto = response.text.strip()
+        print(f"[GEMINI] Resposta completa: {resultado_texto}")
         
+        # Detectar classificação
         classificacao = "media"
-        if "LEVE" in resultado_texto.upper():
+        resultado_upper = resultado_texto.upper()
+        if "LEVE" in resultado_upper:
             classificacao = "leve"
-        elif "PESADA" in resultado_texto.upper():
+        elif "PESADA" in resultado_upper:
             classificacao = "pesada"
         
+        # Extrair justificativa
         import re
-        percentual_match = re.search(r'(\d+)%', resultado_texto)
-        percentual_verde = int(percentual_match.group(1)) if percentual_match else 50
+        justificativa_match = re.search(r'Classificação:\s*(LEVE|MÉDIA|MEDIA|PESADA)\s*[—\-–]\s*(.+)', resultado_texto, re.IGNORECASE)
+        if justificativa_match:
+            justificativa = justificativa_match.group(2).strip()
+        else:
+            # Tentar pegar a primeira linha que não seja vazia
+            linhas = [l.strip() for l in resultado_texto.split('\n') if l.strip()]
+            justificativa = linhas[0] if linhas else "Placa analisada"
         
-        componentes_match = re.search(r'Componentes estimados:\s*(\d+)', resultado_texto)
-        componentes = int(componentes_match.group(1)) if componentes_match else 0
-        
-        justificativa_match = re.search(r'Classificação:.*?—\s*(.+?)(?:\n|Percentual)', resultado_texto, re.DOTALL)
-        justificativa = justificativa_match.group(1).strip() if justificativa_match else resultado_texto.split('\n')[0]
+        mensagem_final = f"🤖 Classificação IA: {classificacao.upper()} — {justificativa}"
         
         return {
             'classificacao': classificacao,
-            'componentes_detectados': componentes,
-            'percentual_verde': percentual_verde,
-            'mensagem': f'Classificação: {classificacao.upper()} — {justificativa}',
+            'mensagem': mensagem_final,
             'justificativa': justificativa,
             'analise_completa': resultado_texto
         }
