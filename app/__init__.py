@@ -65,7 +65,7 @@ def create_app():
     with app.app_context():
         from app.routes import (auth, usuarios, precos, notificacoes, 
                                 dashboard, placas, configuracoes, vendedores, solicitacoes, entradas,
-                                fornecedores, compras, classificacoes, validacao, consulta, tabelas, lotes)
+                                fornecedores, compras, classificacoes, validacao, consulta, tabelas, lotes, produtos)
         
         app.register_blueprint(auth.bp)
         app.register_blueprint(usuarios.bp)
@@ -78,6 +78,7 @@ def create_app():
         app.register_blueprint(placas.placas_bp)
         app.register_blueprint(configuracoes.bp)
         app.register_blueprint(fornecedores.bp)
+        app.register_blueprint(produtos.bp)
         app.register_blueprint(compras.bp)
         app.register_blueprint(classificacoes.bp)
         app.register_blueprint(validacao.bp)
@@ -89,5 +90,8 @@ def create_app():
         
         from app.auth import criar_admin_padrao
         criar_admin_padrao()
+        
+        from app.utils.seed_produtos import criar_produtos_exemplo
+        criar_produtos_exemplo()
     
     return app

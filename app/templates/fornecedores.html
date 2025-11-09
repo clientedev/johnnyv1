@@ -131,71 +131,177 @@
     </main>
 
     <div class="modal" id="modalFornecedor">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h2 id="tituloModal">Novo Fornecedor</h2>
                 <button class="modal-close" onclick="fecharModal()">&times;</button>
             </div>
             <form id="formFornecedor">
                 <input type="hidden" id="empresaId">
-                <div class="form-group">
-                    <label>Nome</label>
-                    <input type="text" id="nome" required>
-                </div>
+                
                 <div class="form-group">
                     <label>CNPJ</label>
-                    <input type="tel" id="cnpj" inputmode="numeric" pattern="[0-9]*" required>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="cnpj" placeholder="00.000.000/0000-00" required style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="buscarCNPJ()" id="btnBuscarCNPJ">
+                            🔍 Buscar
+                        </button>
+                    </div>
+                    <small style="color: #666;">Digite o CNPJ e clique em Buscar para preencher automaticamente</small>
                 </div>
+                
+                <div id="dadosCNPJ" style="display: none; background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h4 style="margin: 0 0 1rem 0; color: #0369a1;">📋 Dados da Receita Federal (não editáveis)</h4>
+                    
+                    <div class="form-group">
+                        <label>Nome / Razão Social</label>
+                        <input type="text" id="nome" readonly style="background: #e0f2fe;">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label>Rua</label>
+                            <input type="text" id="rua" readonly style="background: #e0f2fe;">
+                        </div>
+                        <div class="form-group">
+                            <label>Cidade</label>
+                            <input type="text" id="cidade" readonly style="background: #e0f2fe;">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <input type="text" id="estado" readonly style="background: #e0f2fe;">
+                        </div>
+                        <div class="form-group">
+                            <label>CEP</label>
+                            <input type="text" id="cep" readonly style="background: #e0f2fe;">
+                        </div>
+                        <div class="form-group">
+                            <label>Bairro</label>
+                            <input type="text" id="bairro" readonly style="background: #e0f2fe;">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label>Telefone</label>
+                            <input type="tel" id="telefone" readonly style="background: #e0f2fe;">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="email" readonly style="background: #e0f2fe;">
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="form-group">
-                    <label>Rua</label>
-                    <input type="text" id="rua" autocomplete="street-address">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="temOutroEndereco" onchange="toggleOutroEndereco()">
+                        <span>📍 Adicionar Outro Endereço (diferente do CNPJ)</span>
+                    </label>
                 </div>
-                <div class="form-group">
-                    <label>Cidade</label>
-                    <input type="text" id="cidade">
+                
+                <div id="outroEnderecoSection" style="display: none; background: #fef3c7; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h4 style="margin: 0 0 1rem 0; color: #92400e;">📦 Endereço Adicional (editável)</h4>
+                    
+                    <div class="form-group">
+                        <label>Rua</label>
+                        <input type="text" id="outroRua">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label>Cidade</label>
+                            <input type="text" id="outroCidade">
+                        </div>
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <input type="text" id="outroEstado" maxlength="2">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label>CEP</label>
+                            <input type="text" id="outroCep">
+                        </div>
+                        <div class="form-group">
+                            <label>Bairro</label>
+                            <input type="text" id="outroBairro">
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Telefone</label>
-                    <input type="tel" id="telefone" inputmode="tel">
-                </div>
+                
                 <div class="form-group">
                     <label>Observações</label>
-                    <textarea id="observacoes" rows="3"></textarea>
+                    <textarea id="observacoes" rows="2"></textarea>
                 </div>
-                <h3>Classificação por Estrelas</h3>
-                <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Os preços serão calculados automaticamente com base nas estrelas configuradas</p>
+                
+                <h3 style="margin-top: 1.5rem;">⭐ Produtos e Preços</h3>
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">Selecione produtos e configure estrelas (1-5) para cada um</p>
+                
                 <div class="form-group">
-                    <label>Placa Leve</label>
-                    <select id="estrelasLeve" required>
-                        <option value="1">⭐ (1 estrela)</option>
-                        <option value="2">⭐⭐ (2 estrelas)</option>
-                        <option value="3" selected>⭐⭐⭐ (3 estrelas)</option>
-                        <option value="4">⭐⭐⭐⭐ (4 estrelas)</option>
-                        <option value="5">⭐⭐⭐⭐⭐ (5 estrelas)</option>
-                    </select>
+                    <button type="button" class="btn btn-secondary w-full" onclick="abrirSeletorProdutos()">
+                        ➕ Adicionar Produtos
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label>Placa Pesada</label>
-                    <select id="estrelasPesada" required>
-                        <option value="1">⭐ (1 estrela)</option>
-                        <option value="2">⭐⭐ (2 estrelas)</option>
-                        <option value="3" selected>⭐⭐⭐ (3 estrelas)</option>
-                        <option value="4">⭐⭐⭐⭐ (4 estrelas)</option>
-                        <option value="5">⭐⭐⭐⭐⭐ (5 estrelas)</option>
-                    </select>
+                
+                <div id="produtosSelecionados" style="margin-bottom: 1rem;">
                 </div>
-                <div class="form-group">
-                    <label>Placa Média</label>
-                    <select id="estrelasMedia" required>
-                        <option value="1">⭐ (1 estrela)</option>
-                        <option value="2">⭐⭐ (2 estrelas)</option>
-                        <option value="3" selected>⭐⭐⭐ (3 estrelas)</option>
-                        <option value="4">⭐⭐⭐⭐ (4 estrelas)</option>
-                        <option value="5">⭐⭐⭐⭐⭐ (5 estrelas)</option>
-                    </select>
+                
+                <h4 style="margin-top: 1rem; color: #666; font-size: 0.9rem;">Classificação Padrão (Leve, Média, Pesada):</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label>Leve</label>
+                        <select id="estrelasLeve">
+                            <option value="1">⭐</option>
+                            <option value="2">⭐⭐</option>
+                            <option value="3" selected>⭐⭐⭐</option>
+                            <option value="4">⭐⭐⭐⭐</option>
+                            <option value="5">⭐⭐⭐⭐⭐</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Média</label>
+                        <select id="estrelasMedia">
+                            <option value="1">⭐</option>
+                            <option value="2">⭐⭐</option>
+                            <option value="3" selected>⭐⭐⭐</option>
+                            <option value="4">⭐⭐⭐⭐</option>
+                            <option value="5">⭐⭐⭐⭐⭐</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Pesada</label>
+                        <select id="estrelasPesada">
+                            <option value="1">⭐</option>
+                            <option value="2">⭐⭐</option>
+                            <option value="3" selected>⭐⭐⭐</option>
+                            <option value="4">⭐⭐⭐⭐</option>
+                            <option value="5">⭐⭐⭐⭐⭐</option>
+                        </select>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%">Salvar</button>
+                
+                <button type="submit" class="btn btn-primary w-full">💾 Salvar Fornecedor</button>
             </form>
+        </div>
+    </div>
+    
+    <div class="modal" id="modalSeletorProdutos">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Selecionar Produtos</h2>
+                <button class="modal-close" onclick="fecharSeletorProdutos()">&times;</button>
+            </div>
+            <div class="form-group">
+                <input type="text" id="buscaProduto" placeholder="🔍 Buscar produto..." onkeyup="filtrarProdutos()" style="width: 100%;">
+            </div>
+            <div id="listaProdutos" style="max-height: 400px; overflow-y: auto;">
+                <p style="text-align: center; color: #666;">Carregando produtos...</p>
+            </div>
         </div>
     </div>
 
@@ -243,12 +349,181 @@
             }
         }
 
+        let produtosSelecionados = [];
+        let todosProdutos = [];
+
         function abrirModalNovoFornecedor() {
             empresaAtual = null;
+            produtosSelecionados = [];
             document.getElementById('tituloModal').textContent = 'Novo Fornecedor';
             document.getElementById('formFornecedor').reset();
             document.getElementById('empresaId').value = '';
+            document.getElementById('dadosCNPJ').style.display = 'none';
+            document.getElementById('outroEnderecoSection').style.display = 'none';
+            document.getElementById('produtosSelecionados').innerHTML = '';
             document.getElementById('modalFornecedor').classList.add('active');
+        }
+
+        async function buscarCNPJ() {
+            const cnpjInput = document.getElementById('cnpj');
+            const cnpj = cnpjInput.value.replace(/\D/g, '');
+            
+            if (!cnpj || cnpj.length !== 14) {
+                showAlert('Digite um CNPJ válido com 14 dígitos', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('btnBuscarCNPJ');
+            btn.disabled = true;
+            btn.textContent = '⏳ Buscando...';
+            
+            try {
+                const response = await fetchAPI(`/api/fornecedores/consultar-cnpj/${cnpj}`);
+                
+                if (response && response.ok) {
+                    const data = await response.json();
+                    
+                    document.getElementById('nome').value = data.nome || '';
+                    document.getElementById('rua').value = data.rua || '';
+                    document.getElementById('cidade').value = data.cidade || '';
+                    document.getElementById('estado').value = data.estado || '';
+                    document.getElementById('cep').value = data.cep || '';
+                    document.getElementById('bairro').value = data.bairro || '';
+                    document.getElementById('telefone').value = data.telefone || '';
+                    document.getElementById('email').value = data.email || '';
+                    
+                    document.getElementById('dadosCNPJ').style.display = 'block';
+                    showAlert('✅ Dados do CNPJ carregados com sucesso!', 'success');
+                } else {
+                    showAlert('CNPJ não encontrado ou erro ao consultar', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar CNPJ:', error);
+                showAlert('Erro ao buscar CNPJ. Tente novamente.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔍 Buscar';
+            }
+        }
+
+        function toggleOutroEndereco() {
+            const checked = document.getElementById('temOutroEndereco').checked;
+            document.getElementById('outroEnderecoSection').style.display = checked ? 'block' : 'none';
+        }
+
+        async function abrirSeletorProdutos() {
+            if (todosProdutos.length === 0) {
+                await carregarProdutos();
+            }
+            renderizarListaProdutos();
+            document.getElementById('modalSeletorProdutos').classList.add('active');
+        }
+
+        function fecharSeletorProdutos() {
+            document.getElementById('modalSeletorProdutos').classList.remove('active');
+        }
+
+        async function carregarProdutos() {
+            try {
+                const response = await fetchAPI('/api/produtos?ativo=true');
+                if (response && response.ok) {
+                    todosProdutos = await response.json();
+                } else {
+                    showAlert('Erro ao carregar produtos', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar produtos:', error);
+                showAlert('Erro ao carregar produtos', 'error');
+            }
+        }
+
+        function renderizarListaProdutos(filtro = '') {
+            const container = document.getElementById('listaProdutos');
+            
+            let produtosFiltrados = todosProdutos;
+            if (filtro) {
+                produtosFiltrados = todosProdutos.filter(p => 
+                    p.nome.toLowerCase().includes(filtro.toLowerCase())
+                );
+            }
+            
+            if (produtosFiltrados.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">Nenhum produto encontrado</p>';
+                return;
+            }
+            
+            container.innerHTML = produtosFiltrados.map(produto => {
+                const jaSelecionado = produtosSelecionados.some(p => p.id === produto.id);
+                return `
+                    <div style="padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; ${jaSelecionado ? 'background: #f0fdf4;' : ''}">
+                        <div>
+                            <strong>${produto.nome}</strong>
+                            ${produto.descricao ? `<br><small style="color: #666;">${produto.descricao}</small>` : ''}
+                        </div>
+                        <button 
+                            class="btn ${jaSelecionado ? 'btn-secondary' : 'btn-primary'}" 
+                            onclick="selecionarProduto(${produto.id}, '${produto.nome}')"
+                            ${jaSelecionado ? 'disabled' : ''}
+                            style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
+                            ${jaSelecionado ? '✓ Adicionado' : '+ Adicionar'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filtrarProdutos() {
+            const filtro = document.getElementById('buscaProduto').value;
+            renderizarListaProdutos(filtro);
+        }
+
+        function selecionarProduto(id, nome) {
+            if (!produtosSelecionados.some(p => p.id === id)) {
+                produtosSelecionados.push({ id, nome, estrelas: 3 });
+                renderizarProdutosSelecionados();
+                renderizarListaProdutos(document.getElementById('buscaProduto').value);
+                showAlert(`Produto "${nome}" adicionado!`, 'success');
+            }
+        }
+
+        function removerProdutoSelecionado(id) {
+            produtosSelecionados = produtosSelecionados.filter(p => p.id !== id);
+            renderizarProdutosSelecionados();
+            renderizarListaProdutos(document.getElementById('buscaProduto').value);
+        }
+
+        function atualizarEstrelaProduto(id, estrelas) {
+            const produto = produtosSelecionados.find(p => p.id === id);
+            if (produto) {
+                produto.estrelas = parseInt(estrelas);
+            }
+        }
+
+        function renderizarProdutosSelecionados() {
+            const container = document.getElementById('produtosSelecionados');
+            
+            if (produtosSelecionados.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; font-size: 0.9rem;">Nenhum produto selecionado</p>';
+                return;
+            }
+            
+            container.innerHTML = produtosSelecionados.map(p => `
+                <div style="padding: 0.75rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <strong>${p.nome}</strong>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <select onchange="atualizarEstrelaProduto(${p.id}, this.value)" style="padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                            <option value="1" ${p.estrelas === 1 ? 'selected' : ''}>⭐</option>
+                            <option value="2" ${p.estrelas === 2 ? 'selected' : ''}>⭐⭐</option>
+                            <option value="3" ${p.estrelas === 3 ? 'selected' : ''}>⭐⭐⭐</option>
+                            <option value="4" ${p.estrelas === 4 ? 'selected' : ''}>⭐⭐⭐⭐</option>
+                            <option value="5" ${p.estrelas === 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option>
+                        </select>
+                        <button class="btn btn-danger" onclick="removerProdutoSelecionado(${p.id})" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">✕</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
         async function editarFornecedor(id) {
@@ -260,20 +535,36 @@
                 }
                 empresaAtual = await response.json();
 
-            document.getElementById('tituloModal').textContent = 'Editar Fornecedor';
-            document.getElementById('empresaId').value = empresaAtual.id;
-            document.getElementById('nome').value = empresaAtual.nome;
-            document.getElementById('cnpj').value = empresaAtual.cnpj;
-            document.getElementById('rua').value = empresaAtual.rua || '';
-            document.getElementById('cidade').value = empresaAtual.cidade || '';
-            document.getElementById('telefone').value = empresaAtual.telefone || '';
-            document.getElementById('observacoes').value = empresaAtual.observacoes || '';
+                document.getElementById('tituloModal').textContent = 'Editar Fornecedor';
+                document.getElementById('empresaId').value = empresaAtual.id;
+                document.getElementById('nome').value = empresaAtual.nome;
+                document.getElementById('cnpj').value = empresaAtual.cnpj;
+                document.getElementById('rua').value = empresaAtual.rua || '';
+                document.getElementById('cidade').value = empresaAtual.cidade || '';
+                document.getElementById('estado').value = empresaAtual.estado || '';
+                document.getElementById('cep').value = empresaAtual.cep || '';
+                document.getElementById('bairro').value = empresaAtual.bairro || '';
+                document.getElementById('telefone').value = empresaAtual.telefone || '';
+                document.getElementById('email').value = empresaAtual.email || '';
+                document.getElementById('observacoes').value = empresaAtual.observacoes || '';
+                
+                document.getElementById('dadosCNPJ').style.display = 'block';
+                
+                if (empresaAtual.tem_outro_endereco) {
+                    document.getElementById('temOutroEndereco').checked = true;
+                    document.getElementById('outroEnderecoSection').style.display = 'block';
+                    document.getElementById('outroRua').value = empresaAtual.outro_rua || '';
+                    document.getElementById('outroCidade').value = empresaAtual.outro_cidade || '';
+                    document.getElementById('outroEstado').value = empresaAtual.outro_estado || '';
+                    document.getElementById('outroCep').value = empresaAtual.outro_cep || '';
+                    document.getElementById('outroBairro').value = empresaAtual.outro_bairro || '';
+                }
 
-            document.getElementById('estrelasLeve').value = empresaAtual.estrelas_leve || 3;
-            document.getElementById('estrelasPesada').value = empresaAtual.estrelas_pesada || 3;
-            document.getElementById('estrelasMedia').value = empresaAtual.estrelas_media || 3;
+                document.getElementById('estrelasLeve').value = empresaAtual.estrelas_leve || 3;
+                document.getElementById('estrelasPesada').value = empresaAtual.estrelas_pesada || 3;
+                document.getElementById('estrelasMedia').value = empresaAtual.estrelas_media || 3;
 
-            document.getElementById('modalFornecedor').classList.add('active');
+                document.getElementById('modalFornecedor').classList.add('active');
             } catch (error) {
                 console.error('Erro ao editar fornecedor:', error);
                 showAlert('Erro ao carregar dados do fornecedor');
@@ -290,11 +581,25 @@
                     cnpj: document.getElementById('cnpj').value,
                     rua: document.getElementById('rua').value,
                     cidade: document.getElementById('cidade').value,
+                    estado: document.getElementById('estado').value,
+                    cep: document.getElementById('cep').value,
+                    bairro: document.getElementById('bairro').value,
                     telefone: document.getElementById('telefone').value,
+                    email: document.getElementById('email').value,
                     observacoes: document.getElementById('observacoes').value,
                     estrelas_leve: parseInt(document.getElementById('estrelasLeve').value),
                     estrelas_pesada: parseInt(document.getElementById('estrelasPesada').value),
-                    estrelas_media: parseInt(document.getElementById('estrelasMedia').value)
+                    estrelas_media: parseInt(document.getElementById('estrelasMedia').value),
+                    tem_outro_endereco: document.getElementById('temOutroEndereco').checked,
+                    outro_rua: document.getElementById('outroRua').value,
+                    outro_cidade: document.getElementById('outroCidade').value,
+                    outro_estado: document.getElementById('outroEstado').value,
+                    outro_cep: document.getElementById('outroCep').value,
+                    outro_bairro: document.getElementById('outroBairro').value,
+                    produtos: produtosSelecionados.map(p => ({
+                        produto_id: p.id,
+                        estrelas: p.estrelas
+                    }))
                 };
 
                 let response;
@@ -311,7 +616,7 @@
                 }
 
                 if (response && response.ok) {
-                    showAlert('Fornecedor salvo com sucesso! Preços calculados automaticamente.', 'success');
+                    showAlert(`✅ Fornecedor salvo com sucesso! ${produtosSelecionados.length} produtos configurados.`, 'success');
                     fecharModal();
                     await carregarFornecedores();
                 } else if (response) {

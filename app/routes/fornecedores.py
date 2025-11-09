@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import Fornecedor, Preco, ConfiguracaoPrecoEstrela, Vendedor, db
+from app.models import Fornecedor, Preco, ConfiguracaoPrecoEstrela, Vendedor, Produto, FornecedorProdutoPreco, db
 from app.auth import admin_required
+import requests
 
 bp = Blueprint('fornecedores', __name__, url_prefix='/api/fornecedores')
 
@@ -126,6 +127,16 @@ def criar_fornecedor():
         cidade=data.get('cidade', ''),
         cep=data.get('cep', ''),
         estado=data.get('estado', ''),
+        bairro=data.get('bairro', ''),
+        complemento=data.get('complemento', ''),
+        tem_outro_endereco=data.get('tem_outro_endereco', False),
+        outro_rua=data.get('outro_rua', ''),
+        outro_numero=data.get('outro_numero', ''),
+        outro_cidade=data.get('outro_cidade', ''),
+        outro_cep=data.get('outro_cep', ''),
+        outro_estado=data.get('outro_estado', ''),
+        outro_bairro=data.get('outro_bairro', ''),
+        outro_complemento=data.get('outro_complemento', ''),
         telefone=data.get('telefone', ''),
         email=data.get('email', ''),
         vendedor_id=data.get('vendedor_id'),
@@ -145,6 +156,23 @@ def criar_fornecedor():
     db.session.commit()
     
     criar_precos_por_estrelas(fornecedor)
+    
+    if 'produtos' in data and isinstance(data['produtos'], list):
+        for produto_data in data['produtos']:
+            produto_id = produto_data.get('produto_id')
+            estrelas = produto_data.get('estrelas', 3)
+            preco_kg = produto_data.get('preco_por_kg', 0.0)
+            
+            if produto_id:
+                fpp = FornecedorProdutoPreco(
+                    fornecedor_id=fornecedor.id,
+                    produto_id=produto_id,
+                    preco_por_kg=preco_kg,
+                    classificacao_estrelas=estrelas
+                )
+                db.session.add(fpp)
+        
+        db.session.commit()
     
     return jsonify(fornecedor.to_dict()), 201
 
@@ -182,6 +210,26 @@ def atualizar_fornecedor(id):
         fornecedor.cep = data['cep']
     if 'estado' in data:
         fornecedor.estado = data['estado']
+    if 'bairro' in data:
+        fornecedor.bairro = data['bairro']
+    if 'complemento' in data:
+        fornecedor.complemento = data['complemento']
+    if 'tem_outro_endereco' in data:
+        fornecedor.tem_outro_endereco = data['tem_outro_endereco']
+    if 'outro_rua' in data:
+        fornecedor.outro_rua = data['outro_rua']
+    if 'outro_numero' in data:
+        fornecedor.outro_numero = data['outro_numero']
+    if 'outro_cidade' in data:
+        fornecedor.outro_cidade = data['outro_cidade']
+    if 'outro_cep' in data:
+        fornecedor.outro_cep = data['outro_cep']
+    if 'outro_estado' in data:
+        fornecedor.outro_estado = data['outro_estado']
+    if 'outro_bairro' in data:
+        fornecedor.outro_bairro = data['outro_bairro']
+    if 'outro_complemento' in data:
+        fornecedor.outro_complemento = data['outro_complemento']
     if 'telefone' in data:
         fornecedor.telefone = data['telefone']
     if 'email' in data:
@@ -262,3 +310,60 @@ def deletar_empresa(id):
     db.session.commit()
     
     return jsonify({'mensagem': 'Fornecedor deletado com sucesso'}), 200
+
+@bp.route('/consultar-cnpj/<string:cnpj>', methods=['GET'])
+@jwt_required()
+def consultar_cnpj(cnpj):
+    try:
+        cnpj_limpo = cnpj.replace('.', '').replace('/', '').replace('-', '')
+        
+        if len(cnpj_limpo) != 14:
+            return jsonify({'erro': 'CNPJ inválido'}), 400
+        
+        url = f'https://api.cnpja.com/open/{cnpj_limpo}'
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code != 200:
+            return jsonify({'erro': 'CNPJ não encontrado na base de dados'}), 404
+        
+        data = response.json()
+        
+        empresa_data = {
+            'cnpj': data.get('taxId', ''),
+            'nome': data.get('alias', data.get('company', {}).get('name', '')),
+            'nome_social': data.get('company', {}).get('name', ''),
+            'telefone': '',
+            'email': data.get('emails', [{}])[0].get('address', '') if data.get('emails') else '',
+            'situacao': data.get('status', {}).get('text', ''),
+            'data_abertura': data.get('founded', ''),
+        }
+        
+        address = data.get('address', {})
+        if address:
+            empresa_data['rua'] = f"{address.get('street', '')} {address.get('number', '')}".strip()
+            empresa_data['cidade'] = address.get('city', '')
+            empresa_data['estado'] = address.get('state', '')
+            empresa_data['cep'] = address.get('zip', '')
+            empresa_data['bairro'] = address.get('district', '')
+            empresa_data['complemento'] = address.get('details', '')
+        
+        phones = data.get('phones', [])
+        if phones:
+            phone = phones[0]
+            area = phone.get('area', '')
+            number = phone.get('number', '')
+            empresa_data['telefone'] = f"({area}) {number}" if area and number else ''
+        
+        empresa_data['atividade_principal'] = ''
+        if data.get('mainActivity'):
+            main = data.get('mainActivity', {})
+            empresa_data['atividade_principal'] = f"{main.get('id', '')} - {main.get('text', '')}"
+        
+        return jsonify(empresa_data), 200
+        
+    except requests.Timeout:
+        return jsonify({'erro': 'Timeout ao consultar CNPJ. Tente novamente.'}), 504
+    except requests.RequestException as e:
+        return jsonify({'erro': f'Erro ao consultar API de CNPJ: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao processar dados do CNPJ: {str(e)}'}), 500

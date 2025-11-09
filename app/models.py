@@ -70,6 +70,17 @@ class Fornecedor(db.Model):  # type: ignore
     cidade = db.Column(db.String(100))
     cep = db.Column(db.String(10))
     estado = db.Column(db.String(2))
+    bairro = db.Column(db.String(100))
+    complemento = db.Column(db.String(200))
+    
+    tem_outro_endereco = db.Column(db.Boolean, default=False)
+    outro_rua = db.Column(db.String(200))
+    outro_numero = db.Column(db.String(20))
+    outro_cidade = db.Column(db.String(100))
+    outro_cep = db.Column(db.String(10))
+    outro_estado = db.Column(db.String(2))
+    outro_bairro = db.Column(db.String(100))
+    outro_complemento = db.Column(db.String(200))
     
     telefone = db.Column(db.String(20))
     email = db.Column(db.String(120))
@@ -97,6 +108,7 @@ class Fornecedor(db.Model):  # type: ignore
     placas = db.relationship('Placa', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     compras = db.relationship('Compra', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     lotes = db.relationship('Lote', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
+    produtos_precos = db.relationship('FornecedorProdutoPreco', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     
     vendedor = db.relationship('Vendedor', backref='fornecedores')
     
@@ -117,6 +129,16 @@ class Fornecedor(db.Model):  # type: ignore
             'cidade': self.cidade,
             'cep': self.cep,
             'estado': self.estado,
+            'bairro': self.bairro,
+            'complemento': self.complemento,
+            'tem_outro_endereco': self.tem_outro_endereco,
+            'outro_rua': self.outro_rua,
+            'outro_numero': self.outro_numero,
+            'outro_cidade': self.outro_cidade,
+            'outro_cep': self.outro_cep,
+            'outro_estado': self.outro_estado,
+            'outro_bairro': self.outro_bairro,
+            'outro_complemento': self.outro_complemento,
             'telefone': self.telefone,
             'email': self.email,
             'vendedor_id': self.vendedor_id,
@@ -181,6 +203,57 @@ class Preco(db.Model):  # type: ignore
             'tipo_placa': self.tipo_placa,
             'preco_por_kg': self.preco_por_kg,
             'classificacao_estrelas': self.classificacao_estrelas
+        }
+
+class Produto(db.Model):  # type: ignore
+    __tablename__ = 'produtos'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False, unique=True)
+    descricao = db.Column(db.String(300))
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    fornecedores_precos = db.relationship('FornecedorProdutoPreco', backref='produto', lazy=True, cascade='all, delete-orphan')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'descricao': self.descricao,
+            'ativo': self.ativo,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None
+        }
+
+class FornecedorProdutoPreco(db.Model):  # type: ignore
+    __tablename__ = 'fornecedor_produto_precos'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    produto_id = db.Column(db.Integer, db.ForeignKey('produtos.id'), nullable=False)
+    preco_por_kg = db.Column(db.Float, nullable=False, default=0.0)
+    classificacao_estrelas = db.Column(db.Integer, nullable=False, default=3)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'fornecedor_id': self.fornecedor_id,
+            'produto_id': self.produto_id,
+            'produto_nome': self.produto.nome if self.produto else None,
+            'preco_por_kg': self.preco_por_kg,
+            'classificacao_estrelas': self.classificacao_estrelas,
+            'ativo': self.ativo,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
         }
 
 class Solicitacao(db.Model):  # type: ignore
