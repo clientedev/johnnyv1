@@ -16,7 +16,7 @@ class Usuario(db.Model):  # type: ignore
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     
-    solicitacoes = db.relationship('Solicitacao', backref='funcionario', lazy=True, cascade='all, delete-orphan')
+    solicitacoes = db.relationship('Solicitacao', backref='funcionario', lazy=True, cascade='all, delete-orphan', foreign_keys='Solicitacao.funcionario_id')
     notificacoes = db.relationship('Notificacao', backref='usuario', lazy=True, cascade='all, delete-orphan')
     entradas_processadas = db.relationship('EntradaEstoque', backref='admin', lazy=True, foreign_keys='EntradaEstoque.admin_id')
     
@@ -226,7 +226,7 @@ class Solicitacao(db.Model):  # type: ignore
     admin_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
     itens = db.relationship('ItemSolicitacao', backref='solicitacao', lazy=True, cascade='all, delete-orphan')
-    admin = db.relationship('Usuario', foreign_keys=[admin_id], backref='solicitacoes_aprovadas')
+    admin = db.relationship('Usuario', foreign_keys=[admin_id], backref='solicitacoes_aprovadas_por_mim')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)

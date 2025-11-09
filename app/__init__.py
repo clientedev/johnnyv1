@@ -63,35 +63,26 @@ def create_app():
         }), 401
     
     with app.app_context():
-        from app.routes import (auth, usuarios, precos, notificacoes, 
-                                dashboard, placas, configuracoes, vendedores, solicitacoes, entradas,
-                                fornecedores, compras, classificacoes, validacao, consulta, tabelas, lotes, produtos)
+        from app.routes import (auth, usuarios, notificacoes, vendedores,
+                                fornecedores, tipos_lote, dashboard)
+        from app.routes import solicitacoes_new as solicitacoes
+        from app.routes import lotes_new as lotes
+        from app.routes import entradas_new as entradas
         
         app.register_blueprint(auth.bp)
         app.register_blueprint(usuarios.bp)
-        app.register_blueprint(precos.bp)
-        app.register_blueprint(solicitacoes.bp)
-        app.register_blueprint(entradas.bp)
         app.register_blueprint(vendedores.bp)
         app.register_blueprint(notificacoes.bp)
         app.register_blueprint(dashboard.bp)
-        app.register_blueprint(placas.placas_bp)
-        app.register_blueprint(configuracoes.bp)
         app.register_blueprint(fornecedores.bp)
-        app.register_blueprint(produtos.bp)
-        app.register_blueprint(compras.bp)
-        app.register_blueprint(classificacoes.bp)
-        app.register_blueprint(validacao.bp)
-        app.register_blueprint(consulta.bp)
-        app.register_blueprint(tabelas.bp)
+        app.register_blueprint(tipos_lote.bp)
+        app.register_blueprint(solicitacoes.bp)
         app.register_blueprint(lotes.bp)
+        app.register_blueprint(entradas.bp)
         
         db.create_all()
         
         from app.auth import criar_admin_padrao
         criar_admin_padrao()
-        
-        from app.utils.seed_produtos import criar_produtos_exemplo
-        criar_produtos_exemplo()
     
     return app
