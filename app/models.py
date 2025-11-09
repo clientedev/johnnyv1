@@ -13,9 +13,12 @@ class Usuario(db.Model):  # type: ignore
     email = db.Column(db.String(120), unique=True, nullable=False)
     senha_hash = db.Column(db.String(255), nullable=False)
     tipo = db.Column(db.String(20), nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
     
     solicitacoes = db.relationship('Solicitacao', backref='funcionario', lazy=True, cascade='all, delete-orphan')
     notificacoes = db.relationship('Notificacao', backref='usuario', lazy=True, cascade='all, delete-orphan')
+    entradas_processadas = db.relationship('EntradaEstoque', backref='admin', lazy=True, foreign_keys='EntradaEstoque.admin_id')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -25,7 +28,9 @@ class Usuario(db.Model):  # type: ignore
             'id': self.id,
             'nome': self.nome,
             'email': self.email,
-            'tipo': self.tipo
+            'tipo': self.tipo,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'ativo': self.ativo
         }
 
 class Vendedor(db.Model):  # type: ignore
@@ -38,6 +43,8 @@ class Vendedor(db.Model):  # type: ignore
     cpf = db.Column(db.String(14), unique=True)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
+    
+    fornecedores = db.relationship('Fornecedor', backref='vendedor', lazy=True)
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -53,6 +60,35 @@ class Vendedor(db.Model):  # type: ignore
             'ativo': self.ativo
         }
 
+class TipoLote(db.Model):  # type: ignore
+    __tablename__ = 'tipos_lote'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False, unique=True)
+    descricao = db.Column(db.String(300))
+    codigo = db.Column(db.String(20), unique=True)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    fornecedor_precos = db.relationship('FornecedorTipoLotePreco', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
+    itens_solicitacao = db.relationship('ItemSolicitacao', backref='tipo_lote', lazy=True)
+    lotes = db.relationship('Lote', backref='tipo_lote', lazy=True)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'descricao': self.descricao,
+            'codigo': self.codigo,
+            'ativo': self.ativo,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
 class Fornecedor(db.Model):  # type: ignore
     __tablename__ = 'fornecedores'
     
@@ -61,9 +97,6 @@ class Fornecedor(db.Model):  # type: ignore
     nome_social = db.Column(db.String(200))
     cnpj = db.Column(db.String(18), unique=True)
     cpf = db.Column(db.String(14), unique=True)
-    
-    endereco_coleta = db.Column(db.String(300))
-    endereco_emissao = db.Column(db.String(300))
     
     rua = db.Column(db.String(200))
     numero = db.Column(db.String(20))
@@ -96,21 +129,13 @@ class Fornecedor(db.Model):  # type: ignore
     forma_pagamento = db.Column(db.String(50), default='pix')
     
     observacoes = db.Column(db.Text)
-    estrelas_leve = db.Column(db.Integer, default=3)
-    estrelas_pesada = db.Column(db.Integer, default=3)
-    estrelas_media = db.Column(db.Integer, default=3)
     
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     
-    precos = db.relationship('Preco', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
+    precos = db.relationship('FornecedorTipoLotePreco', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     solicitacoes = db.relationship('Solicitacao', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
-    placas = db.relationship('Placa', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
-    compras = db.relationship('Compra', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
-    lotes = db.relationship('Lote', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
-    produtos_precos = db.relationship('FornecedorProdutoPreco', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
-    
-    vendedor = db.relationship('Vendedor', backref='fornecedores')
+    lotes = db.relationship('Lote', backref='fornecedor', lazy=True)
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -122,8 +147,6 @@ class Fornecedor(db.Model):  # type: ignore
             'nome_social': self.nome_social,
             'cnpj': self.cnpj,
             'cpf': self.cpf,
-            'endereco_coleta': self.endereco_coleta,
-            'endereco_emissao': self.endereco_emissao,
             'rua': self.rua,
             'numero': self.numero,
             'cidade': self.cidade,
@@ -150,107 +173,40 @@ class Fornecedor(db.Model):  # type: ignore
             'condicao_pagamento': self.condicao_pagamento,
             'forma_pagamento': self.forma_pagamento,
             'observacoes': self.observacoes,
-            'estrelas_leve': self.estrelas_leve,
-            'estrelas_pesada': self.estrelas_pesada,
-            'estrelas_media': self.estrelas_media,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
             'ativo': self.ativo
         }
 
-class ConfiguracaoPrecoEstrela(db.Model):  # type: ignore
-    __tablename__ = 'configuracao_preco_estrelas'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    tipo_placa = db.Column(db.String(20), nullable=False, unique=True)
-    valor_1_estrela = db.Column(db.Float, nullable=False, default=0.0)
-    valor_2_estrelas = db.Column(db.Float, nullable=False, default=0.0)
-    valor_3_estrelas = db.Column(db.Float, nullable=False, default=0.0)
-    valor_4_estrelas = db.Column(db.Float, nullable=False, default=0.0)
-    valor_5_estrelas = db.Column(db.Float, nullable=False, default=0.0)
-    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'tipo_placa': self.tipo_placa,
-            'valor_1_estrela': self.valor_1_estrela,
-            'valor_2_estrelas': self.valor_2_estrelas,
-            'valor_3_estrelas': self.valor_3_estrelas,
-            'valor_4_estrelas': self.valor_4_estrelas,
-            'valor_5_estrelas': self.valor_5_estrelas,
-            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
-        }
-
-class Preco(db.Model):  # type: ignore
-    __tablename__ = 'precos'
+class FornecedorTipoLotePreco(db.Model):  # type: ignore
+    __tablename__ = 'fornecedor_tipo_lote_precos'
+    __table_args__ = (
+        db.UniqueConstraint('fornecedor_id', 'tipo_lote_id', 'estrelas', name='uq_fornecedor_tipo_estrelas'),
+        db.Index('idx_fornecedor_tipo_estrelas', 'fornecedor_id', 'tipo_lote_id', 'estrelas'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
-    tipo_placa = db.Column(db.String(20), nullable=False)
-    preco_por_kg = db.Column(db.Float, nullable=False)
-    classificacao_estrelas = db.Column(db.Integer, nullable=True, default=3)
-    
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'fornecedor_id': self.fornecedor_id,
-            'tipo_placa': self.tipo_placa,
-            'preco_por_kg': self.preco_por_kg,
-            'classificacao_estrelas': self.classificacao_estrelas
-        }
-
-class Produto(db.Model):  # type: ignore
-    __tablename__ = 'produtos'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False, unique=True)
-    descricao = db.Column(db.String(300))
-    ativo = db.Column(db.Boolean, default=True, nullable=False)
-    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
-    fornecedores_precos = db.relationship('FornecedorProdutoPreco', backref='produto', lazy=True, cascade='all, delete-orphan')
-    
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'nome': self.nome,
-            'descricao': self.descricao,
-            'ativo': self.ativo,
-            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None
-        }
-
-class FornecedorProdutoPreco(db.Model):  # type: ignore
-    __tablename__ = 'fornecedor_produto_precos'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
-    produto_id = db.Column(db.Integer, db.ForeignKey('produtos.id'), nullable=False)
+    tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
+    estrelas = db.Column(db.Integer, nullable=False)
     preco_por_kg = db.Column(db.Float, nullable=False, default=0.0)
-    classificacao_estrelas = db.Column(db.Integer, nullable=False, default=3)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __init__(self, **kwargs: Any) -> None:
+        if 'estrelas' in kwargs and (kwargs['estrelas'] < 1 or kwargs['estrelas'] > 5):
+            raise ValueError('Estrelas deve estar entre 1 e 5')
         super().__init__(**kwargs)
     
     def to_dict(self):
         return {
             'id': self.id,
             'fornecedor_id': self.fornecedor_id,
-            'produto_id': self.produto_id,
-            'produto_nome': self.produto.nome if self.produto else None,
+            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
+            'tipo_lote_id': self.tipo_lote_id,
+            'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
+            'estrelas': self.estrelas,
             'preco_por_kg': self.preco_por_kg,
-            'classificacao_estrelas': self.classificacao_estrelas,
             'ativo': self.ativo,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
@@ -262,61 +218,109 @@ class Solicitacao(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True)
     funcionario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    tipo_retirada = db.Column(db.String(20), default='buscar', nullable=False)
     status = db.Column(db.String(20), default='pendente', nullable=False)
     observacoes = db.Column(db.Text)
     data_envio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_confirmacao = db.Column(db.DateTime, nullable=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
-    placas = db.relationship('Placa', backref='solicitacao', lazy=True, cascade='all, delete-orphan')
+    itens = db.relationship('ItemSolicitacao', backref='solicitacao', lazy=True, cascade='all, delete-orphan')
+    admin = db.relationship('Usuario', foreign_keys=[admin_id], backref='solicitacoes_aprovadas')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
     
     def to_dict(self):
-        placas_list = list(self.placas) if self.placas else []
+        itens_list = list(self.itens) if self.itens else []
+        total_peso = sum(item.peso_kg for item in itens_list)
+        total_valor = sum(item.valor_calculado for item in itens_list)
+        
         return {
             'id': self.id,
             'funcionario_id': self.funcionario_id,
             'funcionario_nome': self.funcionario.nome if self.funcionario else None,
             'fornecedor_id': self.fornecedor_id,
             'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
+            'tipo_retirada': self.tipo_retirada,
             'status': self.status,
             'observacoes': self.observacoes,
             'data_envio': self.data_envio.isoformat() if self.data_envio else None,
             'data_confirmacao': self.data_confirmacao.isoformat() if self.data_confirmacao else None,
-            'total_placas': len(placas_list)
+            'admin_id': self.admin_id,
+            'admin_nome': self.admin.nome if self.admin else None,
+            'total_itens': len(itens_list),
+            'total_peso_kg': round(total_peso, 2),
+            'total_valor': round(total_valor, 2)
         }
 
-class Placa(db.Model):  # type: ignore
-    __tablename__ = 'placas'
+class ItemSolicitacao(db.Model):  # type: ignore
+    __tablename__ = 'itens_solicitacao'
     
     id = db.Column(db.Integer, primary_key=True)
-    tag = db.Column(db.String(50), unique=True, nullable=False, default=lambda: str(uuid.uuid4())[:8].upper())
-    
-    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
-    funcionario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    solicitacao_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=True)
+    solicitacao_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=False)
+    tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
+    peso_kg = db.Column(db.Float, nullable=False)
+    estrelas_sugeridas_ia = db.Column(db.Integer, nullable=True)
+    estrelas_final = db.Column(db.Integer, nullable=False, default=3)
+    valor_calculado = db.Column(db.Float, nullable=False, default=0.0)
+    imagem_url = db.Column(db.String(500))
+    observacoes = db.Column(db.Text)
+    data_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=True)
     
-    tipo_placa = db.Column(db.String(20), nullable=False)
-    peso_kg = db.Column(db.Float, nullable=False)
-    valor = db.Column(db.Float, nullable=False)
-    estrelas = db.Column(db.Integer, default=3, nullable=True)
+    def __init__(self, **kwargs: Any) -> None:
+        if 'estrelas_final' in kwargs and (kwargs['estrelas_final'] < 1 or kwargs['estrelas_final'] > 5):
+            raise ValueError('Estrelas deve estar entre 1 e 5')
+        super().__init__(**kwargs)
     
-    imagem_url = db.Column(db.String(500))
-    localizacao_lat = db.Column(db.Float)
-    localizacao_lng = db.Column(db.Float)
-    endereco_completo = db.Column(db.String(500))
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'solicitacao_id': self.solicitacao_id,
+            'tipo_lote_id': self.tipo_lote_id,
+            'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
+            'peso_kg': self.peso_kg,
+            'estrelas_sugeridas_ia': self.estrelas_sugeridas_ia,
+            'estrelas_final': self.estrelas_final,
+            'valor_calculado': self.valor_calculado,
+            'imagem_url': self.imagem_url,
+            'observacoes': self.observacoes,
+            'data_registro': self.data_registro.isoformat() if self.data_registro else None,
+            'lote_id': self.lote_id,
+            'lote_numero': self.lote.numero_lote if self.lote else None
+        }
+
+class Lote(db.Model):  # type: ignore
+    __tablename__ = 'lotes'
+    __table_args__ = (
+        db.Index('idx_numero_lote', 'numero_lote'),
+        db.Index('idx_fornecedor_tipo_status', 'fornecedor_id', 'tipo_lote_id', 'status'),
+    )
     
-    status = db.Column(db.String(20), default='em_analise', nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    numero_lote = db.Column(db.String(50), unique=True, nullable=False, default=lambda: str(uuid.uuid4()).upper())
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
+    solicitacao_origem_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=True)
     
-    data_compra = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    data_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    peso_total_kg = db.Column(db.Float, nullable=False, default=0.0)
+    valor_total = db.Column(db.Float, nullable=False, default=0.0)
+    quantidade_itens = db.Column(db.Integer, default=0)
+    estrelas_media = db.Column(db.Float, nullable=True)
+    
+    status = db.Column(db.String(20), default='aberto', nullable=False)
+    tipo_retirada = db.Column(db.String(20))
+    
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_fechamento = db.Column(db.DateTime, nullable=True)
     data_aprovacao = db.Column(db.DateTime, nullable=True)
     
     observacoes = db.Column(db.Text)
     
-    funcionario = db.relationship('Usuario', backref='placas')
+    itens = db.relationship('ItemSolicitacao', backref='lote', lazy=True)
+    solicitacao_origem = db.relationship('Solicitacao', backref='lotes_gerados', foreign_keys=[solicitacao_origem_id])
+    entrada_estoque = db.relationship('EntradaEstoque', backref='lote', uselist=False, cascade='all, delete-orphan')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -324,33 +328,29 @@ class Placa(db.Model):  # type: ignore
     def to_dict(self):
         return {
             'id': self.id,
-            'tag': self.tag,
+            'numero_lote': self.numero_lote,
             'fornecedor_id': self.fornecedor_id,
             'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
-            'funcionario_id': self.funcionario_id,
-            'funcionario_nome': self.funcionario.nome if self.funcionario else None,
-            'solicitacao_id': self.solicitacao_id,
-            'lote_id': self.lote_id,
-            'tipo_placa': self.tipo_placa,
-            'peso_kg': self.peso_kg,
-            'valor': self.valor,
-            'estrelas': self.estrelas,
-            'imagem_url': self.imagem_url,
-            'localizacao_lat': self.localizacao_lat,
-            'localizacao_lng': self.localizacao_lng,
-            'endereco_completo': self.endereco_completo,
+            'tipo_lote_id': self.tipo_lote_id,
+            'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
+            'solicitacao_origem_id': self.solicitacao_origem_id,
+            'peso_total_kg': self.peso_total_kg,
+            'valor_total': self.valor_total,
+            'quantidade_itens': self.quantidade_itens,
+            'estrelas_media': self.estrelas_media,
             'status': self.status,
-            'data_compra': self.data_compra.isoformat() if self.data_compra else None,
-            'data_registro': self.data_registro.isoformat() if self.data_registro else None,
+            'tipo_retirada': self.tipo_retirada,
+            'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
+            'data_fechamento': self.data_fechamento.isoformat() if self.data_fechamento else None,
             'data_aprovacao': self.data_aprovacao.isoformat() if self.data_aprovacao else None,
             'observacoes': self.observacoes
         }
 
-class Entrada(db.Model):  # type: ignore
-    __tablename__ = 'entradas'
+class EntradaEstoque(db.Model):  # type: ignore
+    __tablename__ = 'entradas_estoque'
     
     id = db.Column(db.Integer, primary_key=True)
-    solicitacao_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=False)
+    lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False)
     admin_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
     status = db.Column(db.String(20), default='pendente', nullable=False)
@@ -358,16 +358,16 @@ class Entrada(db.Model):  # type: ignore
     data_processamento = db.Column(db.DateTime, nullable=True)
     observacoes = db.Column(db.Text)
     
-    solicitacao = db.relationship('Solicitacao', backref='entradas')
-    admin = db.relationship('Usuario', backref='entradas_processadas', foreign_keys=[admin_id])
-    
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
     
     def to_dict(self):
+        lote_dict = self.lote.to_dict() if self.lote else {}
+        
         return {
             'id': self.id,
-            'solicitacao_id': self.solicitacao_id,
+            'lote_id': self.lote_id,
+            'lote': lote_dict,
             'admin_id': self.admin_id,
             'admin_nome': self.admin.nome if self.admin else None,
             'status': self.status,
@@ -397,109 +397,6 @@ class Notificacao(db.Model):  # type: ignore
             'mensagem': self.mensagem,
             'lida': self.lida,
             'data_envio': self.data_envio.isoformat() if self.data_envio else None
-        }
-
-class Lote(db.Model):  # type: ignore
-    __tablename__ = 'lotes'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    numero_lote = db.Column(db.String(50), unique=True, nullable=False)
-    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
-    
-    tipo_material = db.Column(db.String(20), nullable=False)
-    peso_total_kg = db.Column(db.Float, nullable=False, default=0.0)
-    valor_total = db.Column(db.Float, nullable=False, default=0.0)
-    quantidade_placas = db.Column(db.Integer, default=0)
-    
-    status = db.Column(db.String(20), default='aberto', nullable=False)
-    
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    data_fechamento = db.Column(db.DateTime, nullable=True)
-    
-    observacoes = db.Column(db.Text)
-    
-    placas = db.relationship('Placa', backref='lote', lazy=True)
-    compra = db.relationship('Compra', backref='lote', uselist=False, cascade='all, delete-orphan')
-    
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'numero_lote': self.numero_lote,
-            'fornecedor_id': self.fornecedor_id,
-            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
-            'tipo_material': self.tipo_material,
-            'peso_total_kg': self.peso_total_kg,
-            'valor_total': self.valor_total,
-            'quantidade_placas': self.quantidade_placas,
-            'status': self.status,
-            'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
-            'data_fechamento': self.data_fechamento.isoformat() if self.data_fechamento else None,
-            'observacoes': self.observacoes
-        }
-
-class Compra(db.Model):  # type: ignore
-    __tablename__ = 'compras'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False)
-    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
-    
-    material = db.Column(db.String(200), nullable=False)
-    peso_total_kg = db.Column(db.Float, nullable=False)
-    valor_total = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='pendente', nullable=False)
-    
-    comprovante_url = db.Column(db.String(500))
-    observacoes = db.Column(db.Text)
-    
-    data_compra = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    data_pagamento = db.Column(db.DateTime, nullable=True)
-    
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'lote_id': self.lote_id,
-            'fornecedor_id': self.fornecedor_id,
-            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
-            'material': self.material,
-            'peso_total_kg': self.peso_total_kg,
-            'valor_total': self.valor_total,
-            'status': self.status,
-            'comprovante_url': self.comprovante_url,
-            'observacoes': self.observacoes,
-            'data_compra': self.data_compra.isoformat() if self.data_compra else None,
-            'data_pagamento': self.data_pagamento.isoformat() if self.data_pagamento else None
-        }
-
-class Classificacao(db.Model):  # type: ignore
-    __tablename__ = 'classificacoes'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False, unique=True)
-    tipo_lote = db.Column(db.String(20), nullable=False)
-    peso_minimo = db.Column(db.Float, default=0.0)
-    peso_maximo = db.Column(db.Float, default=999999.0)
-    observacoes = db.Column(db.Text)
-    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'nome': self.nome,
-            'tipo_lote': self.tipo_lote,
-            'peso_minimo': self.peso_minimo,
-            'peso_maximo': self.peso_maximo,
-            'observacoes': self.observacoes,
-            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None
         }
 
 class Configuracao(db.Model):  # type: ignore
