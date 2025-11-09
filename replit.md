@@ -1,332 +1,236 @@
-# Sistema de Gestão de Empresas e Preços
+# Sistema MRX - Gestão de Compra de Placas Eletrônicas
 
 ## Visão Geral
-Sistema web completo para gestão de empresas, funcionários, preços e relatórios. Construído com Flask, PostgreSQL, WebSocket para notificações em tempo real, e autenticação JWT.
+Sistema completo para gerenciamento de compras de placas eletrônicas com rastreamento por lote, classificação por qualidade (estrelas), controle de fornecedores, e workflow automatizado desde solicitação até entrada em estoque.
 
-## Estado Atual (07/11/2025)
-✅ **Projeto MRX Systems totalmente funcional com automação de lotes e compras**
-- Aplicação rodando localmente sem erros
-- Todas as dependências instaladas (Flask, SQLAlchemy, Gemini AI)
-- **Integração Gemini AI** configurada para classificação automática de placas
-- **Criação automática de lotes** quando entradas são aprovadas
-- **Sistema de gestão de lotes** com aprovação/rejeição
-- **Geração automática de compras** a partir de lotes aprovados
-- WebSocket funcionando para notificações em tempo real
-- **Banco de dados reorganizado e otimizado** (07/11/2025)
-- **Sistema de Classificação por Estrelas (1-5)** implementado
-  - API robusta com validações completas
-  - Configurações por tipo de placa (leve, pesada, média)
-  - Valores configuráveis por kg para cada nível
-- **Painel de Administração Completo**
-  - Gerenciamento de funcionários (CRUD)
-  - Configuração de preços por estrelas
-  - Interface com abas intuitivas
-- **Interface 100% Mobile-First com Bottom Navigation**
-  - Layout estilo app mobile moderno
-  - Bottom Navigation Bar fixa com 5 ícones (Administração, Dashboard, Scanner, Relatórios, Empresas)
-  - Header superior apenas com sino de notificação
-  - FAB Button (Floating Action Button) central para scanner
-  - Scanner de placas com upload de imagem
-  - Sistema completo de gerenciamento de placas
-  - Design responsivo: mobile-first, adapta para tablet/desktop
-  - Touch-friendly com botões de 44px
-  - Formulários otimizados para teclados mobile
-  - Sem zoom automático em inputs (font-size 16px)
-  - Breakpoints: 360px, 768px, 1024px+
+## Estado Atual (09/11/2025)
+✅ **Backend Completamente Reestruturado e Funcional**
+- Migração do banco de dados concluída com sucesso
+- Estrutura de dados otimizada (TipoLote, Solicitacao, Lote, EntradaEstoque)
+- Sistema de preços por fornecedor/tipo/estrelas totalmente funcional
+- Autenticação JWT corrigida e funcionando perfeitamente
+- API RESTful completa para todas as operações
+- Servidor rodando sem erros
 
 ## Arquitetura do Projeto
 
 ### Stack Tecnológica
-- **Backend:** Flask 3.0.0 + Flask-SocketIO
-- **Banco de Dados:** PostgreSQL com SQLAlchemy
-- **Autenticação:** JWT (Flask-JWT-Extended)
+- **Backend:** Flask 3.0.0 + SQLAlchemy
+- **Banco de Dados:** PostgreSQL (Replit Database)
+- **Autenticação:** JWT (Flask-JWT-Extended) - usa ID numérico
+- **IA:** Google Gemini para classificação automática de placas
 - **WebSocket:** Socket.IO para notificações em tempo real
-- **Frontend:** HTML/CSS/JavaScript vanilla (Mobile-First Design)
-- **Deploy:** Railway (configurado)
-- **Design:** Responsivo (Mobile-First), PWA-ready
+- **Frontend:** HTML/CSS/JavaScript (em atualização)
 
-### Estrutura de Diretórios
+### Estrutura de Dados Principal
+
+**Nova Estrutura (09/11/2025):**
 ```
-.
-├── app/
-│   ├── __init__.py          # Inicialização da aplicação e configuração
-│   ├── models.py            # Modelos de banco de dados
-│   ├── auth.py              # Funções de autenticação
-│   ├── routes/              # Rotas da API
-│   │   ├── auth.py          # Login, registro
-│   │   ├── empresas.py      # CRUD de empresas
-│   │   ├── usuarios.py      # Gerenciamento de usuários
-│   │   ├── precos.py        # Gerenciamento de preços
-│   │   ├── relatorios.py    # Geração de relatórios
-│   │   ├── notificacoes.py  # Sistema de notificações
-│   │   ├── dashboard.py     # Dashboard
-│   │   ├── placas.py        # Gerenciamento de placas
-│   │   └── configuracoes.py # Configurações de preços por estrelas
-│   ├── static/              # Arquivos estáticos
-│   │   ├── css/
-│   │   ├── js/
-│   │   └── images/
-│   └── templates/           # Templates HTML
-├── uploads/                 # Arquivos de upload
-├── app.py                   # Ponto de entrada da aplicação
-├── requirements.txt         # Dependências Python
-├── Procfile                 # Configuração Gunicorn para Railway
-├── nixpacks.toml            # Configuração de build do Railway
-├── runtime.txt              # Versão do Python
-└── DEPLOY_RAILWAY.md        # Guia completo de deploy
+TipoLote (até 150 tipos configuráveis)
+   ├─> FornecedorTipoLotePreco (preços por fornecedor/tipo/estrelas)
+   └─> ItemSolicitacao (itens de solicitações)
+
+Fornecedor
+   ├─> FornecedorTipoLotePreco
+   ├─> Solicitacao
+   └─> Lote
+
+Solicitacao (funcionário solicita compra)
+   ├─> ItemSolicitacao (múltiplos itens, cada um com tipo_lote + peso + estrelas)
+   └─> [aprovação admin] → Lote
+
+Lote (agrupamento por fornecedor/tipo/estrelas)
+   ├─> ItemSolicitacao (vários itens)
+   └─> [aprovação admin] → EntradaEstoque
+
+EntradaEstoque (entrada final no estoque)
 ```
 
-## Funcionalidades Principais
+### Fluxo Completo do Sistema
+```
+1. Funcionário cria SOLICITAÇÃO
+   - Escolhe FORNECEDOR
+   - Para cada item:
+     * Seleciona TIPO DE LOTE
+     * Tira FOTO da placa
+     * IA sugere ESTRELAS (1-5) baseado em % verde
+     * Funcionário pode ACEITAR ou OVERRIDE
+     * Insere PESO (kg)
+     * Sistema CALCULA VALOR automaticamente
 
-### 1. Sistema de Autenticação
-- Login/Registro de usuários
-- Autenticação JWT com tokens de 24 horas
-- Dois tipos de usuário: Admin e Funcionário
-- WebSocket autenticado para notificações
+2. Admin APROVA ou REJEITA solicitação
 
-### 2. Gestão de Empresas
-- CRUD completo de empresas
-- Upload de logotipos
-- Vinculação de funcionários às empresas
-- Histórico de alterações
+3. Sistema cria LOTES automaticamente
+   - Agrupa itens por fornecedor/tipo/estrelas
+   - Cada lote tem ID único rastreável
+   - Calcula peso total e valor total
 
-### 3. Gestão de Funcionários
-- Cadastro e gerenciamento de funcionários
-- Vinculação com empresas
-- Controle de permissões
+4. Admin APROVA lotes
 
-### 4. Gestão de Preços
-- Registro de preços por empresa
-- Histórico de preços
-- Notificações em tempo real de novos preços
+5. Sistema cria ENTRADA DE ESTOQUE
+   - Registra entrada no estoque
+   - Mantém rastreabilidade completa
+```
 
-### 5. Relatórios
-- Relatórios de empresas
-- Relatórios de preços
-- Exportação de dados
+## Modelos de Dados
 
-### 6. Notificações em Tempo Real
-- WebSocket para notificações instantâneas
-- Salas separadas para admins e usuários
-- Notificações de novos preços e alterações
+### TipoLote
+Tipos configuráveis de placas (até 150):
+- nome, codigo, descricao
+- unidade_medida (kg padrão)
+- ativo (booleano)
 
-### 7. Sistema de Gerenciamento de Placas ✨ (NOVO)
-- **Scanner de Placas:** Botão FAB central para escanear/registrar placas
-- **Upload de Imagens:** Captura via câmera ou seleção de arquivo
-- **Vinculação com Empresas:** Cada placa associada a uma empresa específica
-- **Classificação:** Tipo de placa (leve, pesada, média)
-- **Registro Completo:** Peso, valor calculado automaticamente, imagem, data
-- **Estatísticas:** Total de placas por empresa, peso total, valor total
-- **Associação com Relatórios:** Placas podem ser vinculadas a relatórios
+### FornecedorTipoLotePreco
+Matriz de preços (até 750 pontos por fornecedor):
+- fornecedor_id
+- tipo_lote_id
+- estrelas (1-5)
+- preco_por_kg
 
-### 8. Sistema de Classificação por Estrelas ✨ (ATUALIZADO - 07/11/2025)
-- **Configurações de Preços:** Sistema de 1 a 5 estrelas para classificar preços
-- **Valores por Kg:** Configure valores específicos por kg para cada nível de estrela
-- **Três Tipos de Placa:** Configurações separadas para leve, pesada e média
-- **Flexibilidade:** Cada tipo de placa pode ter valores diferentes por estrela
-- **Interface Administrativa:** Página dedicada para gerenciar todas as configurações
-- **Validação Robusta:** API protegida com validações contra erros 500
-- **Cálculo Automático:** Sistema calcula automaticamente o valor da placa (peso_kg × preço_por_kg)
+### Solicitacao
+Solicitações de compra:
+- funcionario_id, fornecedor_id
+- tipo_retirada (buscar/entregar)
+- status (pendente/aprovada/rejeitada)
+- observacoes
+- data_envio, data_confirmacao, admin_id
 
-### 9. Painel de Administração ✨ (NOVO - 06/11/2025)
-- **Gerenciamento de Funcionários:** CRUD completo (criar, editar, excluir)
-- **Configuração de Preços por Estrelas:** Interface intuitiva para definir valores
-- **Controle de Acesso:** Apenas administradores podem acessar
-- **Duas Abas:** Funcionários e Classificações de Preços
-- **Validação de Usuários:** Sistema verifica tipo de usuário antes de permitir acesso
+### ItemSolicitacao
+Itens individuais de solicitação:
+- solicitacao_id, tipo_lote_id
+- peso_kg
+- estrelas_sugeridas_ia (1-5)
+- estrelas_final (1-5)
+- valor_calculado
+- imagem_url, observacoes
+- lote_id (quando agrupado)
 
-### 10. Interface Mobile-First com Bottom Navigation ✨
-- **Bottom Navigation Bar:** Menu inferior fixo com 5 ícones (mobile)
-  - **Administração, Dashboard, FAB Scanner, Relatórios, Empresas**
-- **Header Superior:** Apenas sino de notificação no canto superior direito
-- **FAB Button:** Botão central circular elevado para scanner de placas
-- **Modal Scanner:** Interface intuitiva para registrar placas
-- **Touch-Friendly:** Todos os botões e links com 44x44px mínimo
-- **Formulários Mobile:** Input types específicos (tel, email, number) com autocomplete
-- **Sem Zoom:** Font-size 16px nos inputs para evitar zoom automático no iOS
-- **Responsivo:** Mobile-first, esconde bottom nav em desktop (768px+)
-- **Header Simplificado:** Logo, título da página e sino de notificação
-- **Breakpoints:** 768px (tablet), 1024px (desktop)
-- **Acessibilidade:** Focus visível, prefers-reduced-motion, high-contrast support
+### Lote
+Agrupamento de itens:
+- numero_lote (ID único rastreável)
+- fornecedor_id, tipo_lote_id
+- solicitacao_origem_id
+- peso_total_kg, valor_total
+- quantidade_itens, estrelas_media
+- status (aberto/aprovado/rejeitado)
+- tipo_retirada
 
-## Configuração do Banco de Dados
+### EntradaEstoque
+Entradas finais:
+- lote_id
+- status (pendente/processada)
+- data_entrada, data_processamento
+- admin_id, observacoes
 
-### Modelos Principais (Atualizado 07/11/2025)
-- **Usuario:** Usuários do sistema (admin/funcionário)
-- **Vendedor:** Vendedores que gerenciam fornecedores
-- **Fornecedor:** Fornecedores de placas (antiga "Empresa" - renomeada e consolidada)
-  - Contém informações de cadastro, preços por estrelas, endereços, dados bancários
-  - Relacionamentos: preços, solicitações, placas, compras, lotes
-- **ConfiguracaoPrecoEstrela:** Valores por kg para cada nível de estrela (1-5) por tipo de placa
-- **Preco:** Preços de fornecedores com campo de classificação por estrelas (1-5)
-- **Solicitacao:** Solicitações de compra de placas
-- **Placa:** Sistema de registro de placas com imagens, estrelas, peso, valor
-  - Campos adicionados: lote_id, estrelas
-- **Lote:** Agrupamento de placas quando solicita\u00e7\u00e3o fecha ✨ (NOVO)
-  - Calcula peso_total_kg e valor_total
-  - Gera automaticamente uma Compra
-- **Compra:** Compras realizadas de lotes fechados
-  - Atualizado: agora conectado a Lote (lote_id)
-  - Campos: valor_total, peso_total_kg
-- **Entrada:** Controle de entrada de placas
-- **Notificacao:** Sistema de notificações
-- **Classificacao:** Classificações de lotes
-- **Configuracao:** Configurações gerais do sistema
+## API Endpoints
 
-**Tabelas removidas:**
-- Relatorio (funcionalidade substituída por Placa)
-- Funcionario (sem relacionamentos essenciais)
-- Empresa duplicada (consolidada em Fornecedor)
+### Autenticação
+- `POST /api/auth/login` - Login (retorna JWT)
+- `GET /api/auth/me` - Dados do usuário atual
 
-### Criação Automática de Tabelas
-O sistema cria automaticamente todas as tabelas ao iniciar (`db.create_all()` em `app/__init__.py`).
+### Dashboard
+- `GET /api/dashboard/stats` - Estatísticas gerais [ADMIN]
 
-### Usuário Admin Padrão
-Ao iniciar, o sistema cria automaticamente um usuário admin:
-- **Email:** admin@sistema.com (ou variável `ADMIN_EMAIL`)
-- **Senha:** admin123 (ou variável `ADMIN_PASSWORD`)
+### Tipos de Lote
+- `GET /api/tipos-lote` - Listar tipos (limite: 150)
+- `POST /api/tipos-lote` - Criar tipo [ADMIN]
+- `GET /api/tipos-lote/<id>` - Obter tipo
+- `PUT /api/tipos-lote/<id>` - Atualizar tipo [ADMIN]
+- `DELETE /api/tipos-lote/<id>` - Deletar tipo [ADMIN]
 
-⚠️ **IMPORTANTE:** Altere estas credenciais em produção!
+### Fornecedores
+- `GET /api/fornecedores` - Listar fornecedores
+- `POST /api/fornecedores` - Criar fornecedor [ADMIN]
+- `GET /api/fornecedores/<id>` - Obter fornecedor
+- `PUT /api/fornecedores/<id>` - Atualizar fornecedor [ADMIN]
+- `GET /api/fornecedores/cnpj/<cnpj>` - Buscar por CNPJ
+- `GET /api/fornecedores/<id>/precos` - Listar preços configurados
+- `POST /api/fornecedores/<id>/precos` - Configurar preço [ADMIN]
+- `PUT /api/fornecedores/<id>/precos` - Atualizar preço [ADMIN]
 
-## Variáveis de Ambiente
+### Solicitações
+- `GET /api/solicitacoes` - Listar solicitações (filtros: status, fornecedor)
+- `POST /api/solicitacoes` - Criar solicitação
+- `GET /api/solicitacoes/<id>` - Obter solicitação
+- `POST /api/solicitacoes/<id>/aprovar` - Aprovar [ADMIN]
+- `POST /api/solicitacoes/<id>/rejeitar` - Rejeitar [ADMIN]
+- `DELETE /api/solicitacoes/<id>` - Deletar (apenas pendentes)
 
-### Obrigatórias
-- `DATABASE_URL` - URL de conexão com PostgreSQL
-- `SESSION_SECRET` - Chave secreta para sessões
-- `JWT_SECRET_KEY` - Chave secreta para tokens JWT
+### Lotes
+- `GET /api/lotes` - Listar lotes (filtros: status, fornecedor, tipo)
+- `GET /api/lotes/<id>` - Obter lote com itens
+- `POST /api/lotes/criar-de-solicitacao/<id>` - Criar lotes de solicitação aprovada [ADMIN]
+- `PUT /api/lotes/<id>` - Atualizar lote [ADMIN]
+- `POST /api/lotes/<id>/aprovar` - Aprovar lote [ADMIN]
+- `POST /api/lotes/<id>/rejeitar` - Rejeitar lote [ADMIN]
+- `DELETE /api/lotes/<id>` - Deletar lote [ADMIN]
 
-### Opcionais
-- `ADMIN_EMAIL` - Email do admin padrão (default: admin@sistema.com)
-- `ADMIN_PASSWORD` - Senha do admin padrão (default: admin123)
-- `PORT` - Porta do servidor (default: 5000, auto no Railway)
+### Entradas de Estoque
+- `GET /api/entradas` - Listar entradas (filtros: status, fornecedor)
+- `GET /api/entradas/<id>` - Obter entrada
+- `POST /api/entradas` - Criar entrada de lote aprovado [ADMIN]
+- `POST /api/entradas/<id>/processar` - Processar entrada [ADMIN]
+- `PUT /api/entradas/<id>` - Atualizar entrada [ADMIN]
+- `DELETE /api/entradas/<id>` - Deletar entrada [ADMIN]
 
-## Deploy
+## Configuração e Deploy
 
-### Railway (Recomendado)
-✅ **Projeto já configurado para Railway**
-
-Siga o guia completo em `DEPLOY_RAILWAY.md` com instruções passo a passo:
-1. Fazer push para GitHub
-2. Criar projeto no Railway
-3. Adicionar PostgreSQL
-4. Configurar variáveis de ambiente
-5. Deploy automático
-
-### Arquivos de Configuração para Deploy
-- `Procfile` - Comando para iniciar com Gunicorn
-- `nixpacks.toml` - Configuração de build do Railway
-- `runtime.txt` - Python 3.12
-- `requirements.txt` - Dependências limpas e organizadas
-
-## Desenvolvimento Local
-
-### Requisitos
-- Python 3.12
-- PostgreSQL (ou usar integração do Replit)
-
-### Como Executar
+### Variáveis de Ambiente
 ```bash
-# Instalar dependências (já instaladas)
-pip install -r requirements.txt
+DATABASE_URL      # PostgreSQL connection string
+SESSION_SECRET    # Chave para sessões
+JWT_SECRET_KEY    # Chave para JWT
+GEMINI_API_KEY    # Chave da API Gemini (opcional)
+ADMIN_EMAIL       # Email admin (default: admin@sistema.com)
+ADMIN_PASSWORD    # Senha admin (default: admin123)
+```
 
-# Executar aplicação
+### Credenciais Padrão
+- **Email:** admin@sistema.com
+- **Senha:** admin123
+⚠️ Altere em produção!
+
+### Banco de Dados
+O sistema cria automaticamente:
+- Todas as tabelas necessárias
+- 20 tipos de lote padrão
+- Usuário admin
+
+### Executar Localmente
+```bash
 python app.py
 ```
-
-A aplicação estará disponível em `http://0.0.0.0:5000`
-
-## Integrações Replit
-
-### Configuradas (precisam setup)
-- `python_database==1.0.0` - Integração com PostgreSQL
-- `javascript_websocket==1.0.0` - Integração WebSocket
-
-Use as ferramentas de integração do Replit para configurá-las se necessário.
+Servidor roda em `http://0.0.0.0:5000`
 
 ## Segurança
-
-### Implementado
-✅ Autenticação JWT
+✅ Autenticação JWT com ID numérico (não expõe PII)
 ✅ Hash de senhas com bcrypt
+✅ Validação de permissões (admin_required)
 ✅ CORS configurado
-✅ Tokens com expiração (24h)
-✅ WebSocket autenticado
-
-### Recomendações para Produção
-- [ ] Configurar `SESSION_SECRET` e `JWT_SECRET_KEY` fortes
-- [ ] Alterar credenciais do admin padrão
-- [ ] Implementar rate limiting
-- [ ] Configurar HTTPS (Railway faz automaticamente)
-- [ ] Implementar validação de dados mais robusta
-- [ ] Adicionar logs de auditoria
+✅ Tokens com expiração de 24h
 
 ## Próximos Passos
 
-### Para Deploy
-1. ✅ Configurar arquivos de deploy (concluído)
-2. Seguir guia em `DEPLOY_RAILWAY.md`
-3. Configurar variáveis de ambiente no Railway
-4. Testar aplicação em produção
-5. Alterar credenciais padrão do admin
+### Frontend (Pendente)
+- [ ] Atualizar templates de fornecedores
+- [ ] Criar template de configuração de preços (matriz 150×5)
+- [ ] Atualizar template de solicitações (múltiplos itens, foto, IA, estrelas)
+- [ ] Atualizar templates de lotes e entradas com rastreamento
 
-### Melhorias Futuras (Sugestões)
-- Implementar sistema de recuperação de senha
-- Adicionar paginação nas listagens
-- Implementar filtros avançados
-- Adicionar gráficos e dashboards
-- Implementar exportação de relatórios em PDF/Excel
-- Adicionar testes automatizados
-- Implementar cache para melhor performance
+### Melhorias Futuras
+- [ ] Integração completa com Gemini AI para classificação de imagens
+- [ ] Dashboard com gráficos de análise
+- [ ] Exportação de relatórios (PDF/Excel)
+- [ ] Sistema de notificações em tempo real (WebSocket)
+- [ ] Paginação nas listagens
+- [ ] Testes automatizados
 
-## Contato e Suporte
-
-Para problemas com o deploy no Railway, consulte:
-- Documentação oficial: https://docs.railway.com/guides/flask
-- Guia local: `DEPLOY_RAILWAY.md`
-- Logs do Railway: Dashboard → Deployments → Ver logs
+## Integrações Replit
+- `python_database==1.0.0` (NEEDS SETUP)
+- `javascript_websocket==1.0.0` (NEEDS SETUP)
+- `python_gemini==1.0.0` (NEEDS SETUP)
 
 ---
 
-**Última atualização:** 07/11/2025
-**Status:** ✅ Pronto para deploy no Railway
-
-## Mudanças Recentes (07/11/2025)
-
-### 1. Correção do Dockerfile para Railway
-- Simplificado para usar Python diretamente: `CMD ["python", "app.py"]`
-- app.py já lê corretamente a variável PORT via `os.environ.get('PORT', 5000)`
-- Eliminou o erro "$PORT is not a valid port number" no Railway
-
-### 2. Reorganização Completa do Banco de Dados
-**Objetivo:** Consolidar fornecedores e criar fluxo de lotes para compras
-
-**Mudanças estruturais:**
-- Renomeada tabela "Empresa" → "Fornecedor" (consolidada em uma única tabela)
-- Criado modelo **Lote** para agrupar placas quando solicitação fecha
-- Atualizado modelo **Compra** para conectar a Lotes (em vez de Solicitacao)
-- Removidas tabelas sem uso: Relatorio, Funcionario, Fornecedor duplicado
-
-**Fluxo atualizado:**
-```
-Placas (com estrelas) 
-  → Solicitação 
-  → Lote (soma valores/pesos)
-  → Compra (alimenta sistema de compras)
-```
-
-### 3. Script init_db.py Atualizado
-- Agora faz DROP CASCADE antes de criar tabelas (remove estrutura antiga)
-- Cria automaticamente todas as tabelas com a nova estrutura
-- Garante banco de dados limpo e consistente
-
-### 4. Rotas e Blueprints Atualizados
-- Removidos: `/api/empresas`, `/api/relatorios`, `/api/funcionarios`
-- Mantido: `/api/fornecedores` (consolidado)
-- Dashboard atualizado para usar Placa em vez de Relatorio
-- Todos os cálculos usando `valor_total` corretamente
-
-### 5. Próximos Passos para o Usuário
-- [ ] Atualizar frontend para chamar `/api/fornecedores` em vez de `/api/empresas`
-- [ ] Testar deploy no Railway
-- [ ] Implementar lógica de fechamento de lote (quando solicitação é aprovada)
-- [ ] Criar interface para gerenciar lotes
+**Última atualização:** 09/11/2025
+**Status:** ✅ Backend completo e funcional | Frontend em atualização
