@@ -3,16 +3,27 @@
 ## Visão Geral
 Sistema completo para gerenciamento de compras de placas eletrônicas com rastreamento por lote, classificação por qualidade (estrelas), controle de fornecedores, e workflow automatizado desde solicitação até entrada em estoque.
 
-## Estado Atual (10/11/2025)
-✅ **Sistema Completo de Lotes com Classificação por IA + Integração de Estrelas**
-- Módulo de solicitação de lotes com análise IA (Gemini) implementado
+## Estado Atual (10/11/2025 - Atualização Tarde)
+✅ **Sistema de Solicitação Modernizado com IA Completa + Geolocalização**
+- **NOVO (10/11 Tarde):** IA Gemini agora retorna classificação + justificativa textual detalhada
+- **NOVO (10/11 Tarde):** Sistema de 5 estrelas (1-5) por item de solicitação
+- **NOVO (10/11 Tarde):** Preços por fornecedor + tipo + estrelas (cada combinação tem preço único)
+- **NOVO (10/11 Tarde):** Frontend completamente modernizado com design gradiente
+- **NOVO (10/11 Tarde):** Câmera nativa para captura de fotos das placas
+- **NOVO (10/11 Tarde):** Captura de geolocalização GPS (latitude/longitude)
+- **NOVO (10/11 Tarde):** Usuário pode aceitar ou modificar sugestão da IA
+- **NOVO (10/11 Tarde):** Seleção visual de estrelas com cálculo de preço em tempo real
+- **NOVO (10/11 Tarde):** Justificativa da IA é exibida e salva no banco de dados
+- Campo `justificativa_ia` adicionado ao modelo ItemSolicitacao
+- Migração 006_add_justificativa_ia.sql aplicada
+- Endpoint `/api/solicitacao-lotes/precos/<fornecedor>/<tipo>` para buscar preços
 - Sistema de classificação leve/médio/pesado funcionando
-- **NOVO:** Todos os tipos de lote agora suportam as 3 classificações (leve/médio/pesado)
-- **NOVO:** Configuração de estrelas por fornecedor com 3 seletores (🪶 Leve, 📦 Médio, 🏗️ Pesado)
-- **NOVO:** Geração automática de códigos para tipos de lote (baseado no nome)
-- **NOVO:** Backend atualizado para persistir e carregar as 3 classificações por fornecedor
-- **NOVO:** Excel unificado com importação/exportação de tipos e estrelas
-- **NOVO:** Dashboard atualizado (tipos de lote ao invés de placas)
+- Todos os tipos de lote agora suportam as 3 classificações (leve/médio/pesado)
+- Configuração de estrelas por fornecedor com 3 seletores (🪶 Leve, 📦 Médio, 🏗️ Pesado)
+- Geração automática de códigos para tipos de lote (baseado no nome)
+- Backend atualizado para persistir e carregar as 3 classificações por fornecedor
+- Excel unificado com importação/exportação de tipos e estrelas
+- Dashboard atualizado (tipos de lote ao invés de placas)
 - Validação obrigatória de configuração antes de criar solicitações
 - Fluxo completo: solicitação → aprovação → entrada
 - Telas frontend completas para todo o workflow
