@@ -399,7 +399,7 @@
             <span>Dashboard</span>
         </a>
         <div class="fab-container">
-            <button class="fab-button" onclick="openScanner()" aria-label="Novo Tipo de Lote">
+            <button class="fab-button" onclick="openScanner()" aria-label="Nova Placa">
                 <i class="fas fa-plus icon"></i>
             </button>
         </div>
@@ -417,7 +417,7 @@
     <div class="scanner-modal" id="scannerModal">
         <div class="scanner-modal-content">
             <div class="scanner-modal-header">
-                <h2>Escanear Tipo de Lote</h2>
+                <h2>Escanear Placa</h2>
                 <button class="scanner-close" onclick="closeScanner()">&times;</button>
             </div>
             <form id="formScanner">
@@ -436,21 +436,21 @@
                     <img id="previewImg" alt="Preview">
                 </div>
                 <div class="form-group">
-                    <label>Tipo de Lote</label>
-                    <select id="tipoLote" required>
+                    <label>Tipo de Placa</label>
+                    <select id="tipoPlaca" required>
                         <option value="">Selecione...</option>
                         <option value="leve">Leve</option>
                         <option value="pesada">Pesada</option>
                         <option value="media">Média</option>
                     </select>
-                    <button type="button" class="btn btn-secondary w-full" onclick="analisarLoteComIA()" style="margin-top: 0.5rem;">
+                    <button type="button" class="btn btn-secondary w-full" onclick="analisarPlacaComIA()" style="margin-top: 0.5rem;">
                         🤖 Analisar com IA Gemini
                     </button>
                     <div id="resultadoAnaliseIA" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #ecfdf5; border-radius: 6px; font-size: 0.85rem; color: #065f46;"></div>
                 </div>
                 <div class="form-group">
                     <label>Peso (kg)</label>
-                    <input type="number" id="pesoLote" step="0.01" required>
+                    <input type="number" id="pesoPlaca" step="0.01" required>
                 </div>
                 <div class="form-group">
                     <label>Valor Total (calculado automaticamente)</label>
@@ -462,7 +462,7 @@
                     </button>
                     <div id="locationInfo" style="margin-top: 0.5rem; padding: 0.75rem; background: #e8f5e9; border-radius: 5px; display: none; font-size: 0.9rem; color: #2e7d32;"></div>
                 </div>
-                <button type="submit" class="btn btn-primary w-full">Registrar Tipo de Lote</button>
+                <button type="submit" class="btn btn-primary w-full">Registrar Placa</button>
             </form>
         </div>
     </div>
@@ -479,8 +479,8 @@
             <button class="period-btn" onclick="changeModule('solicitacoes')" data-module="solicitacoes">
                 <i class="fas fa-file-alt"></i> Solicitações
             </button>
-            <button class="period-btn" onclick="changeModule('tipos-lote')" data-module="tipos-lote">
-                <i class="fas fa-box"></i> Tipos de Lote
+            <button class="period-btn" onclick="changeModule('placas')" data-module="placas">
+                <i class="fas fa-th-large"></i> Placas
             </button>
             <button class="period-btn" onclick="changeModule('entradas')" data-module="entradas">
                 <i class="fas fa-inbox"></i> Entradas
@@ -831,7 +831,7 @@
                     filters: ['empresa', 'status', 'vendedor', 'data'],
                     showFilters: true
                 },
-                'tipos-lote': {
+                'placas': {
                     filters: ['empresa', 'tipo', 'data'],
                     showFilters: true
                 },
@@ -880,7 +880,7 @@
                 'geral': `
                     <div class="chart-card">
                         <div class="chart-header">
-                            <div class="chart-title"><i class="fas fa-weight"></i> Peso por Tipo de Lote</div>
+                            <div class="chart-title"><i class="fas fa-weight"></i> Peso por Tipo de Placa</div>
                             <div class="chart-type-selector">
                                 <button class="chart-type-btn active" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
                                 <button class="chart-type-btn" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
@@ -949,10 +949,10 @@
                         <ul class="ranking-list" id="ranking"></ul>
                     </div>
                 `,
-                'tipos-lote': `
+                'placas': `
                     <div class="chart-card">
                         <div class="chart-header">
-                            <div class="chart-title"><i class="fas fa-th-large"></i> Tipos de Lote</div>
+                            <div class="chart-title"><i class="fas fa-th-large"></i> Placas por Tipo</div>
                             <div class="chart-type-selector">
                                 <button class="chart-type-btn active" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
                                 <button class="chart-type-btn" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
@@ -1080,7 +1080,7 @@
                     case 'tipo':
                         html += `
                             <div class="form-group" style="margin: 0;">
-                                <label style="font-size: 12px; font-weight: 600;">Tipo de Lote</label>
+                                <label style="font-size: 12px; font-weight: 600;">Tipo de Placa</label>
                                 <select id="filterTipo" onchange="applyFilters()" style="width: 100%; padding: 8px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px;">
                                     <option value="">Todos</option>
                                     <option value="leve">Leve</option>
@@ -1189,8 +1189,8 @@
                     case 'solicitacoes':
                         await loadSolicitacoesBI();
                         break;
-                    case 'tipos-lote':
-                        await loadTiposLoteBI();
+                    case 'placas':
+                        await loadPlacasBI();
                         break;
                     case 'entradas':
                         await loadEntradasBI();
@@ -1319,13 +1319,13 @@
             if (rankingEl) rankingEl.innerHTML = rankingHTML;
         }
 
-        async function loadTiposLoteBI() {
+        async function loadPlacasBI() {
             try {
-                // Use stats do geral para simular dados de tipos de lote
+                // Use stats do geral para simular dados de placas
                 const statsResponse = await fetchAPI('/dashboard/stats');
                 const data = await statsResponse.json();
                 
-                updateKPILabels('tipos-lote');
+                updateKPILabels('placas');
                 updateKPIs({
                     pendentes: data.relatorios.pendentes + data.relatorios.aprovados + data.relatorios.reprovados,
                     aprovados: data.relatorios.aprovados,
@@ -1333,7 +1333,7 @@
                     valorTotal: data.valor_total
                 });
 
-                // Gráfico 1 - Tipos de Lote por classificação
+                // Gráfico 1 - Placas por tipo
                 const ctx1 = document.getElementById('chart1')?.getContext('2d');
                 if (ctx1) {
                     activeCharts['chart1'] = new Chart(ctx1, {
@@ -1367,8 +1367,8 @@
                     });
                 }
             } catch (error) {
-                console.error('Erro ao carregar dados de tipos de lote:', error);
-                updateKPILabels('tipos-lote');
+                console.error('Erro ao carregar dados de placas:', error);
+                updateKPILabels('placas');
                 updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
             }
         }
@@ -1566,8 +1566,8 @@
                     kpi3: 'Reprovadas',
                     kpi4: 'Valor Total'
                 },
-                'tipos-lote': {
-                    kpi1: 'Total Tipos de Lote',
+                'placas': {
+                    kpi1: 'Total Placas',
                     kpi2: 'Aprovadas',
                     kpi3: 'Rejeitadas',
                     kpi4: 'Valor Total'
@@ -1604,7 +1604,7 @@
                 'geral': ['/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html'],
                 'empresas': ['/fornecedores.html', '/fornecedores.html', '/fornecedores.html', '/fornecedores.html'],
                 'solicitacoes': ['/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html'],
-                'tipos-lote': ['/tipos-lote.html', '/tipos-lote.html', '/tipos-lote.html', '/tipos-lote.html'],
+                'placas': ['/consulta-placas.html', '/consulta-placas.html', '/consulta-placas.html', '/consulta-placas.html'],
                 'entradas': ['/entradas.html', '/entradas.html', '/entradas.html', '/entradas.html'],
                 'compras': ['/compras.html', '/compras.html', '/compras.html', '/compras.html'],
                 'fornecedores': ['/fornecedores.html', '/fornecedores.html', '/fornecedores.html', '/fornecedores.html']
@@ -1755,10 +1755,10 @@
             }
         }
 
-        async function analisarLoteComIA() {
+        async function analisarPlacaComIA() {
             const fotoInput = document.getElementById('fileInput');
             if (!fotoInput.files || fotoInput.files.length === 0) {
-                showAlert('Adicione uma foto do tipo de lote primeiro!', 'error');
+                showAlert('Adicione uma foto da placa primeiro!', 'error');
                 return;
             }
 
@@ -1770,14 +1770,14 @@
             resultadoDiv.style.display = 'block';
 
             try {
-                const response = await fetchAPI('/api/lotes/analisar', {
+                const response = await fetchAPI('/api/placas/analisar', {
                     method: 'POST',
                     body: formData
                 });
 
                 if (response && response.ok) {
                     const resultado = await response.json();
-                    document.getElementById('tipoLote').value = resultado.classificacao;
+                    document.getElementById('tipoPlaca').value = resultado.classificacao;
                     resultadoDiv.innerHTML = `✅ ${resultado.mensagem}`;
                     resultadoDiv.style.background = '#ecfdf5';
                     resultadoDiv.style.color = '#065f46';
