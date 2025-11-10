@@ -176,109 +176,6 @@
         </div>
     </div>
 
-    <!-- Modal Preços por Estrela -->
-    <div class="modal" id="modalPrecos">
-        <div class="modal-content" style="max-width: 700px;">
-            <div class="modal-header">
-                <h2 id="tituloModalPrecos">Configurar Preços por Estrela</h2>
-                <button class="modal-close" onclick="fecharModalPrecos()">&times;</button>
-            </div>
-            
-            <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #0369a1;">
-                    <i class="fas fa-tags"></i> <span id="nomeTipoPrecos"></span>
-                </h4>
-                <p style="margin: 0; color: #666; font-size: 0.9rem;">
-                    Classificação: <strong id="classificacaoTipoPrecos"></strong>
-                </p>
-            </div>
-
-            <form id="formPrecos">
-                <input type="hidden" id="tipoIdPrecos">
-                
-                <div style="margin-bottom: 1.5rem;">
-                    <p style="font-weight: 500; margin-bottom: 1rem;">Configure o preço por kg para cada nível de qualidade (estrelas):</p>
-                    
-                    <div style="display: grid; gap: 1rem;">
-                        <div class="form-group" style="display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; display: flex; align-items: center;">
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <span style="margin-left: 0.5rem;">1 Estrela</span>
-                            </label>
-                            <div style="display: flex; align-items: center;">
-                                <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="preco1" step="0.01" min="0" placeholder="0.00" style="flex: 1;">
-                                <span style="margin-left: 0.5rem;">/kg</span>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; display: flex; align-items: center;">
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <span style="margin-left: 0.5rem;">2 Estrelas</span>
-                            </label>
-                            <div style="display: flex; align-items: center;">
-                                <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="preco2" step="0.01" min="0" placeholder="0.00" style="flex: 1;">
-                                <span style="margin-left: 0.5rem;">/kg</span>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; display: flex; align-items: center;">
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <span style="margin-left: 0.5rem;">3 Estrelas</span>
-                            </label>
-                            <div style="display: flex; align-items: center;">
-                                <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="preco3" step="0.01" min="0" placeholder="0.00" style="flex: 1;">
-                                <span style="margin-left: 0.5rem;">/kg</span>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; display: flex; align-items: center;">
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <span style="margin-left: 0.5rem;">4 Estrelas</span>
-                            </label>
-                            <div style="display: flex; align-items: center;">
-                                <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="preco4" step="0.01" min="0" placeholder="0.00" style="flex: 1;">
-                                <span style="margin-left: 0.5rem;">/kg</span>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; display: flex; align-items: center;">
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <i class="fas fa-star" style="color: #fbbf24;"></i>
-                                <span style="margin-left: 0.5rem;">5 Estrelas</span>
-                            </label>
-                            <div style="display: flex; align-items: center;">
-                                <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="preco5" step="0.01" min="0" placeholder="0.00" style="flex: 1;">
-                                <span style="margin-left: 0.5rem;">/kg</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" class="btn btn-secondary" onclick="fecharModalPrecos()" style="flex: 1;">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Preços</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Modal Estrelas por Fornecedor -->
     <div class="modal" id="modalEstrelasFornecedor">
@@ -342,7 +239,7 @@
             }
         }
 
-        function renderizarTabela() {
+        async function renderizarTabela() {
             const tbody = document.getElementById('tabelaTipos');
             
             if (tiposLote.length === 0) {
@@ -350,17 +247,40 @@
                 return;
             }
 
-            tbody.innerHTML = tiposLote.map(tipo => `
+            const tiposComPrecos = await Promise.all(tiposLote.map(async tipo => {
+                try {
+                    const response = await fetch(`/api/tipos-lote/${tipo.id}/precos-classificacao`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    if (response.ok) {
+                        const precos = await response.json();
+                        tipo.precos = precos;
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar preços:', error);
+                }
+                return tipo;
+            }));
+
+            tbody.innerHTML = tiposComPrecos.map(tipo => {
+                const precos = tipo.precos || {};
+                const leve = precos.leve_preco ? `R$ ${precos.leve_preco.toFixed(2)}` : '-';
+                const medio = precos.medio_preco ? `R$ ${precos.medio_preco.toFixed(2)}` : '-';
+                const pesado = precos.pesado_preco ? `R$ ${precos.pesado_preco.toFixed(2)}` : '-';
+                
+                return `
                 <tr>
                     <td><strong>${tipo.codigo || '-'}</strong></td>
                     <td>${tipo.nome}</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="abrirModalPrecos(${tipo.id})" title="Configurar preços">
-                            <i class="fas fa-dollar-sign"></i> Configurar
-                        </button>
+                    <td style="font-size: 0.85rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span>🪶 Leve: <strong>${leve}</strong></span>
+                            <span>⚖️ Médio: <strong>${medio}</strong></span>
+                            <span>⚓ Pesado: <strong>${pesado}</strong></span>
+                        </div>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-secondary" onclick="editarTipo(${tipo.id})">
+                        <button class="btn btn-sm btn-secondary" onclick="editarTipo(${tipo.id})" title="Editar tipo e preços">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn btn-sm btn-danger" onclick="deletarTipo(${tipo.id})">
@@ -368,7 +288,7 @@
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         async function carregarFornecedoresParaTipo(tipoId) {
@@ -434,6 +354,9 @@
             document.getElementById('tituloModalTipo').textContent = 'Novo Tipo de Lote';
             document.getElementById('formTipo').reset();
             document.getElementById('tipoId').value = '';
+            document.getElementById('precoLeve').value = '';
+            document.getElementById('precoMedio').value = '';
+            document.getElementById('precoPesado').value = '';
             await carregarFornecedoresParaTipo(null);
             document.getElementById('modalTipo').style.display = 'flex';
         }
@@ -452,6 +375,28 @@
             document.getElementById('codigo').value = tipo.codigo || '';
             document.getElementById('classificacao').value = tipo.classificacao;
             document.getElementById('descricao').value = tipo.descricao || '';
+            
+            document.getElementById('precoLeve').value = '';
+            document.getElementById('precoMedio').value = '';
+            document.getElementById('precoPesado').value = '';
+            
+            try {
+                const response = await fetch(`/api/tipos-lote/${id}/precos-classificacao`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const precos = await response.json();
+                    if (precos.leve_preco) document.getElementById('precoLeve').value = precos.leve_preco;
+                    if (precos.medio_preco) document.getElementById('precoMedio').value = precos.medio_preco;
+                    if (precos.pesado_preco) document.getElementById('precoPesado').value = precos.pesado_preco;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar preços:', error);
+            }
+            
             await carregarFornecedoresParaTipo(id);
             document.getElementById('modalTipo').style.display = 'flex';
         }
@@ -574,82 +519,7 @@
             }
         }
 
-        async function abrirModalPrecos(tipoId) {
-            const tipo = tiposLote.find(t => t.id === tipoId);
-            if (!tipo) return;
-
-            document.getElementById('tipoIdPrecos').value = tipoId;
-            document.getElementById('nomeTipoPrecos').textContent = tipo.nome;
-            document.getElementById('classificacaoTipoPrecos').textContent = 
-                tipo.classificacao === 'leve' ? '🪶 Leve' : 
-                tipo.classificacao === 'media' ? '⚖️ Média' : '⚓ Pesada';
-
-            for (let i = 1; i <= 5; i++) {
-                document.getElementById(`preco${i}`).value = '';
-            }
-
-            try {
-                const response = await fetch(`/api/tipos-lote/${tipoId}/precos`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    data.precos.forEach(preco => {
-                        document.getElementById(`preco${preco.estrelas}`).value = preco.preco_por_kg || '';
-                    });
-                }
-            } catch (error) {
-                console.error('Erro ao carregar preços:', error);
-            }
-
-            document.getElementById('modalPrecos').style.display = 'flex';
-        }
-
-        function fecharModalPrecos() {
-            document.getElementById('modalPrecos').style.display = 'none';
-        }
-
-        document.getElementById('formPrecos').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const tipoId = document.getElementById('tipoIdPrecos').value;
-            const precos = [];
-
-            for (let estrelas = 1; estrelas <= 5; estrelas++) {
-                const valor = document.getElementById(`preco${estrelas}`).value;
-                if (valor) {
-                    precos.push({
-                        estrelas: estrelas,
-                        preco_por_kg: parseFloat(valor),
-                        ativo: true
-                    });
-                }
-            }
-
-            try {
-                const response = await fetch(`/api/tipos-lote/${tipoId}/precos`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({ precos })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.erro || 'Erro ao salvar preços');
-                }
-
-                mostrarMensagem('Preços configurados com sucesso!');
-                fecharModalPrecos();
-            } catch (error) {
-                mostrarMensagem(error.message, 'error');
-            }
-        });
+        // Funções antigas de modal de preços removidas - agora configurado direto no modal do tipo
 
         async function importarExcel() {
             const fileInput = document.getElementById('fileExcel');

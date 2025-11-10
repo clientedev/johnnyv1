@@ -263,10 +263,18 @@
                     }
                 });
                 
-                if (!response.ok) throw new Error('Erro ao carregar fornecedores');
+                if (!response.ok) {
+                    console.error('Erro HTTP:', response.status);
+                    throw new Error('Erro ao carregar fornecedores');
+                }
                 
                 fornecedoresData = await response.json();
                 const select = document.getElementById('fornecedor');
+                
+                if (fornecedoresData.length === 0) {
+                    mostrarMensagem('⚠️ Nenhum fornecedor com tipos de lote configurados. Configure em Fornecedores → Editar → Estrelas', 'error');
+                    return;
+                }
                 
                 fornecedoresData.forEach(forn => {
                     const option = document.createElement('option');
@@ -276,7 +284,8 @@
                     select.appendChild(option);
                 });
             } catch (error) {
-                mostrarMensagem('Erro ao carregar fornecedores', 'error');
+                console.error('Erro ao carregar fornecedores:', error);
+                mostrarMensagem('❌ Erro ao carregar fornecedores. Verifique se há fornecedores com estrelas configuradas.', 'error');
             }
         }
         

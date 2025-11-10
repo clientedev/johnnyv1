@@ -222,37 +222,7 @@
         </div>
     </div>
 
-    <!-- Modal Configurar Preços -->
-    <div class="modal" id="modalPrecos">
-        <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
-            <div class="modal-header">
-                <h2 id="tituloModalPrecos">Configurar Preços</h2>
-                <button class="modal-close" onclick="fecharModalPrecos()">&times;</button>
-            </div>
-            
-            <div style="background: #fffbeb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #f59e0b;">
-                <p style="margin: 0; font-size: 0.9rem;">
-                    <strong>💡 Como funciona:</strong> Configure os preços por kg para cada tipo de lote e estrela (1-5 ⭐).
-                    Você pode configurar até 150 tipos de lote diferentes, com 5 níveis de preço cada (por estrela).
-                </p>
-            </div>
-
-            <div class="form-group">
-                <input type="text" id="buscaTipoLote" placeholder="🔍 Buscar tipo de lote..." onkeyup="filtrarTiposLote()" style="width: 100%;">
-            </div>
-
-            <div id="listaTiposLote" style="max-height: 500px; overflow-y: auto;">
-                <p style="text-align: center; color: #666;">Carregando tipos de lote...</p>
-            </div>
-
-            <div style="margin-top: 1.5rem; padding: 1rem; background: #f3f4f6; border-radius: 8px;">
-                <h4 style="margin: 0 0 0.5rem 0;">📊 Resumo</h4>
-                <p id="resumoPrecos" style="margin: 0; font-size: 0.9rem;">Nenhum preço configurado ainda</p>
-            </div>
-
-            <button class="btn btn-primary w-full mt-3" onclick="salvarPrecos()">💾 Salvar Todos os Preços</button>
-        </div>
-    </div>
+    <!-- Modal Preços Removido - Preços agora são configurados em Tipos de Lote, fornecedores apenas configuram estrelas -->
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="/static/js/app.js"></script>
@@ -289,9 +259,9 @@
                         <td>${f.telefone || '-'}</td>
                         <td>${f.cidade || '-'}</td>
                         <td>
-                            <button class="btn btn-secondary" onclick="editarFornecedor(${f.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Editar</button>
-                            <button class="btn btn-primary" onclick="configurarPrecos(${f.id}, '${f.nome}')" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">💰 Preços</button>
-                            <button class="btn btn-danger" onclick="deletarFornecedor(${f.id}, '${f.nome}')" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Excluir</button>
+                            <button class="btn btn-secondary" onclick="editarFornecedor(${f.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">✏️ Editar</button>
+                            <button class="btn btn-primary" onclick="editarFornecedor(${f.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">⭐ Estrelas</button>
+                            <button class="btn btn-danger" onclick="deletarFornecedor(${f.id}, '${f.nome}')" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">🗑️ Excluir</button>
                         </td>
                     </tr>
                 `).join('');

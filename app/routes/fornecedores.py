@@ -222,7 +222,7 @@ def criar_fornecedor():
         return jsonify({'erro': f'Erro ao criar fornecedor: {str(e)}'}), 500
 
 @bp.route('/<int:id>', methods=['PUT'])
-@admin_required
+@jwt_required()
 def atualizar_fornecedor(id):
     try:
         fornecedor = Fornecedor.query.get(id)
