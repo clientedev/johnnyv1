@@ -37,7 +37,7 @@
             <span>Dashboard</span>
         </a>
         <div class="fab-container">
-            <button class="fab-button" onclick="openScanner()" aria-label="Nova Placa">
+            <button class="fab-button" onclick="window.location.href='/funcionario.html'" aria-label="Nova Solicitação">
                 <i class="fas fa-plus icon"></i>
             </button>
         </div>
@@ -51,60 +51,6 @@
         </a>
     </nav>
 
-    <!-- Scanner Modal -->
-    <div class="scanner-modal" id="scannerModal">
-        <div class="scanner-modal-content">
-            <div class="scanner-modal-header">
-                <h2>Escanear Placa</h2>
-                <button class="scanner-close" onclick="closeScanner()">&times;</button>
-            </div>
-            <form id="formScanner">
-                <div class="form-group">
-                    <label>Selecionar Fornecedor</label>
-                    <select id="scannerEmpresa" required>
-                        <option value="">Escolha um fornecedor...</option>
-                    </select>
-                </div>
-                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-camera icon" style="font-size: 3rem; color: var(--primary-color);"></i>
-                    <p>Toque para capturar ou selecionar imagem</p>
-                    <input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;" onchange="previewImage(this)">
-                </div>
-                <div class="image-preview" id="imagePreview">
-                    <img id="previewImg" alt="Preview">
-                </div>
-                <div class="form-group">
-                    <label>Tipo de Placa</label>
-                    <select id="tipoPlaca" required>
-                        <option value="">Selecione...</option>
-                        <option value="leve">Leve</option>
-                        <option value="pesada">Pesada</option>
-                        <option value="media">Média</option>
-                    </select>
-                    <button type="button" class="btn btn-secondary w-full" onclick="analisarPlacaComIA()" style="margin-top: 0.5rem;">
-                        🤖 Analisar com IA Gemini
-                    </button>
-                    <div id="resultadoAnaliseIA" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #ecfdf5; border-radius: 6px; font-size: 0.85rem; color: #065f46;"></div>
-                </div>
-                <div class="form-group">
-                    <label>Peso (kg)</label>
-                    <input type="number" id="pesoPlaca" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label>Valor Total (calculado automaticamente)</label>
-                    <div id="valorCalculado" data-valor="0" style="padding: 0.75rem; background-color: #f0f0f0; border-radius: 5px; font-weight: bold; font-size: 1.1rem; color: #2c3e50;">R$ 0,00</div>
-                </div>
-                <div class="form-group">
-                    <button type="button" class="btn btn-secondary w-full" id="btnCapturarLocalizacao" onclick="capturarLocalizacaoScanner()">
-                        <i class="fas fa-map-marker-alt"></i> Capturar Localização
-                    </button>
-                    <div id="locationInfo" style="margin-top: 0.5rem; padding: 0.75rem; background: #e8f5e9; border-radius: 5px; display: none; font-size: 0.9rem; color: #2e7d32;"></div>
-                </div>
-                <button type="submit" class="btn btn-primary w-full">Registrar Placa</button>
-            </form>
-        </div>
-    </div>
-
     <main class="container mt-4">
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
             <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Fornecedores</h1>
@@ -117,119 +63,93 @@
                     <thead>
                         <tr>
                             <th>Nome</th>
-                            <th>CNPJ</th>
+                            <th>CNPJ/CPF</th>
                             <th>Telefone</th>
+                            <th>Cidade</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaFornecedores">
-                        <tr><td colspan="4" class="loading">Carregando...</td></tr>
+                        <tr><td colspan="5" class="loading">Carregando...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
 
+    <!-- Modal Fornecedor -->
     <div class="modal" id="modalFornecedor">
-        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h2 id="tituloModal">Novo Fornecedor</h2>
                 <button class="modal-close" onclick="fecharModal()">&times;</button>
             </div>
             <form id="formFornecedor">
-                <input type="hidden" id="empresaId">
+                <input type="hidden" id="fornecedorId">
                 
                 <div class="form-group">
                     <label>CNPJ</label>
                     <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="cnpj" placeholder="00.000.000/0000-00" required style="flex: 1;">
+                        <input type="text" id="cnpj" placeholder="00.000.000/0000-00" style="flex: 1;">
                         <button type="button" class="btn btn-secondary" onclick="buscarCNPJ()" id="btnBuscarCNPJ">
                             🔍 Buscar
                         </button>
                     </div>
                     <small style="color: #666;">Digite o CNPJ e clique em Buscar para preencher automaticamente</small>
                 </div>
+
+                <div class="form-group">
+                    <label>CPF (Alternativo)</label>
+                    <input type="text" id="cpf" placeholder="000.000.000-00">
+                </div>
                 
                 <div id="dadosCNPJ" style="display: none; background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <h4 style="margin: 0 0 1rem 0; color: #0369a1;">📋 Dados da Receita Federal (não editáveis)</h4>
+                    <h4 style="margin: 0 0 1rem 0; color: #0369a1;">📋 Dados da Receita Federal</h4>
                     
                     <div class="form-group">
                         <label>Nome / Razão Social</label>
-                        <input type="text" id="nome" readonly style="background: #e0f2fe;">
+                        <input type="text" id="nome" required>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
                             <label>Rua</label>
-                            <input type="text" id="rua" readonly style="background: #e0f2fe;">
+                            <input type="text" id="rua">
                         </div>
                         <div class="form-group">
-                            <label>Cidade</label>
-                            <input type="text" id="cidade" readonly style="background: #e0f2fe;">
+                            <label>Número</label>
+                            <input type="text" id="numero">
                         </div>
                     </div>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
+                            <label>Cidade</label>
+                            <input type="text" id="cidade">
+                        </div>
+                        <div class="form-group">
                             <label>Estado</label>
-                            <input type="text" id="estado" readonly style="background: #e0f2fe;">
+                            <input type="text" id="estado" maxlength="2">
                         </div>
                         <div class="form-group">
                             <label>CEP</label>
-                            <input type="text" id="cep" readonly style="background: #e0f2fe;">
+                            <input type="text" id="cep">
                         </div>
-                        <div class="form-group">
-                            <label>Bairro</label>
-                            <input type="text" id="bairro" readonly style="background: #e0f2fe;">
-                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bairro</label>
+                        <input type="text" id="bairro">
                     </div>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
                             <label>Telefone</label>
-                            <input type="tel" id="telefone" readonly style="background: #e0f2fe;">
+                            <input type="tel" id="telefone">
                         </div>
                         <div class="form-group">
                             <label>Email</label>
-                            <input type="email" id="email" readonly style="background: #e0f2fe;">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="checkbox" id="temOutroEndereco" onchange="toggleOutroEndereco()">
-                        <span>📍 Adicionar Outro Endereço (diferente do CNPJ)</span>
-                    </label>
-                </div>
-                
-                <div id="outroEnderecoSection" style="display: none; background: #fef3c7; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <h4 style="margin: 0 0 1rem 0; color: #92400e;">📦 Endereço Adicional (editável)</h4>
-                    
-                    <div class="form-group">
-                        <label>Rua</label>
-                        <input type="text" id="outroRua">
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                        <div class="form-group">
-                            <label>Cidade</label>
-                            <input type="text" id="outroCidade">
-                        </div>
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <input type="text" id="outroEstado" maxlength="2">
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                        <div class="form-group">
-                            <label>CEP</label>
-                            <input type="text" id="outroCep">
-                        </div>
-                        <div class="form-group">
-                            <label>Bairro</label>
-                            <input type="text" id="outroBairro">
+                            <input type="email" id="email">
                         </div>
                     </div>
                 </div>
@@ -239,76 +159,49 @@
                     <textarea id="observacoes" rows="2"></textarea>
                 </div>
                 
-                <h3 style="margin-top: 1.5rem;">⭐ Produtos e Preços</h3>
-                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">Selecione produtos e configure estrelas (1-5) para cada um</p>
-                
-                <div class="form-group">
-                    <button type="button" class="btn btn-secondary w-full" onclick="abrirSeletorProdutos()">
-                        ➕ Adicionar Produtos
-                    </button>
-                </div>
-                
-                <div id="produtosSelecionados" style="margin-bottom: 1rem;">
-                </div>
-                
-                <h4 style="margin-top: 1rem; color: #666; font-size: 0.9rem;">Classificação Padrão (Leve, Média, Pesada):</h4>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
-                    <div class="form-group">
-                        <label>Leve</label>
-                        <select id="estrelasLeve">
-                            <option value="1">⭐</option>
-                            <option value="2">⭐⭐</option>
-                            <option value="3" selected>⭐⭐⭐</option>
-                            <option value="4">⭐⭐⭐⭐</option>
-                            <option value="5">⭐⭐⭐⭐⭐</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Média</label>
-                        <select id="estrelasMedia">
-                            <option value="1">⭐</option>
-                            <option value="2">⭐⭐</option>
-                            <option value="3" selected>⭐⭐⭐</option>
-                            <option value="4">⭐⭐⭐⭐</option>
-                            <option value="5">⭐⭐⭐⭐⭐</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Pesada</label>
-                        <select id="estrelasPesada">
-                            <option value="1">⭐</option>
-                            <option value="2">⭐⭐</option>
-                            <option value="3" selected>⭐⭐⭐</option>
-                            <option value="4">⭐⭐⭐⭐</option>
-                            <option value="5">⭐⭐⭐⭐⭐</option>
-                        </select>
-                    </div>
-                </div>
-                
                 <button type="submit" class="btn btn-primary w-full">💾 Salvar Fornecedor</button>
             </form>
         </div>
     </div>
-    
-    <div class="modal" id="modalSeletorProdutos">
-        <div class="modal-content" style="max-width: 600px;">
+
+    <!-- Modal Configurar Preços -->
+    <div class="modal" id="modalPrecos">
+        <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h2>Selecionar Produtos</h2>
-                <button class="modal-close" onclick="fecharSeletorProdutos()">&times;</button>
+                <h2 id="tituloModalPrecos">Configurar Preços</h2>
+                <button class="modal-close" onclick="fecharModalPrecos()">&times;</button>
             </div>
+            
+            <div style="background: #fffbeb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #f59e0b;">
+                <p style="margin: 0; font-size: 0.9rem;">
+                    <strong>💡 Como funciona:</strong> Configure os preços por kg para cada tipo de lote e estrela (1-5 ⭐).
+                    Você pode configurar até 150 tipos de lote diferentes, com 5 níveis de preço cada (por estrela).
+                </p>
+            </div>
+
             <div class="form-group">
-                <input type="text" id="buscaProduto" placeholder="🔍 Buscar produto..." onkeyup="filtrarProdutos()" style="width: 100%;">
+                <input type="text" id="buscaTipoLote" placeholder="🔍 Buscar tipo de lote..." onkeyup="filtrarTiposLote()" style="width: 100%;">
             </div>
-            <div id="listaProdutos" style="max-height: 400px; overflow-y: auto;">
-                <p style="text-align: center; color: #666;">Carregando produtos...</p>
+
+            <div id="listaTiposLote" style="max-height: 500px; overflow-y: auto;">
+                <p style="text-align: center; color: #666;">Carregando tipos de lote...</p>
             </div>
+
+            <div style="margin-top: 1.5rem; padding: 1rem; background: #f3f4f6; border-radius: 8px;">
+                <h4 style="margin: 0 0 0.5rem 0;">📊 Resumo</h4>
+                <p id="resumoPrecos" style="margin: 0; font-size: 0.9rem;">Nenhum preço configurado ainda</p>
+            </div>
+
+            <button class="btn btn-primary w-full mt-3" onclick="salvarPrecos()">💾 Salvar Todos os Preços</button>
         </div>
     </div>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
-        let empresaAtual = null;
+        let fornecedorAtual = null;
+        let todosTiposLote = [];
+        let precosConfigurados = {};
 
         async function carregarPagina() {
             const user = await verificarAuth();
@@ -322,45 +215,41 @@
             try {
                 const response = await fetchAPI('/api/fornecedores');
                 if (!response || !response.ok) return;
-                const empresas = await response.json();
+                const fornecedores = await response.json();
 
-            const tbody = document.getElementById('tabelaFornecedores');
+                const tbody = document.getElementById('tabelaFornecedores');
 
-            if (empresas.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhum fornecedor cadastrado</td></tr>';
-                return;
-            }
+                if (fornecedores.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Nenhum fornecedor cadastrado</td></tr>';
+                    return;
+                }
 
-            tbody.innerHTML = empresas.map(e => `
-                <tr>
-                    <td>${e.nome}</td>
-                    <td>${e.cnpj}</td>
-                    <td>${e.telefone || '-'}</td>
-                    <td>
-                        <button class="btn btn-secondary" onclick="editarFornecedor(${e.id})">Editar</button>
-                        <button class="btn btn-danger" onclick="deletarFornecedor(${e.id}, '${e.nome}')">Excluir</button>
-                    </td>
-                </tr>
-            `).join('');
+                tbody.innerHTML = fornecedores.map(f => `
+                    <tr>
+                        <td>${f.nome}</td>
+                        <td>${f.cnpj || f.cpf || '-'}</td>
+                        <td>${f.telefone || '-'}</td>
+                        <td>${f.cidade || '-'}</td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="editarFornecedor(${f.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Editar</button>
+                            <button class="btn btn-primary" onclick="configurarPrecos(${f.id}, '${f.nome}')" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">💰 Preços</button>
+                            <button class="btn btn-danger" onclick="deletarFornecedor(${f.id}, '${f.nome}')" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Excluir</button>
+                        </td>
+                    </tr>
+                `).join('');
             } catch (error) {
                 console.error('Erro ao carregar fornecedores:', error);
                 const tbody = document.getElementById('tabelaFornecedores');
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Erro ao carregar fornecedores. Faça login novamente.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Erro ao carregar fornecedores.</td></tr>';
             }
         }
 
-        let produtosSelecionados = [];
-        let todosProdutos = [];
-
         function abrirModalNovoFornecedor() {
-            empresaAtual = null;
-            produtosSelecionados = [];
+            fornecedorAtual = null;
             document.getElementById('tituloModal').textContent = 'Novo Fornecedor';
             document.getElementById('formFornecedor').reset();
-            document.getElementById('empresaId').value = '';
-            document.getElementById('dadosCNPJ').style.display = 'none';
-            document.getElementById('outroEnderecoSection').style.display = 'none';
-            document.getElementById('produtosSelecionados').innerHTML = '';
+            document.getElementById('fornecedorId').value = '';
+            document.getElementById('dadosCNPJ').style.display = 'block';
             document.getElementById('modalFornecedor').classList.add('active');
         }
 
@@ -378,13 +267,14 @@
             btn.textContent = '⏳ Buscando...';
             
             try {
-                const response = await fetchAPI(`/api/fornecedores/consultar-cnpj/${cnpj}`);
+                const response = await fetchAPI(`/api/fornecedores/cnpj/${cnpj}`);
                 
                 if (response && response.ok) {
                     const data = await response.json();
                     
                     document.getElementById('nome').value = data.nome || '';
                     document.getElementById('rua').value = data.rua || '';
+                    document.getElementById('numero').value = data.numero || '';
                     document.getElementById('cidade').value = data.cidade || '';
                     document.getElementById('estado').value = data.estado || '';
                     document.getElementById('cep').value = data.cep || '';
@@ -395,136 +285,65 @@
                     document.getElementById('dadosCNPJ').style.display = 'block';
                     showAlert('✅ Dados do CNPJ carregados com sucesso!', 'success');
                 } else {
-                    showAlert('CNPJ não encontrado ou erro ao consultar', 'error');
+                    showAlert('CNPJ não encontrado. Preencha os dados manualmente.', 'error');
+                    document.getElementById('dadosCNPJ').style.display = 'block';
                 }
             } catch (error) {
                 console.error('Erro ao buscar CNPJ:', error);
-                showAlert('Erro ao buscar CNPJ. Tente novamente.', 'error');
+                showAlert('Erro ao buscar CNPJ. Preencha os dados manualmente.', 'error');
+                document.getElementById('dadosCNPJ').style.display = 'block';
             } finally {
                 btn.disabled = false;
                 btn.textContent = '🔍 Buscar';
             }
         }
 
-        function toggleOutroEndereco() {
-            const checked = document.getElementById('temOutroEndereco').checked;
-            document.getElementById('outroEnderecoSection').style.display = checked ? 'block' : 'none';
-        }
+        document.getElementById('formFornecedor').addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-        async function abrirSeletorProdutos() {
-            if (todosProdutos.length === 0) {
-                await carregarProdutos();
-            }
-            renderizarListaProdutos();
-            document.getElementById('modalSeletorProdutos').classList.add('active');
-        }
+            const id = document.getElementById('fornecedorId').value;
+            const data = {
+                nome: document.getElementById('nome').value,
+                cnpj: document.getElementById('cnpj').value || null,
+                cpf: document.getElementById('cpf').value || null,
+                rua: document.getElementById('rua').value || null,
+                numero: document.getElementById('numero').value || null,
+                cidade: document.getElementById('cidade').value || null,
+                estado: document.getElementById('estado').value || null,
+                cep: document.getElementById('cep').value || null,
+                bairro: document.getElementById('bairro').value || null,
+                telefone: document.getElementById('telefone').value || null,
+                email: document.getElementById('email').value || null,
+                observacoes: document.getElementById('observacoes').value || null
+            };
 
-        function fecharSeletorProdutos() {
-            document.getElementById('modalSeletorProdutos').classList.remove('active');
-        }
-
-        async function carregarProdutos() {
             try {
-                const response = await fetchAPI('/api/produtos?ativo=true');
-                if (response && response.ok) {
-                    todosProdutos = await response.json();
+                let response;
+                if (id) {
+                    response = await fetchAPI(`/api/fornecedores/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(data)
+                    });
                 } else {
-                    showAlert('Erro ao carregar produtos', 'error');
+                    response = await fetchAPI('/api/fornecedores', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+                }
+
+                if (response && response.ok) {
+                    showAlert(id ? 'Fornecedor atualizado com sucesso!' : 'Fornecedor criado com sucesso!', 'success');
+                    fecharModal();
+                    await carregarFornecedores();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || 'Erro ao salvar fornecedor', 'error');
                 }
             } catch (error) {
-                console.error('Erro ao carregar produtos:', error);
-                showAlert('Erro ao carregar produtos', 'error');
+                console.error('Erro ao salvar fornecedor:', error);
+                showAlert('Erro ao salvar fornecedor', 'error');
             }
-        }
-
-        function renderizarListaProdutos(filtro = '') {
-            const container = document.getElementById('listaProdutos');
-            
-            let produtosFiltrados = todosProdutos;
-            if (filtro) {
-                produtosFiltrados = todosProdutos.filter(p => 
-                    p.nome.toLowerCase().includes(filtro.toLowerCase())
-                );
-            }
-            
-            if (produtosFiltrados.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #666;">Nenhum produto encontrado</p>';
-                return;
-            }
-            
-            container.innerHTML = produtosFiltrados.map(produto => {
-                const jaSelecionado = produtosSelecionados.some(p => p.id === produto.id);
-                return `
-                    <div style="padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; ${jaSelecionado ? 'background: #f0fdf4;' : ''}">
-                        <div>
-                            <strong>${produto.nome}</strong>
-                            ${produto.descricao ? `<br><small style="color: #666;">${produto.descricao}</small>` : ''}
-                        </div>
-                        <button 
-                            class="btn ${jaSelecionado ? 'btn-secondary' : 'btn-primary'}" 
-                            onclick="selecionarProduto(${produto.id}, '${produto.nome}')"
-                            ${jaSelecionado ? 'disabled' : ''}
-                            style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
-                            ${jaSelecionado ? '✓ Adicionado' : '+ Adicionar'}
-                        </button>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function filtrarProdutos() {
-            const filtro = document.getElementById('buscaProduto').value;
-            renderizarListaProdutos(filtro);
-        }
-
-        function selecionarProduto(id, nome) {
-            if (!produtosSelecionados.some(p => p.id === id)) {
-                produtosSelecionados.push({ id, nome, estrelas: 3 });
-                renderizarProdutosSelecionados();
-                renderizarListaProdutos(document.getElementById('buscaProduto').value);
-                showAlert(`Produto "${nome}" adicionado!`, 'success');
-            }
-        }
-
-        function removerProdutoSelecionado(id) {
-            produtosSelecionados = produtosSelecionados.filter(p => p.id !== id);
-            renderizarProdutosSelecionados();
-            renderizarListaProdutos(document.getElementById('buscaProduto').value);
-        }
-
-        function atualizarEstrelaProduto(id, estrelas) {
-            const produto = produtosSelecionados.find(p => p.id === id);
-            if (produto) {
-                produto.estrelas = parseInt(estrelas);
-            }
-        }
-
-        function renderizarProdutosSelecionados() {
-            const container = document.getElementById('produtosSelecionados');
-            
-            if (produtosSelecionados.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #999; font-size: 0.9rem;">Nenhum produto selecionado</p>';
-                return;
-            }
-            
-            container.innerHTML = produtosSelecionados.map(p => `
-                <div style="padding: 0.75rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="flex: 1;">
-                        <strong>${p.nome}</strong>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <select onchange="atualizarEstrelaProduto(${p.id}, this.value)" style="padding: 0.25rem 0.5rem; font-size: 0.85rem;">
-                            <option value="1" ${p.estrelas === 1 ? 'selected' : ''}>⭐</option>
-                            <option value="2" ${p.estrelas === 2 ? 'selected' : ''}>⭐⭐</option>
-                            <option value="3" ${p.estrelas === 3 ? 'selected' : ''}>⭐⭐⭐</option>
-                            <option value="4" ${p.estrelas === 4 ? 'selected' : ''}>⭐⭐⭐⭐</option>
-                            <option value="5" ${p.estrelas === 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐</option>
-                        </select>
-                        <button class="btn btn-danger" onclick="removerProdutoSelecionado(${p.id})" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">✕</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+        });
 
         async function editarFornecedor(id) {
             try {
@@ -533,106 +352,33 @@
                     showAlert('Erro ao carregar fornecedor');
                     return;
                 }
-                empresaAtual = await response.json();
+                fornecedorAtual = await response.json();
 
                 document.getElementById('tituloModal').textContent = 'Editar Fornecedor';
-                document.getElementById('empresaId').value = empresaAtual.id;
-                document.getElementById('nome').value = empresaAtual.nome;
-                document.getElementById('cnpj').value = empresaAtual.cnpj;
-                document.getElementById('rua').value = empresaAtual.rua || '';
-                document.getElementById('cidade').value = empresaAtual.cidade || '';
-                document.getElementById('estado').value = empresaAtual.estado || '';
-                document.getElementById('cep').value = empresaAtual.cep || '';
-                document.getElementById('bairro').value = empresaAtual.bairro || '';
-                document.getElementById('telefone').value = empresaAtual.telefone || '';
-                document.getElementById('email').value = empresaAtual.email || '';
-                document.getElementById('observacoes').value = empresaAtual.observacoes || '';
-                
+                document.getElementById('fornecedorId').value = fornecedorAtual.id;
+                document.getElementById('nome').value = fornecedorAtual.nome || '';
+                document.getElementById('cnpj').value = fornecedorAtual.cnpj || '';
+                document.getElementById('cpf').value = fornecedorAtual.cpf || '';
+                document.getElementById('rua').value = fornecedorAtual.rua || '';
+                document.getElementById('numero').value = fornecedorAtual.numero || '';
+                document.getElementById('cidade').value = fornecedorAtual.cidade || '';
+                document.getElementById('estado').value = fornecedorAtual.estado || '';
+                document.getElementById('cep').value = fornecedorAtual.cep || '';
+                document.getElementById('bairro').value = fornecedorAtual.bairro || '';
+                document.getElementById('telefone').value = fornecedorAtual.telefone || '';
+                document.getElementById('email').value = fornecedorAtual.email || '';
+                document.getElementById('observacoes').value = fornecedorAtual.observacoes || '';
+
                 document.getElementById('dadosCNPJ').style.display = 'block';
-                
-                if (empresaAtual.tem_outro_endereco) {
-                    document.getElementById('temOutroEndereco').checked = true;
-                    document.getElementById('outroEnderecoSection').style.display = 'block';
-                    document.getElementById('outroRua').value = empresaAtual.outro_rua || '';
-                    document.getElementById('outroCidade').value = empresaAtual.outro_cidade || '';
-                    document.getElementById('outroEstado').value = empresaAtual.outro_estado || '';
-                    document.getElementById('outroCep').value = empresaAtual.outro_cep || '';
-                    document.getElementById('outroBairro').value = empresaAtual.outro_bairro || '';
-                }
-
-                document.getElementById('estrelasLeve').value = empresaAtual.estrelas_leve || 3;
-                document.getElementById('estrelasPesada').value = empresaAtual.estrelas_pesada || 3;
-                document.getElementById('estrelasMedia').value = empresaAtual.estrelas_media || 3;
-
                 document.getElementById('modalFornecedor').classList.add('active');
             } catch (error) {
                 console.error('Erro ao editar fornecedor:', error);
-                showAlert('Erro ao carregar dados do fornecedor');
+                showAlert('Erro ao carregar dados do fornecedor', 'error');
             }
         }
 
-        document.getElementById('formFornecedor').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            try {
-                const id = document.getElementById('empresaId').value;
-                const dados = {
-                    nome: document.getElementById('nome').value,
-                    cnpj: document.getElementById('cnpj').value,
-                    rua: document.getElementById('rua').value,
-                    cidade: document.getElementById('cidade').value,
-                    estado: document.getElementById('estado').value,
-                    cep: document.getElementById('cep').value,
-                    bairro: document.getElementById('bairro').value,
-                    telefone: document.getElementById('telefone').value,
-                    email: document.getElementById('email').value,
-                    observacoes: document.getElementById('observacoes').value,
-                    estrelas_leve: parseInt(document.getElementById('estrelasLeve').value),
-                    estrelas_pesada: parseInt(document.getElementById('estrelasPesada').value),
-                    estrelas_media: parseInt(document.getElementById('estrelasMedia').value),
-                    tem_outro_endereco: document.getElementById('temOutroEndereco').checked,
-                    outro_rua: document.getElementById('outroRua').value,
-                    outro_cidade: document.getElementById('outroCidade').value,
-                    outro_estado: document.getElementById('outroEstado').value,
-                    outro_cep: document.getElementById('outroCep').value,
-                    outro_bairro: document.getElementById('outroBairro').value,
-                    produtos: produtosSelecionados.map(p => ({
-                        produto_id: p.id,
-                        estrelas: p.estrelas
-                    }))
-                };
-
-                let response;
-                if (id) {
-                    response = await fetchAPI(`/api/fornecedores/${id}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(dados)
-                    });
-                } else {
-                    response = await fetchAPI('/api/fornecedores', {
-                        method: 'POST',
-                        body: JSON.stringify(dados)
-                    });
-                }
-
-                if (response && response.ok) {
-                    showAlert(`✅ Fornecedor salvo com sucesso! ${produtosSelecionados.length} produtos configurados.`, 'success');
-                    fecharModal();
-                    await carregarFornecedores();
-                } else if (response) {
-                    const data = await response.json();
-                    showAlert(data.erro || 'Erro ao salvar fornecedor');
-                } else {
-                    showAlert('Erro ao conectar com o servidor. Verifique sua autenticação.');
-                }
-            } catch (error) {
-                console.error('Erro ao salvar fornecedor:', error);
-                showAlert('Erro ao salvar fornecedor. Faça login novamente.');
-            }
-        });
-
         async function deletarFornecedor(id, nome) {
-            if (!confirm(`Deseja realmente excluir o fornecedor "${nome}"?`)) return;
+            if (!confirm(`Tem certeza que deseja excluir o fornecedor "${nome}"?`)) return;
 
             try {
                 const response = await fetchAPI(`/api/fornecedores/${id}`, {
@@ -642,15 +388,12 @@
                 if (response && response.ok) {
                     showAlert('Fornecedor excluído com sucesso!', 'success');
                     await carregarFornecedores();
-                } else if (response) {
-                    const data = await response.json();
-                    showAlert(data.erro || 'Erro ao excluir fornecedor');
                 } else {
-                    showAlert('Erro ao conectar com o servidor');
+                    showAlert('Erro ao excluir fornecedor', 'error');
                 }
             } catch (error) {
-                console.error('Erro ao deletar fornecedor:', error);
-                showAlert('Erro ao excluir fornecedor. Tente novamente.');
+                console.error('Erro ao excluir fornecedor:', error);
+                showAlert('Erro ao excluir fornecedor', 'error');
             }
         }
 
@@ -658,255 +401,162 @@
             document.getElementById('modalFornecedor').classList.remove('active');
         }
 
-        function openScanner() {
-            carregarEmpresasScanner();
-            document.getElementById('scannerModal').classList.add('active');
+        async function configurarPrecos(fornecedorId, fornecedorNome) {
+            fornecedorAtual = { id: fornecedorId, nome: fornecedorNome };
+            precosConfigurados = {};
+            
+            document.getElementById('tituloModalPrecos').textContent = `Configurar Preços - ${fornecedorNome}`;
+            
+            await carregarTiposLote();
+            await carregarPrecosExistentes(fornecedorId);
+            
+            renderizarListaTiposLote();
+            atualizarResumoPrecos();
+            
+            document.getElementById('modalPrecos').classList.add('active');
         }
 
-        function closeScanner() {
-            document.getElementById('scannerModal').classList.remove('active');
-            document.getElementById('formScanner').reset();
-            document.getElementById('imagePreview').style.display = 'none';
-        }
-
-        async function carregarEmpresasScanner() {
+        async function carregarTiposLote() {
             try {
-                const response = await fetchAPI('/api/fornecedores');
-                if (!response || !response.ok) return;
-                const empresas = await response.json();
-                
-                const select = document.getElementById('scannerEmpresa');
-                select.innerHTML = '<option value="">Escolha um fornecedor...</option>';
-                empresas.forEach(empresa => {
-                    const option = document.createElement('option');
-                    option.value = empresa.id;
-                    option.textContent = empresa.nome;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Erro ao carregar fornecedores no scanner:', error);
-            }
-        }
-
-        async function previewImage(input) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    const preview = document.getElementById('previewImg');
-                    preview.src = e.target.result;
-                    document.getElementById('imagePreview').style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        async function analisarPlacaAutomatica() {
-            try {
-                const fileInput = document.getElementById('fileInput');
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    showAlert('Por favor, adicione uma imagem da placa primeiro!', 'error');
-                    return;
-                }
-                
-                const file = fileInput.files[0];
-                const formData = new FormData();
-                formData.append('imagem', file);
-                
-                showAlert('Analisando placa com IA...', 'info');
-                
-                const response = await fetchAPI('/api/placas/analisar', {
-                    method: 'POST',
-                    body: formData
-                });
-                
+                const response = await fetchAPI('/api/tipos-lote');
                 if (response && response.ok) {
-                    const resultado = await response.json();
-                    
-                    const tipoPlacaSelect = document.getElementById('tipoPlaca');
-                    tipoPlacaSelect.value = resultado.classificacao;
-                    
-                    showAlert(`✅ ${resultado.mensagem} - Percentual verde: ${resultado.percentual_verde}%`, 'success');
+                    todosTiposLote = await response.json();
                 } else {
-                    const error = await response.json();
-                    showAlert(error.erro || 'Erro ao analisar placa', 'error');
+                    showAlert('Erro ao carregar tipos de lote', 'error');
                 }
             } catch (error) {
-                console.error('Erro ao analisar placa:', error);
-                showAlert('Erro ao analisar placa. Selecione manualmente.', 'error');
+                console.error('Erro ao carregar tipos de lote:', error);
+                showAlert('Erro ao carregar tipos de lote', 'error');
             }
         }
 
-        async function capturarLocalizacaoScanner() {
-            if (!navigator.geolocation) {
-                showAlert('Geolocalização não suportada pelo navegador', 'error');
+        async function carregarPrecosExistentes(fornecedorId) {
+            try {
+                const response = await fetchAPI(`/api/fornecedores/${fornecedorId}/precos`);
+                if (response && response.ok) {
+                    const precos = await response.json();
+                    precos.forEach(preco => {
+                        const key = `${preco.tipo_lote_id}_${preco.estrelas}`;
+                        precosConfigurados[key] = preco.preco_por_kg;
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar preços:', error);
+            }
+        }
+
+        function renderizarListaTiposLote(filtro = '') {
+            const container = document.getElementById('listaTiposLote');
+            
+            let tiposFiltrados = todosTiposLote;
+            if (filtro) {
+                tiposFiltrados = todosTiposLote.filter(t => 
+                    t.nome.toLowerCase().includes(filtro.toLowerCase()) ||
+                    (t.codigo && t.codigo.toLowerCase().includes(filtro.toLowerCase()))
+                );
+            }
+            
+            if (tiposFiltrados.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">Nenhum tipo de lote encontrado</p>';
+                return;
+            }
+            
+            container.innerHTML = tiposFiltrados.map(tipo => {
+                const temPreco = [1,2,3,4,5].some(e => precosConfigurados[`${tipo.id}_${e}`]);
+                return `
+                    <div style="padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 1rem; ${temPreco ? 'background: #f0fdf4; border-color: #86efac;' : ''}">
+                        <div style="margin-bottom: 0.75rem;">
+                            <strong style="font-size: 1.1rem;">${tipo.nome}</strong>
+                            ${tipo.codigo ? `<span style="color: #666; font-size: 0.85rem; margin-left: 0.5rem;">(${tipo.codigo})</span>` : ''}
+                            ${tipo.descricao ? `<br><small style="color: #666;">${tipo.descricao}</small>` : ''}
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
+                            ${[1,2,3,4,5].map(estrelas => {
+                                const key = `${tipo.id}_${estrelas}`;
+                                const preco = precosConfigurados[key] || '';
+                                return `
+                                    <div>
+                                        <label style="font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">
+                                            ${'⭐'.repeat(estrelas)}
+                                        </label>
+                                        <input 
+                                            type="number" 
+                                            step="0.01" 
+                                            placeholder="R$/kg"
+                                            value="${preco}"
+                                            onchange="atualizarPreco(${tipo.id}, ${estrelas}, this.value)"
+                                            style="width: 100%; padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;">
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filtrarTiposLote() {
+            const filtro = document.getElementById('buscaTipoLote').value;
+            renderizarListaTiposLote(filtro);
+        }
+
+        function atualizarPreco(tipoLoteId, estrelas, valor) {
+            const key = `${tipoLoteId}_${estrelas}`;
+            if (valor && parseFloat(valor) > 0) {
+                precosConfigurados[key] = parseFloat(valor);
+            } else {
+                delete precosConfigurados[key];
+            }
+            atualizarResumoPrecos();
+        }
+
+        function atualizarResumoPrecos() {
+            const total = Object.keys(precosConfigurados).length;
+            const tiposConfigurados = new Set(Object.keys(precosConfigurados).map(k => k.split('_')[0])).size;
+            
+            document.getElementById('resumoPrecos').textContent = 
+                total > 0 
+                ? `${total} preço(s) configurado(s) para ${tiposConfigurados} tipo(s) de lote` 
+                : 'Nenhum preço configurado ainda';
+        }
+
+        async function salvarPrecos() {
+            if (Object.keys(precosConfigurados).length === 0) {
+                showAlert('Configure pelo menos um preço antes de salvar', 'error');
                 return;
             }
 
-            const btn = document.getElementById('btnCapturarLocalizacao');
-            btn.disabled = true;
-            btn.textContent = 'Capturando...';
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    document.getElementById('locationInfo').innerHTML = `📍 Localização: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                    document.getElementById('locationInfo').style.display = 'block';
-                    btn.textContent = '✓ Localização Capturada';
-                    btn.disabled = false;
-                },
-                (error) => {
-                    showAlert('Erro ao capturar localização: ' + error.message, 'error');
-                    btn.textContent = 'Capturar Localização';
-                    btn.disabled = false;
-                }
-            );
-        }
-
-        document.getElementById('formScanner').addEventListener('submit', async (e) => {
-            e.preventDefault();
+            const precos = Object.entries(precosConfigurados).map(([key, preco]) => {
+                const [tipo_lote_id, estrelas] = key.split('_');
+                return {
+                    tipo_lote_id: parseInt(tipo_lote_id),
+                    estrelas: parseInt(estrelas),
+                    preco_por_kg: parseFloat(preco)
+                };
+            });
 
             try {
-                const empresaId = document.getElementById('scannerEmpresa').value;
-                const tipoPlaca = document.getElementById('tipoPlaca').value;
-                const peso = parseFloat(document.getElementById('pesoPlaca').value);
-                const fileInput = document.getElementById('fileInput');
-
-                if (!empresaId || !tipoPlaca || !peso) {
-                    showAlert('Preencha todos os campos obrigatórios', 'error');
-                    return;
-                }
-
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    showAlert('Selecione uma imagem da placa', 'error');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('fornecedor_id', empresaId);
-                formData.append('tipo_placa', tipoPlaca);
-                formData.append('peso_kg', peso);
-                formData.append('imagem', fileInput.files[0]);
-
-                const locationInfo = document.getElementById('locationInfo').style.display;
-                if (locationInfo === 'block') {
-                    const locText = document.getElementById('locationInfo').textContent;
-                    const coords = locText.split(': ')[1];
-                    if (coords) {
-                        formData.append('localizacao', coords);
-                    }
-                }
-
-                const response = await fetchAPI('/api/placas', {
+                const response = await fetchAPI(`/api/fornecedores/${fornecedorAtual.id}/precos`, {
                     method: 'POST',
-                    body: formData
+                    body: JSON.stringify({ precos })
                 });
 
                 if (response && response.ok) {
-                    const data = await response.json();
-                    showAlert(`Placa registrada com sucesso! Valor: R$ ${data.valor_total.toFixed(2)}`, 'success');
-                    closeScanner();
+                    showAlert('Preços salvos com sucesso!', 'success');
+                    fecharModalPrecos();
                 } else {
                     const error = await response.json();
-                    showAlert(error.erro || 'Erro ao registrar placa', 'error');
+                    showAlert(error.erro || 'Erro ao salvar preços', 'error');
                 }
             } catch (error) {
-                console.error('Erro ao enviar placa:', error);
-                showAlert('Erro ao registrar placa. Tente novamente.', 'error');
-            }
-        });
-
-        document.getElementById('tipoPlaca').addEventListener('change', async function() {
-            const empresaId = document.getElementById('scannerEmpresa').value;
-            const tipoPlaca = this.value;
-            const peso = parseFloat(document.getElementById('pesoPlaca').value);
-
-            if (empresaId && tipoPlaca && peso) {
-                try {
-                    const response = await fetchAPI(`/api/fornecedores/${empresaId}/preco/${tipoPlaca}`);
-                    if (response && response.ok) {
-                        const data = await response.json();
-                        const valorTotal = data.preco_por_kg * peso;
-                        document.getElementById('valorCalculado').textContent = `R$ ${valorTotal.toFixed(2)}`;
-                        document.getElementById('valorCalculado').dataset.valor = valorTotal;
-                    }
-                } catch (error) {
-                    console.error('Erro ao calcular valor:', error);
-                }
-            }
-        });
-
-        document.getElementById('pesoPlaca').addEventListener('input', function() {
-            const empresaId = document.getElementById('scannerEmpresa').value;
-            const tipoPlaca = document.getElementById('tipoPlaca').value;
-            const peso = parseFloat(this.value);
-
-            if (empresaId && tipoPlaca && peso) {
-                fetchAPI(`/api/fornecedores/${empresaId}/preco/${tipoPlaca}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const valorTotal = data.preco_por_kg * peso;
-                        document.getElementById('valorCalculado').textContent = `R$ ${valorTotal.toFixed(2)}`;
-                        document.getElementById('valorCalculado').dataset.valor = valorTotal;
-                    })
-                    .catch(error => console.error('Erro ao calcular valor:', error));
-            }
-        });
-
-        // Funções do Scanner com IA
-        async function analisarPlacaComIA() {
-            const fotoInput = document.getElementById('fileInput');
-            if (!fotoInput.files || fotoInput.files.length === 0) {
-                showAlert('Adicione uma foto da placa primeiro!', 'error');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('imagem', fotoInput.files[0]);
-
-            const resultadoDiv = document.getElementById('resultadoAnaliseIA');
-            resultadoDiv.innerHTML = '🔄 Analisando com IA Gemini...';
-            resultadoDiv.style.display = 'block';
-
-            try {
-                const response = await fetchAPI('/api/placas/analisar', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response && response.ok) {
-                    const resultado = await response.json();
-                    document.getElementById('tipoPlaca').value = resultado.classificacao;
-                    resultadoDiv.innerHTML = `✅ ${resultado.mensagem}`;
-                    resultadoDiv.style.background = '#ecfdf5';
-                    resultadoDiv.style.color = '#065f46';
-                } else {
-                    const error = response ? await response.json() : {erro: 'Erro de conexão'};
-                    resultadoDiv.innerHTML = `❌ ${error.erro || 'Erro ao analisar'}`;
-                    resultadoDiv.style.background = '#fee2e2';
-                    resultadoDiv.style.color = '#991b1b';
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                resultadoDiv.innerHTML = '❌ Erro ao analisar. Tente novamente.';
-                resultadoDiv.style.background = '#fee2e2';
-                resultadoDiv.style.color = '#991b1b';
+                console.error('Erro ao salvar preços:', error);
+                showAlert('Erro ao salvar preços', 'error');
             }
         }
 
-        function previewImage(input) {
-            const preview = document.getElementById('imagePreview');
-            const img = document.getElementById('previewImg');
-
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    img.src = e.target.result;
-                    preview.classList.add('active');
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
+        function fecharModalPrecos() {
+            document.getElementById('modalPrecos').classList.remove('active');
         }
 
         carregarPagina();
