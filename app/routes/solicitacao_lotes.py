@@ -17,7 +17,7 @@ UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def analisar_imagem_com_ia(imagem_path):
-    """Analisa imagem usando Gemini AI para classificar lote"""
+    """Analisa imagem usando Gemini AI para classificar lote e fornecer justificativa"""
     try:
         import google.genai as genai
         
@@ -31,26 +31,60 @@ def analisar_imagem_com_ia(imagem_path):
         with open(imagem_path, 'rb') as f:
             image_data = f.read()
         
-        prompt = """Analise esta imagem de placas eletrônicas e classifique o lote baseado na densidade e quantidade de componentes:
+        prompt = """Analise esta imagem de placas eletrônicas e classifique o lote baseado na densidade e quantidade de componentes.
 
-- LEVE: Placas com poucos componentes, circuitos simples, baixa densidade
-- MEDIO: Placas com quantidade moderada de componentes, complexidade média
-- PESADO: Placas densamente povoadas com muitos componentes, circuitos complexos
+CRITÉRIOS DE CLASSIFICAÇÃO:
+- LEVE: Placas com poucos componentes, circuitos simples, baixa densidade, muito cobre/área verde visível
+- MEDIO: Placas com quantidade moderada de componentes, complexidade média, densidade balanceada
+- PESADO: Placas densamente povoadas com muitos componentes, circuitos complexos, alta densidade
 
-Retorne APENAS uma das palavras: leve, medio ou pesado"""
+FORMATO DE RESPOSTA (obrigatório):
+Classificação: [LEVE ou MEDIO ou PESADO]
+Justificativa: [Descreva em 1-2 frases o que você observou na imagem que levou a esta classificação]
+
+Exemplo:
+Classificação: LEVE
+Justificativa: A placa apresenta poucos componentes SMD e muita área de cobre exposta, indicando baixa densidade de componentes e circuito simples."""
 
         response = client.models.generate_content(
             model='gemini-2.0-flash-exp',
             contents=[prompt, {'mime_type': 'image/jpeg', 'data': base64.b64encode(image_data).decode()}]
         )
         
-        classificacao = response.text.strip().lower()
+        resposta_texto = response.text.strip()
         
-        if classificacao not in ['leve', 'medio', 'pesado']:
-            print(f"AVISO: IA retornou classificação inválida: {classificacao}")
-            return 'medio'
+        classificacao = None
+        justificativa = ""
         
-        return classificacao
+        linhas = resposta_texto.split('\n')
+        for linha in linhas:
+            if 'Classificação:' in linha or 'Classificacao:' in linha:
+                class_parte = linha.split(':', 1)[1].strip().lower()
+                if 'leve' in class_parte:
+                    classificacao = 'leve'
+                elif 'medio' in class_parte or 'média' in class_parte:
+                    classificacao = 'medio'
+                elif 'pesado' in class_parte or 'pesada' in class_parte:
+                    classificacao = 'pesado'
+            elif 'Justificativa:' in linha:
+                justificativa = linha.split(':', 1)[1].strip()
+        
+        if not classificacao or classificacao not in ['leve', 'medio', 'pesado']:
+            print(f"AVISO: IA retornou classificação inválida. Resposta: {resposta_texto}")
+            return {
+                'classificacao': 'medio',
+                'justificativa': 'Classificação padrão aplicada (IA retornou resposta inválida)',
+                'resposta_bruta': resposta_texto
+            }
+        
+        if not justificativa:
+            justificativa = "A IA classificou esta placa mas não forneceu justificativa detalhada."
+        
+        return {
+            'classificacao': classificacao,
+            'justificativa': justificativa,
+            'resposta_bruta': resposta_texto
+        }
         
     except Exception as e:
         print(f"ERRO ao analisar imagem com IA: {str(e)}")
@@ -144,7 +178,7 @@ def listar_fornecedores_com_tipos():
 @bp.route('/analisar-imagem', methods=['POST'])
 @jwt_required()
 def analisar_imagem():
-    """Endpoint para analisar imagem e sugerir classificação"""
+    """Endpoint para analisar imagem e sugerir classificação com justificativa"""
     if 'imagem' not in request.files:
         return jsonify({'erro': 'Nenhuma imagem enviada'}), 400
     
@@ -157,18 +191,21 @@ def analisar_imagem():
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     arquivo.save(filepath)
     
-    classificacao_ia = analisar_imagem_com_ia(filepath)
+    resultado_ia = analisar_imagem_com_ia(filepath)
     
-    if classificacao_ia is None:
+    if resultado_ia is None:
         return jsonify({
             'imagem_url': f'/uploads/{filename}',
             'classificacao_sugerida': None,
+            'justificativa_ia': None,
             'aviso': 'IA não disponível. Configure GEMINI_API_KEY para análise automática.'
         }), 200
     
     return jsonify({
         'imagem_url': f'/uploads/{filename}',
-        'classificacao_sugerida': classificacao_ia
+        'classificacao_sugerida': resultado_ia['classificacao'],
+        'justificativa_ia': resultado_ia['justificativa'],
+        'resposta_completa': resultado_ia.get('resposta_bruta', '')
     }), 200
 
 @bp.route('/criar', methods=['POST'])

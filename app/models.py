@@ -408,6 +408,7 @@ class ItemSolicitacao(db.Model):  # type: ignore
     estrelas_final = db.Column(db.Integer, nullable=False, default=3)
     classificacao = db.Column(db.String(10), nullable=True)
     classificacao_sugerida_ia = db.Column(db.String(10), nullable=True)
+    justificativa_ia = db.Column(db.Text, nullable=True)
     valor_calculado = db.Column(db.Float, nullable=False, default=0.0)
     preco_por_kg_snapshot = db.Column(db.Float, nullable=True)
     estrelas_snapshot = db.Column(db.Integer, nullable=True)
@@ -434,6 +435,7 @@ class ItemSolicitacao(db.Model):  # type: ignore
             'estrelas_final': self.estrelas_final,
             'classificacao': self.classificacao,
             'classificacao_sugerida_ia': self.classificacao_sugerida_ia,
+            'justificativa_ia': self.justificativa_ia,
             'valor_calculado': self.valor_calculado,
             'preco_por_kg_snapshot': self.preco_por_kg_snapshot,
             'estrelas_snapshot': self.estrelas_snapshot,
