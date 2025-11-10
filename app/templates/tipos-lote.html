@@ -54,24 +54,17 @@
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
             <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Tipos de Lote</h1>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <button class="btn btn-info" onclick="baixarModeloEstrelasExcel()" title="Baixar modelo Excel para classificações de estrelas">
-                    <i class="fas fa-download"></i> Modelo Estrelas
-                </button>
-                <button class="btn btn-secondary" onclick="document.getElementById('fileExcelEstrelas').click()" title="Importar classificações de estrelas via Excel">
-                    <i class="fas fa-file-upload"></i> Importar Estrelas
-                </button>
-                <button class="btn btn-secondary" onclick="exportarEstrelasExcel()" title="Exportar classificações de estrelas">
-                    <i class="fas fa-file-download"></i> Exportar Estrelas
-                </button>
                 <button class="btn btn-secondary" onclick="document.getElementById('fileExcel').click()">
                     <i class="fas fa-file-excel"></i> Importar Excel
+                </button>
+                <button class="btn btn-secondary" onclick="exportarExcel()">
+                    <i class="fas fa-file-download"></i> Exportar Excel
                 </button>
                 <button class="btn btn-primary" onclick="abrirModalNovoTipo()">+ Novo Tipo</button>
             </div>
         </div>
 
         <input type="file" id="fileExcel" accept=".xlsx,.xls" style="display: none;" onchange="importarExcel()">
-        <input type="file" id="fileExcelEstrelas" accept=".xlsx,.xls" style="display: none;" onchange="importarEstrelasExcel()">
 
         <div class="card">
             <div class="table-container">
@@ -82,12 +75,11 @@
                             <th>Nome</th>
                             <th>Classificação</th>
                             <th>Preços Configurados</th>
-                            <th>Estrelas por Fornecedor</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaTipos">
-                        <tr><td colspan="6" class="loading">Carregando...</td></tr>
+                        <tr><td colspan="5" class="loading">Carregando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -186,7 +178,19 @@
                     <textarea id="descricao" rows="3" placeholder="Descrição detalhada do tipo de lote"></textarea>
                 </div>
 
-                <div style="display: flex; gap: 0.5rem;">
+                <div id="secaoEstrelasFornecedores" style="margin-top: 1.5rem; background: #fef3c7; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
+                        ⭐ Estrelas por Fornecedor
+                    </h4>
+                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #78350f;">
+                        Configure quantas estrelas cada fornecedor atribui para as classificações Leve, Médio e Pesado.
+                    </p>
+                    <div id="listaFornecedoresEstrelas" style="max-height: 300px; overflow-y: auto;">
+                        <p style="color: #666; text-align: center;">Carregando fornecedores...</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
                     <button type="button" class="btn btn-secondary" onclick="fecharModalTipo()" style="flex: 1;">Cancelar</button>
                     <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>
                 </div>
@@ -364,7 +368,7 @@
             const tbody = document.getElementById('tabelaTipos');
             
             if (tiposLote.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">Nenhum tipo de lote cadastrado</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">Nenhum tipo de lote cadastrado</td></tr>';
                 return;
             }
 
@@ -383,11 +387,6 @@
                         </button>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-info" onclick="abrirModalEstrelasFornecedor(${tipo.id})" title="Configurar estrelas por fornecedor">
-                            <i class="fas fa-star"></i> Estrelas
-                        </button>
-                    </td>
-                    <td>
                         <button class="btn btn-sm btn-secondary" onclick="editarTipo(${tipo.id})">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -399,10 +398,70 @@
             `).join('');
         }
 
-        function abrirModalNovoTipo() {
+        async function carregarFornecedoresParaTipo(tipoId) {
+            const listaDiv = document.getElementById('listaFornecedoresEstrelas');
+            listaDiv.innerHTML = '<p style="text-align: center; color: #666;">Carregando fornecedores...</p>';
+
+            try {
+                const fornecedoresResp = await fetch('/api/fornecedores', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                
+                if (!fornecedoresResp.ok) throw new Error('Erro ao carregar fornecedores');
+                
+                const fornecedores = await fornecedoresResp.json();
+                fornecedoresCache = fornecedores;
+
+                let classificacoes = [];
+                if (tipoId) {
+                    const classResp = await fetch(`/api/fornecedor-tipo-lote-classificacoes?tipo_lote_id=${tipoId}`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    if (classResp.ok) {
+                        classificacoes = await classResp.json();
+                    }
+                }
+
+                listaDiv.innerHTML = fornecedores.map(f => {
+                    const classif = classificacoes.find(c => c.fornecedor_id === f.id) || {};
+                    return `
+                        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;" data-fornecedor-id="${f.id}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <strong style="color: #111827;">${f.nome}</strong>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" class="fornecedor-ativo" data-fornecedor-id="${f.id}" ${classif.ativo !== false ? 'checked' : ''}>
+                                    <span style="font-size: 0.875rem; color: #6b7280;">Ativo</span>
+                                </label>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Leve (⭐)</label>
+                                    <input type="number" class="estrela-leve" data-fornecedor-id="${f.id}" min="1" max="5" value="${classif.leve_estrelas || 1}" style="width: 100%; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Médio (⭐)</label>
+                                    <input type="number" class="estrela-medio" data-fornecedor-id="${f.id}" min="1" max="5" value="${classif.medio_estrelas || 1}" style="width: 100%; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Pesado (⭐)</label>
+                                    <input type="number" class="estrela-pesado" data-fornecedor-id="${f.id}" min="1" max="5" value="${classif.pesado_estrelas || 1}" style="width: 100%; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Erro ao carregar fornecedores:', error);
+                listaDiv.innerHTML = '<p style="text-align: center; color: #dc2626;">Erro ao carregar fornecedores</p>';
+            }
+        }
+
+        async function abrirModalNovoTipo() {
             document.getElementById('tituloModalTipo').textContent = 'Novo Tipo de Lote';
             document.getElementById('formTipo').reset();
             document.getElementById('tipoId').value = '';
+            await carregarFornecedoresParaTipo(null);
             document.getElementById('modalTipo').style.display = 'flex';
         }
 
@@ -410,7 +469,7 @@
             document.getElementById('modalTipo').style.display = 'none';
         }
 
-        function editarTipo(id) {
+        async function editarTipo(id) {
             const tipo = tiposLote.find(t => t.id === id);
             if (!tipo) return;
 
@@ -420,6 +479,7 @@
             document.getElementById('codigo').value = tipo.codigo || '';
             document.getElementById('classificacao').value = tipo.classificacao;
             document.getElementById('descricao').value = tipo.descricao || '';
+            await carregarFornecedoresParaTipo(id);
             document.getElementById('modalTipo').style.display = 'flex';
         }
 
@@ -452,7 +512,41 @@
                     throw new Error(error.erro || 'Erro ao salvar');
                 }
 
-                mostrarMensagem(tipoId ? 'Tipo atualizado com sucesso!' : 'Tipo criado com sucesso!');
+                const resultado = await response.json();
+                const finalTipoId = tipoId || resultado.id;
+
+                const fornecedoresDivs = document.querySelectorAll('#listaFornecedoresEstrelas > div[data-fornecedor-id]');
+                for (const div of fornecedoresDivs) {
+                    const fornecedorId = div.getAttribute('data-fornecedor-id');
+                    const ativo = div.querySelector('.fornecedor-ativo').checked;
+                    const leveEstrelas = div.querySelector('.estrela-leve').value;
+                    const medioEstrelas = div.querySelector('.estrela-medio').value;
+                    const pesadoEstrelas = div.querySelector('.estrela-pesado').value;
+
+                    const classificacaoData = {
+                        fornecedor_id: parseInt(fornecedorId),
+                        tipo_lote_id: parseInt(finalTipoId),
+                        leve_estrelas: parseInt(leveEstrelas),
+                        medio_estrelas: parseInt(medioEstrelas),
+                        pesado_estrelas: parseInt(pesadoEstrelas),
+                        ativo: ativo
+                    };
+
+                    const classifResp = await fetch('/api/fornecedor-tipo-lote-classificacoes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(classificacaoData)
+                    });
+
+                    if (!classifResp.ok && classifResp.status !== 409) {
+                        console.error(`Erro ao salvar classificação do fornecedor ${fornecedorId}`);
+                    }
+                }
+
+                mostrarMensagem(tipoId ? 'Tipo e classificações atualizados com sucesso!' : 'Tipo e classificações criados com sucesso!');
                 fecharModalTipo();
                 carregarTipos();
             } catch (error) {
