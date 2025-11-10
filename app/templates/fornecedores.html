@@ -148,8 +148,57 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Endereço Diferente para Visita -->
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="temOutroEndereco" onchange="toggleEnderecoVisita()" style="margin-right: 0.5rem;">
+                        <strong>📍 Endereço para visita diferente do CNPJ cadastrado</strong>
+                    </label>
+                    <small style="color: #666; margin-left: 1.5rem;">Marque se o local de coleta é diferente do endereço do CNPJ</small>
+                </div>
+
+                <div id="camposEnderecoVisita" style="display: none; background: #fef3c7; padding: 1rem; border-radius: 8px; margin-top: 0.5rem; border-left: 4px solid #f59e0b;">
+                    <h4 style="margin: 0 0 1rem 0; color: #92400e;">📌 Endereço de Visita/Coleta</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label>Rua</label>
+                            <input type="text" id="outroRua">
+                        </div>
+                        <div class="form-group">
+                            <label>Número</label>
+                            <input type="text" id="outroNumero">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label>Cidade</label>
+                            <input type="text" id="outroCidade">
+                        </div>
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <input type="text" id="outroEstado" maxlength="2">
+                        </div>
+                        <div class="form-group">
+                            <label>CEP</label>
+                            <input type="text" id="outroCep">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bairro</label>
+                        <input type="text" id="outroBairro">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Complemento</label>
+                        <input type="text" id="outroComplemento" placeholder="Apto, Sala, etc.">
+                    </div>
+                </div>
                 
-                <div class="form-group">
+                <div class="form-group" style="margin-top: 1.5rem;">
                     <label>Observações</label>
                     <textarea id="observacoes" rows="2"></textarea>
                 </div>
@@ -245,7 +294,21 @@
             document.getElementById('formFornecedor').reset();
             document.getElementById('fornecedorId').value = '';
             document.getElementById('dadosCNPJ').style.display = 'block';
+            document.getElementById('camposEnderecoVisita').style.display = 'none';
+            document.getElementById('temOutroEndereco').checked = false;
+            
+            // Remover readonly dos campos
+            ['nome', 'rua', 'numero', 'cidade', 'estado', 'cep', 'bairro'].forEach(id => {
+                document.getElementById(id).removeAttribute('readonly');
+            });
+            
             document.getElementById('modalFornecedor').classList.add('active');
+        }
+
+        function toggleEnderecoVisita() {
+            const checkbox = document.getElementById('temOutroEndereco');
+            const campos = document.getElementById('camposEnderecoVisita');
+            campos.style.display = checkbox.checked ? 'block' : 'none';
         }
 
         async function buscarCNPJ() {
@@ -277,8 +340,17 @@
                     document.getElementById('telefone').value = data.telefone || '';
                     document.getElementById('email').value = data.email || '';
                     
+                    // Tornar campos readonly após buscar CNPJ
+                    document.getElementById('nome').setAttribute('readonly', 'true');
+                    document.getElementById('rua').setAttribute('readonly', 'true');
+                    document.getElementById('numero').setAttribute('readonly', 'true');
+                    document.getElementById('cidade').setAttribute('readonly', 'true');
+                    document.getElementById('estado').setAttribute('readonly', 'true');
+                    document.getElementById('cep').setAttribute('readonly', 'true');
+                    document.getElementById('bairro').setAttribute('readonly', 'true');
+                    
                     document.getElementById('dadosCNPJ').style.display = 'block';
-                    showAlert('✅ Dados do CNPJ carregados com sucesso!', 'success');
+                    showAlert('✅ Dados do CNPJ carregados com sucesso! Os campos foram bloqueados pois vieram da Receita Federal.', 'success');
                 } else {
                     showAlert('CNPJ não encontrado. Preencha os dados manualmente.', 'error');
                     document.getElementById('dadosCNPJ').style.display = 'block';
@@ -308,7 +380,15 @@
                 bairro: document.getElementById('bairro').value || null,
                 telefone: document.getElementById('telefone').value || null,
                 email: document.getElementById('email').value || null,
-                observacoes: document.getElementById('observacoes').value || null
+                observacoes: document.getElementById('observacoes').value || null,
+                tem_outro_endereco: document.getElementById('temOutroEndereco').checked,
+                outro_rua: document.getElementById('outroRua').value || null,
+                outro_numero: document.getElementById('outroNumero').value || null,
+                outro_cidade: document.getElementById('outroCidade').value || null,
+                outro_estado: document.getElementById('outroEstado').value || null,
+                outro_cep: document.getElementById('outroCep').value || null,
+                outro_bairro: document.getElementById('outroBairro').value || null,
+                outro_complemento: document.getElementById('outroComplemento').value || null
             };
 
             try {
