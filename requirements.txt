@@ -58,3 +58,6 @@ Pillow
 psycopg2-binary
 python-dotenv
 python-socketio
+openpyxl
+pandas
+xlrd
