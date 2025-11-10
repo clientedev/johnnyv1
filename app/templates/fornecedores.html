@@ -202,6 +202,20 @@
                     <label>Observações</label>
                     <textarea id="observacoes" rows="2"></textarea>
                 </div>
+
+                <!-- Seleção de Tipos de Lote -->
+                <div style="background: #eff6ff; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid #3b82f6;">
+                    <h4 style="margin: 0 0 1rem 0; color: #1e40af; display: flex; align-items: center; gap: 0.5rem;">
+                        📦 Tipos de Lote que o Fornecedor Aceita
+                    </h4>
+                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280;">
+                        Selecione quais tipos de lote este fornecedor compra e quantas estrelas de qualidade ele aceita para cada tipo.
+                    </p>
+                    
+                    <div id="selecionarTiposLote" style="max-height: 300px; overflow-y: auto; background: white; border-radius: 6px; padding: 0.75rem;">
+                        <p style="text-align: center; color: #666;">Carregando tipos de lote...</p>
+                    </div>
+                </div>
                 
                 <button type="submit" class="btn btn-primary w-full">💾 Salvar Fornecedor</button>
             </form>
@@ -288,7 +302,7 @@
             }
         }
 
-        function abrirModalNovoFornecedor() {
+        async function abrirModalNovoFornecedor() {
             fornecedorAtual = null;
             document.getElementById('tituloModal').textContent = 'Novo Fornecedor';
             document.getElementById('formFornecedor').reset();
@@ -302,7 +316,80 @@
                 document.getElementById(id).removeAttribute('readonly');
             });
             
+            await carregarTiposLoteNoFormulario();
+            
             document.getElementById('modalFornecedor').classList.add('active');
+        }
+
+        async function carregarTiposLoteNoFormulario(tiposJaSelecionados = {}) {
+            try {
+                const response = await fetchAPI('/api/tipos-lote');
+                if (!response || !response.ok) {
+                    document.getElementById('selecionarTiposLote').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar tipos de lote.</p>';
+                    return;
+                }
+                
+                const tiposLote = await response.json();
+                
+                if (tiposLote.length === 0) {
+                    document.getElementById('selecionarTiposLote').innerHTML = '<p style="text-align: center; color: #666;">Nenhum tipo de lote cadastrado. <a href="/tipos-lote.html">Cadastre aqui</a></p>';
+                    return;
+                }
+                
+                const container = document.getElementById('selecionarTiposLote');
+                container.innerHTML = tiposLote.map(tipo => {
+                    const classificacaoEmoji = tipo.classificacao === 'leve' ? '🪶' : tipo.classificacao === 'media' ? '📦' : '🏗️';
+                    const isSelected = tiposJaSelecionados[tipo.id] !== undefined;
+                    const estrelasSelecionadas = tiposJaSelecionados[tipo.id] || 3;
+                    
+                    return `
+                        <div style="padding: 0.75rem; border: 2px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}; border-radius: 6px; margin-bottom: 0.5rem; background: ${isSelected ? '#eff6ff' : 'white'};">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" 
+                                       id="tipo_${tipo.id}" 
+                                       value="${tipo.id}" 
+                                       ${isSelected ? 'checked' : ''}
+                                       onchange="toggleTipoLote(${tipo.id})"
+                                       style="margin-right: 0.5rem;">
+                                <div style="flex: 1;">
+                                    <strong>${classificacaoEmoji} ${tipo.nome}</strong>
+                                    <span style="margin-left: 0.5rem; font-size: 0.85rem; color: #6b7280;">(${tipo.classificacao})</span>
+                                </div>
+                            </label>
+                            <div id="estrelas_${tipo.id}" style="margin-left: 1.5rem; margin-top: 0.5rem; display: ${isSelected ? 'block' : 'none'};">
+                                <label style="font-size: 0.85rem; color: #374151; margin-bottom: 0.25rem; display: block;">⭐ Estrelas aceitas (qualidade):</label>
+                                <select id="estrelas_select_${tipo.id}" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; width: 100%; max-width: 150px;">
+                                    <option value="1" ${estrelasSelecionadas == 1 ? 'selected' : ''}>⭐ 1 estrela</option>
+                                    <option value="2" ${estrelasSelecionadas == 2 ? 'selected' : ''}>⭐⭐ 2 estrelas</option>
+                                    <option value="3" ${estrelasSelecionadas == 3 ? 'selected' : ''}>⭐⭐⭐ 3 estrelas</option>
+                                    <option value="4" ${estrelasSelecionadas == 4 ? 'selected' : ''}>⭐⭐⭐⭐ 4 estrelas</option>
+                                    <option value="5" ${estrelasSelecionadas == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ 5 estrelas</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Erro ao carregar tipos de lote:', error);
+                document.getElementById('selecionarTiposLote').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar tipos de lote.</p>';
+            }
+        }
+
+        function toggleTipoLote(tipoId) {
+            const checkbox = document.getElementById(`tipo_${tipoId}`);
+            const estrelasDiv = document.getElementById(`estrelas_${tipoId}`);
+            const parent = checkbox.closest('div[style*="padding"]');
+            
+            if (checkbox.checked) {
+                estrelasDiv.style.display = 'block';
+                parent.style.borderColor = '#3b82f6';
+                parent.style.background = '#eff6ff';
+            } else {
+                estrelasDiv.style.display = 'none';
+                parent.style.borderColor = '#e5e7eb';
+                parent.style.background = 'white';
+            }
         }
 
         function toggleEnderecoVisita() {
@@ -369,6 +456,20 @@
             e.preventDefault();
 
             const id = document.getElementById('fornecedorId').value;
+            
+            // Coletar tipos de lote selecionados
+            const tiposSelecionados = [];
+            document.querySelectorAll('#selecionarTiposLote input[type="checkbox"]:checked').forEach(checkbox => {
+                const tipoId = parseInt(checkbox.value);
+                const estrelasSelect = document.getElementById(`estrelas_select_${tipoId}`);
+                const estrelas = estrelasSelect ? parseInt(estrelasSelect.value) : 3;
+                
+                tiposSelecionados.push({
+                    tipo_lote_id: tipoId,
+                    estrelas: estrelas
+                });
+            });
+            
             const data = {
                 nome: document.getElementById('nome').value,
                 cnpj: document.getElementById('cnpj').value || null,
@@ -388,7 +489,8 @@
                 outro_estado: document.getElementById('outroEstado').value || null,
                 outro_cep: document.getElementById('outroCep').value || null,
                 outro_bairro: document.getElementById('outroBairro').value || null,
-                outro_complemento: document.getElementById('outroComplemento').value || null
+                outro_complemento: document.getElementById('outroComplemento').value || null,
+                tipos_lote: tiposSelecionados
             };
 
             try {
@@ -441,6 +543,32 @@
                 document.getElementById('telefone').value = fornecedorAtual.telefone || '';
                 document.getElementById('email').value = fornecedorAtual.email || '';
                 document.getElementById('observacoes').value = fornecedorAtual.observacoes || '';
+                
+                // Carregar endereço alternativo se existir
+                if (fornecedorAtual.tem_outro_endereco) {
+                    document.getElementById('temOutroEndereco').checked = true;
+                    document.getElementById('camposEnderecoVisita').style.display = 'block';
+                    document.getElementById('outroRua').value = fornecedorAtual.outro_rua || '';
+                    document.getElementById('outroNumero').value = fornecedorAtual.outro_numero || '';
+                    document.getElementById('outroCidade').value = fornecedorAtual.outro_cidade || '';
+                    document.getElementById('outroEstado').value = fornecedorAtual.outro_estado || '';
+                    document.getElementById('outroCep').value = fornecedorAtual.outro_cep || '';
+                    document.getElementById('outroBairro').value = fornecedorAtual.outro_bairro || '';
+                    document.getElementById('outroComplemento').value = fornecedorAtual.outro_complemento || '';
+                } else {
+                    document.getElementById('temOutroEndereco').checked = false;
+                    document.getElementById('camposEnderecoVisita').style.display = 'none';
+                }
+                
+                // Carregar tipos de lote já selecionados
+                const tiposSelecionados = {};
+                if (fornecedorAtual.precos && Array.isArray(fornecedorAtual.precos)) {
+                    fornecedorAtual.precos.forEach(preco => {
+                        tiposSelecionados[preco.tipo_lote_id] = preco.estrelas;
+                    });
+                }
+                
+                await carregarTiposLoteNoFormulario(tiposSelecionados);
 
                 document.getElementById('dadosCNPJ').style.display = 'block';
                 document.getElementById('modalFornecedor').classList.add('active');

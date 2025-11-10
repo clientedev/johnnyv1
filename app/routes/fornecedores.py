@@ -169,7 +169,27 @@ def criar_fornecedor():
         db.session.add(fornecedor)
         db.session.commit()
         
-        if 'precos' in data and isinstance(data['precos'], list):
+        # Processar tipos de lote selecionados (novo campo)
+        if 'tipos_lote' in data and isinstance(data['tipos_lote'], list):
+            for tipo_data in data['tipos_lote']:
+                tipo_lote_id = tipo_data.get('tipo_lote_id')
+                estrelas = tipo_data.get('estrelas', 3)
+                
+                if tipo_lote_id and 1 <= estrelas <= 5:
+                    tipo_lote = TipoLote.query.get(tipo_lote_id)
+                    if tipo_lote:
+                        preco_obj = FornecedorTipoLotePreco(
+                            fornecedor_id=fornecedor.id,
+                            tipo_lote_id=tipo_lote_id,
+                            estrelas=estrelas,
+                            preco_por_kg=0.0
+                        )
+                        db.session.add(preco_obj)
+            
+            db.session.commit()
+        
+        # Processar preços (campo antigo, mantido para compatibilidade)
+        elif 'precos' in data and isinstance(data['precos'], list):
             for preco_data in data['precos']:
                 tipo_lote_id = preco_data.get('tipo_lote_id')
                 estrelas = preco_data.get('estrelas', 3)
@@ -292,6 +312,27 @@ def atualizar_fornecedor(id):
             fornecedor.forma_pagamento = data['forma_pagamento']
         if 'observacoes' in data:
             fornecedor.observacoes = data['observacoes']
+        
+        # Atualizar tipos de lote selecionados
+        if 'tipos_lote' in data and isinstance(data['tipos_lote'], list):
+            # Remover tipos de lote antigos
+            FornecedorTipoLotePreco.query.filter_by(fornecedor_id=fornecedor.id).delete()
+            
+            # Adicionar novos tipos de lote
+            for tipo_data in data['tipos_lote']:
+                tipo_lote_id = tipo_data.get('tipo_lote_id')
+                estrelas = tipo_data.get('estrelas', 3)
+                
+                if tipo_lote_id and 1 <= estrelas <= 5:
+                    tipo_lote = TipoLote.query.get(tipo_lote_id)
+                    if tipo_lote:
+                        preco_obj = FornecedorTipoLotePreco(
+                            fornecedor_id=fornecedor.id,
+                            tipo_lote_id=tipo_lote_id,
+                            estrelas=estrelas,
+                            preco_por_kg=0.0
+                        )
+                        db.session.add(preco_obj)
         
         db.session.commit()
         
@@ -451,56 +492,84 @@ def consultar_cnpj(cnpj):
                 'fornecedor': fornecedor_existente.to_dict()
             }), 409
         
-        url = f'https://api.cnpja.com/open/{cnpj_limpo}'
-        response = requests.get(url, timeout=15)
+        empresa_data = None
+        apis = [
+            {
+                'name': 'BrasilAPI',
+                'url': f'https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}',
+                'parser': lambda data: {
+                    'cnpj': cnpj_limpo,
+                    'nome': data.get('nome_fantasia', '') or data.get('razao_social', ''),
+                    'nome_social': data.get('razao_social', ''),
+                    'telefone': data.get('ddd_telefone_1', ''),
+                    'email': data.get('email', ''),
+                    'rua': data.get('descricao_tipo_logradouro', '') + ' ' + data.get('logradouro', ''),
+                    'numero': data.get('numero', ''),
+                    'cidade': data.get('municipio', ''),
+                    'estado': data.get('uf', ''),
+                    'cep': data.get('cep', '').replace('.', '').replace('-', ''),
+                    'bairro': data.get('bairro', ''),
+                    'complemento': data.get('complemento', ''),
+                }
+            },
+            {
+                'name': 'OpenCNPJ',
+                'url': f'https://opencnpj.org/{cnpj_limpo}',
+                'parser': lambda data: {
+                    'cnpj': cnpj_limpo,
+                    'nome': data.get('nome_fantasia', '') or data.get('razao_social', ''),
+                    'nome_social': data.get('razao_social', ''),
+                    'telefone': data.get('ddd_telefone_1', ''),
+                    'email': data.get('email', ''),
+                    'rua': data.get('descricao_tipo_logradouro', '') + ' ' + data.get('logradouro', ''),
+                    'numero': data.get('numero', ''),
+                    'cidade': data.get('municipio', ''),
+                    'estado': data.get('uf', ''),
+                    'cep': data.get('cep', '').replace('.', '').replace('-', ''),
+                    'bairro': data.get('bairro', ''),
+                    'complemento': data.get('complemento', ''),
+                }
+            },
+            {
+                'name': 'ReceitaWS',
+                'url': f'https://receitaws.com.br/v1/cnpj/{cnpj_limpo}',
+                'parser': lambda data: {
+                    'cnpj': cnpj_limpo,
+                    'nome': data.get('fantasia', '') or data.get('nome', ''),
+                    'nome_social': data.get('nome', ''),
+                    'telefone': data.get('telefone', ''),
+                    'email': data.get('email', ''),
+                    'rua': data.get('logradouro', ''),
+                    'numero': data.get('numero', ''),
+                    'cidade': data.get('municipio', ''),
+                    'estado': data.get('uf', ''),
+                    'cep': data.get('cep', '').replace('.', '').replace('-', ''),
+                    'bairro': data.get('bairro', ''),
+                    'complemento': data.get('complemento', ''),
+                }
+            }
+        ]
         
-        if response.status_code == 404:
-            return jsonify({'erro': 'CNPJ não encontrado na Receita Federal'}), 404
+        for api in apis:
+            try:
+                response = requests.get(api['url'], timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    if 'error' in data or data.get('status') == 'ERROR':
+                        continue
+                    
+                    empresa_data = api['parser'](data)
+                    break
+                    
+            except (requests.Timeout, requests.ConnectionError, requests.RequestException):
+                continue
         
-        if response.status_code != 200:
-            return jsonify({'erro': f'Erro ao consultar CNPJ (código {response.status_code})'}), 502
-        
-        data = response.json()
-        
-        empresa_data = {
-            'cnpj': cnpj_limpo,
-            'nome': data.get('alias', data.get('company', {}).get('name', '')),
-            'nome_social': data.get('company', {}).get('name', ''),
-            'telefone': '',
-            'email': data.get('emails', [{}])[0].get('address', '') if data.get('emails') else '',
-            'situacao': data.get('status', {}).get('text', ''),
-            'data_abertura': data.get('founded', ''),
-        }
-        
-        address = data.get('address', {})
-        if address:
-            empresa_data['rua'] = address.get('street', '')
-            empresa_data['numero'] = address.get('number', '')
-            empresa_data['cidade'] = address.get('city', '')
-            empresa_data['estado'] = address.get('state', '')
-            empresa_data['cep'] = address.get('zip', '').replace('-', '')
-            empresa_data['bairro'] = address.get('district', '')
-            empresa_data['complemento'] = address.get('details', '')
-        
-        phones = data.get('phones', [])
-        if phones:
-            phone = phones[0]
-            area = phone.get('area', '')
-            number = phone.get('number', '')
-            empresa_data['telefone'] = f"({area}) {number}" if area and number else ''
-        
-        empresa_data['atividade_principal'] = ''
-        if data.get('mainActivity'):
-            main = data.get('mainActivity', {})
-            empresa_data['atividade_principal'] = f"{main.get('id', '')} - {main.get('text', '')}"
+        if not empresa_data:
+            return jsonify({'erro': 'CNPJ não encontrado. Preencha os dados manualmente.'}), 404
         
         return jsonify(empresa_data), 200
         
-    except requests.Timeout:
-        return jsonify({'erro': 'Tempo esgotado ao consultar CNPJ. Tente novamente em alguns segundos.'}), 504
-    except requests.ConnectionError:
-        return jsonify({'erro': 'Erro de conexão. Verifique sua internet e tente novamente.'}), 503
-    except requests.RequestException as e:
-        return jsonify({'erro': f'Erro ao consultar API de CNPJ: {str(e)}'}), 502
     except Exception as e:
         return jsonify({'erro': f'Erro ao processar dados do CNPJ: {str(e)}'}), 500
