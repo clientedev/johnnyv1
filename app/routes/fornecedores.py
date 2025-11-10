@@ -3,8 +3,35 @@ from flask_jwt_extended import jwt_required
 from app.models import Fornecedor, FornecedorTipoLotePreco, Vendedor, TipoLote, db
 from app.auth import admin_required
 import requests
+import re
 
 bp = Blueprint('fornecedores', __name__, url_prefix='/api/fornecedores')
+
+def normalizar_cnpj(cnpj):
+    if not cnpj:
+        return None
+    return re.sub(r'[^\d]', '', cnpj)
+
+def normalizar_cpf(cpf):
+    if not cpf:
+        return None
+    return re.sub(r'[^\d]', '', cpf)
+
+def validar_cnpj(cnpj):
+    cnpj = normalizar_cnpj(cnpj)
+    if not cnpj or len(cnpj) != 14:
+        return False
+    if cnpj == cnpj[0] * 14:
+        return False
+    return True
+
+def validar_cpf(cpf):
+    cpf = normalizar_cpf(cpf)
+    if not cpf or len(cpf) != 11:
+        return False
+    if cpf == cpf[0] * 11:
+        return False
+    return True
 
 @bp.route('', methods=['GET'])
 @jwt_required()
@@ -81,21 +108,37 @@ def criar_fornecedor():
         if not data.get('cnpj') and not data.get('cpf'):
             return jsonify({'erro': 'CNPJ ou CPF é obrigatório'}), 400
         
+        cnpj_normalizado = None
+        cpf_normalizado = None
+        
         if data.get('cnpj'):
-            fornecedor_existente = Fornecedor.query.filter_by(cnpj=data['cnpj']).first()
+            cnpj_normalizado = normalizar_cnpj(data['cnpj'])
+            if not validar_cnpj(cnpj_normalizado):
+                return jsonify({'erro': 'CNPJ inválido'}), 400
+            
+            fornecedor_existente = Fornecedor.query.filter_by(cnpj=cnpj_normalizado).first()
             if fornecedor_existente:
                 return jsonify({'erro': 'CNPJ já cadastrado'}), 400
         
         if data.get('cpf'):
-            fornecedor_existente = Fornecedor.query.filter_by(cpf=data['cpf']).first()
+            cpf_normalizado = normalizar_cpf(data['cpf'])
+            if not validar_cpf(cpf_normalizado):
+                return jsonify({'erro': 'CPF inválido'}), 400
+            
+            fornecedor_existente = Fornecedor.query.filter_by(cpf=cpf_normalizado).first()
             if fornecedor_existente:
                 return jsonify({'erro': 'CPF já cadastrado'}), 400
+        
+        if data.get('email'):
+            email_existente = Fornecedor.query.filter_by(email=data['email']).first()
+            if email_existente:
+                return jsonify({'erro': 'E-mail já cadastrado para outro fornecedor'}), 400
         
         fornecedor = Fornecedor(
             nome=data['nome'],
             nome_social=data.get('nome_social', ''),
-            cnpj=data.get('cnpj', ''),
-            cpf=data.get('cpf', ''),
+            cnpj=cnpj_normalizado,
+            cpf=cpf_normalizado,
             rua=data.get('rua', ''),
             numero=data.get('numero', ''),
             cidade=data.get('cidade', ''),
@@ -172,10 +215,33 @@ def atualizar_fornecedor(id):
             fornecedor.nome = data['nome']
         if 'nome_social' in data:
             fornecedor.nome_social = data['nome_social']
+        
         if 'cnpj' in data and data['cnpj']:
-            fornecedor.cnpj = data['cnpj']
+            cnpj_normalizado = normalizar_cnpj(data['cnpj'])
+            if not validar_cnpj(cnpj_normalizado):
+                return jsonify({'erro': 'CNPJ inválido'}), 400
+            if cnpj_normalizado != fornecedor.cnpj:
+                existente = Fornecedor.query.filter_by(cnpj=cnpj_normalizado).first()
+                if existente:
+                    return jsonify({'erro': 'CNPJ já cadastrado para outro fornecedor'}), 400
+                fornecedor.cnpj = cnpj_normalizado
+        
         if 'cpf' in data and data['cpf']:
-            fornecedor.cpf = data['cpf']
+            cpf_normalizado = normalizar_cpf(data['cpf'])
+            if not validar_cpf(cpf_normalizado):
+                return jsonify({'erro': 'CPF inválido'}), 400
+            if cpf_normalizado != fornecedor.cpf:
+                existente = Fornecedor.query.filter_by(cpf=cpf_normalizado).first()
+                if existente:
+                    return jsonify({'erro': 'CPF já cadastrado para outro fornecedor'}), 400
+                fornecedor.cpf = cpf_normalizado
+        
+        if 'email' in data and data['email']:
+            if data['email'] != fornecedor.email:
+                email_existente = Fornecedor.query.filter_by(email=data['email']).first()
+                if email_existente:
+                    return jsonify({'erro': 'E-mail já cadastrado para outro fornecedor'}), 400
+                fornecedor.email = data['email']
         if 'rua' in data:
             fornecedor.rua = data['rua']
         if 'numero' in data:
@@ -373,21 +439,31 @@ def obter_preco_especifico(fornecedor_id, tipo_lote_id, estrelas):
 @jwt_required()
 def consultar_cnpj(cnpj):
     try:
-        cnpj_limpo = cnpj.replace('.', '').replace('/', '').replace('-', '')
+        cnpj_limpo = normalizar_cnpj(cnpj)
         
-        if len(cnpj_limpo) != 14:
-            return jsonify({'erro': 'CNPJ inválido'}), 400
+        if not validar_cnpj(cnpj_limpo):
+            return jsonify({'erro': 'CNPJ inválido. Verifique o número digitado.'}), 400
+        
+        fornecedor_existente = Fornecedor.query.filter_by(cnpj=cnpj_limpo).first()
+        if fornecedor_existente:
+            return jsonify({
+                'erro': 'CNPJ já cadastrado',
+                'fornecedor': fornecedor_existente.to_dict()
+            }), 409
         
         url = f'https://api.cnpja.com/open/{cnpj_limpo}'
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=15)
+        
+        if response.status_code == 404:
+            return jsonify({'erro': 'CNPJ não encontrado na Receita Federal'}), 404
         
         if response.status_code != 200:
-            return jsonify({'erro': 'CNPJ não encontrado na base de dados'}), 404
+            return jsonify({'erro': f'Erro ao consultar CNPJ (código {response.status_code})'}), 502
         
         data = response.json()
         
         empresa_data = {
-            'cnpj': data.get('taxId', ''),
+            'cnpj': cnpj_limpo,
             'nome': data.get('alias', data.get('company', {}).get('name', '')),
             'nome_social': data.get('company', {}).get('name', ''),
             'telefone': '',
@@ -398,10 +474,11 @@ def consultar_cnpj(cnpj):
         
         address = data.get('address', {})
         if address:
-            empresa_data['rua'] = f"{address.get('street', '')} {address.get('number', '')}".strip()
+            empresa_data['rua'] = address.get('street', '')
+            empresa_data['numero'] = address.get('number', '')
             empresa_data['cidade'] = address.get('city', '')
             empresa_data['estado'] = address.get('state', '')
-            empresa_data['cep'] = address.get('zip', '')
+            empresa_data['cep'] = address.get('zip', '').replace('-', '')
             empresa_data['bairro'] = address.get('district', '')
             empresa_data['complemento'] = address.get('details', '')
         
@@ -420,8 +497,10 @@ def consultar_cnpj(cnpj):
         return jsonify(empresa_data), 200
         
     except requests.Timeout:
-        return jsonify({'erro': 'Timeout ao consultar CNPJ. Tente novamente.'}), 504
+        return jsonify({'erro': 'Tempo esgotado ao consultar CNPJ. Tente novamente em alguns segundos.'}), 504
+    except requests.ConnectionError:
+        return jsonify({'erro': 'Erro de conexão. Verifique sua internet e tente novamente.'}), 503
     except requests.RequestException as e:
-        return jsonify({'erro': f'Erro ao consultar API de CNPJ: {str(e)}'}), 500
+        return jsonify({'erro': f'Erro ao consultar API de CNPJ: {str(e)}'}), 502
     except Exception as e:
         return jsonify({'erro': f'Erro ao processar dados do CNPJ: {str(e)}'}), 500
