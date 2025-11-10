@@ -77,6 +77,7 @@ class TipoLote(db.Model):  # type: ignore
     lotes = db.relationship('Lote', backref='tipo_lote', lazy=True)
     precos_classificacao = db.relationship('TipoLotePrecoClassificacao', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     precos_estrela = db.relationship('TipoLotePrecoEstrela', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
+    fornecedor_tipos = db.relationship('FornecedorTipoLote', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     
     def __init__(self, **kwargs: Any) -> None:
         if 'classificacao' in kwargs and kwargs['classificacao'] is not None and kwargs['classificacao'] not in ['leve', 'media', 'pesada']:
@@ -89,6 +90,11 @@ class TipoLote(db.Model):  # type: ignore
             for preco in self.precos_classificacao:
                 precos_dict[preco.classificacao] = preco.preco_por_kg
         
+        precos_estrela_dict = {}
+        if self.precos_estrela:
+            for preco in self.precos_estrela:
+                precos_estrela_dict[preco.estrelas] = preco.preco_por_kg
+        
         return {
             'id': self.id,
             'nome': self.nome,
@@ -97,6 +103,7 @@ class TipoLote(db.Model):  # type: ignore
             'classificacao': self.classificacao if self.classificacao else None,
             'ativo': self.ativo,
             'precos_classificacao': precos_dict,
+            'precos_estrela': precos_estrela_dict,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
         }
@@ -167,6 +174,59 @@ class TipoLotePrecoEstrela(db.Model):  # type: ignore
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
         }
 
+class FornecedorTipoLote(db.Model):  # type: ignore
+    """Relação N:N entre Fornecedor e TipoLote - quais tipos o fornecedor vende"""
+    __tablename__ = 'fornecedor_tipo_lote'
+    __table_args__ = (
+        db.UniqueConstraint('fornecedor_id', 'tipo_lote_id', name='uq_fornecedor_tipo'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'fornecedor_id': self.fornecedor_id,
+            'tipo_lote_id': self.tipo_lote_id,
+            'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
+            'ativo': self.ativo
+        }
+
+class FornecedorClassificacaoEstrela(db.Model):  # type: ignore
+    """Configuração de quantas estrelas vale cada classificação para um fornecedor"""
+    __tablename__ = 'fornecedor_classificacao_estrela'
+    __table_args__ = (
+        db.UniqueConstraint('fornecedor_id', 'classificacao', name='uq_fornecedor_classificacao'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    classificacao = db.Column(db.String(10), nullable=False)
+    estrelas = db.Column(db.Integer, nullable=False)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        if 'classificacao' in kwargs and kwargs['classificacao'] not in ['leve', 'medio', 'pesado']:
+            raise ValueError('Classificação deve ser: leve, medio ou pesado')
+        if 'estrelas' in kwargs and (kwargs['estrelas'] < 1 or kwargs['estrelas'] > 5):
+            raise ValueError('Estrelas deve estar entre 1 e 5')
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'fornecedor_id': self.fornecedor_id,
+            'classificacao': self.classificacao,
+            'estrelas': self.estrelas,
+            'ativo': self.ativo
+        }
+
 class Fornecedor(db.Model):  # type: ignore
     __tablename__ = 'fornecedores'
     
@@ -214,6 +274,8 @@ class Fornecedor(db.Model):  # type: ignore
     precos = db.relationship('FornecedorTipoLotePreco', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     solicitacoes = db.relationship('Solicitacao', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     lotes = db.relationship('Lote', backref='fornecedor', lazy=True)
+    tipos_lote = db.relationship('FornecedorTipoLote', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
+    classificacao_estrelas = db.relationship('FornecedorClassificacaoEstrela', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
