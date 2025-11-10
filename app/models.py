@@ -67,6 +67,7 @@ class TipoLote(db.Model):  # type: ignore
     nome = db.Column(db.String(100), nullable=False, unique=True)
     descricao = db.Column(db.String(300))
     codigo = db.Column(db.String(20), unique=True)
+    classificacao = db.Column(db.String(10), default='media', nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -74,8 +75,11 @@ class TipoLote(db.Model):  # type: ignore
     fornecedor_precos = db.relationship('FornecedorTipoLotePreco', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     itens_solicitacao = db.relationship('ItemSolicitacao', backref='tipo_lote', lazy=True)
     lotes = db.relationship('Lote', backref='tipo_lote', lazy=True)
+    precos_estrela = db.relationship('TipoLotePrecoEstrela', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     
     def __init__(self, **kwargs: Any) -> None:
+        if 'classificacao' in kwargs and kwargs['classificacao'] not in ['leve', 'media', 'pesada']:
+            raise ValueError('Classificação deve ser: leve, media ou pesada')
         super().__init__(**kwargs)
     
     def to_dict(self):
@@ -84,6 +88,39 @@ class TipoLote(db.Model):  # type: ignore
             'nome': self.nome,
             'descricao': self.descricao,
             'codigo': self.codigo,
+            'classificacao': self.classificacao,
+            'ativo': self.ativo,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
+class TipoLotePrecoEstrela(db.Model):  # type: ignore
+    __tablename__ = 'tipo_lote_preco_estrelas'
+    __table_args__ = (
+        db.UniqueConstraint('tipo_lote_id', 'estrelas', name='uq_tipo_lote_estrelas'),
+        db.Index('idx_tipo_lote_estrelas', 'tipo_lote_id', 'estrelas'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
+    estrelas = db.Column(db.Integer, nullable=False)
+    preco_por_kg = db.Column(db.Float, nullable=False, default=0.0)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        if 'estrelas' in kwargs and (kwargs['estrelas'] < 1 or kwargs['estrelas'] > 5):
+            raise ValueError('Estrelas deve estar entre 1 e 5')
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tipo_lote_id': self.tipo_lote_id,
+            'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
+            'estrelas': self.estrelas,
+            'preco_por_kg': self.preco_por_kg,
             'ativo': self.ativo,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None

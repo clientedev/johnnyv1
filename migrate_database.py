@@ -1,6 +1,6 @@
 import os
 from app import create_app
-from app.models import db, Usuario, Vendedor, TipoLote, Fornecedor, FornecedorTipoLotePreco, Solicitacao, ItemSolicitacao, Lote, EntradaEstoque, Notificacao, Configuracao
+from app.models import db, Usuario, Vendedor, TipoLote, TipoLotePrecoEstrela, Fornecedor, FornecedorTipoLotePreco, Solicitacao, ItemSolicitacao, Lote, EntradaEstoque, Notificacao, Configuracao
 import bcrypt
 
 app = create_app()
