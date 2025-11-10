@@ -54,6 +54,15 @@
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
             <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Tipos de Lote</h1>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-info" onclick="baixarModeloEstrelasExcel()" title="Baixar modelo Excel para classificações de estrelas">
+                    <i class="fas fa-download"></i> Modelo Estrelas
+                </button>
+                <button class="btn btn-secondary" onclick="document.getElementById('fileExcelEstrelas').click()" title="Importar classificações de estrelas via Excel">
+                    <i class="fas fa-file-upload"></i> Importar Estrelas
+                </button>
+                <button class="btn btn-secondary" onclick="exportarEstrelasExcel()" title="Exportar classificações de estrelas">
+                    <i class="fas fa-file-download"></i> Exportar Estrelas
+                </button>
                 <button class="btn btn-secondary" onclick="document.getElementById('fileExcel').click()">
                     <i class="fas fa-file-excel"></i> Importar Excel
                 </button>
@@ -62,6 +71,7 @@
         </div>
 
         <input type="file" id="fileExcel" accept=".xlsx,.xls" style="display: none;" onchange="importarExcel()">
+        <input type="file" id="fileExcelEstrelas" accept=".xlsx,.xls" style="display: none;" onchange="importarEstrelasExcel()">
 
         <div class="card">
             <div class="table-container">
@@ -72,11 +82,12 @@
                             <th>Nome</th>
                             <th>Classificação</th>
                             <th>Preços Configurados</th>
+                            <th>Estrelas por Fornecedor</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaTipos">
-                        <tr><td colspan="5" class="loading">Carregando...</td></tr>
+                        <tr><td colspan="6" class="loading">Carregando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -287,9 +298,45 @@
         </div>
     </div>
 
+    <!-- Modal Estrelas por Fornecedor -->
+    <div class="modal" id="modalEstrelasFornecedor">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Configurar Estrelas por Fornecedor</h2>
+                <button class="modal-close" onclick="fecharModalEstrelasFornecedor()">&times;</button>
+            </div>
+            
+            <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #0369a1;">
+                    <i class="fas fa-box"></i> <span id="nomeTipoEstrelas"></span>
+                </h4>
+                <p style="margin: 0; color: #666; font-size: 0.9rem;">
+                    Configure quantas estrelas cada fornecedor atribui para classificações Leve, Médio e Pesado deste tipo de lote.
+                </p>
+            </div>
+
+            <input type="hidden" id="tipoIdEstrelas">
+            
+            <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-info" onclick="baixarModeloEstrelasExcel()">
+                    <i class="fas fa-download"></i> Baixar Modelo
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="document.getElementById('fileExcelEstrelasModal').click()">
+                    <i class="fas fa-file-upload"></i> Importar Excel
+                </button>
+                <input type="file" id="fileExcelEstrelasModal" accept=".xlsx,.xls" style="display: none;" onchange="importarEstrelasExcel()">
+            </div>
+
+            <div id="listaFornecedoresEstrelas" style="max-height: 500px; overflow-y: auto;">
+                <p style="text-align: center; padding: 2rem; color: #666;">Carregando fornecedores...</p>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/js/auth.js"></script>
     <script>
         let tiposLote = [];
+        let fornecedoresCache = [];
 
         function mostrarMensagem(mensagem, tipo = 'success') {
             alert(mensagem);
@@ -317,7 +364,7 @@
             const tbody = document.getElementById('tabelaTipos');
             
             if (tiposLote.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">Nenhum tipo de lote cadastrado</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">Nenhum tipo de lote cadastrado</td></tr>';
                 return;
             }
 
@@ -333,6 +380,11 @@
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="abrirModalPrecos(${tipo.id})" title="Configurar preços">
                             <i class="fas fa-dollar-sign"></i> Configurar
+                        </button>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="abrirModalEstrelasFornecedor(${tipo.id})" title="Configurar estrelas por fornecedor">
+                            <i class="fas fa-star"></i> Estrelas
                         </button>
                     </td>
                     <td>
@@ -550,6 +602,269 @@
                 mostrarMensagem(error.message, 'error');
             } finally {
                 fileInput.value = '';
+            }
+        }
+
+        // ===== FUNÇÕES PARA ESTRELAS POR FORNECEDOR =====
+        
+        async function abrirModalEstrelasFornecedor(tipoId) {
+            const tipo = tiposLote.find(t => t.id === tipoId);
+            if (!tipo) return;
+
+            document.getElementById('tipoIdEstrelas').value = tipoId;
+            document.getElementById('nomeTipoEstrelas').textContent = tipo.nome;
+            document.getElementById('modalEstrelasFornecedor').style.display = 'flex';
+            
+            await carregarFornecedoresParaClassificacao(tipoId);
+        }
+
+        function fecharModalEstrelasFornecedor() {
+            document.getElementById('modalEstrelasFornecedor').style.display = 'none';
+        }
+
+        async function carregarFornecedoresParaClassificacao(tipoId) {
+            const container = document.getElementById('listaFornecedoresEstrelas');
+            container.innerHTML = '<p style="text-align: center; padding: 2rem;">Carregando...</p>';
+
+            try {
+                if (fornecedoresCache.length === 0) {
+                    const respFornecedores = await fetch('/api/fornecedores', {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    });
+                    fornecedoresCache = await respFornecedores.json();
+                }
+
+                const respClassificacoes = await fetch(`/api/fornecedor-tipo-lote-classificacoes?tipo_lote_id=${tipoId}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const classificacoes = await respClassificacoes.json();
+
+                const classificacoesMap = {};
+                classificacoes.forEach(c => {
+                    classificacoesMap[c.fornecedor_id] = c;
+                });
+
+                if (fornecedoresCache.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; padding: 2rem; color: #666;">Nenhum fornecedor cadastrado</p>';
+                    return;
+                }
+
+                container.innerHTML = fornecedoresCache.map(fornecedor => {
+                    const classificacao = classificacoesMap[fornecedor.id];
+                    const leve = classificacao?.leve_estrelas || 1;
+                    const medio = classificacao?.medio_estrelas || 3;
+                    const pesado = classificacao?.pesado_estrelas || 5;
+                    const ativo = classificacao?.ativo !== false;
+                    const classifId = classificacao?.id || null;
+
+                    return `
+                        <div class="card" style="margin-bottom: 1rem; padding: 1rem;" data-fornecedor-id="${fornecedor.id}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <h4 style="margin: 0; color: #059669;">
+                                    <i class="fas fa-building"></i> ${fornecedor.nome}
+                                </h4>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                                    <input type="checkbox" ${ativo ? 'checked' : ''} 
+                                           onchange="toggleAtivo(${fornecedor.id}, ${tipoId}, this.checked, ${classifId})">
+                                    <span>Ativo</span>
+                                </label>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                                        🪶 Leve
+                                    </label>
+                                    <select class="form-control" id="leve_${fornecedor.id}" style="width: 100%;">
+                                        ${[1,2,3,4,5].map(n => `<option value="${n}" ${leve === n ? 'selected' : ''}>${'⭐'.repeat(n)} ${n}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                                        ⚖️ Médio
+                                    </label>
+                                    <select class="form-control" id="medio_${fornecedor.id}" style="width: 100%;">
+                                        ${[1,2,3,4,5].map(n => `<option value="${n}" ${medio === n ? 'selected' : ''}>${'⭐'.repeat(n)} ${n}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                                        ⚓ Pesado
+                                    </label>
+                                    <select class="form-control" id="pesado_${fornecedor.id}" style="width: 100%;">
+                                        ${[1,2,3,4,5].map(n => `<option value="${n}" ${pesado === n ? 'selected' : ''}>${'⭐'.repeat(n)} ${n}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;" 
+                                    onclick="salvarClassificacaoEstrelas(${fornecedor.id}, ${tipoId}, ${classifId})">
+                                <i class="fas fa-save"></i> Salvar Classificação
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Erro:', error);
+                container.innerHTML = '<p style="text-align: center; padding: 2rem; color: #ef4444;">Erro ao carregar fornecedores</p>';
+            }
+        }
+
+        async function toggleAtivo(fornecedorId, tipoId, ativo, classifId) {
+            if (!classifId) {
+                mostrarMensagem('Salve a classificação primeiro antes de alterar o status', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/fornecedor-tipo-lote-classificacoes/${classifId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ ativo })
+                });
+
+                if (!response.ok) throw new Error('Erro ao atualizar status');
+                
+                mostrarMensagem('Status atualizado com sucesso!');
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            }
+        }
+
+        async function salvarClassificacaoEstrelas(fornecedorId, tipoId, classifId) {
+            const leve = parseInt(document.getElementById(`leve_${fornecedorId}`).value);
+            const medio = parseInt(document.getElementById(`medio_${fornecedorId}`).value);
+            const pesado = parseInt(document.getElementById(`pesado_${fornecedorId}`).value);
+
+            const dados = {
+                fornecedor_id: fornecedorId,
+                tipo_lote_id: tipoId,
+                leve_estrelas: leve,
+                medio_estrelas: medio,
+                pesado_estrelas: pesado,
+                ativo: true
+            };
+
+            try {
+                const url = classifId 
+                    ? `/api/fornecedor-tipo-lote-classificacoes/${classifId}`
+                    : '/api/fornecedor-tipo-lote-classificacoes';
+                const method = classifId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.erro || 'Erro ao salvar');
+                }
+
+                mostrarMensagem('Classificação salva com sucesso!');
+                await carregarFornecedoresParaClassificacao(tipoId);
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            }
+        }
+
+        async function baixarModeloEstrelasExcel() {
+            try {
+                const response = await fetch('/api/fornecedor-tipo-lote-classificacoes/modelo-excel', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+
+                if (!response.ok) throw new Error('Erro ao baixar modelo');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `modelo_classificacoes_estrelas_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            }
+        }
+
+        async function importarEstrelasExcel() {
+            const fileInput = document.getElementById('fileExcelEstrelas') || document.getElementById('fileExcelEstrelasModal');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                mostrarMensagem('Nenhum arquivo selecionado', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('arquivo', file);
+
+            try {
+                const response = await fetch('/api/fornecedor-tipo-lote-classificacoes/importar-excel', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.erro || 'Erro ao importar');
+                }
+
+                let mensagem = `Importação de Estrelas Concluída!\n\n`;
+                mensagem += `✅ ${result.criados} classificação(ões) criada(s)\n`;
+                mensagem += `♻️ ${result.atualizados} classificação(ões) atualizada(s)`;
+                
+                if (result.erros && result.erros.length > 0) {
+                    mensagem += `\n\n⚠️ ${result.total_erros} erro(s):\n`;
+                    mensagem += result.erros.slice(0, 5).join('\n');
+                    if (result.erros.length > 5) {
+                        mensagem += `\n... e mais ${result.erros.length - 5} erro(s)`;
+                    }
+                }
+
+                alert(mensagem);
+                
+                const tipoId = document.getElementById('tipoIdEstrelas').value;
+                if (tipoId) {
+                    await carregarFornecedoresParaClassificacao(tipoId);
+                }
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            } finally {
+                fileInput.value = '';
+            }
+        }
+
+        async function exportarEstrelasExcel() {
+            try {
+                const response = await fetch('/api/fornecedor-tipo-lote-classificacoes/exportar-excel', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+
+                if (!response.ok) throw new Error('Erro ao exportar');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `classificacoes_estrelas_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
             }
         }
 
