@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import (
     db, Solicitacao, ItemSolicitacao, Fornecedor, TipoLote, 
-    FornecedorTipoLoteClassificacao, TipoLotePrecoClassificacao, Usuario, Configuracao, Lote, EntradaEstoque
+    FornecedorTipoLoteClassificacao, TipoLotePreco, Usuario, Configuracao, Lote, EntradaEstoque
 )
 from app.auth import admin_required
 from datetime import datetime
@@ -95,16 +95,14 @@ Justificativa: A placa apresenta poucos componentes SMD e muita área de cobre e
 def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, peso_kg):
     """Calcula o valor do item baseado na classificação e configuração do fornecedor
     
-    Fluxo:
-    1. Busca configuração de classificação (leve/médio/pesado → estrelas)
-    2. Busca preço por kg baseado nas estrelas do fornecedor
+    Novo Fluxo:
+    1. Busca do fornecedor: quantas estrelas ele atribui para esta classificação
+    2. Busca do tipo de lote: o preço por kg para esta classificação + estrelas
     3. Calcula valor total = preço_por_kg * peso_kg
     
     Raises:
-        ValueError: Se não houver configuração de classificação ou preço para este fornecedor/tipo
+        ValueError: Se não houver configuração de estrelas no fornecedor ou preço no tipo de lote
     """
-    from app.models import FornecedorTipoLotePreco
-    
     config_class = FornecedorTipoLoteClassificacao.query.filter_by(
         fornecedor_id=fornecedor_id,
         tipo_lote_id=tipo_lote_id,
@@ -114,25 +112,26 @@ def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, peso_kg):
     if not config_class:
         raise ValueError(
             f'Fornecedor {fornecedor_id} não possui configuração de estrelas '
-            f'para o tipo de lote {tipo_lote_id}. Configure as estrelas por classificação antes de criar solicitações.'
+            f'para o tipo de lote {tipo_lote_id}. Configure as estrelas por classificação no fornecedor.'
         )
     
     estrelas = config_class.get_estrelas_por_classificacao(classificacao)
     
-    preco_fornecedor = FornecedorTipoLotePreco.query.filter_by(
-        fornecedor_id=fornecedor_id,
+    preco_tipo_lote = TipoLotePreco.query.filter_by(
         tipo_lote_id=tipo_lote_id,
+        classificacao=classificacao,
         estrelas=estrelas,
         ativo=True
     ).first()
     
-    if not preco_fornecedor:
+    if not preco_tipo_lote:
         raise ValueError(
-            f'Fornecedor {fornecedor_id} não possui preço configurado para {estrelas} estrelas '
-            f'no tipo de lote {tipo_lote_id}. Configure os preços por estrela antes de criar solicitações.'
+            f'Tipo de lote {tipo_lote_id} não possui preço configurado para '
+            f'classificação "{classificacao}" com {estrelas} estrelas. '
+            f'Configure os preços no tipo de lote.'
         )
     
-    preco_por_kg = preco_fornecedor.preco_por_kg
+    preco_por_kg = preco_tipo_lote.preco_por_kg
     valor_total = preco_por_kg * peso_kg
     
     return round(valor_total, 2), estrelas, preco_por_kg
@@ -140,28 +139,30 @@ def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, peso_kg):
 @bp.route('/fornecedores-com-tipos', methods=['GET'])
 @jwt_required()
 def listar_fornecedores_com_tipos():
-    """Lista fornecedores que possuem configuração de tipos de lote com preços"""
-    from app.models import FornecedorTipoLotePreco
+    """Lista fornecedores que possuem configuração de estrelas para tipos de lote"""
     fornecedores = Fornecedor.query.filter_by(ativo=True).all()
     
     resultado = []
     for fornecedor in fornecedores:
-        precos_fornecedor = FornecedorTipoLotePreco.query.filter_by(
+        classificacoes = FornecedorTipoLoteClassificacao.query.filter_by(
             fornecedor_id=fornecedor.id,
             ativo=True
         ).all()
         
-        if precos_fornecedor:
+        if classificacoes:
             tipos_dict = {}
-            for preco in precos_fornecedor:
-                tipo_id = preco.tipo_lote_id
+            for classif in classificacoes:
+                tipo_id = classif.tipo_lote_id
                 if tipo_id not in tipos_dict:
                     tipos_dict[tipo_id] = {
                         'id': tipo_id,
-                        'nome': preco.tipo_lote.nome if preco.tipo_lote else '',
-                        'precos_estrelas': {}
+                        'nome': classif.tipo_lote.nome if classif.tipo_lote else '',
+                        'estrelas_config': {
+                            'leve': classif.leve_estrelas,
+                            'medio': classif.medio_estrelas,
+                            'pesado': classif.pesado_estrelas
+                        }
                     }
-                tipos_dict[tipo_id]['precos_estrelas'][preco.estrelas] = preco.preco_por_kg
             
             tipos_list = list(tipos_dict.values())
             
@@ -176,32 +177,38 @@ def listar_fornecedores_com_tipos():
 @bp.route('/precos/<int:fornecedor_id>/<int:tipo_lote_id>', methods=['GET'])
 @jwt_required()
 def buscar_precos(fornecedor_id, tipo_lote_id):
-    """Busca todos os preços (1-5 estrelas) para um fornecedor e tipo de lote"""
-    from app.models import FornecedorTipoLotePreco
+    """Busca preços do tipo de lote e configuração de estrelas do fornecedor"""
+    fornecedor = Fornecedor.query.get(fornecedor_id)
+    tipo_lote = TipoLote.query.get(tipo_lote_id)
     
-    precos = FornecedorTipoLotePreco.query.filter_by(
+    if not fornecedor or not tipo_lote:
+        return jsonify({'erro': 'Fornecedor ou tipo de lote não encontrado'}), 404
+    
+    config_estrelas = FornecedorTipoLoteClassificacao.query.filter_by(
         fornecedor_id=fornecedor_id,
         tipo_lote_id=tipo_lote_id,
         ativo=True
-    ).order_by(FornecedorTipoLotePreco.estrelas).all()
+    ).first()
     
-    if not precos:
+    if not config_estrelas:
         return jsonify({
-            'erro': 'Nenhum preço configurado',
-            'mensagem': 'Este fornecedor não possui preços configurados para este tipo de lote.'
+            'erro': 'Configuração não encontrada',
+            'mensagem': 'Este fornecedor não possui configuração de estrelas para este tipo de lote.'
         }), 404
     
-    precos_dict = {}
-    for preco in precos:
-        precos_dict[preco.estrelas] = {
-            'estrelas': preco.estrelas,
-            'preco_por_kg': preco.preco_por_kg
-        }
+    precos_tipo = tipo_lote.to_dict().get('precos', {})
     
     return jsonify({
         'fornecedor_id': fornecedor_id,
+        'fornecedor_nome': fornecedor.nome,
         'tipo_lote_id': tipo_lote_id,
-        'precos': precos_dict
+        'tipo_lote_nome': tipo_lote.nome,
+        'estrelas_config': {
+            'leve': config_estrelas.leve_estrelas,
+            'medio': config_estrelas.medio_estrelas,
+            'pesado': config_estrelas.pesado_estrelas
+        },
+        'precos_tipo_lote': precos_tipo
     }), 200
 
 @bp.route('/analisar-imagem', methods=['POST'])

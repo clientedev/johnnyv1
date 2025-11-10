@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required
-from app.models import TipoLote, TipoLotePrecoEstrela, TipoLotePrecoClassificacao, db, FornecedorTipoLoteClassificacao, Fornecedor
+from app.models import TipoLote, TipoLotePreco, db, FornecedorTipoLoteClassificacao, Fornecedor
 from app.auth import admin_required
 import pandas as pd
 import io
@@ -89,6 +89,23 @@ def criar_tipo_lote():
         )
         
         db.session.add(tipo)
+        db.session.flush()
+        
+        if 'precos' in data and isinstance(data['precos'], dict):
+            for classificacao_key in ['leve', 'medio', 'pesado']:
+                if classificacao_key in data['precos']:
+                    precos_class = data['precos'][classificacao_key]
+                    for estrela in range(1, 6):
+                        preco_val = precos_class.get(str(estrela), 0.0)
+                        if isinstance(preco_val, (int, float)) and preco_val >= 0:
+                            preco_obj = TipoLotePreco(
+                                tipo_lote_id=tipo.id,
+                                classificacao=classificacao_key,
+                                estrelas=estrela,
+                                preco_por_kg=float(preco_val)
+                            )
+                            db.session.add(preco_obj)
+        
         db.session.commit()
         
         return jsonify(tipo.to_dict()), 201
@@ -136,6 +153,23 @@ def atualizar_tipo_lote(id):
         
         if 'ativo' in data:
             tipo.ativo = data['ativo']
+        
+        if 'precos' in data and isinstance(data['precos'], dict):
+            TipoLotePreco.query.filter_by(tipo_lote_id=tipo.id).delete()
+            
+            for classificacao_key in ['leve', 'medio', 'pesado']:
+                if classificacao_key in data['precos']:
+                    precos_class = data['precos'][classificacao_key]
+                    for estrela in range(1, 6):
+                        preco_val = precos_class.get(str(estrela), 0.0)
+                        if isinstance(preco_val, (int, float)) and preco_val >= 0:
+                            preco_obj = TipoLotePreco(
+                                tipo_lote_id=tipo.id,
+                                classificacao=classificacao_key,
+                                estrelas=estrela,
+                                preco_por_kg=float(preco_val)
+                            )
+                            db.session.add(preco_obj)
         
         db.session.commit()
         
@@ -437,187 +471,3 @@ def exportar_excel():
     except Exception as e:
         return jsonify({'erro': f'Erro ao exportar Excel: {str(e)}'}), 500
 
-@bp.route('/<int:tipo_id>/precos', methods=['GET'])
-@jwt_required()
-def listar_precos_estrela(tipo_id):
-    try:
-        tipo = TipoLote.query.get(tipo_id)
-        
-        if not tipo:
-            return jsonify({'erro': 'Tipo de lote não encontrado'}), 404
-        
-        precos = TipoLotePrecoEstrela.query.filter_by(tipo_lote_id=tipo_id).order_by(TipoLotePrecoEstrela.estrelas).all()
-        
-        return jsonify({
-            'tipo_lote': tipo.to_dict(),
-            'precos': [preco.to_dict() for preco in precos]
-        }), 200
-    
-    except Exception as e:
-        return jsonify({'erro': f'Erro ao listar preços: {str(e)}'}), 500
-
-@bp.route('/<int:tipo_id>/precos', methods=['POST'])
-@admin_required
-def configurar_precos_estrela(tipo_id):
-    try:
-        tipo = TipoLote.query.get(tipo_id)
-        
-        if not tipo:
-            return jsonify({'erro': 'Tipo de lote não encontrado'}), 404
-        
-        data = request.get_json()
-        
-        if not data or 'precos' not in data:
-            return jsonify({'erro': 'Lista de preços não fornecida'}), 400
-        
-        precos_inseridos = 0
-        precos_atualizados = 0
-        
-        for preco_data in data['precos']:
-            estrelas = preco_data.get('estrelas')
-            preco_kg = preco_data.get('preco_por_kg', 0.0)
-            
-            if not estrelas or not (1 <= estrelas <= 5):
-                continue
-            
-            preco_existente = TipoLotePrecoEstrela.query.filter_by(
-                tipo_lote_id=tipo_id,
-                estrelas=estrelas
-            ).first()
-            
-            if preco_existente:
-                preco_existente.preco_por_kg = preco_kg
-                preco_existente.ativo = preco_data.get('ativo', True)
-                precos_atualizados += 1
-            else:
-                novo_preco = TipoLotePrecoEstrela(
-                    tipo_lote_id=tipo_id,
-                    estrelas=estrelas,
-                    preco_por_kg=preco_kg,
-                    ativo=preco_data.get('ativo', True)
-                )
-                db.session.add(novo_preco)
-                precos_inseridos += 1
-        
-        db.session.commit()
-        
-        return jsonify({
-            'mensagem': 'Preços configurados com sucesso',
-            'inseridos': precos_inseridos,
-            'atualizados': precos_atualizados
-        }), 200
-    
-    except ValueError as e:
-        db.session.rollback()
-        return jsonify({'erro': str(e)}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'erro': f'Erro ao configurar preços: {str(e)}'}), 500
-
-@bp.route('/<int:tipo_id>/precos/<int:estrelas>', methods=['DELETE'])
-@admin_required
-def deletar_preco_estrela(tipo_id, estrelas):
-    try:
-        if not (1 <= estrelas <= 5):
-            return jsonify({'erro': 'Estrelas deve estar entre 1 e 5'}), 400
-        
-        preco = TipoLotePrecoEstrela.query.filter_by(
-            tipo_lote_id=tipo_id,
-            estrelas=estrelas
-        ).first()
-        
-        if not preco:
-            return jsonify({'erro': 'Preço não encontrado'}), 404
-        
-        db.session.delete(preco)
-        db.session.commit()
-        
-        return jsonify({'mensagem': 'Preço deletado com sucesso'}), 200
-    
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'erro': f'Erro ao deletar preço: {str(e)}'}), 500
-
-@bp.route('/<int:tipo_id>/precos-classificacao', methods=['GET'])
-@jwt_required()
-def listar_precos_classificacao(tipo_id):
-    try:
-        tipo = TipoLote.query.get(tipo_id)
-        
-        if not tipo:
-            return jsonify({'erro': 'Tipo de lote não encontrado'}), 404
-        
-        precos = TipoLotePrecoClassificacao.query.filter_by(tipo_lote_id=tipo_id).all()
-        
-        return jsonify({
-            'tipo_lote': tipo.to_dict(),
-            'precos': [preco.to_dict() for preco in precos]
-        }), 200
-    
-    except Exception as e:
-        return jsonify({'erro': f'Erro ao listar preços de classificação: {str(e)}'}), 500
-
-@bp.route('/<int:tipo_id>/precos-classificacao', methods=['POST'])
-@admin_required
-def configurar_precos_classificacao(tipo_id):
-    try:
-        tipo = TipoLote.query.get(tipo_id)
-        
-        if not tipo:
-            return jsonify({'erro': 'Tipo de lote não encontrado'}), 404
-        
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({'erro': 'Dados não fornecidos'}), 400
-        
-        precos_inseridos = 0
-        precos_atualizados = 0
-        
-        for classificacao in ['leve', 'medio', 'pesado']:
-            preco_key = f'{classificacao}_preco'
-            
-            if preco_key not in data:
-                continue
-            
-            preco_kg = data[preco_key]
-            
-            if preco_kg is None:
-                continue
-                
-            if preco_kg < 0:
-                return jsonify({'erro': f'Preço para {classificacao} não pode ser negativo'}), 400
-            
-            preco_existente = TipoLotePrecoClassificacao.query.filter_by(
-                tipo_lote_id=tipo_id,
-                classificacao=classificacao
-            ).first()
-            
-            if preco_existente:
-                preco_existente.preco_por_kg = preco_kg
-                preco_existente.ativo = data.get('ativo', True)
-                precos_atualizados += 1
-            else:
-                novo_preco = TipoLotePrecoClassificacao(
-                    tipo_lote_id=tipo_id,
-                    classificacao=classificacao,
-                    preco_por_kg=preco_kg,
-                    ativo=data.get('ativo', True)
-                )
-                db.session.add(novo_preco)
-                precos_inseridos += 1
-        
-        db.session.commit()
-        
-        return jsonify({
-            'mensagem': 'Preços de classificação configurados com sucesso',
-            'inseridos': precos_inseridos,
-            'atualizados': precos_atualizados
-        }), 200
-    
-    except ValueError as e:
-        db.session.rollback()
-        return jsonify({'erro': str(e)}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'erro': f'Erro ao configurar preços de classificação: {str(e)}'}), 500
