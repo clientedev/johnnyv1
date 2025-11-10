@@ -225,6 +225,13 @@ class Solicitacao(db.Model):  # type: ignore
     data_confirmacao = db.Column(db.DateTime, nullable=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
+    rua = db.Column(db.String(200))
+    numero = db.Column(db.String(20))
+    cep = db.Column(db.String(10))
+    localizacao_lat = db.Column(db.Float, nullable=True)
+    localizacao_lng = db.Column(db.Float, nullable=True)
+    endereco_completo = db.Column(db.String(500))
+    
     itens = db.relationship('ItemSolicitacao', backref='solicitacao', lazy=True, cascade='all, delete-orphan')
     admin = db.relationship('Usuario', foreign_keys=[admin_id], backref='solicitacoes_aprovadas_por_mim')
     
@@ -245,6 +252,12 @@ class Solicitacao(db.Model):  # type: ignore
             'tipo_retirada': self.tipo_retirada,
             'status': self.status,
             'observacoes': self.observacoes,
+            'rua': self.rua,
+            'numero': self.numero,
+            'cep': self.cep,
+            'localizacao_lat': self.localizacao_lat,
+            'localizacao_lng': self.localizacao_lng,
+            'endereco_completo': self.endereco_completo,
             'data_envio': self.data_envio.isoformat() if self.data_envio else None,
             'data_confirmacao': self.data_confirmacao.isoformat() if self.data_confirmacao else None,
             'admin_id': self.admin_id,
