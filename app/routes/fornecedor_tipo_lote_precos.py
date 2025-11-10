@@ -114,22 +114,40 @@ def atualizar_preco(id):
         
         data = request.get_json()
         
+        novo_fornecedor_id = data.get('fornecedor_id', preco.fornecedor_id)
+        novo_tipo_lote_id = data.get('tipo_lote_id', preco.tipo_lote_id)
+        novas_estrelas = data.get('estrelas', preco.estrelas)
+        
         if 'fornecedor_id' in data and data['fornecedor_id'] != preco.fornecedor_id:
             fornecedor = Fornecedor.query.get(data['fornecedor_id'])
             if not fornecedor:
                 return jsonify({'erro': 'Fornecedor não encontrado'}), 404
-            preco.fornecedor_id = data['fornecedor_id']
         
         if 'tipo_lote_id' in data and data['tipo_lote_id'] != preco.tipo_lote_id:
             tipo_lote = TipoLote.query.get(data['tipo_lote_id'])
             if not tipo_lote:
                 return jsonify({'erro': 'Tipo de lote não encontrado'}), 404
-            preco.tipo_lote_id = data['tipo_lote_id']
         
         if 'estrelas' in data:
             if data['estrelas'] < 1 or data['estrelas'] > 5:
                 return jsonify({'erro': 'Estrelas deve estar entre 1 e 5'}), 400
-            preco.estrelas = data['estrelas']
+        
+        if (novo_fornecedor_id != preco.fornecedor_id or 
+            novo_tipo_lote_id != preco.tipo_lote_id or 
+            novas_estrelas != preco.estrelas):
+            
+            duplicata = FornecedorTipoLotePreco.query.filter_by(
+                fornecedor_id=novo_fornecedor_id,
+                tipo_lote_id=novo_tipo_lote_id,
+                estrelas=novas_estrelas
+            ).filter(FornecedorTipoLotePreco.id != id).first()
+            
+            if duplicata:
+                return jsonify({'erro': 'Já existe um preço para este fornecedor, tipo de lote e quantidade de estrelas'}), 400
+        
+        preco.fornecedor_id = novo_fornecedor_id
+        preco.tipo_lote_id = novo_tipo_lote_id
+        preco.estrelas = novas_estrelas
         
         if 'preco_por_kg' in data:
             if data['preco_por_kg'] < 0:
