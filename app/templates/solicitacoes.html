@@ -209,7 +209,7 @@
 
         async function carregarFornecedores() {
             try {
-                const response = await fetchAPI('/api/fornecedores');
+                const response = await fetchAPI('/fornecedores');
                 if (response && response.ok) {
                     todosFornecedores = await response.json();
                     const select = document.getElementById('fornecedorSolicitacao');
@@ -223,7 +223,7 @@
 
         async function carregarTiposLote() {
             try {
-                const response = await fetchAPI('/api/tipos-lote');
+                const response = await fetchAPI('/tipos-lote');
                 if (response && response.ok) {
                     todosTiposLote = await response.json();
                 }
@@ -240,7 +240,7 @@
             }
 
             try {
-                const response = await fetchAPI(`/api/fornecedores/${fornecedorId}/precos`);
+                const response = await fetchAPI(`/fornecedores/${fornecedorId}/precos`);
                 if (response && response.ok) {
                     const precos = await response.json();
                     precosFornecedorSelecionado = {};
@@ -518,7 +518,7 @@
                 btn.disabled = true;
                 btn.textContent = '⏳ Enviando...';
 
-                const response = await fetchAPI('/api/solicitacoes', {
+                const response = await fetchAPI('/solicitacoes', {
                     method: 'POST',
                     body: JSON.stringify(data)
                 });
@@ -543,7 +543,7 @@
 
         async function verDetalhes(id) {
             try {
-                const response = await fetchAPI(`/api/solicitacoes/${id}`);
+                const response = await fetchAPI(`/solicitacoes/${id}`);
                 if (!response || !response.ok) {
                     showAlert('Erro ao carregar detalhes');
                     return;
@@ -634,7 +634,7 @@
             if (!confirm('Aprovar esta solicitação? Os lotes serão criados automaticamente.')) return;
 
             try {
-                const response = await fetchAPI(`/api/solicitacoes/${solicitacaoAtual.id}/aprovar`, {
+                const response = await fetchAPI(`/solicitacoes/${solicitacaoAtual.id}/aprovar`, {
                     method: 'POST'
                 });
 
@@ -657,7 +657,7 @@
             if (!motivo) return;
 
             try {
-                const response = await fetchAPI(`/api/solicitacoes/${solicitacaoAtual.id}/rejeitar`, {
+                const response = await fetchAPI(`/solicitacoes/${solicitacaoAtual.id}/rejeitar`, {
                     method: 'POST',
                     body: JSON.stringify({ motivo_rejeicao: motivo })
                 });

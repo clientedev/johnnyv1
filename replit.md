@@ -209,13 +209,61 @@ Servidor roda em `http://0.0.0.0:5000`
 ✅ CORS configurado
 ✅ Tokens com expiração de 24h
 
-## Próximos Passos
+## Templates Frontend (Atualizados em 10/11/2025)
 
-### Frontend (Pendente)
-- [ ] Atualizar templates de fornecedores
-- [ ] Criar template de configuração de preços (matriz 150×5)
-- [ ] Atualizar template de solicitações (múltiplos itens, foto, IA, estrelas)
-- [ ] Atualizar templates de lotes e entradas com rastreamento
+### ✅ fornecedores.html
+- Cadastro e edição de fornecedores com CNPJ/CPF
+- Busca automática de dados pela Receita Federal
+- **Matriz de preços:** Configuração de até 150 tipos de lote × 5 estrelas
+- Interface intuitiva para definir preço_por_kg para cada combinação
+- Listagem com filtros e ações de editar/excluir
+
+### ✅ solicitacoes.html
+- Criação de solicitações com **múltiplos itens**
+- Cada item possui:
+  * Seleção de tipo de lote (dos 150 disponíveis)
+  * Peso em kg
+  * Classificação por estrelas (1-5)
+  * Campo para foto (preparado para IA Gemini)
+  * Observações individuais
+- **Captura de localização:** GPS (lat/lng) + endereço manual (rua, número, CEP)
+- Cálculo automático de valores baseado na matriz de preços
+- Resumo em tempo real (total de itens, peso total, valor total)
+- Aprovação/rejeição de solicitações (admin)
+
+### ✅ lotes.html
+- Listagem de lotes com filtros (status, fornecedor)
+- Exibição de rastreamento completo:
+  * Número único do lote (UUID)
+  * Fornecedor e tipo de lote
+  * Solicitação de origem
+  * Quantidade de itens, peso total, estrelas média
+- Estatísticas: Lotes abertos, aprovados, rejeitados, valor total
+- Aprovação/rejeição de lotes (admin)
+- Detalhes com lista de todos os itens do lote
+
+### ✅ entradas.html
+- Listagem de entradas de estoque vinculadas a lotes
+- **Rastreabilidade completa:**
+  * Número do lote origem
+  * Fornecedor e tipo de lote
+  * Solicitação original
+  * Datas de criação e aprovação
+- Processamento de entradas (admin)
+- Estatísticas: Pendentes, processadas, valor total
+
+### ✅ administracao.html
+- Painel central com cards de acesso rápido a:
+  * Fornecedores
+  * Solicitações
+  * Lotes
+  * Entradas de Estoque
+  * Consulta Avançada
+  * Configurações
+- Gerenciamento de funcionários
+- Configurações do sistema
+
+## Próximos Passos
 
 ### Melhorias Futuras
 - [ ] Integração completa com Gemini AI para classificação de imagens

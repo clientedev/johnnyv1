@@ -63,7 +63,7 @@
                     <thead>
                         <tr>
                             <th>Nome</th>
-                            <th>CNPJ</th>
+                            <th>CNPJ/CPF</th>
                             <th>Telefone</th>
                             <th>Cidade</th>
                             <th>Ações</th>
@@ -98,6 +98,11 @@
                     <small style="color: #666;">Digite o CNPJ e clique em Buscar para preencher automaticamente</small>
                 </div>
 
+                <div class="form-group">
+                    <label>CPF (Alternativo)</label>
+                    <input type="text" id="cpf" placeholder="000.000.000-00">
+                </div>
+                
                 <div id="dadosCNPJ" style="display: none; background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                     <h4 style="margin: 0 0 1rem 0; color: #0369a1;">📋 Dados da Receita Federal</h4>
                     
@@ -222,7 +227,7 @@
                 tbody.innerHTML = fornecedores.map(f => `
                     <tr>
                         <td>${f.nome}</td>
-                        <td>${f.cnpj || '-'}</td>
+                        <td>${f.cnpj || f.cpf || '-'}</td>
                         <td>${f.telefone || '-'}</td>
                         <td>${f.cidade || '-'}</td>
                         <td>
@@ -300,6 +305,7 @@
             const data = {
                 nome: document.getElementById('nome').value,
                 cnpj: document.getElementById('cnpj').value || null,
+                cpf: document.getElementById('cpf').value || null,
                 rua: document.getElementById('rua').value || null,
                 numero: document.getElementById('numero').value || null,
                 cidade: document.getElementById('cidade').value || null,
@@ -352,6 +358,7 @@
                 document.getElementById('fornecedorId').value = fornecedorAtual.id;
                 document.getElementById('nome').value = fornecedorAtual.nome || '';
                 document.getElementById('cnpj').value = fornecedorAtual.cnpj || '';
+                document.getElementById('cpf').value = fornecedorAtual.cpf || '';
                 document.getElementById('rua').value = fornecedorAtual.rua || '';
                 document.getElementById('numero').value = fornecedorAtual.numero || '';
                 document.getElementById('cidade').value = fornecedorAtual.cidade || '';
