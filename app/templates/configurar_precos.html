@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurar Preços por Estrela - MRX Systems</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .container-config {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .precos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .preco-item {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            text-align: center;
+        }
+        
+        .preco-item.estrela-1 { border-color: #dc2626; }
+        .preco-item.estrela-2 { border-color: #f59e0b; }
+        .preco-item.estrela-3 { border-color: #eab308; }
+        .preco-item.estrela-4 { border-color: #22c55e; }
+        .preco-item.estrela-5 { border-color: #16a34a; }
+        
+        .preco-item h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .preco-item .estrelas {
+            font-size: 24px;
+            color: #f59e0b;
+            margin-bottom: 10px;
+        }
+        
+        .preco-item input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #15803d;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn-info {
+            background: #0ea5e9;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #0284c7;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+        
+        .precos-lista {
+            margin-top: 30px;
+        }
+        
+        .preco-configurado {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #16a34a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .preco-info {
+            flex: 1;
+        }
+        
+        .preco-valores {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .preco-valores div {
+            text-align: center;
+            padding: 5px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .actions-bar {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .upload-section {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px dashed #d1d5db;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .upload-section input[type="file"] {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-config">
+        <div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>Configurar Preços por Estrela</h1>
+            <button onclick="window.location.href='/dashboard'" class="btn btn-secondary">Voltar</button>
+        </div>
+        
+        <div id="mensagem"></div>
+        
+        <div class="actions-bar">
+            <button onclick="downloadModelo()" class="btn btn-info">
+                📥 Baixar Modelo Excel
+            </button>
+            <button onclick="exportarPrecos()" class="btn btn-info">
+                📤 Exportar Preços
+            </button>
+            <button onclick="toggleUpload()" class="btn btn-secondary">
+                📄 Importar Excel
+            </button>
+        </div>
+        
+        <div id="uploadSection" class="upload-section hidden">
+            <h3>Importar Preços via Excel</h3>
+            <p style="color: #6b7280; margin: 10px 0;">
+                Selecione um arquivo Excel com as configurações de preços
+            </p>
+            <input type="file" id="arquivoExcel" accept=".xlsx,.xls">
+            <div style="margin-top: 15px;">
+                <button onclick="importarExcel()" class="btn btn-primary">Importar</button>
+                <button onclick="toggleUpload()" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Nova Configuração de Preços</h2>
+            
+            <div class="form-group">
+                <label for="fornecedor">Fornecedor *</label>
+                <select id="fornecedor" required>
+                    <option value="">Selecione um fornecedor</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="tipoLote">Tipo de Lote *</label>
+                <select id="tipoLote" required>
+                    <option value="">Selecione um tipo de lote</option>
+                </select>
+            </div>
+            
+            <div id="configPrecos" class="hidden">
+                <h3 style="margin-top: 30px;">Configure o Preço por KG para cada nível de Estrelas</h3>
+                <p style="color: #6b7280; margin-bottom: 20px;">
+                    Defina o preço por quilograma para cada classificação (1 a 5 estrelas).
+                </p>
+                
+                <div class="precos-grid">
+                    <div class="preco-item estrela-1">
+                        <h3>1 Estrela</h3>
+                        <div class="estrelas">★</div>
+                        <label style="font-size: 12px; color: #6b7280;">Preço/KG (R$)</label>
+                        <input type="number" id="preco_1" min="0" step="0.01" value="10.00" placeholder="0.00">
+                    </div>
+                    
+                    <div class="preco-item estrela-2">
+                        <h3>2 Estrelas</h3>
+                        <div class="estrelas">★★</div>
+                        <label style="font-size: 12px; color: #6b7280;">Preço/KG (R$)</label>
+                        <input type="number" id="preco_2" min="0" step="0.01" value="15.00" placeholder="0.00">
+                    </div>
+                    
+                    <div class="preco-item estrela-3">
+                        <h3>3 Estrelas</h3>
+                        <div class="estrelas">★★★</div>
+                        <label style="font-size: 12px; color: #6b7280;">Preço/KG (R$)</label>
+                        <input type="number" id="preco_3" min="0" step="0.01" value="20.00" placeholder="0.00">
+                    </div>
+                    
+                    <div class="preco-item estrela-4">
+                        <h3>4 Estrelas</h3>
+                        <div class="estrelas">★★★★</div>
+                        <label style="font-size: 12px; color: #6b7280;">Preço/KG (R$)</label>
+                        <input type="number" id="preco_4" min="0" step="0.01" value="25.00" placeholder="0.00">
+                    </div>
+                    
+                    <div class="preco-item estrela-5">
+                        <h3>5 Estrelas</h3>
+                        <div class="estrelas">★★★★★</div>
+                        <label style="font-size: 12px; color: #6b7280;">Preço/KG (R$)</label>
+                        <input type="number" id="preco_5" min="0" step="0.01" value="30.00" placeholder="0.00">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" onclick="limparFormulario()" class="btn btn-secondary">
+                        Limpar
+                    </button>
+                    <button type="button" onclick="salvarPrecos()" class="btn btn-primary">
+                        Salvar Preços
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card precos-lista">
+            <h2>Preços Configurados</h2>
+            <div id="listaPrecos">
+                <p style="color: #6b7280; text-align: center; padding: 20px;">
+                    Carregando preços configurados...
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let fornecedores = [];
+        let tiposLote = [];
+        
+        async function carregarDados() {
+            try {
+                const token = localStorage.getItem('token');
+                
+                const [respFornecedores, respTipos] = await Promise.all([
+                    fetch('/api/fornecedores', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/tipos-lote', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+                
+                fornecedores = await respFornecedores.json();
+                tiposLote = await respTipos.json();
+                
+                const selectForn = document.getElementById('fornecedor');
+                fornecedores.forEach(f => {
+                    const option = document.createElement('option');
+                    option.value = f.id;
+                    option.textContent = f.nome;
+                    selectForn.appendChild(option);
+                });
+                
+                const selectTipo = document.getElementById('tipoLote');
+                tiposLote.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.nome;
+                    selectTipo.appendChild(option);
+                });
+                
+                carregarPrecosConfigurados();
+            } catch (error) {
+                mostrarMensagem('Erro ao carregar dados: ' + error.message, 'error');
+            }
+        }
+        
+        document.getElementById('fornecedor').addEventListener('change', verificarSelecao);
+        document.getElementById('tipoLote').addEventListener('change', verificarSelecao);
+        
+        async function verificarSelecao() {
+            const fornecedorId = document.getElementById('fornecedor').value;
+            const tipoLoteId = document.getElementById('tipoLote').value;
+            
+            if (fornecedorId && tipoLoteId) {
+                document.getElementById('configPrecos').classList.remove('hidden');
+                
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(
+                        `/api/fornecedor-tipo-lote-precos?fornecedor_id=${fornecedorId}&tipo_lote_id=${tipoLoteId}`,
+                        { headers: { 'Authorization': `Bearer ${token}` } }
+                    );
+                    
+                    if (response.ok) {
+                        const precos = await response.json();
+                        
+                        for (let i = 1; i <= 5; i++) {
+                            document.getElementById(`preco_${i}`).value = '';
+                        }
+                        
+                        precos.forEach(preco => {
+                            const input = document.getElementById(`preco_${preco.estrelas}`);
+                            if (input) {
+                                input.value = preco.preco_por_kg.toFixed(2);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar preços existentes:', error);
+                }
+            } else {
+                document.getElementById('configPrecos').classList.add('hidden');
+            }
+        }
+        
+        async function salvarPrecos() {
+            const fornecedorId = document.getElementById('fornecedor').value;
+            const tipoLoteId = document.getElementById('tipoLote').value;
+            
+            if (!fornecedorId || !tipoLoteId) {
+                mostrarMensagem('Selecione fornecedor e tipo de lote', 'error');
+                return;
+            }
+            
+            const precos = {};
+            for (let i = 1; i <= 5; i++) {
+                const valor = parseFloat(document.getElementById(`preco_${i}`).value);
+                if (!isNaN(valor) && valor >= 0) {
+                    precos[i] = valor;
+                }
+            }
+            
+            if (Object.keys(precos).length === 0) {
+                mostrarMensagem('Configure pelo menos um preço', 'error');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(
+                    `/api/fornecedor-tipo-lote-precos/lote/${fornecedorId}/${tipoLoteId}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ precos })
+                    }
+                );
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.erro || 'Erro ao salvar preços');
+                }
+                
+                mostrarMensagem('Preços salvos com sucesso!', 'success');
+                carregarPrecosConfigurados();
+                limparFormulario();
+            } catch (error) {
+                mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
+            }
+        }
+        
+        async function carregarPrecosConfigurados() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/fornecedor-tipo-lote-precos', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const precos = await response.json();
+                const container = document.getElementById('listaPrecos');
+                
+                if (precos.length === 0) {
+                    container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 20px;">Nenhum preço configurado</p>';
+                    return;
+                }
+                
+                const agrupados = {};
+                precos.forEach(preco => {
+                    const chave = `${preco.fornecedor_id}_${preco.tipo_lote_id}`;
+                    if (!agrupados[chave]) {
+                        agrupados[chave] = {
+                            fornecedor: preco.fornecedor_nome,
+                            tipo_lote: preco.tipo_lote_nome,
+                            precos: {}
+                        };
+                    }
+                    agrupados[chave].precos[preco.estrelas] = preco.preco_por_kg;
+                });
+                
+                let html = '';
+                Object.values(agrupados).forEach(config => {
+                    html += `
+                        <div class="preco-configurado">
+                            <div class="preco-info">
+                                <strong>${config.fornecedor}</strong> - ${config.tipo_lote}
+                            </div>
+                            <div class="preco-valores">
+                                ${[1,2,3,4,5].map(e => `
+                                    <div>
+                                        <div style="color: #f59e0b; font-size: 18px;">${'★'.repeat(e)}</div>
+                                        <div style="font-weight: bold; margin-top: 5px;">
+                                            ${config.precos[e] ? 'R$ ' + config.precos[e].toFixed(2) : '-'}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao carregar preços configurados:', error);
+            }
+        }
+        
+        function limparFormulario() {
+            document.getElementById('fornecedor').value = '';
+            document.getElementById('tipoLote').value = '';
+            document.getElementById('configPrecos').classList.add('hidden');
+            
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`preco_${i}`).value = (10 + (i-1) * 5).toFixed(2);
+            }
+        }
+        
+        function toggleUpload() {
+            const section = document.getElementById('uploadSection');
+            section.classList.toggle('hidden');
+        }
+        
+        async function downloadModelo() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/fornecedor-tipo-lote-precos/modelo-excel', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Erro ao baixar modelo');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `modelo_precos_estrelas_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                mostrarMensagem('Modelo Excel baixado com sucesso!', 'success');
+            } catch (error) {
+                mostrarMensagem('Erro ao baixar modelo: ' + error.message, 'error');
+            }
+        }
+        
+        async function exportarPrecos() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/fornecedor-tipo-lote-precos/exportar-excel', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Erro ao exportar preços');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `precos_estrelas_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                mostrarMensagem('Preços exportados com sucesso!', 'success');
+            } catch (error) {
+                mostrarMensagem('Erro ao exportar: ' + error.message, 'error');
+            }
+        }
+        
+        async function importarExcel() {
+            const fileInput = document.getElementById('arquivoExcel');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                mostrarMensagem('Selecione um arquivo Excel', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('arquivo', file);
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/fornecedor-tipo-lote-precos/importar-excel', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.erro || 'Erro ao importar arquivo');
+                }
+                
+                let msg = `Importação concluída! Criados: ${result.criados}, Atualizados: ${result.atualizados}`;
+                if (result.total_erros > 0) {
+                    msg += `\nErros: ${result.total_erros}. Verifique o console para detalhes.`;
+                    console.error('Erros na importação:', result.erros);
+                }
+                
+                mostrarMensagem(msg, result.total_erros > 0 ? 'info' : 'success');
+                carregarPrecosConfigurados();
+                toggleUpload();
+                fileInput.value = '';
+            } catch (error) {
+                mostrarMensagem('Erro ao importar: ' + error.message, 'error');
+            }
+        }
+        
+        function mostrarMensagem(texto, tipo) {
+            const div = document.getElementById('mensagem');
+            div.className = `alert alert-${tipo}`;
+            div.textContent = texto;
+            div.style.display = 'block';
+            
+            if (tipo === 'success') {
+                setTimeout(() => div.style.display = 'none', 5000);
+            }
+        }
+        
+        carregarDados();
+    </script>
+</body>
+</html>

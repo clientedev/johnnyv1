@@ -95,9 +95,16 @@ Justificativa: A placa apresenta poucos componentes SMD e muita área de cobre e
 def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, peso_kg):
     """Calcula o valor do item baseado na classificação e configuração do fornecedor
     
+    Fluxo:
+    1. Busca configuração de classificação (leve/médio/pesado → estrelas)
+    2. Busca preço por kg baseado nas estrelas do fornecedor
+    3. Calcula valor total = preço_por_kg * peso_kg
+    
     Raises:
-        ValueError: Se não houver configuração de classificação para este fornecedor/tipo
+        ValueError: Se não houver configuração de classificação ou preço para este fornecedor/tipo
     """
+    from app.models import FornecedorTipoLotePreco
+    
     config_class = FornecedorTipoLoteClassificacao.query.filter_by(
         fornecedor_id=fornecedor_id,
         tipo_lote_id=tipo_lote_id,
@@ -107,24 +114,25 @@ def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, peso_kg):
     if not config_class:
         raise ValueError(
             f'Fornecedor {fornecedor_id} não possui configuração de estrelas '
-            f'para o tipo de lote {tipo_lote_id}. Configure as estrelas antes de criar solicitações.'
+            f'para o tipo de lote {tipo_lote_id}. Configure as estrelas por classificação antes de criar solicitações.'
         )
     
     estrelas = config_class.get_estrelas_por_classificacao(classificacao)
     
-    preco_config = TipoLotePrecoClassificacao.query.filter_by(
+    preco_fornecedor = FornecedorTipoLotePreco.query.filter_by(
+        fornecedor_id=fornecedor_id,
         tipo_lote_id=tipo_lote_id,
-        classificacao=classificacao,
+        estrelas=estrelas,
         ativo=True
     ).first()
     
-    if not preco_config:
+    if not preco_fornecedor:
         raise ValueError(
-            f'Tipo de lote {tipo_lote_id} não possui preço configurado '
-            f'para a classificação {classificacao}. Configure os preços antes de criar solicitações.'
+            f'Fornecedor {fornecedor_id} não possui preço configurado para {estrelas} estrelas '
+            f'no tipo de lote {tipo_lote_id}. Configure os preços por estrela antes de criar solicitações.'
         )
     
-    preco_por_kg = preco_config.preco_por_kg
+    preco_por_kg = preco_fornecedor.preco_por_kg
     valor_total = preco_por_kg * peso_kg
     
     return round(valor_total, 2), estrelas, preco_por_kg
