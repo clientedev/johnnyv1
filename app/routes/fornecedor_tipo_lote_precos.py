@@ -170,7 +170,7 @@ def deletar_preco(id):
 
 @bp.route('/lote/<int:fornecedor_id>/<int:tipo_lote_id>', methods=['POST'])
 @admin_required
-def criar_precos_lote():
+def criar_precos_lote(fornecedor_id, tipo_lote_id):
     """Cria múltiplos preços (1-5 estrelas) de uma vez para um fornecedor/tipo"""
     try:
         data = request.get_json()
