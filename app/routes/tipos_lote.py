@@ -169,7 +169,7 @@ def importar_excel():
         
         arquivo = request.files['arquivo']
         
-        if arquivo.filename == '':
+        if not arquivo.filename or arquivo.filename == '':
             return jsonify({'erro': 'Nenhum arquivo selecionado'}), 400
         
         if not arquivo.filename.endswith(('.xlsx', '.xls')):
@@ -189,10 +189,9 @@ def importar_excel():
         tipos_atualizados = 0
         erros = []
         
-        for index, row in df.iterrows():
+        for idx, (index, row) in enumerate(df.iterrows()):
+            linha_num = idx + 2
             try:
-                linha_num = index + 2
-                
                 nome = str(row['nome']).strip()
                 if not nome or nome == 'nan':
                     erros.append(f'Linha {linha_num}: Nome é obrigatório')
@@ -249,7 +248,7 @@ def importar_excel():
                     tipos_criados += 1
             
             except Exception as e:
-                erros.append(f'Linha {index + 2}: {str(e)}')
+                erros.append(f'Linha {linha_num}: {str(e)}')
                 continue
         
         db.session.commit()
@@ -270,9 +269,10 @@ def importar_excel():
 def exportar_excel():
     try:
         wb = openpyxl.Workbook()
-        wb.remove(wb.active)
-        
+        default_sheet = wb.active
         ws_tipos = wb.create_sheet('Tipos de Lote')
+        if default_sheet and default_sheet in wb.worksheets:
+            wb.remove(default_sheet)
         header_fill = PatternFill(start_color='059669', end_color='059669', fill_type='solid')
         header_font = Font(bold=True, color='FFFFFF')
         header_alignment = Alignment(horizontal='center', vertical='center')
