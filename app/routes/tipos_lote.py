@@ -177,19 +177,22 @@ def importar_excel():
         
         total_tipos = TipoLote.query.count()
         
-        df = pd.read_excel(io.BytesIO(arquivo.read()))
+        arquivo_bytes = arquivo.read()
+        df_tipos = pd.read_excel(io.BytesIO(arquivo_bytes), sheet_name='Tipos de Lote') if 'Tipos de Lote' in pd.ExcelFile(io.BytesIO(arquivo_bytes)).sheet_names else pd.read_excel(io.BytesIO(arquivo_bytes))
         
         colunas_requeridas = ['nome']
-        colunas_faltando = [col for col in colunas_requeridas if col not in df.columns]
+        colunas_faltando = [col for col in colunas_requeridas if col not in df_tipos.columns]
         
         if colunas_faltando:
             return jsonify({'erro': f'Colunas obrigatórias faltando: {", ".join(colunas_faltando)}'}), 400
         
         tipos_criados = 0
         tipos_atualizados = 0
+        estrelas_criadas = 0
+        estrelas_atualizadas = 0
         erros = []
         
-        for idx, (index, row) in enumerate(df.iterrows()):
+        for idx, (index, row) in enumerate(df_tipos.iterrows()):
             linha_num = idx + 2
             try:
                 nome = str(row['nome']).strip()
@@ -253,10 +256,77 @@ def importar_excel():
         
         db.session.commit()
         
+        try:
+            excel_file = pd.ExcelFile(io.BytesIO(arquivo_bytes))
+            if 'Estrelas por Fornecedor' in excel_file.sheet_names:
+                df_estrelas = pd.read_excel(excel_file, sheet_name='Estrelas por Fornecedor')
+                
+                if 'Tipo de Lote' in df_estrelas.columns and 'Fornecedor' in df_estrelas.columns:
+                    for idx, (_, row) in enumerate(df_estrelas.iterrows()):
+                        linha_num = idx + 2
+                        try:
+                            tipo_nome = str(row['Tipo de Lote']).strip()
+                            fornecedor_nome = str(row['Fornecedor']).strip()
+                            
+                            if tipo_nome == 'nan' or fornecedor_nome == 'nan':
+                                continue
+                            
+                            tipo = TipoLote.query.filter_by(nome=tipo_nome).first()
+                            fornecedor = Fornecedor.query.filter_by(nome=fornecedor_nome).first()
+                            
+                            if not tipo or not fornecedor:
+                                erros.append(f'Estrelas L{linha_num}: Tipo ou fornecedor não encontrado')
+                                continue
+                            
+                            leve_val = row.get('Leve (⭐)', 1)
+                            leve = int(leve_val) if not pd.isna(leve_val) else 1
+                            medio_val = row.get('Médio (⭐)', 3)
+                            medio = int(medio_val) if not pd.isna(medio_val) else 3
+                            pesado_val = row.get('Pesado (⭐)', 5)
+                            pesado = int(pesado_val) if not pd.isna(pesado_val) else 5
+                            
+                            ativo_val = row.get('Ativo')
+                            if pd.isna(ativo_val) or ativo_val == '':
+                                ativo = True
+                            else:
+                                ativo = str(ativo_val).strip().lower() in ['sim', 'yes', '1', 'true']
+                            
+                            classif_existente = FornecedorTipoLoteClassificacao.query.filter_by(
+                                fornecedor_id=fornecedor.id,
+                                tipo_lote_id=tipo.id
+                            ).first()
+                            
+                            if classif_existente:
+                                classif_existente.leve_estrelas = leve
+                                classif_existente.medio_estrelas = medio
+                                classif_existente.pesado_estrelas = pesado
+                                classif_existente.ativo = ativo
+                                estrelas_atualizadas += 1
+                            else:
+                                nova_classif = FornecedorTipoLoteClassificacao(
+                                    fornecedor_id=fornecedor.id,
+                                    tipo_lote_id=tipo.id,
+                                    leve_estrelas=leve,
+                                    medio_estrelas=medio,
+                                    pesado_estrelas=pesado,
+                                    ativo=ativo
+                                )
+                                db.session.add(nova_classif)
+                                estrelas_criadas += 1
+                        except Exception as e:
+                            erros.append(f'Estrelas L{linha_num}: {str(e)}')
+                            continue
+                    
+                    db.session.commit()
+        except Exception as e:
+            erros.append(f'Erro ao processar estrelas: {str(e)}')
+        
         return jsonify({
             'mensagem': 'Importação concluída',
             'tipos_criados': tipos_criados,
             'tipos_atualizados': tipos_atualizados,
+            'estrelas_criadas': estrelas_criadas,
+            'estrelas_atualizadas': estrelas_atualizadas,
             'erros': erros
         }), 200
     

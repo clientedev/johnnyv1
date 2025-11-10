@@ -4,10 +4,12 @@
 Sistema completo para gerenciamento de compras de placas eletrônicas com rastreamento por lote, classificação por qualidade (estrelas), controle de fornecedores, e workflow automatizado desde solicitação até entrada em estoque.
 
 ## Estado Atual (10/11/2025)
-✅ **Sistema Completo de Lotes com Classificação por IA**
+✅ **Sistema Completo de Lotes com Classificação por IA + Integração de Estrelas**
 - Módulo de solicitação de lotes com análise IA (Gemini) implementado
 - Sistema de classificação leve/médio/pesado funcionando
-- Configuração de estrelas por fornecedor/tipo/classificação
+- **NOVO:** Configuração de estrelas integrada no modal de tipos de lote
+- **NOVO:** Excel unificado com importação/exportação de tipos e estrelas
+- **NOVO:** Dashboard atualizado (tipos de lote ao invés de placas)
 - Validação obrigatória de configuração antes de criar solicitações
 - Fluxo completo: solicitação → aprovação → entrada
 - Telas frontend completas para todo o workflow

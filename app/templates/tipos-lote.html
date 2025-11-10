@@ -680,7 +680,11 @@
 
                 let mensagem = `Importação concluída!\n`;
                 mensagem += `✅ ${result.tipos_criados} tipo(s) criado(s)\n`;
-                mensagem += `♻️ ${result.tipos_atualizados} tipo(s) atualizado(s)`;
+                mensagem += `♻️ ${result.tipos_atualizados} tipo(s) atualizado(s)\n`;
+                if (result.estrelas_criadas || result.estrelas_atualizadas) {
+                    mensagem += `⭐ ${result.estrelas_criadas || 0} estrela(s) criada(s)\n`;
+                    mensagem += `⭐ ${result.estrelas_atualizadas || 0} estrela(s) atualizada(s)`;
+                }
                 
                 if (result.erros && result.erros.length > 0) {
                     mensagem += `\n\n⚠️ ${result.erros.length} erro(s):\n`;
