@@ -95,7 +95,7 @@ def obter_fornecedor(id):
         return jsonify({'erro': f'Erro ao obter fornecedor: {str(e)}'}), 500
 
 @bp.route('', methods=['POST'])
-@admin_required
+@jwt_required()
 def criar_fornecedor():
     try:
         data = request.get_json()

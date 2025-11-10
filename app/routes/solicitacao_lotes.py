@@ -111,13 +111,27 @@ def listar_fornecedores_com_tipos():
         if configs:
             tipos_disponiveis = []
             for config in configs:
-                tipos_disponiveis.append({
-                    'id': config.tipo_lote_id,
-                    'nome': config.tipo_lote.nome if config.tipo_lote else None,
-                    'leve_estrelas': config.leve_estrelas,
-                    'medio_estrelas': config.medio_estrelas,
-                    'pesado_estrelas': config.pesado_estrelas
-                })
+                tipo_lote = config.tipo_lote
+                if tipo_lote:
+                    precos = TipoLotePrecoClassificacao.query.filter_by(
+                        tipo_lote_id=tipo_lote.id,
+                        ativo=True
+                    ).all()
+                    
+                    precos_dict = {}
+                    for preco in precos:
+                        precos_dict[preco.classificacao] = preco.preco_por_kg
+                    
+                    tipos_disponiveis.append({
+                        'id': config.tipo_lote_id,
+                        'nome': tipo_lote.nome,
+                        'leve_estrelas': config.leve_estrelas,
+                        'medio_estrelas': config.medio_estrelas,
+                        'pesado_estrelas': config.pesado_estrelas,
+                        'leve_preco': precos_dict.get('leve', 0.0),
+                        'medio_preco': precos_dict.get('medio', 0.0),
+                        'pesado_preco': precos_dict.get('pesado', 0.0)
+                    })
             
             resultado.append({
                 'id': fornecedor.id,

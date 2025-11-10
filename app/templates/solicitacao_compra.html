@@ -310,9 +310,9 @@
                 
                 document.getElementById('estrelasInfo').style.display = 'block';
                 document.getElementById('estrelasConfig').innerHTML = `
-                    <p>Leve: ${'★'.repeat(tipoLoteConfig.leve_estrelas)} (${tipoLoteConfig.leve_estrelas} estrelas)</p>
-                    <p>Médio: ${'★'.repeat(tipoLoteConfig.medio_estrelas)} (${tipoLoteConfig.medio_estrelas} estrelas)</p>
-                    <p>Pesado: ${'★'.repeat(tipoLoteConfig.pesado_estrelas)} (${tipoLoteConfig.pesado_estrelas} estrelas)</p>
+                    <p><strong>Leve:</strong> ${'★'.repeat(tipoLoteConfig.leve_estrelas)} (${tipoLoteConfig.leve_estrelas} estrelas) - R$ ${(tipoLoteConfig.leve_preco || 0).toFixed(2)}/kg</p>
+                    <p><strong>Médio:</strong> ${'★'.repeat(tipoLoteConfig.medio_estrelas)} (${tipoLoteConfig.medio_estrelas} estrelas) - R$ ${(tipoLoteConfig.medio_preco || 0).toFixed(2)}/kg</p>
+                    <p><strong>Pesado:</strong> ${'★'.repeat(tipoLoteConfig.pesado_estrelas)} (${tipoLoteConfig.pesado_estrelas} estrelas) - R$ ${(tipoLoteConfig.pesado_preco || 0).toFixed(2)}/kg</p>
                 `;
             }
         });
@@ -407,16 +407,24 @@
             }
             
             let estrelas = 3;
-            if (classificacao === 'leve') estrelas = tipoLoteConfig.leve_estrelas;
-            else if (classificacao === 'medio') estrelas = tipoLoteConfig.medio_estrelas;
-            else if (classificacao === 'pesado') estrelas = tipoLoteConfig.pesado_estrelas;
+            let precoPorKg = 0;
             
-            const valorBase = 1.0;
-            const valorTotal = valorBase * estrelas * peso;
+            if (classificacao === 'leve') {
+                estrelas = tipoLoteConfig.leve_estrelas;
+                precoPorKg = tipoLoteConfig.leve_preco || 0;
+            } else if (classificacao === 'medio') {
+                estrelas = tipoLoteConfig.medio_estrelas;
+                precoPorKg = tipoLoteConfig.medio_preco || 0;
+            } else if (classificacao === 'pesado') {
+                estrelas = tipoLoteConfig.pesado_estrelas;
+                precoPorKg = tipoLoteConfig.pesado_preco || 0;
+            }
             
-            document.getElementById('valorEstrelas').textContent = '★'.repeat(estrelas) + ` (${estrelas})`;
-            document.getElementById('valorPeso').textContent = peso.toFixed(2);
-            document.getElementById('valorTotal').textContent = valorTotal.toFixed(2);
+            const valorTotal = precoPorKg * peso;
+            
+            document.getElementById('valorEstrelas').textContent = '★'.repeat(estrelas) + ` (${estrelas} estrelas)`;
+            document.getElementById('valorPeso').textContent = peso.toFixed(2) + ' kg';
+            document.getElementById('valorTotal').textContent = 'R$ ' + valorTotal.toFixed(2);
             document.getElementById('valorCalculadoDiv').style.display = 'block';
         }
         

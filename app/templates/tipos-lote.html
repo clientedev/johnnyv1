@@ -113,56 +113,38 @@
                     <small style="color: #666;">Este campo não é mais necessário. As classificações são configuradas por fornecedor.</small>
                 </div>
 
-                <div id="camposPrecosPadrao" style="display: none; background: #f0fdf4; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #10b981;">
+                <div id="camposPrecosPadrao" style="background: #f0fdf4; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #10b981;">
                     <h4 style="margin: 0 0 1rem 0; color: #047857; display: flex; align-items: center; gap: 0.5rem;">
-                        💰 Preços Padrão por Estrela
+                        💰 Preços por Classificação
                     </h4>
                     <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280;">
-                        Defina os preços padrão para cada nível de qualidade. Quantas estrelas esse tipo aceita?
+                        Configure os 3 preços por kg para cada classificação de lote. <strong>Obrigatório!</strong>
                     </p>
                     
-                    <div style="display: grid; gap: 0.75rem;">
+                    <div style="display: grid; gap: 1rem;">
                         <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; font-weight: 500;">⭐ 1 Estrela</label>
+                            <label style="margin: 0; font-weight: 500; color: #059669;">🪶 Leve</label>
                             <div style="display: flex; align-items: center;">
                                 <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="precoPadrao1" step="0.01" min="0" placeholder="0.00" style="flex: 1; padding: 0.5rem;">
+                                <input type="number" id="precoLeve" step="0.01" min="0" placeholder="0.00" required style="flex: 1; padding: 0.5rem;">
                                 <span style="margin-left: 0.5rem;">/kg</span>
                             </div>
                         </div>
                         
                         <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; font-weight: 500;">⭐⭐ 2 Estrelas</label>
+                            <label style="margin: 0; font-weight: 500; color: #f59e0b;">⚖️ Médio</label>
                             <div style="display: flex; align-items: center;">
                                 <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="precoPadrao2" step="0.01" min="0" placeholder="0.00" style="flex: 1; padding: 0.5rem;">
+                                <input type="number" id="precoMedio" step="0.01" min="0" placeholder="0.00" required style="flex: 1; padding: 0.5rem;">
                                 <span style="margin-left: 0.5rem;">/kg</span>
                             </div>
                         </div>
                         
                         <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; font-weight: 500;">⭐⭐⭐ 3 Estrelas</label>
+                            <label style="margin: 0; font-weight: 500; color: #ef4444;">⚓ Pesado</label>
                             <div style="display: flex; align-items: center;">
                                 <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="precoPadrao3" step="0.01" min="0" placeholder="0.00" style="flex: 1; padding: 0.5rem;">
-                                <span style="margin-left: 0.5rem;">/kg</span>
-                            </div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; font-weight: 500;">⭐⭐⭐⭐ 4 Estrelas</label>
-                            <div style="display: flex; align-items: center;">
-                                <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="precoPadrao4" step="0.01" min="0" placeholder="0.00" style="flex: 1; padding: 0.5rem;">
-                                <span style="margin-left: 0.5rem;">/kg</span>
-                            </div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; font-weight: 500;">⭐⭐⭐⭐⭐ 5 Estrelas</label>
-                            <div style="display: flex; align-items: center;">
-                                <span style="margin-right: 0.5rem;">R$</span>
-                                <input type="number" id="precoPadrao5" step="0.01" min="0" placeholder="0.00" style="flex: 1; padding: 0.5rem;">
+                                <input type="number" id="precoPesado" step="0.01" min="0" placeholder="0.00" required style="flex: 1; padding: 0.5rem;">
                                 <span style="margin-left: 0.5rem;">/kg</span>
                             </div>
                         </div>
@@ -505,6 +487,30 @@
 
                 const resultado = await response.json();
                 const finalTipoId = tipoId || resultado.id;
+
+                const precoLeve = document.getElementById('precoLeve').value;
+                const precoMedio = document.getElementById('precoMedio').value;
+                const precoPesado = document.getElementById('precoPesado').value;
+
+                if (precoLeve || precoMedio || precoPesado) {
+                    const precosData = {};
+                    if (precoLeve) precosData.leve_preco = parseFloat(precoLeve);
+                    if (precoMedio) precosData.medio_preco = parseFloat(precoMedio);
+                    if (precoPesado) precosData.pesado_preco = parseFloat(precoPesado);
+
+                    const precosResp = await fetch(`/api/tipos-lote/${finalTipoId}/precos-classificacao`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(precosData)
+                    });
+
+                    if (!precosResp.ok) {
+                        console.error('Erro ao salvar preços de classificação');
+                    }
+                }
 
                 const fornecedoresDivs = document.querySelectorAll('#listaFornecedoresEstrelas > div[data-fornecedor-id]');
                 for (const div of fornecedoresDivs) {
