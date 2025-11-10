@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required
-from app.models import TipoLote, TipoLotePrecoEstrela, db, FornecedorTipoLoteClassificacao, Fornecedor
+from app.models import TipoLote, TipoLotePrecoEstrela, TipoLotePrecoClassificacao, db, FornecedorTipoLoteClassificacao, Fornecedor
 from app.auth import admin_required
 import pandas as pd
 import io
@@ -537,3 +537,87 @@ def deletar_preco_estrela(tipo_id, estrelas):
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': f'Erro ao deletar preço: {str(e)}'}), 500
+
+@bp.route('/<int:tipo_id>/precos-classificacao', methods=['GET'])
+@jwt_required()
+def listar_precos_classificacao(tipo_id):
+    try:
+        tipo = TipoLote.query.get(tipo_id)
+        
+        if not tipo:
+            return jsonify({'erro': 'Tipo de lote não encontrado'}), 404
+        
+        precos = TipoLotePrecoClassificacao.query.filter_by(tipo_lote_id=tipo_id).all()
+        
+        return jsonify({
+            'tipo_lote': tipo.to_dict(),
+            'precos': [preco.to_dict() for preco in precos]
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao listar preços de classificação: {str(e)}'}), 500
+
+@bp.route('/<int:tipo_id>/precos-classificacao', methods=['POST'])
+@admin_required
+def configurar_precos_classificacao(tipo_id):
+    try:
+        tipo = TipoLote.query.get(tipo_id)
+        
+        if not tipo:
+            return jsonify({'erro': 'Tipo de lote não encontrado'}), 404
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'erro': 'Dados não fornecidos'}), 400
+        
+        precos_inseridos = 0
+        precos_atualizados = 0
+        
+        for classificacao in ['leve', 'medio', 'pesado']:
+            preco_key = f'{classificacao}_preco'
+            
+            if preco_key not in data:
+                continue
+            
+            preco_kg = data[preco_key]
+            
+            if preco_kg is None:
+                continue
+                
+            if preco_kg < 0:
+                return jsonify({'erro': f'Preço para {classificacao} não pode ser negativo'}), 400
+            
+            preco_existente = TipoLotePrecoClassificacao.query.filter_by(
+                tipo_lote_id=tipo_id,
+                classificacao=classificacao
+            ).first()
+            
+            if preco_existente:
+                preco_existente.preco_por_kg = preco_kg
+                preco_existente.ativo = data.get('ativo', True)
+                precos_atualizados += 1
+            else:
+                novo_preco = TipoLotePrecoClassificacao(
+                    tipo_lote_id=tipo_id,
+                    classificacao=classificacao,
+                    preco_por_kg=preco_kg,
+                    ativo=data.get('ativo', True)
+                )
+                db.session.add(novo_preco)
+                precos_inseridos += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'Preços de classificação configurados com sucesso',
+            'inseridos': precos_inseridos,
+            'atualizados': precos_atualizados
+        }), 200
+    
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao configurar preços de classificação: {str(e)}'}), 500

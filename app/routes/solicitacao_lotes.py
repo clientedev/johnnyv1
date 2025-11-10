@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import (
     db, Solicitacao, ItemSolicitacao, Fornecedor, TipoLote, 
-    FornecedorTipoLoteClassificacao, Usuario, Configuracao, Lote, EntradaEstoque
+    FornecedorTipoLoteClassificacao, TipoLotePrecoClassificacao, Usuario, Configuracao, Lote, EntradaEstoque
 )
 from app.auth import admin_required
 from datetime import datetime
@@ -78,13 +78,22 @@ def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, peso_kg):
     
     estrelas = config_class.get_estrelas_por_classificacao(classificacao)
     
-    config_valor = Configuracao.query.filter_by(chave='valor_base_por_estrela').first()
-    valor_base = float(config_valor.valor) if config_valor else 1.0
+    preco_config = TipoLotePrecoClassificacao.query.filter_by(
+        tipo_lote_id=tipo_lote_id,
+        classificacao=classificacao,
+        ativo=True
+    ).first()
     
-    valor_unitario = valor_base * estrelas
-    valor_total = valor_unitario * peso_kg
+    if not preco_config:
+        raise ValueError(
+            f'Tipo de lote {tipo_lote_id} não possui preço configurado '
+            f'para a classificação {classificacao}. Configure os preços antes de criar solicitações.'
+        )
     
-    return round(valor_total, 2), estrelas
+    preco_por_kg = preco_config.preco_por_kg
+    valor_total = preco_por_kg * peso_kg
+    
+    return round(valor_total, 2), estrelas, preco_por_kg
 
 @bp.route('/fornecedores-com-tipos', methods=['GET'])
 @jwt_required()
@@ -193,7 +202,7 @@ def criar_solicitacao():
         }), 400
     
     try:
-        valor_total, estrelas_final = calcular_valor_item(
+        valor_total, estrelas_final, preco_por_kg = calcular_valor_item(
             fornecedor_id, tipo_lote_id, classificacao, peso_kg
         )
     except ValueError as e:
@@ -202,7 +211,7 @@ def criar_solicitacao():
     if valor_total <= 0:
         return jsonify({
             'erro': 'Valor calculado inválido',
-            'mensagem': 'O cálculo resultou em valor zero. Verifique a configuração de estrelas.'
+            'mensagem': 'O cálculo resultou em valor zero. Verifique a configuração de estrelas e preços.'
         }), 400
     
     solicitacao = Solicitacao(
@@ -223,6 +232,8 @@ def criar_solicitacao():
         classificacao_sugerida_ia=classificacao_ia,
         estrelas_final=estrelas_final,
         valor_calculado=valor_total,
+        preco_por_kg_snapshot=preco_por_kg,
+        estrelas_snapshot=estrelas_final,
         imagem_url=imagem_url,
         observacoes=observacoes
     )

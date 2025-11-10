@@ -75,6 +75,7 @@ class TipoLote(db.Model):  # type: ignore
     fornecedor_precos = db.relationship('FornecedorTipoLotePreco', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     itens_solicitacao = db.relationship('ItemSolicitacao', backref='tipo_lote', lazy=True)
     lotes = db.relationship('Lote', backref='tipo_lote', lazy=True)
+    precos_classificacao = db.relationship('TipoLotePrecoClassificacao', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     precos_estrela = db.relationship('TipoLotePrecoEstrela', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     
     def __init__(self, **kwargs: Any) -> None:
@@ -83,12 +84,52 @@ class TipoLote(db.Model):  # type: ignore
         super().__init__(**kwargs)
     
     def to_dict(self):
+        precos_dict = {}
+        if self.precos_classificacao:
+            for preco in self.precos_classificacao:
+                precos_dict[preco.classificacao] = preco.preco_por_kg
+        
         return {
             'id': self.id,
             'nome': self.nome,
             'descricao': self.descricao,
             'codigo': self.codigo,
             'classificacao': self.classificacao if self.classificacao else None,
+            'ativo': self.ativo,
+            'precos_classificacao': precos_dict,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
+class TipoLotePrecoClassificacao(db.Model):  # type: ignore
+    __tablename__ = 'tipo_lote_preco_classificacoes'
+    __table_args__ = (
+        db.UniqueConstraint('tipo_lote_id', 'classificacao', name='uq_tipo_lote_classificacao'),
+        db.Index('idx_tipo_lote_classificacao', 'tipo_lote_id', 'classificacao'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
+    classificacao = db.Column(db.String(10), nullable=False)
+    preco_por_kg = db.Column(db.Float, nullable=False, default=0.0)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        if 'classificacao' in kwargs and kwargs['classificacao'] not in ['leve', 'medio', 'pesado']:
+            raise ValueError('Classificação deve ser: leve, medio ou pesado')
+        if 'preco_por_kg' in kwargs and kwargs['preco_por_kg'] < 0:
+            raise ValueError('Preço por kg deve ser maior ou igual a zero')
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tipo_lote_id': self.tipo_lote_id,
+            'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
+            'classificacao': self.classificacao,
+            'preco_por_kg': self.preco_por_kg,
             'ativo': self.ativo,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
@@ -368,6 +409,8 @@ class ItemSolicitacao(db.Model):  # type: ignore
     classificacao = db.Column(db.String(10), nullable=True)
     classificacao_sugerida_ia = db.Column(db.String(10), nullable=True)
     valor_calculado = db.Column(db.Float, nullable=False, default=0.0)
+    preco_por_kg_snapshot = db.Column(db.Float, nullable=True)
+    estrelas_snapshot = db.Column(db.Integer, nullable=True)
     imagem_url = db.Column(db.String(500))
     observacoes = db.Column(db.Text)
     data_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -392,6 +435,8 @@ class ItemSolicitacao(db.Model):  # type: ignore
             'classificacao': self.classificacao,
             'classificacao_sugerida_ia': self.classificacao_sugerida_ia,
             'valor_calculado': self.valor_calculado,
+            'preco_por_kg_snapshot': self.preco_por_kg_snapshot,
+            'estrelas_snapshot': self.estrelas_snapshot,
             'imagem_url': self.imagem_url,
             'observacoes': self.observacoes,
             'data_registro': self.data_registro.isoformat() if self.data_registro else None,
