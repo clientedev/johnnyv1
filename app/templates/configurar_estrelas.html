@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurar Estrelas por Fornecedor - MRX Systems</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .container-config {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .estrelas-config {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .estrela-item {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .estrela-item.leve {
+            border-color: #10b981;
+        }
+        
+        .estrela-item.medio {
+            border-color: #f59e0b;
+        }
+        
+        .estrela-item.pesado {
+            border-color: #ef4444;
+        }
+        
+        .estrela-item h3 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+        }
+        
+        .estrela-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .estrela-btn {
+            width: 45px;
+            height: 45px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+        
+        .estrela-btn:hover {
+            background: #f3f4f6;
+        }
+        
+        .estrela-btn.active {
+            background: #16a34a;
+            color: white;
+            border-color: #16a34a;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #15803d;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        
+        .configuracoes-lista {
+            margin-top: 30px;
+        }
+        
+        .config-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #16a34a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .config-item-info {
+            flex: 1;
+        }
+        
+        .config-item-estrelas {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-config">
+        <div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>Configurar Estrelas por Fornecedor</h1>
+            <button onclick="window.location.href='/dashboard'" class="btn btn-secondary">Voltar</button>
+        </div>
+        
+        <div id="mensagem"></div>
+        
+        <div class="card">
+            <h2>Nova Configuração</h2>
+            
+            <div class="form-group">
+                <label for="fornecedor">Fornecedor *</label>
+                <select id="fornecedor" required>
+                    <option value="">Selecione um fornecedor</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="tipoLote">Tipo de Lote *</label>
+                <select id="tipoLote" required>
+                    <option value="">Selecione um tipo de lote</option>
+                </select>
+            </div>
+            
+            <div id="configEstrelas" class="hidden">
+                <h3 style="margin-top: 30px;">Configure as Estrelas por Classificação</h3>
+                <p style="color: #6b7280; margin-bottom: 20px;">
+                    Defina quantas estrelas (1 a 5) cada classificação vale para este fornecedor e tipo de lote.
+                </p>
+                
+                <div class="estrelas-config">
+                    <div class="estrela-item leve">
+                        <h3>LEVE</h3>
+                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">
+                            Placas com poucos componentes
+                        </p>
+                        <div class="estrela-selector" id="selector-leve">
+                            <button type="button" class="estrela-btn" data-estrelas="1">1★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="2">2★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="3">3★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="4">4★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="5">5★</button>
+                        </div>
+                        <input type="hidden" id="leve_estrelas" value="1">
+                    </div>
+                    
+                    <div class="estrela-item medio">
+                        <h3>MÉDIO</h3>
+                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">
+                            Placas com quantidade moderada
+                        </p>
+                        <div class="estrela-selector" id="selector-medio">
+                            <button type="button" class="estrela-btn" data-estrelas="1">1★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="2">2★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="3">3★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="4">4★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="5">5★</button>
+                        </div>
+                        <input type="hidden" id="medio_estrelas" value="3">
+                    </div>
+                    
+                    <div class="estrela-item pesado">
+                        <h3>PESADO</h3>
+                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">
+                            Placas densamente povoadas
+                        </p>
+                        <div class="estrela-selector" id="selector-pesado">
+                            <button type="button" class="estrela-btn" data-estrelas="1">1★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="2">2★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="3">3★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="4">4★</button>
+                            <button type="button" class="estrela-btn" data-estrelas="5">5★</button>
+                        </div>
+                        <input type="hidden" id="pesado_estrelas" value="5">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" onclick="limparFormulario()" class="btn btn-secondary">
+                        Limpar
+                    </button>
+                    <button type="button" onclick="salvarConfiguracao()" class="btn btn-primary">
+                        Salvar Configuração
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card configuracoes-lista">
+            <h2>Configurações Existentes</h2>
+            <div id="listaConfiguracoes">
+                <p style="color: #6b7280; text-align: center; padding: 20px;">
+                    Carregando configurações...
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let fornecedores = [];
+        let tiposLote = [];
+        
+        async function carregarDados() {
+            try {
+                const token = localStorage.getItem('token');
+                
+                const [respFornecedores, respTipos] = await Promise.all([
+                    fetch('/api/fornecedores', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/tipos-lote', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+                
+                fornecedores = await respFornecedores.json();
+                tiposLote = await respTipos.json();
+                
+                const selectForn = document.getElementById('fornecedor');
+                fornecedores.forEach(f => {
+                    const option = document.createElement('option');
+                    option.value = f.id;
+                    option.textContent = f.nome;
+                    selectForn.appendChild(option);
+                });
+                
+                const selectTipo = document.getElementById('tipoLote');
+                tiposLote.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.nome;
+                    selectTipo.appendChild(option);
+                });
+                
+                carregarConfiguracoes();
+            } catch (error) {
+                mostrarMensagem('Erro ao carregar dados: ' + error.message, 'error');
+            }
+        }
+        
+        function setupEstrelaSelectors() {
+            ['leve', 'medio', 'pesado'].forEach(tipo => {
+                const selector = document.getElementById(`selector-${tipo}`);
+                const buttons = selector.querySelectorAll('.estrela-btn');
+                
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        buttons.forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        document.getElementById(`${tipo}_estrelas`).value = this.dataset.estrelas;
+                    });
+                });
+                
+                const defaultVal = document.getElementById(`${tipo}_estrelas`).value;
+                const defaultBtn = selector.querySelector(`[data-estrelas="${defaultVal}"]`);
+                if (defaultBtn) defaultBtn.classList.add('active');
+            });
+        }
+        
+        document.getElementById('fornecedor').addEventListener('change', verificarSelecao);
+        document.getElementById('tipoLote').addEventListener('change', verificarSelecao);
+        
+        async function verificarSelecao() {
+            const fornecedorId = document.getElementById('fornecedor').value;
+            const tipoLoteId = document.getElementById('tipoLote').value;
+            
+            if (fornecedorId && tipoLoteId) {
+                document.getElementById('configEstrelas').classList.remove('hidden');
+                
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(
+                        `/api/solicitacao-lotes/configuracao/fornecedor/${fornecedorId}/tipo/${tipoLoteId}`,
+                        { headers: { 'Authorization': `Bearer ${token}` } }
+                    );
+                    
+                    if (response.ok) {
+                        const config = await response.json();
+                        
+                        document.getElementById('leve_estrelas').value = config.leve_estrelas;
+                        document.getElementById('medio_estrelas').value = config.medio_estrelas;
+                        document.getElementById('pesado_estrelas').value = config.pesado_estrelas;
+                        
+                        ['leve', 'medio', 'pesado'].forEach(tipo => {
+                            const valor = config[`${tipo}_estrelas`];
+                            const selector = document.getElementById(`selector-${tipo}`);
+                            selector.querySelectorAll('.estrela-btn').forEach(b => b.classList.remove('active'));
+                            const btn = selector.querySelector(`[data-estrelas="${valor}"]`);
+                            if (btn) btn.classList.add('active');
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar configuração existente:', error);
+                }
+            } else {
+                document.getElementById('configEstrelas').classList.add('hidden');
+            }
+        }
+        
+        async function salvarConfiguracao() {
+            const fornecedorId = document.getElementById('fornecedor').value;
+            const tipoLoteId = document.getElementById('tipoLote').value;
+            
+            if (!fornecedorId || !tipoLoteId) {
+                mostrarMensagem('Selecione fornecedor e tipo de lote', 'error');
+                return;
+            }
+            
+            const config = {
+                leve_estrelas: parseInt(document.getElementById('leve_estrelas').value),
+                medio_estrelas: parseInt(document.getElementById('medio_estrelas').value),
+                pesado_estrelas: parseInt(document.getElementById('pesado_estrelas').value),
+                ativo: true
+            };
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(
+                    `/api/solicitacao-lotes/configuracao/fornecedor/${fornecedorId}/tipo/${tipoLoteId}`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(config)
+                    }
+                );
+                
+                if (!response.ok) throw new Error('Erro ao salvar configuração');
+                
+                mostrarMensagem('Configuração salva com sucesso!', 'success');
+                carregarConfiguracoes();
+                limparFormulario();
+            } catch (error) {
+                mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
+            }
+        }
+        
+        async function carregarConfiguracoes() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/fornecedores', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const fornecedores = await response.json();
+                const container = document.getElementById('listaConfiguracoes');
+                
+                let html = '';
+                let total = 0;
+                
+                for (const forn of fornecedores) {
+                    const respConfig = await fetch(
+                        `/api/solicitacao-lotes/fornecedores-com-tipos`,
+                        { headers: { 'Authorization': `Bearer ${token}` } }
+                    );
+                    const configs = await respConfig.json();
+                    const fornConfig = configs.find(f => f.id === forn.id);
+                    
+                    if (fornConfig && fornConfig.tipos_lote && fornConfig.tipos_lote.length > 0) {
+                        fornConfig.tipos_lote.forEach(tipo => {
+                            html += `
+                                <div class="config-item">
+                                    <div class="config-item-info">
+                                        <strong>${fornConfig.nome}</strong> - ${tipo.nome}
+                                    </div>
+                                    <div class="config-item-estrelas">
+                                        <span>Leve: ${'★'.repeat(tipo.leve_estrelas)}</span>
+                                        <span>Médio: ${'★'.repeat(tipo.medio_estrelas)}</span>
+                                        <span>Pesado: ${'★'.repeat(tipo.pesado_estrelas)}</span>
+                                    </div>
+                                </div>
+                            `;
+                            total++;
+                        });
+                    }
+                }
+                
+                if (total === 0) {
+                    container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 20px;">Nenhuma configuração cadastrada</p>';
+                } else {
+                    container.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+            }
+        }
+        
+        function limparFormulario() {
+            document.getElementById('fornecedor').value = '';
+            document.getElementById('tipoLote').value = '';
+            document.getElementById('configEstrelas').classList.add('hidden');
+            
+            document.getElementById('leve_estrelas').value = '1';
+            document.getElementById('medio_estrelas').value = '3';
+            document.getElementById('pesado_estrelas').value = '5';
+            
+            setupEstrelaSelectors();
+        }
+        
+        function mostrarMensagem(texto, tipo) {
+            const div = document.getElementById('mensagem');
+            div.className = `alert alert-${tipo}`;
+            div.textContent = texto;
+            div.style.display = 'block';
+            
+            if (tipo === 'success') {
+                setTimeout(() => div.style.display = 'none', 5000);
+            }
+        }
+        
+        setupEstrelaSelectors();
+        carregarDados();
+    </script>
+</body>
+</html>

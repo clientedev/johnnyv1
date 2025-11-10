@@ -23,7 +23,8 @@ def analisar_imagem_com_ia(imagem_path):
         
         api_key = os.getenv('GEMINI_API_KEY')
         if not api_key:
-            return None, None
+            print("AVISO: GEMINI_API_KEY não configurada")
+            return None
         
         client = genai.Client(api_key=api_key)
         
@@ -46,19 +47,23 @@ Retorne APENAS uma das palavras: leve, medio ou pesado"""
         classificacao = response.text.strip().lower()
         
         if classificacao not in ['leve', 'medio', 'pesado']:
-            classificacao = 'medio'
+            print(f"AVISO: IA retornou classificação inválida: {classificacao}")
+            return 'medio'
         
-        estrelas_map = {'leve': 2, 'medio': 3, 'pesado': 5}
-        estrelas = estrelas_map.get(classificacao, 3)
-        
-        return classificacao, estrelas
+        return classificacao
         
     except Exception as e:
-        print(f"Erro ao analisar imagem com IA: {str(e)}")
-        return None, None
+        print(f"ERRO ao analisar imagem com IA: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, peso_kg):
-    """Calcula o valor do item baseado na classificação e configuração do fornecedor"""
+    """Calcula o valor do item baseado na classificação e configuração do fornecedor
+    
+    Raises:
+        ValueError: Se não houver configuração de classificação para este fornecedor/tipo
+    """
     config_class = FornecedorTipoLoteClassificacao.query.filter_by(
         fornecedor_id=fornecedor_id,
         tipo_lote_id=tipo_lote_id,
@@ -66,7 +71,10 @@ def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, peso_kg):
     ).first()
     
     if not config_class:
-        return 0.0, 3
+        raise ValueError(
+            f'Fornecedor {fornecedor_id} não possui configuração de estrelas '
+            f'para o tipo de lote {tipo_lote_id}. Configure as estrelas antes de criar solicitações.'
+        )
     
     estrelas = config_class.get_estrelas_por_classificacao(classificacao)
     
@@ -126,12 +134,18 @@ def analisar_imagem():
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     arquivo.save(filepath)
     
-    classificacao_ia, estrelas_ia = analisar_imagem_com_ia(filepath)
+    classificacao_ia = analisar_imagem_com_ia(filepath)
+    
+    if classificacao_ia is None:
+        return jsonify({
+            'imagem_url': f'/uploads/{filename}',
+            'classificacao_sugerida': None,
+            'aviso': 'IA não disponível. Configure GEMINI_API_KEY para análise automática.'
+        }), 200
     
     return jsonify({
         'imagem_url': f'/uploads/{filename}',
-        'classificacao_sugerida': classificacao_ia,
-        'estrelas_sugeridas': estrelas_ia
+        'classificacao_sugerida': classificacao_ia
     }), 200
 
 @bp.route('/criar', methods=['POST'])
@@ -153,7 +167,10 @@ def criar_solicitacao():
         return jsonify({'erro': 'Dados incompletos'}), 400
     
     if classificacao not in ['leve', 'medio', 'pesado']:
-        return jsonify({'erro': 'Classificação inválida'}), 400
+        return jsonify({'erro': 'Classificação inválida. Use: leve, medio ou pesado'}), 400
+    
+    if peso_kg <= 0:
+        return jsonify({'erro': 'Peso deve ser maior que zero'}), 400
     
     fornecedor = Fornecedor.query.get(fornecedor_id)
     tipo_lote = TipoLote.query.get(tipo_lote_id)
@@ -161,9 +178,32 @@ def criar_solicitacao():
     if not fornecedor or not tipo_lote:
         return jsonify({'erro': 'Fornecedor ou tipo de lote não encontrado'}), 404
     
-    valor_total, estrelas_final = calcular_valor_item(
-        fornecedor_id, tipo_lote_id, classificacao, peso_kg
-    )
+    config_existe = FornecedorTipoLoteClassificacao.query.filter_by(
+        fornecedor_id=fornecedor_id,
+        tipo_lote_id=tipo_lote_id,
+        ativo=True
+    ).first()
+    
+    if not config_existe:
+        return jsonify({
+            'erro': 'Configuração de estrelas não encontrada',
+            'mensagem': f'O fornecedor "{fornecedor.nome}" não possui configuração de estrelas '
+                       f'para o tipo "{tipo_lote.nome}". '
+                       f'Um administrador deve configurar as estrelas antes de criar solicitações.'
+        }), 400
+    
+    try:
+        valor_total, estrelas_final = calcular_valor_item(
+            fornecedor_id, tipo_lote_id, classificacao, peso_kg
+        )
+    except ValueError as e:
+        return jsonify({'erro': str(e)}), 400
+    
+    if valor_total <= 0:
+        return jsonify({
+            'erro': 'Valor calculado inválido',
+            'mensagem': 'O cálculo resultou em valor zero. Verifique a configuração de estrelas.'
+        }), 400
     
     solicitacao = Solicitacao(
         funcionario_id=usuario_id,

@@ -361,14 +361,19 @@
                 
                 if (data.classificacao_sugerida) {
                     document.getElementById('classificacaoSugerida').textContent = data.classificacao_sugerida.toUpperCase();
-                    document.getElementById('estrelasSugeridas').textContent = '★'.repeat(data.estrelas_sugeridas || 3);
                     document.getElementById('sugestaoIA').style.display = 'block';
                     document.getElementById('classificacaoIA').value = data.classificacao_sugerida;
                     
                     selecionarClassificacao(data.classificacao_sugerida);
+                    this.textContent = 'Análise Concluída ✓';
+                } else if (data.aviso) {
+                    mostrarMensagem(data.aviso, 'error');
+                    this.textContent = 'IA Indisponível';
+                } else {
+                    mostrarMensagem('IA retornou resposta inválida', 'error');
+                    this.textContent = 'Analisar com IA';
+                    this.disabled = false;
                 }
-                
-                this.textContent = 'Análise Concluída';
             } catch (error) {
                 mostrarMensagem('Erro ao analisar imagem: ' + error.message, 'error');
                 this.textContent = 'Analisar com IA';
