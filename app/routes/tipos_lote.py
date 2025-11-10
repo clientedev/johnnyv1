@@ -73,9 +73,12 @@ def criar_tipo_lote():
         if total_tipos >= 150:
             return jsonify({'erro': 'Limite máximo de 150 tipos de lote atingido'}), 400
         
-        classificacao = data.get('classificacao', 'media')
-        if classificacao not in ['leve', 'media', 'pesada']:
+        classificacao = data.get('classificacao', None)
+        if classificacao and classificacao not in ['leve', 'media', 'pesada', '']:
             return jsonify({'erro': 'Classificação deve ser: leve, media ou pesada'}), 400
+        
+        if classificacao == '':
+            classificacao = None
         
         tipo = TipoLote(
             nome=data['nome'],
@@ -124,9 +127,12 @@ def atualizar_tipo_lote(id):
             tipo.descricao = data['descricao']
         
         if 'classificacao' in data:
-            if data['classificacao'] not in ['leve', 'media', 'pesada']:
+            classificacao = data['classificacao']
+            if classificacao == '':
+                classificacao = None
+            if classificacao and classificacao not in ['leve', 'media', 'pesada']:
                 return jsonify({'erro': 'Classificação deve ser: leve, media ou pesada'}), 400
-            tipo.classificacao = data['classificacao']
+            tipo.classificacao = classificacao
         
         if 'ativo' in data:
             tipo.ativo = data['ativo']

@@ -73,13 +73,12 @@
                         <tr>
                             <th>Código</th>
                             <th>Nome</th>
-                            <th>Classificação</th>
                             <th>Preços Configurados</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaTipos">
-                        <tr><td colspan="5" class="loading">Carregando...</td></tr>
+                        <tr><td colspan="4" class="loading">Carregando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -98,23 +97,20 @@
                 
                 <div class="form-group">
                     <label>Nome <span style="color: red;">*</span></label>
-                    <input type="text" id="nome" required placeholder="Ex: Placa Mãe">
+                    <input type="text" id="nome" required placeholder="Ex: Placa Mãe" oninput="gerarCodigoAutomatico()">
                 </div>
 
                 <div class="form-group">
-                    <label>Código</label>
-                    <input type="text" id="codigo" placeholder="Ex: PM001">
+                    <label>Código <small style="color: #666;">(gerado automaticamente)</small></label>
+                    <input type="text" id="codigo" placeholder="Ex: PM001" readonly style="background: #f3f4f6;">
                 </div>
 
-                <div class="form-group">
-                    <label>Classificação <span style="color: red;">*</span></label>
-                    <select id="classificacao" required onchange="atualizarCamposPrecos()">
-                        <option value="">Selecione...</option>
-                        <option value="leve">Leve</option>
-                        <option value="media">Média</option>
-                        <option value="pesada">Pesada</option>
+                <div class="form-group" style="display: none;">
+                    <label>Classificação (Obsoleto)</label>
+                    <select id="classificacao">
+                        <option value="">Não utilizado</option>
                     </select>
-                    <small style="color: #666;">A classificação define a categoria de peso do material</small>
+                    <small style="color: #666;">Este campo não é mais necessário. As classificações são configuradas por fornecedor.</small>
                 </div>
 
                 <div id="camposPrecosPadrao" style="display: none; background: #f0fdf4; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #10b981;">
@@ -368,7 +364,7 @@
             const tbody = document.getElementById('tabelaTipos');
             
             if (tiposLote.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">Nenhum tipo de lote cadastrado</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">Nenhum tipo de lote cadastrado</td></tr>';
                 return;
             }
 
@@ -376,11 +372,6 @@
                 <tr>
                     <td><strong>${tipo.codigo || '-'}</strong></td>
                     <td>${tipo.nome}</td>
-                    <td>
-                        <span class="badge badge-${tipo.classificacao === 'leve' ? 'success' : tipo.classificacao === 'media' ? 'warning' : 'danger'}">
-                            ${tipo.classificacao === 'leve' ? '🪶 Leve' : tipo.classificacao === 'media' ? '⚖️ Média' : '⚓ Pesada'}
-                        </span>
-                    </td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="abrirModalPrecos(${tipo.id})" title="Configurar preços">
                             <i class="fas fa-dollar-sign"></i> Configurar
@@ -990,6 +981,38 @@
             } catch (error) {
                 mostrarMensagem(error.message, 'error');
             }
+        }
+
+        function atualizarCamposPrecos() {
+            // Função obsoleta - mantida para compatibilidade com cache antigo do browser
+            // O campo de classificação agora está oculto
+        }
+
+        function gerarCodigoAutomatico() {
+            const tipoId = document.getElementById('tipoId').value;
+            if (tipoId) return; // Não gerar código ao editar
+            
+            const nome = document.getElementById('nome').value.trim();
+            if (!nome) {
+                document.getElementById('codigo').value = '';
+                return;
+            }
+            
+            // Pegar as primeiras letras de cada palavra
+            const palavras = nome.split(' ');
+            let codigo = '';
+            
+            palavras.forEach(palavra => {
+                if (palavra.length > 0) {
+                    codigo += palavra[0].toUpperCase();
+                }
+            });
+            
+            // Adicionar número sequencial baseado no total de tipos
+            const numeroSequencial = String(tiposLote.length + 1).padStart(3, '0');
+            codigo = codigo.substring(0, 4) + numeroSequencial;
+            
+            document.getElementById('codigo').value = codigo;
         }
 
         carregarTipos();

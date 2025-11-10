@@ -67,7 +67,7 @@ class TipoLote(db.Model):  # type: ignore
     nome = db.Column(db.String(100), nullable=False, unique=True)
     descricao = db.Column(db.String(300))
     codigo = db.Column(db.String(20), unique=True)
-    classificacao = db.Column(db.String(10), default='media', nullable=False)
+    classificacao = db.Column(db.String(10), default=None, nullable=True)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -78,7 +78,7 @@ class TipoLote(db.Model):  # type: ignore
     precos_estrela = db.relationship('TipoLotePrecoEstrela', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     
     def __init__(self, **kwargs: Any) -> None:
-        if 'classificacao' in kwargs and kwargs['classificacao'] not in ['leve', 'media', 'pesada']:
+        if 'classificacao' in kwargs and kwargs['classificacao'] is not None and kwargs['classificacao'] not in ['leve', 'media', 'pesada']:
             raise ValueError('Classificação deve ser: leve, media ou pesada')
         super().__init__(**kwargs)
     
@@ -88,7 +88,7 @@ class TipoLote(db.Model):  # type: ignore
             'nome': self.nome,
             'descricao': self.descricao,
             'codigo': self.codigo,
-            'classificacao': self.classificacao,
+            'classificacao': self.classificacao if self.classificacao else None,
             'ativo': self.ativo,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
