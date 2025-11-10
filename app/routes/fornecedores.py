@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import Fornecedor, FornecedorTipoLotePreco, Vendedor, TipoLote, db
+from app.models import Fornecedor, FornecedorTipoLotePreco, FornecedorTipoLoteClassificacao, Vendedor, TipoLote, db
 from app.auth import admin_required
 import requests
 import re
@@ -84,6 +84,7 @@ def obter_fornecedor(id):
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
         
         fornecedor_dict = fornecedor.to_dict()
+        fornecedor_dict['classificacoes'] = [classif.to_dict() for classif in fornecedor.classificacoes_tipo_lote]
         fornecedor_dict['precos'] = [preco.to_dict() for preco in fornecedor.precos]
         fornecedor_dict['total_solicitacoes'] = len(fornecedor.solicitacoes)
         fornecedor_dict['total_lotes'] = len(fornecedor.lotes)
@@ -169,22 +170,25 @@ def criar_fornecedor():
         db.session.add(fornecedor)
         db.session.commit()
         
-        # Processar tipos de lote selecionados (novo campo)
+        # Processar tipos de lote selecionados com classificações (leve/médio/pesado)
         if 'tipos_lote' in data and isinstance(data['tipos_lote'], list):
             for tipo_data in data['tipos_lote']:
                 tipo_lote_id = tipo_data.get('tipo_lote_id')
-                estrelas = tipo_data.get('estrelas', 3)
+                leve = tipo_data.get('leve_estrelas', 1)
+                medio = tipo_data.get('medio_estrelas', 3)
+                pesado = tipo_data.get('pesado_estrelas', 5)
                 
-                if tipo_lote_id and 1 <= estrelas <= 5:
+                if tipo_lote_id:
                     tipo_lote = TipoLote.query.get(tipo_lote_id)
                     if tipo_lote:
-                        preco_obj = FornecedorTipoLotePreco(
+                        classif_obj = FornecedorTipoLoteClassificacao(
                             fornecedor_id=fornecedor.id,
                             tipo_lote_id=tipo_lote_id,
-                            estrelas=estrelas,
-                            preco_por_kg=0.0
+                            leve_estrelas=leve,
+                            medio_estrelas=medio,
+                            pesado_estrelas=pesado
                         )
-                        db.session.add(preco_obj)
+                        db.session.add(classif_obj)
             
             db.session.commit()
         
@@ -313,26 +317,30 @@ def atualizar_fornecedor(id):
         if 'observacoes' in data:
             fornecedor.observacoes = data['observacoes']
         
-        # Atualizar tipos de lote selecionados
+        # Atualizar tipos de lote selecionados com classificações (leve/médio/pesado)
         if 'tipos_lote' in data and isinstance(data['tipos_lote'], list):
-            # Remover tipos de lote antigos
+            # Remover classificações antigas
+            FornecedorTipoLoteClassificacao.query.filter_by(fornecedor_id=fornecedor.id).delete()
             FornecedorTipoLotePreco.query.filter_by(fornecedor_id=fornecedor.id).delete()
             
-            # Adicionar novos tipos de lote
+            # Adicionar novas classificações
             for tipo_data in data['tipos_lote']:
                 tipo_lote_id = tipo_data.get('tipo_lote_id')
-                estrelas = tipo_data.get('estrelas', 3)
+                leve = tipo_data.get('leve_estrelas', 1)
+                medio = tipo_data.get('medio_estrelas', 3)
+                pesado = tipo_data.get('pesado_estrelas', 5)
                 
-                if tipo_lote_id and 1 <= estrelas <= 5:
+                if tipo_lote_id:
                     tipo_lote = TipoLote.query.get(tipo_lote_id)
                     if tipo_lote:
-                        preco_obj = FornecedorTipoLotePreco(
+                        classif_obj = FornecedorTipoLoteClassificacao(
                             fornecedor_id=fornecedor.id,
                             tipo_lote_id=tipo_lote_id,
-                            estrelas=estrelas,
-                            preco_por_kg=0.0
+                            leve_estrelas=leve,
+                            medio_estrelas=medio,
+                            pesado_estrelas=pesado
                         )
-                        db.session.add(preco_obj)
+                        db.session.add(classif_obj)
         
         db.session.commit()
         

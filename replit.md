@@ -7,7 +7,10 @@ Sistema completo para gerenciamento de compras de placas eletrônicas com rastre
 ✅ **Sistema Completo de Lotes com Classificação por IA + Integração de Estrelas**
 - Módulo de solicitação de lotes com análise IA (Gemini) implementado
 - Sistema de classificação leve/médio/pesado funcionando
-- **NOVO:** Configuração de estrelas integrada no modal de tipos de lote
+- **NOVO:** Todos os tipos de lote agora suportam as 3 classificações (leve/médio/pesado)
+- **NOVO:** Configuração de estrelas por fornecedor com 3 seletores (🪶 Leve, 📦 Médio, 🏗️ Pesado)
+- **NOVO:** Geração automática de códigos para tipos de lote (baseado no nome)
+- **NOVO:** Backend atualizado para persistir e carregar as 3 classificações por fornecedor
 - **NOVO:** Excel unificado com importação/exportação de tipos e estrelas
 - **NOVO:** Dashboard atualizado (tipos de lote ao invés de placas)
 - Validação obrigatória de configuração antes de criar solicitações
