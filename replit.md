@@ -3,13 +3,15 @@
 ## Visão Geral
 Sistema completo para gerenciamento de compras de placas eletrônicas com rastreamento por lote, classificação por qualidade (estrelas), controle de fornecedores, e workflow automatizado desde solicitação até entrada em estoque.
 
-## Estado Atual (09/11/2025)
-✅ **Backend Completamente Reestruturado e Funcional**
-- Migração do banco de dados concluída com sucesso
-- Estrutura de dados otimizada (TipoLote, Solicitacao, Lote, EntradaEstoque)
-- Sistema de preços por fornecedor/tipo/estrelas totalmente funcional
-- Autenticação JWT corrigida e funcionando perfeitamente
-- API RESTful completa para todas as operações
+## Estado Atual (10/11/2025)
+✅ **Sistema Completo de Lotes com Classificação por IA**
+- Módulo de solicitação de lotes com análise IA (Gemini) implementado
+- Sistema de classificação leve/médio/pesado funcionando
+- Configuração de estrelas por fornecedor/tipo/classificação
+- Validação obrigatória de configuração antes de criar solicitações
+- Fluxo completo: solicitação → aprovação → entrada
+- Telas frontend completas para todo o workflow
+- Backend com validação robusta (bloqueia valores zerados)
 - Servidor rodando sem erros
 
 ## Arquitetura do Projeto
@@ -259,19 +261,53 @@ Servidor roda em `http://0.0.0.0:5000`
   * Lotes
   * Entradas de Estoque
   * Consulta Avançada
+  * Tipos de Lote
+  * **Configurar Estrelas** (NOVO)
   * Configurações
 - Gerenciamento de funcionários
 - Configurações do sistema
 
+### ✅ configurar_estrelas.html (NOVO - 10/11/2025)
+- Tela administrativa para configurar estrelas por fornecedor
+- Interface intuitiva com seletores visuais (1-5 estrelas)
+- Configuração de leve/médio/pesado para cada combinação:
+  * Fornecedor + Tipo de Lote
+- Listagem de todas as configurações existentes
+- Validação em tempo real
+- Acessível via painel de administração
+
+## Módulo de Lotes com Classificação IA ✅ (10/11/2025)
+
+### Implementado
+- ✅ Modelo `FornecedorTipoLoteClassificacao` (configuração de estrelas)
+- ✅ Integração com Google Gemini AI para análise de imagens
+- ✅ Sistema de classificação leve/médio/pesado
+- ✅ Cálculo automático: `valor_base * estrelas * peso_kg`
+- ✅ Validação obrigatória de configuração
+- ✅ Bloqueio de valores zerados
+- ✅ Telas completas: solicitação, aprovação, entradas
+- ✅ Tela de configuração administrativa
+- ✅ Migração de banco de dados
+- ✅ Scripts de deploy para Railway
+
+### Arquivos do Módulo
+- `app/routes/solicitacao_lotes.py` - Rotas backend
+- `app/templates/solicitacao_compra.html` - Criar solicitação
+- `app/templates/aprovar_solicitacoes.html` - Aprovar/rejeitar
+- `app/templates/lotes_aprovados.html` - Lotes aprovados
+- `app/templates/configurar_estrelas.html` - Configuração admin
+- `migrations/004_add_classificacao_lotes.sql` - Migration
+- `railway_reset_database.sql` - Deploy Railway
+
 ## Próximos Passos
 
 ### Melhorias Futuras
-- [ ] Integração completa com Gemini AI para classificação de imagens
-- [ ] Dashboard com gráficos de análise
+- [ ] Dashboard com gráficos de análise por classificação
 - [ ] Exportação de relatórios (PDF/Excel)
 - [ ] Sistema de notificações em tempo real (WebSocket)
 - [ ] Paginação nas listagens
 - [ ] Testes automatizados
+- [ ] Histórico de alterações de classificação
 
 ## Integrações Replit
 - `python_database==1.0.0` (NEEDS SETUP)
@@ -280,5 +316,5 @@ Servidor roda em `http://0.0.0.0:5000`
 
 ---
 
-**Última atualização:** 09/11/2025
-**Status:** ✅ Backend completo e funcional | Frontend em atualização
+**Última atualização:** 10/11/2025
+**Status:** ✅ Sistema completo com módulo de lotes por classificação IA funcionando
