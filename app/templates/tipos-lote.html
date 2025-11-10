@@ -699,6 +699,32 @@
             }
         }
 
+        async function exportarExcel() {
+            try {
+                const response = await fetch('/api/tipos-lote/exportar-excel', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erro ao exportar');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tipos_lote_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                mostrarMensagem('Excel exportado com sucesso!');
+            } catch (error) {
+                mostrarMensagem(error.message, 'error');
+            }
+        }
+
         // ===== FUNÇÕES PARA ESTRELAS POR FORNECEDOR =====
         
         async function abrirModalEstrelasFornecedor(tipoId) {

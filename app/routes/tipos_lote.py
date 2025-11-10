@@ -1,9 +1,12 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required
-from app.models import TipoLote, TipoLotePrecoEstrela, db
+from app.models import TipoLote, TipoLotePrecoEstrela, db, FornecedorTipoLoteClassificacao, Fornecedor
 from app.auth import admin_required
 import pandas as pd
 import io
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+from datetime import datetime
 
 bp = Blueprint('tipos_lote', __name__, url_prefix='/api/tipos-lote')
 
@@ -261,6 +264,102 @@ def importar_excel():
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': f'Erro ao importar arquivo: {str(e)}'}), 500
+
+@bp.route('/exportar-excel', methods=['GET'])
+@admin_required
+def exportar_excel():
+    try:
+        wb = openpyxl.Workbook()
+        wb.remove(wb.active)
+        
+        ws_tipos = wb.create_sheet('Tipos de Lote')
+        header_fill = PatternFill(start_color='059669', end_color='059669', fill_type='solid')
+        header_font = Font(bold=True, color='FFFFFF')
+        header_alignment = Alignment(horizontal='center', vertical='center')
+        
+        headers_tipos = ['ID', 'Código', 'Nome', 'Classificação', 'Descrição', 'Ativo']
+        ws_tipos.append(headers_tipos)
+        
+        for cell in ws_tipos[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+        
+        tipos = TipoLote.query.order_by(TipoLote.nome).all()
+        for tipo in tipos:
+            ws_tipos.append([
+                tipo.id,
+                tipo.codigo or '',
+                tipo.nome,
+                tipo.classificacao,
+                tipo.descricao or '',
+                'Sim' if tipo.ativo else 'Não'
+            ])
+        
+        for column in ws_tipos.columns:
+            max_length = 0
+            column = [cell for cell in column]
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(cell.value)
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws_tipos.column_dimensions[column[0].column_letter].width = adjusted_width
+        
+        ws_estrelas = wb.create_sheet('Estrelas por Fornecedor')
+        headers_estrelas = ['Tipo de Lote', 'Fornecedor', 'Leve (⭐)', 'Médio (⭐)', 'Pesado (⭐)', 'Ativo']
+        ws_estrelas.append(headers_estrelas)
+        
+        for cell in ws_estrelas[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+        
+        classificacoes = FornecedorTipoLoteClassificacao.query.join(
+            TipoLote, FornecedorTipoLoteClassificacao.tipo_lote_id == TipoLote.id
+        ).join(
+            Fornecedor, FornecedorTipoLoteClassificacao.fornecedor_id == Fornecedor.id
+        ).order_by(TipoLote.nome, Fornecedor.nome).all()
+        
+        for classif in classificacoes:
+            ws_estrelas.append([
+                classif.tipo_lote.nome if classif.tipo_lote else '',
+                classif.fornecedor.nome if classif.fornecedor else '',
+                classif.leve_estrelas,
+                classif.medio_estrelas,
+                classif.pesado_estrelas,
+                'Sim' if classif.ativo else 'Não'
+            ])
+        
+        for column in ws_estrelas.columns:
+            max_length = 0
+            column = [cell for cell in column]
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(cell.value)
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws_estrelas.column_dimensions[column[0].column_letter].width = adjusted_width
+        
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = f'tipos_lote_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao exportar Excel: {str(e)}'}), 500
 
 @bp.route('/<int:tipo_id>/precos', methods=['GET'])
 @jwt_required()
