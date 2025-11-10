@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitar Compra de Lote - MRX Systems</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .form-solicitacao {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .classificacao-badges {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .badge-classificacao {
+            padding: 10px 20px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .badge-classificacao.active {
+            background: #16a34a;
+            color: white;
+            border-color: #16a34a;
+        }
+        
+        .badge-classificacao.leve {
+            border-color: #10b981;
+        }
+        
+        .badge-classificacao.medio {
+            border-color: #f59e0b;
+        }
+        
+        .badge-classificacao.pesado {
+            border-color: #ef4444;
+        }
+        
+        .estrelas-display {
+            display: flex;
+            gap: 5px;
+            margin: 5px 0;
+        }
+        
+        .estrela {
+            color: #fbbf24;
+            font-size: 20px;
+        }
+        
+        .valor-calculado {
+            background: #f0f9ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #16a34a;
+        }
+        
+        .valor-calculado h3 {
+            margin: 0 0 10px 0;
+            color: #16a34a;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #15803d;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #16a34a;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        
+        .sugestao-ia {
+            background: #eff6ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Solicitar Compra de Lote</h1>
+            <button onclick="window.location.href='/dashboard'" class="btn btn-secondary">Voltar</button>
+        </div>
+        
+        <div class="form-solicitacao">
+            <div id="mensagem"></div>
+            
+            <form id="formSolicitacao">
+                <div class="form-group">
+                    <label for="fornecedor">Fornecedor *</label>
+                    <select id="fornecedor" required>
+                        <option value="">Selecione um fornecedor</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="tipoLote">Tipo de Lote *</label>
+                    <select id="tipoLote" required disabled>
+                        <option value="">Selecione um tipo de lote</option>
+                    </select>
+                    <div id="estrelasInfo" style="margin-top: 10px; display: none;">
+                        <p><strong>Configuração de estrelas:</strong></p>
+                        <div id="estrelasConfig"></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="imagem">Foto do Lote *</label>
+                    <input type="file" id="imagem" accept="image/*" capture="camera" required>
+                    <img id="imagePreview" class="image-preview" alt="Preview">
+                    <button type="button" id="btnAnalisarIA" class="btn btn-primary" style="margin-top: 10px; display: none;">
+                        Analisar com IA
+                    </button>
+                </div>
+                
+                <div id="sugestaoIA" class="sugestao-ia" style="display: none;">
+                    <p><strong>Sugestão da IA:</strong> <span id="classificacaoSugerida"></span></p>
+                    <p>Estrelas sugeridas: <span id="estrelasSugeridas"></span></p>
+                </div>
+                
+                <div class="form-group">
+                    <label>Classificação do Lote *</label>
+                    <div class="classificacao-badges">
+                        <div class="badge-classificacao leve" data-class="leve">
+                            <strong>LEVE</strong>
+                            <div class="estrelas-display" id="estrelas-leve"></div>
+                        </div>
+                        <div class="badge-classificacao medio" data-class="medio">
+                            <strong>MÉDIO</strong>
+                            <div class="estrelas-display" id="estrelas-medio"></div>
+                        </div>
+                        <div class="badge-classificacao pesado" data-class="pesado">
+                            <strong>PESADO</strong>
+                            <div class="estrelas-display" id="estrelas-pesado"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="classificacao" required>
+                    <input type="hidden" id="classificacaoIA">
+                </div>
+                
+                <div class="form-group">
+                    <label for="peso">Peso (kg) *</label>
+                    <input type="number" id="peso" step="0.01" min="0.01" required>
+                </div>
+                
+                <div id="valorCalculadoDiv" class="valor-calculado" style="display: none;">
+                    <h3>Valor Calculado</h3>
+                    <p>Estrelas: <span id="valorEstrelas"></span></p>
+                    <p>Peso: <span id="valorPeso"></span> kg</p>
+                    <p><strong>Valor Total: R$ <span id="valorTotal">0,00</span></strong></p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="observacoes">Observações</label>
+                    <textarea id="observacoes" rows="4"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="window.location.href='/dashboard'" class="btn btn-secondary">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Enviar Solicitação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let fornecedoresData = [];
+        let imagemUrl = '';
+        let tipoLoteConfig = null;
+        
+        async function carregarFornecedores() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/solicitacao-lotes/fornecedores-com-tipos', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Erro ao carregar fornecedores');
+                
+                fornecedoresData = await response.json();
+                const select = document.getElementById('fornecedor');
+                
+                fornecedoresData.forEach(forn => {
+                    const option = document.createElement('option');
+                    option.value = forn.id;
+                    option.textContent = forn.nome;
+                    option.dataset.tipos = JSON.stringify(forn.tipos_lote);
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                mostrarMensagem('Erro ao carregar fornecedores', 'error');
+            }
+        }
+        
+        document.getElementById('fornecedor').addEventListener('change', function() {
+            const tipoSelect = document.getElementById('tipoLote');
+            tipoSelect.innerHTML = '<option value="">Selecione um tipo de lote</option>';
+            tipoSelect.disabled = !this.value;
+            
+            if (this.value) {
+                const selectedOption = this.options[this.selectedIndex];
+                const tipos = JSON.parse(selectedOption.dataset.tipos || '[]');
+                
+                tipos.forEach(tipo => {
+                    const option = document.createElement('option');
+                    option.value = tipo.id;
+                    option.textContent = tipo.nome;
+                    option.dataset.config = JSON.stringify(tipo);
+                    tipoSelect.appendChild(option);
+                });
+            }
+        });
+        
+        document.getElementById('tipoLote').addEventListener('change', function() {
+            if (this.value) {
+                const selectedOption = this.options[this.selectedIndex];
+                tipoLoteConfig = JSON.parse(selectedOption.dataset.config || '{}');
+                
+                document.getElementById('estrelas-leve').innerHTML = '★'.repeat(tipoLoteConfig.leve_estrelas);
+                document.getElementById('estrelas-medio').innerHTML = '★'.repeat(tipoLoteConfig.medio_estrelas);
+                document.getElementById('estrelas-pesado').innerHTML = '★'.repeat(tipoLoteConfig.pesado_estrelas);
+                
+                document.getElementById('estrelasInfo').style.display = 'block';
+                document.getElementById('estrelasConfig').innerHTML = `
+                    <p>Leve: ${'★'.repeat(tipoLoteConfig.leve_estrelas)} (${tipoLoteConfig.leve_estrelas} estrelas)</p>
+                    <p>Médio: ${'★'.repeat(tipoLoteConfig.medio_estrelas)} (${tipoLoteConfig.medio_estrelas} estrelas)</p>
+                    <p>Pesado: ${'★'.repeat(tipoLoteConfig.pesado_estrelas)} (${tipoLoteConfig.pesado_estrelas} estrelas)</p>
+                `;
+            }
+        });
+        
+        document.getElementById('imagem').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('btnAnalisarIA').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        document.getElementById('btnAnalisarIA').addEventListener('click', async function() {
+            const fileInput = document.getElementById('imagem');
+            if (!fileInput.files[0]) {
+                mostrarMensagem('Selecione uma imagem primeiro', 'error');
+                return;
+            }
+            
+            this.disabled = true;
+            this.textContent = 'Analisando...';
+            
+            try {
+                const token = localStorage.getItem('token');
+                const formData = new FormData();
+                formData.append('imagem', fileInput.files[0]);
+                
+                const response = await fetch('/api/solicitacao-lotes/analisar-imagem', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (!response.ok) throw new Error('Erro ao analisar imagem');
+                
+                const data = await response.json();
+                imagemUrl = data.imagem_url;
+                
+                if (data.classificacao_sugerida) {
+                    document.getElementById('classificacaoSugerida').textContent = data.classificacao_sugerida.toUpperCase();
+                    document.getElementById('estrelasSugeridas').textContent = '★'.repeat(data.estrelas_sugeridas || 3);
+                    document.getElementById('sugestaoIA').style.display = 'block';
+                    document.getElementById('classificacaoIA').value = data.classificacao_sugerida;
+                    
+                    selecionarClassificacao(data.classificacao_sugerida);
+                }
+                
+                this.textContent = 'Análise Concluída';
+            } catch (error) {
+                mostrarMensagem('Erro ao analisar imagem: ' + error.message, 'error');
+                this.textContent = 'Analisar com IA';
+                this.disabled = false;
+            }
+        });
+        
+        document.querySelectorAll('.badge-classificacao').forEach(badge => {
+            badge.addEventListener('click', function() {
+                const classificacao = this.dataset.class;
+                selecionarClassificacao(classificacao);
+            });
+        });
+        
+        function selecionarClassificacao(classificacao) {
+            document.querySelectorAll('.badge-classificacao').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-class="${classificacao}"]`).classList.add('active');
+            document.getElementById('classificacao').value = classificacao;
+            calcularValor();
+        }
+        
+        document.getElementById('peso').addEventListener('input', calcularValor);
+        
+        function calcularValor() {
+            const peso = parseFloat(document.getElementById('peso').value) || 0;
+            const classificacao = document.getElementById('classificacao').value;
+            
+            if (!peso || !classificacao || !tipoLoteConfig) {
+                document.getElementById('valorCalculadoDiv').style.display = 'none';
+                return;
+            }
+            
+            let estrelas = 3;
+            if (classificacao === 'leve') estrelas = tipoLoteConfig.leve_estrelas;
+            else if (classificacao === 'medio') estrelas = tipoLoteConfig.medio_estrelas;
+            else if (classificacao === 'pesado') estrelas = tipoLoteConfig.pesado_estrelas;
+            
+            const valorBase = 1.0;
+            const valorTotal = valorBase * estrelas * peso;
+            
+            document.getElementById('valorEstrelas').textContent = '★'.repeat(estrelas) + ` (${estrelas})`;
+            document.getElementById('valorPeso').textContent = peso.toFixed(2);
+            document.getElementById('valorTotal').textContent = valorTotal.toFixed(2);
+            document.getElementById('valorCalculadoDiv').style.display = 'block';
+        }
+        
+        document.getElementById('formSolicitacao').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const dados = {
+                fornecedor_id: parseInt(document.getElementById('fornecedor').value),
+                tipo_lote_id: parseInt(document.getElementById('tipoLote').value),
+                classificacao: document.getElementById('classificacao').value,
+                peso_kg: parseFloat(document.getElementById('peso').value),
+                imagem_url: imagemUrl,
+                classificacao_sugerida_ia: document.getElementById('classificacaoIA').value || null,
+                observacoes: document.getElementById('observacoes').value
+            };
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/solicitacao-lotes/criar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(dados)
+                });
+                
+                if (!response.ok) throw new Error('Erro ao criar solicitação');
+                
+                mostrarMensagem('Solicitação criada com sucesso!', 'success');
+                setTimeout(() => window.location.href = '/dashboard', 2000);
+            } catch (error) {
+                mostrarMensagem('Erro ao criar solicitação: ' + error.message, 'error');
+            }
+        });
+        
+        function mostrarMensagem(texto, tipo) {
+            const div = document.getElementById('mensagem');
+            div.className = `alert alert-${tipo}`;
+            div.textContent = texto;
+            div.style.display = 'block';
+            
+            if (tipo === 'success') {
+                setTimeout(() => div.style.display = 'none', 5000);
+            }
+        }
+        
+        carregarFornecedores();
+    </script>
+</body>
+</html>

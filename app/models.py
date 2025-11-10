@@ -249,6 +249,58 @@ class FornecedorTipoLotePreco(db.Model):  # type: ignore
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
         }
 
+class FornecedorTipoLoteClassificacao(db.Model):  # type: ignore
+    __tablename__ = 'fornecedor_tipo_lote_classificacao'
+    __table_args__ = (
+        db.UniqueConstraint('fornecedor_id', 'tipo_lote_id', name='uq_fornecedor_tipo_classificacao'),
+        db.Index('idx_fornecedor_tipo_class', 'fornecedor_id', 'tipo_lote_id'),
+        db.Index('idx_fornecedor_class_ativo', 'fornecedor_id', 'ativo'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
+    leve_estrelas = db.Column(db.Integer, nullable=False, default=1)
+    medio_estrelas = db.Column(db.Integer, nullable=False, default=3)
+    pesado_estrelas = db.Column(db.Integer, nullable=False, default=5)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    fornecedor = db.relationship('Fornecedor', backref='classificacoes_tipo_lote')
+    tipo_lote = db.relationship('TipoLote', backref='classificacoes_fornecedor')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        for campo in ['leve_estrelas', 'medio_estrelas', 'pesado_estrelas']:
+            if campo in kwargs and (kwargs[campo] < 1 or kwargs[campo] > 5):
+                raise ValueError(f'{campo} deve estar entre 1 e 5')
+        super().__init__(**kwargs)
+    
+    def get_estrelas_por_classificacao(self, classificacao: str) -> int:
+        if classificacao == 'leve':
+            return self.leve_estrelas
+        elif classificacao == 'medio':
+            return self.medio_estrelas
+        elif classificacao == 'pesado':
+            return self.pesado_estrelas
+        else:
+            return self.medio_estrelas
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'fornecedor_id': self.fornecedor_id,
+            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
+            'tipo_lote_id': self.tipo_lote_id,
+            'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
+            'leve_estrelas': self.leve_estrelas,
+            'medio_estrelas': self.medio_estrelas,
+            'pesado_estrelas': self.pesado_estrelas,
+            'ativo': self.ativo,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
 class Solicitacao(db.Model):  # type: ignore
     __tablename__ = 'solicitacoes'
     
@@ -313,6 +365,8 @@ class ItemSolicitacao(db.Model):  # type: ignore
     peso_kg = db.Column(db.Float, nullable=False)
     estrelas_sugeridas_ia = db.Column(db.Integer, nullable=True)
     estrelas_final = db.Column(db.Integer, nullable=False, default=3)
+    classificacao = db.Column(db.String(10), nullable=True)
+    classificacao_sugerida_ia = db.Column(db.String(10), nullable=True)
     valor_calculado = db.Column(db.Float, nullable=False, default=0.0)
     imagem_url = db.Column(db.String(500))
     observacoes = db.Column(db.Text)
@@ -322,6 +376,8 @@ class ItemSolicitacao(db.Model):  # type: ignore
     def __init__(self, **kwargs: Any) -> None:
         if 'estrelas_final' in kwargs and (kwargs['estrelas_final'] < 1 or kwargs['estrelas_final'] > 5):
             raise ValueError('Estrelas deve estar entre 1 e 5')
+        if 'classificacao' in kwargs and kwargs['classificacao'] and kwargs['classificacao'] not in ['leve', 'medio', 'pesado']:
+            raise ValueError('Classificação deve ser: leve, medio ou pesado')
         super().__init__(**kwargs)
     
     def to_dict(self):
@@ -333,6 +389,8 @@ class ItemSolicitacao(db.Model):  # type: ignore
             'peso_kg': self.peso_kg,
             'estrelas_sugeridas_ia': self.estrelas_sugeridas_ia,
             'estrelas_final': self.estrelas_final,
+            'classificacao': self.classificacao,
+            'classificacao_sugerida_ia': self.classificacao_sugerida_ia,
             'valor_calculado': self.valor_calculado,
             'imagem_url': self.imagem_url,
             'observacoes': self.observacoes,
@@ -358,6 +416,7 @@ class Lote(db.Model):  # type: ignore
     valor_total = db.Column(db.Float, nullable=False, default=0.0)
     quantidade_itens = db.Column(db.Integer, default=0)
     estrelas_media = db.Column(db.Float, nullable=True)
+    classificacao_predominante = db.Column(db.String(10), nullable=True)
     
     status = db.Column(db.String(20), default='aberto', nullable=False)
     tipo_retirada = db.Column(db.String(20))
@@ -388,6 +447,7 @@ class Lote(db.Model):  # type: ignore
             'valor_total': self.valor_total,
             'quantidade_itens': self.quantidade_itens,
             'estrelas_media': self.estrelas_media,
+            'classificacao_predominante': self.classificacao_predominante,
             'status': self.status,
             'tipo_retirada': self.tipo_retirada,
             'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
