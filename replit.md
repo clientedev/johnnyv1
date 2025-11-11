@@ -3,16 +3,28 @@
 ## Visão Geral
 Sistema completo para gerenciamento de compras de placas eletrônicas com rastreamento por lote, classificação por qualidade (estrelas), controle de fornecedores, e workflow automatizado desde solicitação até entrada em estoque.
 
-## Estado Atual (10/11/2025 - Noite)
+## Estado Atual (11/11/2025)
+✅ **Módulo de Importação/Exportação Excel - IMPLEMENTADO**
+- **NOVO (11/11):** Sistema de geração de modelo Excel para importação de tipos de lote
+- **NOVO (11/11):** Modelo inclui 15 pontos de preço (3 classificações × 5 estrelas)
+- **NOVO (11/11):** Rota `/modelo-importacao` para download do modelo Excel
+- **NOVO (11/11):** Rota `/importar-excel` para upload e processamento em massa
+- **NOVO (11/11):** Rota `/exportar-excel` para exportar tipos de lote existentes
+- **NOVO (11/11):** Geração automática de códigos para tipos de lote (TL001, TL002, etc)
+- **NOVO (11/11):** Códigos automáticos são read-only na UI
+- **NOVO (11/11):** Botões removidos: "Configurar Estrelas" e "Configurar Preços" (redundantes)
+- **NOVO (11/11):** Unificação dos botões "Solicitar Compra" - todos usam modal de solicitacoes.html
+- **NOVO (11/11):** Arquivo solicitacao_compra.html removido (tela incorreta)
+
 ✅ **Sistema de Preços por Estrela Completo - IMPLEMENTADO**
-- **NOVO (10/11 Noite):** Módulo completo de preços por estrela totalmente funcional
-- **NOVO (10/11 Noite):** Rotas CRUD para FornecedorTipoLotePreco com validação de unicidade
-- **NOVO (10/11 Noite):** Página configurar_precos.html com interface intuitiva
-- **NOVO (10/11 Noite):** Import/Export Excel para preços em massa
-- **NOVO (10/11 Noite):** Função calcular_valor_item() usa preços específicos do fornecedor
-- **NOVO (10/11 Noite):** Link no painel de administração para configurar preços
-- **NOVO (10/11 Noite):** Validação anti-duplicatas na atualização de preços
-- **NOVO (10/11 Noite):** Sistema completo: classificação → estrelas → preço/kg → valor total
+- Módulo completo de preços por estrela totalmente funcional
+- Rotas CRUD para FornecedorTipoLotePreco com validação de unicidade
+- Página configurar_precos.html com interface intuitiva
+- Import/Export Excel para preços em massa
+- Função calcular_valor_item() usa preços específicos do fornecedor
+- Link no painel de administração para configurar preços
+- Validação anti-duplicatas na atualização de preços
+- Sistema completo: classificação → estrelas → preço/kg → valor total
 
 ✅ **Sistema de Solicitação Modernizado com IA Completa + Geolocalização**
 - IA Gemini retorna classificação + justificativa textual detalhada
