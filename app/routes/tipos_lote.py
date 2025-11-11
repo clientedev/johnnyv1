@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required
 from app.models import TipoLote, TipoLotePreco, db, FornecedorTipoLoteClassificacao, Fornecedor
 from app.auth import admin_required
+from app.utils.excel_template import criar_modelo_importacao_tipos_lote
 import pandas as pd
 import io
 import openpyxl
@@ -9,6 +10,18 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from datetime import datetime
 
 bp = Blueprint('tipos_lote', __name__, url_prefix='/api/tipos-lote')
+
+def gerar_codigo_automatico():
+    ultimo_tipo = TipoLote.query.order_by(TipoLote.id.desc()).first()
+    if ultimo_tipo and ultimo_tipo.codigo:
+        try:
+            numero = int(ultimo_tipo.codigo.replace('TL', ''))
+            return f'TL{numero + 1:03d}'
+        except:
+            pass
+    
+    proximo_id = TipoLote.query.count() + 1
+    return f'TL{proximo_id:03d}'
 
 @bp.route('', methods=['GET'])
 @jwt_required()
@@ -64,8 +77,11 @@ def criar_tipo_lote():
         if tipo_existente:
             return jsonify({'erro': 'Já existe um tipo de lote com este nome'}), 400
         
-        if data.get('codigo'):
-            codigo_existente = TipoLote.query.filter_by(codigo=data['codigo']).first()
+        codigo = data.get('codigo', '').strip()
+        if not codigo:
+            codigo = gerar_codigo_automatico()
+        else:
+            codigo_existente = TipoLote.query.filter_by(codigo=codigo).first()
             if codigo_existente:
                 return jsonify({'erro': 'Já existe um tipo de lote com este código'}), 400
         
@@ -83,7 +99,7 @@ def criar_tipo_lote():
         tipo = TipoLote(
             nome=data['nome'],
             descricao=data.get('descricao', ''),
-            codigo=data.get('codigo', ''),
+            codigo=codigo,
             classificacao=classificacao,
             ativo=data.get('ativo', True)
         )
@@ -200,6 +216,23 @@ def deletar_tipo_lote(id):
         db.session.rollback()
         return jsonify({'erro': f'Erro ao deletar tipo de lote: {str(e)}'}), 500
 
+@bp.route('/modelo-importacao', methods=['GET'])
+@admin_required
+def baixar_modelo_importacao():
+    try:
+        buffer = criar_modelo_importacao_tipos_lote()
+        filename = f'modelo_importacao_tipos_lote_{datetime.now().strftime("%Y%m%d")}.xlsx'
+        
+        return send_file(
+            buffer,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao gerar modelo: {str(e)}'}), 500
+
 @bp.route('/importar-excel', methods=['POST'])
 @admin_required
 def importar_excel():
@@ -218,9 +251,9 @@ def importar_excel():
         total_tipos = TipoLote.query.count()
         
         arquivo_bytes = arquivo.read()
-        df_tipos = pd.read_excel(io.BytesIO(arquivo_bytes), sheet_name='Tipos de Lote') if 'Tipos de Lote' in pd.ExcelFile(io.BytesIO(arquivo_bytes)).sheet_names else pd.read_excel(io.BytesIO(arquivo_bytes))
+        df_tipos = pd.read_excel(io.BytesIO(arquivo_bytes), sheet_name='Tipos de Lote', header=1) if 'Tipos de Lote' in pd.ExcelFile(io.BytesIO(arquivo_bytes)).sheet_names else pd.read_excel(io.BytesIO(arquivo_bytes), header=1)
         
-        colunas_requeridas = ['nome']
+        colunas_requeridas = ['Nome', 'Descrição']
         colunas_faltando = [col for col in colunas_requeridas if col not in df_tipos.columns]
         
         if colunas_faltando:
@@ -228,67 +261,98 @@ def importar_excel():
         
         tipos_criados = 0
         tipos_atualizados = 0
-        estrelas_criadas = 0
-        estrelas_atualizadas = 0
+        precos_criados = 0
         erros = []
         
         for idx, (index, row) in enumerate(df_tipos.iterrows()):
-            linha_num = idx + 2
+            linha_num = idx + 3
             try:
-                nome = str(row['nome']).strip()
-                if not nome or nome == 'nan':
-                    erros.append(f'Linha {linha_num}: Nome é obrigatório')
+                nome = str(row['Nome']).strip()
+                if not nome or nome == 'nan' or pd.isna(row['Nome']):
                     continue
                 
                 if total_tipos + tipos_criados >= 150:
                     erros.append(f'Linha {linha_num}: Limite máximo de 150 tipos de lote atingido')
                     break
                 
-                codigo = str(row.get('codigo', '')).strip()
-                if codigo == 'nan':
-                    codigo = ''
-                
-                descricao = str(row.get('descricao', '')).strip()
-                if descricao == 'nan':
+                descricao = str(row.get('Descrição', '')).strip()
+                if descricao == 'nan' or pd.isna(row.get('Descrição')):
                     descricao = ''
-                
-                classificacao = str(row.get('classificacao', 'media')).strip().lower()
-                if classificacao == 'nan':
-                    classificacao = 'media'
-                
-                if classificacao not in ['leve', 'media', 'pesada']:
-                    erros.append(f'Linha {linha_num}: Classificação inválida "{classificacao}". Use: leve, media ou pesada')
-                    continue
                 
                 tipo_existente = TipoLote.query.filter_by(nome=nome).first()
                 
                 if tipo_existente:
                     tipo_existente.descricao = descricao if descricao else tipo_existente.descricao
-                    tipo_existente.classificacao = classificacao
-                    if codigo:
-                        codigo_em_uso = TipoLote.query.filter(
-                            TipoLote.codigo == codigo,
-                            TipoLote.id != tipo_existente.id
-                        ).first()
-                        if not codigo_em_uso:
-                            tipo_existente.codigo = codigo
+                    tipo = tipo_existente
                     tipos_atualizados += 1
+                    TipoLotePreco.query.filter_by(tipo_lote_id=tipo.id).delete()
                 else:
-                    if codigo:
-                        codigo_existente = TipoLote.query.filter_by(codigo=codigo).first()
-                        if codigo_existente:
-                            erros.append(f'Linha {linha_num}: Código "{codigo}" já está em uso')
-                            continue
-                    
+                    codigo = gerar_codigo_automatico()
                     novo_tipo = TipoLote(
                         nome=nome,
                         codigo=codigo,
                         descricao=descricao,
-                        classificacao=classificacao,
                         ativo=True
                     )
                     db.session.add(novo_tipo)
+                    db.session.flush()
+                    tipo = novo_tipo
                     tipos_criados += 1
+                
+                colunas_leve = ['1 Estrela', '2 Estrelas', '3 Estrelas', '4 Estrelas', '5 Estrelas']
+                colunas_medio = ['1 Estrela', '2 Estrelas', '3 Estrelas', '4 Estrelas', '5 Estrelas']
+                colunas_pesado = ['1 Estrela', '2 Estrelas', '3 Estrelas', '4 Estrelas', '5 Estrelas']
+                
+                col_offset_leve = 2
+                col_offset_medio = 7
+                col_offset_pesado = 12
+                
+                for estrela in range(1, 6):
+                    col_idx_leve = col_offset_leve + (estrela - 1)
+                    col_idx_medio = col_offset_medio + (estrela - 1)
+                    col_idx_pesado = col_offset_pesado + (estrela - 1)
+                    
+                    try:
+                        preco_leve = row.iloc[col_idx_leve] if col_idx_leve < len(row) else None
+                        if preco_leve is not None and not pd.isna(preco_leve) and float(preco_leve) > 0:
+                            preco_obj = TipoLotePreco(
+                                tipo_lote_id=tipo.id,
+                                classificacao='leve',
+                                estrelas=estrela,
+                                preco_por_kg=float(preco_leve)
+                            )
+                            db.session.add(preco_obj)
+                            precos_criados += 1
+                    except:
+                        pass
+                    
+                    try:
+                        preco_medio = row.iloc[col_idx_medio] if col_idx_medio < len(row) else None
+                        if preco_medio is not None and not pd.isna(preco_medio) and float(preco_medio) > 0:
+                            preco_obj = TipoLotePreco(
+                                tipo_lote_id=tipo.id,
+                                classificacao='medio',
+                                estrelas=estrela,
+                                preco_por_kg=float(preco_medio)
+                            )
+                            db.session.add(preco_obj)
+                            precos_criados += 1
+                    except:
+                        pass
+                    
+                    try:
+                        preco_pesado = row.iloc[col_idx_pesado] if col_idx_pesado < len(row) else None
+                        if preco_pesado is not None and not pd.isna(preco_pesado) and float(preco_pesado) > 0:
+                            preco_obj = TipoLotePreco(
+                                tipo_lote_id=tipo.id,
+                                classificacao='pesado',
+                                estrelas=estrela,
+                                preco_por_kg=float(preco_pesado)
+                            )
+                            db.session.add(preco_obj)
+                            precos_criados += 1
+                    except:
+                        pass
             
             except Exception as e:
                 erros.append(f'Linha {linha_num}: {str(e)}')
@@ -296,77 +360,11 @@ def importar_excel():
         
         db.session.commit()
         
-        try:
-            excel_file = pd.ExcelFile(io.BytesIO(arquivo_bytes))
-            if 'Estrelas por Fornecedor' in excel_file.sheet_names:
-                df_estrelas = pd.read_excel(excel_file, sheet_name='Estrelas por Fornecedor')
-                
-                if 'Tipo de Lote' in df_estrelas.columns and 'Fornecedor' in df_estrelas.columns:
-                    for idx, (_, row) in enumerate(df_estrelas.iterrows()):
-                        linha_num = idx + 2
-                        try:
-                            tipo_nome = str(row['Tipo de Lote']).strip()
-                            fornecedor_nome = str(row['Fornecedor']).strip()
-                            
-                            if tipo_nome == 'nan' or fornecedor_nome == 'nan':
-                                continue
-                            
-                            tipo = TipoLote.query.filter_by(nome=tipo_nome).first()
-                            fornecedor = Fornecedor.query.filter_by(nome=fornecedor_nome).first()
-                            
-                            if not tipo or not fornecedor:
-                                erros.append(f'Estrelas L{linha_num}: Tipo ou fornecedor não encontrado')
-                                continue
-                            
-                            leve_val = row.get('Leve (⭐)', 1)
-                            leve = int(leve_val) if not pd.isna(leve_val) else 1
-                            medio_val = row.get('Médio (⭐)', 3)
-                            medio = int(medio_val) if not pd.isna(medio_val) else 3
-                            pesado_val = row.get('Pesado (⭐)', 5)
-                            pesado = int(pesado_val) if not pd.isna(pesado_val) else 5
-                            
-                            ativo_val = row.get('Ativo')
-                            if pd.isna(ativo_val) or ativo_val == '':
-                                ativo = True
-                            else:
-                                ativo = str(ativo_val).strip().lower() in ['sim', 'yes', '1', 'true']
-                            
-                            classif_existente = FornecedorTipoLoteClassificacao.query.filter_by(
-                                fornecedor_id=fornecedor.id,
-                                tipo_lote_id=tipo.id
-                            ).first()
-                            
-                            if classif_existente:
-                                classif_existente.leve_estrelas = leve
-                                classif_existente.medio_estrelas = medio
-                                classif_existente.pesado_estrelas = pesado
-                                classif_existente.ativo = ativo
-                                estrelas_atualizadas += 1
-                            else:
-                                nova_classif = FornecedorTipoLoteClassificacao(
-                                    fornecedor_id=fornecedor.id,
-                                    tipo_lote_id=tipo.id,
-                                    leve_estrelas=leve,
-                                    medio_estrelas=medio,
-                                    pesado_estrelas=pesado,
-                                    ativo=ativo
-                                )
-                                db.session.add(nova_classif)
-                                estrelas_criadas += 1
-                        except Exception as e:
-                            erros.append(f'Estrelas L{linha_num}: {str(e)}')
-                            continue
-                    
-                    db.session.commit()
-        except Exception as e:
-            erros.append(f'Erro ao processar estrelas: {str(e)}')
-        
         return jsonify({
-            'mensagem': 'Importação concluída',
+            'mensagem': 'Importação concluída com sucesso',
             'tipos_criados': tipos_criados,
             'tipos_atualizados': tipos_atualizados,
-            'estrelas_criadas': estrelas_criadas,
-            'estrelas_atualizadas': estrelas_atualizadas,
+            'precos_criados': precos_criados,
             'erros': erros
         }), 200
     

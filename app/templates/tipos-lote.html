@@ -53,7 +53,16 @@
     <main class="container mt-4">
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
             <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Tipos de Lote</h1>
-            <button class="btn btn-primary" onclick="abrirModalNovoTipo()">+ Novo Tipo</button>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-success" onclick="baixarModelo()" title="Baixar modelo de planilha">
+                    <i class="fas fa-download"></i> Baixar Modelo
+                </button>
+                <button class="btn btn-secondary" onclick="document.getElementById('arquivoImportacao').click()" title="Importar tipos de lote via Excel">
+                    <i class="fas fa-file-excel"></i> Importar Excel
+                </button>
+                <input type="file" id="arquivoImportacao" accept=".xlsx,.xls" style="display: none;" onchange="importarExcel(event)">
+                <button class="btn btn-primary" onclick="abrirModalNovoTipo()">+ Novo Tipo</button>
+            </div>
         </div>
 
         <div class="card">
@@ -91,8 +100,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Código</label>
-                    <input type="text" id="codigo" placeholder="Ex: PM001">
+                    <label>Código <span style="font-size: 0.875rem; color: #6b7280;">(gerado automaticamente)</span></label>
+                    <input type="text" id="codigo" placeholder="Será gerado automaticamente" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
                 </div>
 
                 <div class="form-group">
@@ -345,6 +354,84 @@
             } catch (error) {
                 console.error('Erro:', error);
                 mostrarMensagem(error.message, 'error');
+            }
+        }
+
+        async function baixarModelo() {
+            try {
+                const response = await fetch('/api/tipos-lote/modelo-importacao', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erro ao baixar modelo');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `modelo_importacao_tipos_lote_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                mostrarMensagem('Modelo baixado com sucesso!');
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarMensagem('Erro ao baixar modelo', 'error');
+            }
+        }
+
+        async function importarExcel(event) {
+            const arquivo = event.target.files[0];
+            if (!arquivo) return;
+
+            if (!arquivo.name.endsWith('.xlsx') && !arquivo.name.endsWith('.xls')) {
+                mostrarMensagem('Por favor, selecione um arquivo Excel (.xlsx ou .xls)', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('arquivo', arquivo);
+
+            try {
+                mostrarMensagem('Importando dados... Por favor aguarde.', 'info');
+                
+                const response = await fetch('/api/tipos-lote/importar-excel', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: formData
+                });
+
+                const resultado = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(resultado.erro || 'Erro ao importar arquivo');
+                }
+
+                let mensagem = `Importação concluída!\n`;
+                mensagem += `Tipos criados: ${resultado.tipos_criados}\n`;
+                mensagem += `Tipos atualizados: ${resultado.tipos_atualizados}\n`;
+                mensagem += `Preços criados: ${resultado.precos_criados || 0}`;
+                
+                if (resultado.erros && resultado.erros.length > 0) {
+                    mensagem += `\n\nErros encontrados:\n${resultado.erros.slice(0, 5).join('\n')}`;
+                    if (resultado.erros.length > 5) {
+                        mensagem += `\n... e mais ${resultado.erros.length - 5} erros`;
+                    }
+                }
+
+                alert(mensagem);
+                carregarTipos();
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarMensagem(error.message, 'error');
+            } finally {
+                event.target.value = '';
             }
         }
 
