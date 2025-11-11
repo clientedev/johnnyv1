@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
-from app.models import Fornecedor, FornecedorTipoLotePreco, FornecedorTipoLoteClassificacao, Vendedor, TipoLote, db
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.models import Fornecedor, FornecedorTipoLotePreco, FornecedorTipoLoteClassificacao, Vendedor, TipoLote, Usuario, FornecedorFuncionarioAtribuicao, db
 from app.auth import admin_required
 import requests
 import re
@@ -33,10 +33,40 @@ def validar_cpf(cpf):
         return False
     return True
 
+def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
+    """Verifica se o usuário tem acesso ao fornecedor (criou ou foi atribuído)"""
+    usuario = Usuario.query.get(usuario_id)
+    
+    if not usuario:
+        return False
+    
+    if usuario.tipo == 'admin':
+        return True
+    
+    fornecedor = Fornecedor.query.get(fornecedor_id)
+    if not fornecedor:
+        return False
+    
+    if fornecedor.criado_por_id == usuario_id:
+        return True
+    
+    atribuicao = FornecedorFuncionarioAtribuicao.query.filter_by(
+        fornecedor_id=fornecedor_id,
+        funcionario_id=usuario_id
+    ).first()
+    
+    return atribuicao is not None
+
 @bp.route('', methods=['GET'])
 @jwt_required()
 def listar_fornecedores():
     try:
+        usuario_id = get_jwt_identity()
+        usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         busca = request.args.get('busca', '')
         vendedor_id = request.args.get('vendedor_id', type=int)
         cidade = request.args.get('cidade', '')
@@ -44,6 +74,18 @@ def listar_fornecedores():
         condicao_pagamento = request.args.get('condicao_pagamento', '')
         
         query = Fornecedor.query
+        
+        if usuario.tipo == 'funcionario':
+            subquery_ids_atribuidos = db.session.query(FornecedorFuncionarioAtribuicao.fornecedor_id).filter_by(
+                funcionario_id=usuario_id
+            ).subquery()
+            
+            query = query.filter(
+                db.or_(
+                    Fornecedor.criado_por_id == usuario_id,
+                    Fornecedor.id.in_(subquery_ids_atribuidos)
+                )
+            )
         
         if busca:
             query = query.filter(
@@ -78,10 +120,19 @@ def listar_fornecedores():
 @jwt_required()
 def obter_fornecedor(id):
     try:
+        usuario_id = get_jwt_identity()
+        usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         fornecedor = Fornecedor.query.get(id)
         
         if not fornecedor:
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        if not verificar_acesso_fornecedor(id, usuario_id):
+            return jsonify({'erro': 'Você não tem permissão para acessar este fornecedor'}), 403
         
         fornecedor_dict = fornecedor.to_dict()
         fornecedor_dict['classificacoes'] = [classif.to_dict() for classif in fornecedor.classificacoes_tipo_lote]
@@ -135,6 +186,12 @@ def criar_fornecedor():
             if email_existente:
                 return jsonify({'erro': 'E-mail já cadastrado para outro fornecedor'}), 400
         
+        usuario_id = get_jwt_identity()
+        usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         fornecedor = Fornecedor(
             nome=data['nome'],
             nome_social=data.get('nome_social', ''),
@@ -158,6 +215,7 @@ def criar_fornecedor():
             telefone=data.get('telefone', ''),
             email=data.get('email', ''),
             vendedor_id=data.get('vendedor_id'),
+            criado_por_id=usuario_id,
             conta_bancaria=data.get('conta_bancaria', ''),
             agencia=data.get('agencia', ''),
             chave_pix=data.get('chave_pix', ''),
@@ -171,7 +229,8 @@ def criar_fornecedor():
         db.session.commit()
         
         # Processar tipos de lote selecionados com classificações (leve/médio/pesado)
-        if 'tipos_lote' in data and isinstance(data['tipos_lote'], list):
+        # Apenas admin pode definir estrelas
+        if 'tipos_lote' in data and isinstance(data['tipos_lote'], list) and usuario.tipo == 'admin':
             for tipo_data in data['tipos_lote']:
                 tipo_lote_id = tipo_data.get('tipo_lote_id')
                 leve = tipo_data.get('leve_estrelas', 1)
@@ -193,7 +252,8 @@ def criar_fornecedor():
             db.session.commit()
         
         # Processar preços (campo antigo, mantido para compatibilidade)
-        elif 'precos' in data and isinstance(data['precos'], list):
+        # Apenas admin pode definir preços/estrelas
+        elif 'precos' in data and isinstance(data['precos'], list) and usuario.tipo == 'admin':
             for preco_data in data['precos']:
                 tipo_lote_id = preco_data.get('tipo_lote_id')
                 estrelas = preco_data.get('estrelas', 3)
@@ -225,10 +285,20 @@ def criar_fornecedor():
 @jwt_required()
 def atualizar_fornecedor(id):
     try:
+        usuario_id = get_jwt_identity()
+        usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         fornecedor = Fornecedor.query.get(id)
         
         if not fornecedor:
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        if usuario.tipo == 'funcionario':
+            if not verificar_acesso_fornecedor(id, usuario_id):
+                return jsonify({'erro': 'Acesso negado. Você não tem permissão para modificar este fornecedor.'}), 403
         
         data = request.get_json()
         
@@ -318,7 +388,8 @@ def atualizar_fornecedor(id):
             fornecedor.observacoes = data['observacoes']
         
         # Atualizar tipos de lote selecionados com classificações (leve/médio/pesado)
-        if 'tipos_lote' in data and isinstance(data['tipos_lote'], list):
+        # Funcionários não podem modificar estrelas
+        if 'tipos_lote' in data and isinstance(data['tipos_lote'], list) and usuario.tipo == 'admin':
             # Remover classificações antigas
             FornecedorTipoLoteClassificacao.query.filter_by(fornecedor_id=fornecedor.id).delete()
             FornecedorTipoLotePreco.query.filter_by(fornecedor_id=fornecedor.id).delete()
@@ -368,14 +439,70 @@ def deletar_fornecedor(id):
         db.session.rollback()
         return jsonify({'erro': f'Erro ao deletar fornecedor: {str(e)}'}), 500
 
-@bp.route('/<int:id>/precos', methods=['GET'])
-@jwt_required()
-def listar_precos_fornecedor(id):
+@bp.route('/<int:id>/atribuir', methods=['POST'])
+@admin_required
+def atribuir_fornecedor(id):
     try:
+        admin_id = get_jwt_identity()
+        
         fornecedor = Fornecedor.query.get(id)
         
         if not fornecedor:
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        data = request.get_json()
+        
+        if not data or 'funcionario_id' not in data:
+            return jsonify({'erro': 'funcionario_id é obrigatório'}), 400
+        
+        funcionario_id = data['funcionario_id']
+        
+        funcionario = Usuario.query.get(funcionario_id)
+        if not funcionario:
+            return jsonify({'erro': 'Funcionário não encontrado'}), 404
+        
+        if funcionario.tipo != 'funcionario':
+            return jsonify({'erro': 'O usuário especificado não é um funcionário'}), 400
+        
+        atribuicao_existente = FornecedorFuncionarioAtribuicao.query.filter_by(
+            fornecedor_id=id,
+            funcionario_id=funcionario_id
+        ).first()
+        
+        if atribuicao_existente:
+            return jsonify({'erro': 'Fornecedor já está atribuído a este funcionário'}), 400
+        
+        atribuicao = FornecedorFuncionarioAtribuicao(
+            fornecedor_id=id,
+            funcionario_id=funcionario_id,
+            atribuido_por_id=admin_id
+        )
+        
+        db.session.add(atribuicao)
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'Fornecedor atribuído com sucesso',
+            'atribuicao': atribuicao.to_dict()
+        }), 201
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao atribuir fornecedor: {str(e)}'}), 500
+
+@bp.route('/<int:id>/precos', methods=['GET'])
+@jwt_required()
+def listar_precos_fornecedor(id):
+    try:
+        usuario_id = get_jwt_identity()
+        
+        fornecedor = Fornecedor.query.get(id)
+        
+        if not fornecedor:
+            return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        if not verificar_acesso_fornecedor(id, usuario_id):
+            return jsonify({'erro': 'Você não tem permissão para acessar este fornecedor'}), 403
         
         precos = FornecedorTipoLotePreco.query.filter_by(fornecedor_id=id).all()
         
@@ -467,6 +594,11 @@ def configurar_precos_fornecedor(id):
 @jwt_required()
 def obter_preco_especifico(fornecedor_id, tipo_lote_id, estrelas):
     try:
+        usuario_id = get_jwt_identity()
+        
+        if not verificar_acesso_fornecedor(fornecedor_id, usuario_id):
+            return jsonify({'erro': 'Você não tem permissão para acessar este fornecedor'}), 403
+        
         if not (1 <= estrelas <= 5):
             return jsonify({'erro': 'Estrelas deve estar entre 1 e 5'}), 400
         
@@ -489,10 +621,15 @@ def obter_preco_especifico(fornecedor_id, tipo_lote_id, estrelas):
 def listar_tipos_lote_fornecedor(fornecedor_id):
     """Lista todos os tipos de lote cadastrados para um fornecedor específico com preços por classificação"""
     try:
+        usuario_id = get_jwt_identity()
+        
         fornecedor = Fornecedor.query.get(fornecedor_id)
         
         if not fornecedor:
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        if not verificar_acesso_fornecedor(fornecedor_id, usuario_id):
+            return jsonify({'erro': 'Você não tem permissão para acessar este fornecedor'}), 403
         
         # Buscar configurações de classificação do fornecedor (novo schema)
         from app.models import FornecedorTipoLoteClassificacao, TipoLotePreco

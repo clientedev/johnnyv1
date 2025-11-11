@@ -325,10 +325,10 @@ def criar_solicitacao():
     if classificacao not in ['leve', 'medio', 'pesado']:
         return jsonify({'erro': 'Classificação inválida. Use: leve, medio ou pesado'}), 400
     
-    if peso_kg <= 0:
+    if peso_kg is None or peso_kg <= 0:
         return jsonify({'erro': 'Peso deve ser maior que zero'}), 400
     
-    if estrelas < 1 or estrelas > 5:
+    if estrelas is None or estrelas < 1 or estrelas > 5:
         return jsonify({'erro': 'Estrelas deve estar entre 1 e 5'}), 400
     
     fornecedor = Fornecedor.query.get(fornecedor_id)

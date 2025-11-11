@@ -108,7 +108,7 @@ def criar_solicitacao():
                 peso_kg = item_data.get('peso_kg', 0)
                 estrelas_final = item_data.get('estrelas_final', 3)
                 
-                if not tipo_lote_id or peso_kg <= 0:
+                if not tipo_lote_id or peso_kg is None or peso_kg <= 0:
                     continue
                 
                 tipo_lote = TipoLote.query.get(tipo_lote_id)

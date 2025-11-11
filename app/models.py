@@ -225,6 +225,7 @@ class Fornecedor(db.Model):  # type: ignore
     email = db.Column(db.String(120))
     
     vendedor_id = db.Column(db.Integer, db.ForeignKey('vendedores.id'), nullable=True)
+    criado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
     conta_bancaria = db.Column(db.String(50))
     agencia = db.Column(db.String(20))
@@ -244,6 +245,7 @@ class Fornecedor(db.Model):  # type: ignore
     lotes = db.relationship('Lote', backref='fornecedor', lazy=True)
     tipos_lote = db.relationship('FornecedorTipoLote', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     classificacao_estrelas = db.relationship('FornecedorClassificacaoEstrela', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
+    criado_por = db.relationship('Usuario', foreign_keys=[criado_por_id], backref='fornecedores_criados')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -281,8 +283,39 @@ class Fornecedor(db.Model):  # type: ignore
             'condicao_pagamento': self.condicao_pagamento,
             'forma_pagamento': self.forma_pagamento,
             'observacoes': self.observacoes,
+            'criado_por_id': self.criado_por_id,
+            'criado_por_nome': self.criado_por.nome if self.criado_por else None,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
             'ativo': self.ativo
+        }
+
+class FornecedorFuncionarioAtribuicao(db.Model):  # type: ignore
+    """Tabela de atribuição de fornecedores a funcionários (admin atribui fornecedores a funcionários)"""
+    __tablename__ = 'fornecedor_funcionario_atribuicao'
+    __table_args__ = (
+        db.UniqueConstraint('fornecedor_id', 'funcionario_id', name='uq_fornecedor_funcionario'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    funcionario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    data_atribuicao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    atribuido_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    
+    fornecedor = db.relationship('Fornecedor', backref='atribuicoes')
+    funcionario = db.relationship('Usuario', foreign_keys=[funcionario_id], backref='fornecedores_atribuidos')
+    atribuido_por = db.relationship('Usuario', foreign_keys=[atribuido_por_id])
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'fornecedor_id': self.fornecedor_id,
+            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
+            'funcionario_id': self.funcionario_id,
+            'funcionario_nome': self.funcionario.nome if self.funcionario else None,
+            'data_atribuicao': self.data_atribuicao.isoformat() if self.data_atribuicao else None,
+            'atribuido_por_id': self.atribuido_por_id,
+            'atribuido_por_nome': self.atribuido_por.nome if self.atribuido_por else None
         }
 
 class FornecedorTipoLotePreco(db.Model):  # type: ignore

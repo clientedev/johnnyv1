@@ -116,7 +116,7 @@ def criar_solicitacao():
                 continue
             
             estrelas_final = item_data.get('estrelas_final', 3)
-            if not (1 <= estrelas_final <= 5):
+            if estrelas_final is None or not (1 <= estrelas_final <= 5):
                 estrelas_final = 3
             
             valor = calcular_valor_item(
