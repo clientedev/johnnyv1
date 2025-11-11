@@ -18,6 +18,9 @@ def index():
 
 @app.route('/<path:path>')
 def serve_page(path):
+    if path.startswith('api/'):
+        from flask import abort
+        abort(404)
     if path.endswith('.html'):
         try:
             return render_template(path)
