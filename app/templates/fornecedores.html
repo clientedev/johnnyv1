@@ -37,7 +37,7 @@
             <span>Dashboard</span>
         </a>
         <div class="fab-container">
-            <button class="fab-button" onclick="window.location.href='/funcionario.html'" aria-label="Nova Solicitação">
+            <button class="fab-button" onclick="abrirModalFuncionalidades()" aria-label="Ações Rápidas">
                 <i class="fas fa-plus icon"></i>
             </button>
         </div>
@@ -772,5 +772,7 @@
 
         carregarPagina();
     </script>
+
+    {% include 'includes/_modal_funcionalidades.html' %}
 </body>
 </html>

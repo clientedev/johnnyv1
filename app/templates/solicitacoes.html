@@ -277,7 +277,16 @@
                 if (status) url += `?status=${status}`;
                 
                 const response = await fetchAPI(url);
-                if (!response || !response.ok) return;
+                if (!response) {
+                    const tbody = document.getElementById('tabelaSolicitacoes');
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Erro de conexão com o servidor</td></tr>';
+                    return;
+                }
+                if (!response.ok) {
+                    const tbody = document.getElementById('tabelaSolicitacoes');
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Erro ao carregar solicitações</td></tr>';
+                    return;
+                }
                 const solicitacoes = await response.json();
 
                 const tbody = document.getElementById('tabelaSolicitacoes');
@@ -833,5 +842,7 @@
 
         carregarPagina();
     </script>
+
+    {% include 'includes/_modal_funcionalidades.html' %}
 </body>
 </html>
