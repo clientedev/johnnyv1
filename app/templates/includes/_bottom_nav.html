@@ -1,0 +1,23 @@
+<nav class="bottom-nav">
+    <a href="/administracao.html" class="bottom-nav-item {% if active_nav == 'admin' %}active{% endif %}">
+        <i class="fas fa-cog icon"></i>
+        <span>Admin</span>
+    </a>
+    <a href="/dashboard.html" class="bottom-nav-item {% if active_nav == 'dashboard' %}active{% endif %}">
+        <i class="fas fa-chart-line icon"></i>
+        <span>Dashboard</span>
+    </a>
+    <div class="fab-container">
+        <button class="fab-button" onclick="abrirModalNovaSolicitacao()" aria-label="Nova Solicitação">
+            <i class="fas fa-plus icon"></i>
+        </button>
+    </div>
+    <a href="/solicitacoes.html" class="bottom-nav-item {% if active_nav == 'solicitacoes' %}active{% endif %}">
+        <i class="fas fa-file-alt icon"></i>
+        <span>Solicitações</span>
+    </a>
+    <a href="/fornecedores.html" class="bottom-nav-item {% if active_nav == 'fornecedores' %}active{% endif %}">
+        <i class="fas fa-building icon"></i>
+        <span>Fornecedores</span>
+    </a>
+</nav>
