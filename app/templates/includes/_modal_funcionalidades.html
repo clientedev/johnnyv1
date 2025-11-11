@@ -7,6 +7,14 @@
         </div>
         <div style="display: grid; gap: 1rem; padding: 1rem 0;">
             
+            <button class="btn btn-success" onclick="navegarParaOuAbrir('/solicitacoes.html', 'abrirModalNovaSolicitacao')" style="display: flex; align-items: center; gap: 0.75rem; justify-content: flex-start; padding: 1rem; color: #fff;">
+                <i class="fas fa-plus-circle" style="font-size: 1.5rem;"></i>
+                <div style="text-align: left;">
+                    <div style="font-weight: 600;">Nova Solicitação</div>
+                    <div style="font-size: 0.85rem; opacity: 0.8;">Criar solicitação de compra</div>
+                </div>
+            </button>
+
             <button class="btn btn-primary" onclick="navegarPara('/solicitacoes.html')" style="display: flex; align-items: center; gap: 0.75rem; justify-content: flex-start; padding: 1rem;">
                 <i class="fas fa-file-alt" style="font-size: 1.5rem;"></i>
                 <div style="text-align: left;">
@@ -62,5 +70,18 @@ function fecharModalFuncionalidades() {
 
 function navegarPara(url) {
     window.location.href = url;
+}
+
+function navegarParaOuAbrir(url, funcao) {
+    // Se já estamos na página, tenta chamar a função diretamente
+    if (window.location.pathname.includes(url.split('.')[0])) {
+        fecharModalFuncionalidades();
+        if (typeof window[funcao] === 'function') {
+            window[funcao]();
+        }
+    } else {
+        // Senão, navega para a página
+        window.location.href = url;
+    }
 }
 </script>
