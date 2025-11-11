@@ -236,22 +236,38 @@
             const fornecedorId = document.getElementById('fornecedorSolicitacao').value;
             if (!fornecedorId) {
                 precosFornecedorSelecionado = {};
+                todosTiposLote = [];
                 return;
             }
 
             try {
-                const response = await fetchAPI(`/fornecedores/${fornecedorId}/precos`);
+                // Buscar tipos de lote do fornecedor com preços por classificação
+                const response = await fetchAPI(`/fornecedores/${fornecedorId}/tipos-lote`);
                 if (response && response.ok) {
-                    const precos = await response.json();
+                    todosTiposLote = await response.json();
+                    
+                    // Montar estrutura de preços para cálculo rápido
                     precosFornecedorSelecionado = {};
-                    precos.forEach(p => {
-                        const key = `${p.tipo_lote_id}_${p.estrelas}`;
-                        precosFornecedorSelecionado[key] = p.preco_por_kg;
+                    todosTiposLote.forEach(tipo => {
+                        if (tipo.precos_por_classificacao) {
+                            Object.keys(tipo.precos_por_classificacao).forEach(classificacao => {
+                                const preco = tipo.precos_por_classificacao[classificacao];
+                                const key = `${tipo.id}_${classificacao}`;
+                                precosFornecedorSelecionado[key] = {
+                                    preco_por_kg: preco.preco_por_kg,
+                                    estrelas: preco.estrelas
+                                };
+                            });
+                        }
                     });
+                    
+                    console.log('Tipos de lote carregados:', todosTiposLote);
+                    console.log('Preços por classificação:', precosFornecedorSelecionado);
                 }
             } catch (error) {
-                console.error('Erro ao carregar preços:', error);
+                console.error('Erro ao carregar tipos de lote:', error);
                 precosFornecedorSelecionado = {};
+                todosTiposLote = [];
             }
         }
 
@@ -328,9 +344,13 @@
             const item = {
                 id: itemId,
                 tipo_lote_id: null,
+                classificacao: 'medio',
+                classificacao_ia: null,
+                justificativa_ia: '',
                 peso_kg: 0,
-                estrelas_final: 3,
                 imagem_url: null,
+                imagem_file: null,
+                analisando: false,
                 observacoes: '',
                 valor_calculado: 0
             };
@@ -357,6 +377,38 @@
                         </button>
                     </div>
                     
+                    <!-- Foto e Análise IA -->
+                    <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">📷 Foto do Lote</label>
+                        
+                        ${item.imagem_url ? `
+                            <div style="margin-bottom: 0.75rem;">
+                                <img src="${item.imagem_url}" style="max-width: 100%; max-height: 200px; border-radius: 8px; display: block; margin: 0 auto;">
+                            </div>
+                        ` : ''}
+                        
+                        <input type="file" accept="image/*" capture="environment" id="foto_${item.id}" 
+                            onchange="capturarFoto(${item.id}, this)" style="display: none;">
+                        
+                        <button type="button" class="btn btn-primary w-full" onclick="document.getElementById('foto_${item.id}').click()"
+                            ${item.analisando ? 'disabled' : ''}>
+                            <i class="fas fa-camera"></i> ${item.imagem_url ? 'Trocar Foto' : 'Capturar Foto'}
+                        </button>
+                        
+                        ${item.analisando ? `
+                            <div style="margin-top: 0.75rem; text-align: center; color: #1976d2;">
+                                <i class="fas fa-spinner fa-spin"></i> Analisando imagem com IA...
+                            </div>
+                        ` : ''}
+                        
+                        ${item.classificacao_ia && item.justificativa_ia ? `
+                            <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fff3e0; border-radius: 6px; border-left: 4px solid #ff9800;">
+                                <strong>🤖 Análise IA:</strong> ${item.classificacao_ia.toUpperCase()}<br>
+                                <small style="color: #666;">${item.justificativa_ia}</small>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label>Tipo de Lote *</label>
@@ -375,16 +427,15 @@
                                 onchange="atualizarItemCampo(${item.id}, 'peso_kg', parseFloat(this.value))" required>
                         </div>
                     </div>
-
+                    
                     <div class="form-group" style="margin-bottom: 0.75rem;">
-                        <label>Estrelas (Qualidade)</label>
-                        <select onchange="atualizarItemCampo(${item.id}, 'estrelas_final', parseInt(this.value))">
-                            ${[1,2,3,4,5].map(e => `
-                                <option value="${e}" ${item.estrelas_final === e ? 'selected' : ''}>
-                                    ${'⭐'.repeat(e)}
-                                </option>
-                            `).join('')}
+                        <label>Classificação *</label>
+                        <select onchange="atualizarItemCampo(${item.id}, 'classificacao', this.value)" required>
+                            <option value="leve" ${item.classificacao === 'leve' ? 'selected' : ''}>Leve</option>
+                            <option value="medio" ${item.classificacao === 'medio' ? 'selected' : ''}>Médio</option>
+                            <option value="pesado" ${item.classificacao === 'pesado' ? 'selected' : ''}>Pesado</option>
                         </select>
+                        <small style="color: #666;">Você pode ajustar a classificação sugerida pela IA</small>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0.75rem;">
@@ -399,6 +450,61 @@
                 </div>
             `).join('');
         }
+        
+        async function capturarFoto(itemId, inputElement) {
+            const item = itensSolicitacao.find(i => i.id === itemId);
+            if (!item) return;
+            
+            const file = inputElement.files[0];
+            if (!file) return;
+            
+            // Mostrar preview da imagem
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                item.imagem_url = e.target.result;
+                item.imagem_file = file;
+                renderizarItens();
+            };
+            reader.readAsDataURL(file);
+            
+            // Analisar com IA
+            item.analisando = true;
+            renderizarItens();
+            
+            try {
+                const formData = new FormData();
+                formData.append('imagem', file);
+                
+                const response = await fetchAPI('/solicitacao-lotes/analisar-imagem', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response && response.ok) {
+                    const resultado = await response.json();
+                    
+                    if (resultado.sucesso || resultado.classificacao) {
+                        item.classificacao_ia = resultado.classificacao;
+                        item.justificativa_ia = resultado.justificativa;
+                        item.classificacao = resultado.classificacao; // Aplicar automaticamente
+                        
+                        showAlert('Imagem analisada com sucesso pela IA!', 'success');
+                    } else {
+                        showAlert('IA não conseguiu analisar a imagem: ' + (resultado.erro || 'Erro desconhecido'), 'warning');
+                    }
+                } else {
+                    showAlert('Erro ao analisar imagem com IA', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao analisar imagem:', error);
+                showAlert('Erro ao analisar imagem: ' + error.message, 'error');
+            } finally {
+                item.analisando = false;
+                calcularValorItem(item);
+                renderizarItens();
+                atualizarResumo();
+            }
+        }
 
         function atualizarItemCampo(itemId, campo, valor) {
             const item = itensSolicitacao.find(i => i.id === itemId);
@@ -406,7 +512,7 @@
 
             item[campo] = valor;
             
-            if (campo === 'tipo_lote_id' || campo === 'peso_kg' || campo === 'estrelas_final') {
+            if (campo === 'tipo_lote_id' || campo === 'peso_kg' || campo === 'classificacao') {
                 calcularValorItem(item);
             }
             
@@ -415,18 +521,19 @@
         }
 
         function calcularValorItem(item) {
-            if (!item.tipo_lote_id || !item.peso_kg || item.peso_kg <= 0) {
+            if (!item.tipo_lote_id || !item.peso_kg || item.peso_kg <= 0 || !item.classificacao) {
                 item.valor_calculado = 0;
                 return;
             }
 
-            const key = `${item.tipo_lote_id}_${item.estrelas_final}`;
-            const precoPorKg = precosFornecedorSelecionado[key];
+            const key = `${item.tipo_lote_id}_${item.classificacao}`;
+            const precoInfo = precosFornecedorSelecionado[key];
             
-            if (precoPorKg) {
-                item.valor_calculado = item.peso_kg * precoPorKg;
+            if (precoInfo && precoInfo.preco_por_kg) {
+                item.valor_calculado = item.peso_kg * precoInfo.preco_por_kg;
             } else {
                 item.valor_calculado = 0;
+                console.warn(`Preço não encontrado para tipo ${item.tipo_lote_id} e classificação ${item.classificacao}`);
             }
         }
 
@@ -446,29 +553,77 @@
             document.getElementById('valorTotal').textContent = 'R$ ' + valorTotal.toFixed(2);
         }
 
-        function capturarLocalizacao() {
+        async function capturarLocalizacao() {
             if (!navigator.geolocation) {
                 showAlert('Geolocalização não suportada neste navegador', 'error');
                 return;
             }
 
-            showAlert('Capturando localização...', 'info');
+            showAlert('Capturando localização e endereço...', 'info');
             
             navigator.geolocation.getCurrentPosition(
-                (position) => {
+                async (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     
                     document.getElementById('gpsInfo').style.display = 'block';
                     document.getElementById('gpsInfo').innerHTML = `
-                        <i class="fas fa-check-circle"></i> GPS capturado!<br>
-                        Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}
+                        <i class="fas fa-spinner fa-spin"></i> Buscando endereço...
                     `;
                     
-                    document.getElementById('gpsInfo').dataset.lat = lat;
-                    document.getElementById('gpsInfo').dataset.lng = lng;
-                    
-                    showAlert('Localização capturada com sucesso!', 'success');
+                    try {
+                        // Buscar endereço via geocoding reverso
+                        const response = await fetchAPI('/solicitacao-lotes/geocode', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ latitude: lat, longitude: lng })
+                        });
+                        
+                        if (response && response.ok) {
+                            const endereco = await response.json();
+                            
+                            if (endereco.sucesso) {
+                                // Preencher e bloquear campos
+                                document.getElementById('rua').value = endereco.rua || '';
+                                document.getElementById('numero').value = endereco.numero || '';
+                                document.getElementById('cep').value = endereco.cep || '';
+                                
+                                // Bloquear edição
+                                document.getElementById('rua').readOnly = true;
+                                document.getElementById('numero').readOnly = true;
+                                document.getElementById('cep').readOnly = true;
+                                
+                                document.getElementById('gpsInfo').dataset.lat = lat;
+                                document.getElementById('gpsInfo').dataset.lng = lng;
+                                
+                                document.getElementById('gpsInfo').innerHTML = `
+                                    <i class="fas fa-check-circle"></i> Endereço encontrado!<br>
+                                    ${endereco.endereco_completo || 'GPS: ' + lat.toFixed(6) + ', ' + lng.toFixed(6)}
+                                `;
+                                
+                                showAlert('Endereço capturado com sucesso!', 'success');
+                            } else {
+                                // Falhou mas temos GPS
+                                document.getElementById('gpsInfo').dataset.lat = lat;
+                                document.getElementById('gpsInfo').dataset.lng = lng;
+                                
+                                document.getElementById('gpsInfo').innerHTML = `
+                                    <i class="fas fa-exclamation-triangle"></i> GPS capturado, mas não foi possível buscar o endereço.<br>
+                                    Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br>
+                                    <small>${endereco.erro || 'Erro desconhecido'}</small>
+                                `;
+                                
+                                showAlert('GPS capturado, mas endereço não encontrado. Preencha manualmente.', 'warning');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Erro ao buscar endereço:', error);
+                        document.getElementById('gpsInfo').innerHTML = `
+                            <i class="fas fa-exclamation-circle"></i> Erro ao buscar endereço<br>
+                            Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}
+                        `;
+                        showAlert('GPS capturado mas houve erro ao buscar endereço', 'warning');
+                    }
                 },
                 (error) => {
                     showAlert('Erro ao capturar localização: ' + error.message, 'error');

@@ -484,6 +484,66 @@ def obter_preco_especifico(fornecedor_id, tipo_lote_id, estrelas):
     except Exception as e:
         return jsonify({'erro': f'Erro ao obter preço: {str(e)}'}), 500
 
+@bp.route('/<int:fornecedor_id>/tipos-lote', methods=['GET'])
+@jwt_required()
+def listar_tipos_lote_fornecedor(fornecedor_id):
+    """Lista todos os tipos de lote cadastrados para um fornecedor específico com preços por classificação"""
+    try:
+        fornecedor = Fornecedor.query.get(fornecedor_id)
+        
+        if not fornecedor:
+            return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        # Buscar configurações de classificação do fornecedor (novo schema)
+        from app.models import FornecedorTipoLoteClassificacao, TipoLotePreco
+        
+        configs = FornecedorTipoLoteClassificacao.query.filter_by(
+            fornecedor_id=fornecedor_id,
+            ativo=True
+        ).all()
+        
+        resultado = []
+        for config in configs:
+            tipo_lote = config.tipo_lote
+            if not tipo_lote:
+                continue
+            
+            tipo_dict = tipo_lote.to_dict()
+            
+            # Incluir mapeamento classificação → estrelas
+            tipo_dict['estrelas_config'] = {
+                'leve': config.leve_estrelas,
+                'medio': config.medio_estrelas,
+                'pesado': config.pesado_estrelas
+            }
+            
+            # Buscar preços para cada classificação baseado nas estrelas
+            tipo_dict['precos_por_classificacao'] = {}
+            
+            for classificacao in ['leve', 'medio', 'pesado']:
+                estrelas = config.get_estrelas_por_classificacao(classificacao)
+                
+                # Buscar preço do tipo de lote para esta classificação+estrelas
+                preco = TipoLotePreco.query.filter_by(
+                    tipo_lote_id=tipo_lote.id,
+                    classificacao=classificacao,
+                    estrelas=estrelas,
+                    ativo=True
+                ).first()
+                
+                if preco:
+                    tipo_dict['precos_por_classificacao'][classificacao] = {
+                        'estrelas': estrelas,
+                        'preco_por_kg': preco.preco_por_kg
+                    }
+            
+            resultado.append(tipo_dict)
+        
+        return jsonify(resultado), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao listar tipos de lote: {str(e)}'}), 500
+
 @bp.route('/consultar-cnpj/<string:cnpj>', methods=['GET'])
 @jwt_required()
 def consultar_cnpj(cnpj):

@@ -16,6 +16,89 @@ bp = Blueprint('solicitacao_lotes', __name__, url_prefix='/api/solicitacao-lotes
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+@bp.route('/geocode', methods=['POST'])
+@jwt_required()
+def geocode_reverso():
+    """Endpoint para geocoding reverso (GPS → endereço)"""
+    try:
+        from app.utils.geolocation import reverse_geocode
+        
+        data = request.get_json()
+        lat = data.get('latitude')
+        lng = data.get('longitude')
+        
+        if lat is None or lng is None:
+            return jsonify({'erro': 'Latitude e longitude são obrigatórias'}), 400
+        
+        resultado = reverse_geocode(lat, lng)
+        
+        return jsonify(resultado), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao buscar endereço: {str(e)}'}), 500
+
+@bp.route('/analisar-imagem', methods=['POST'])
+@jwt_required()
+def analisar_imagem():
+    """Endpoint para análise de imagem com Gemini AI"""
+    try:
+        from app.services.gemini_analyzer import analyze_images
+        
+        if 'imagem' not in request.files:
+            return jsonify({'erro': 'Nenhuma imagem foi enviada'}), 400
+        
+        file = request.files['imagem']
+        
+        if file.filename == '':
+            return jsonify({'erro': 'Arquivo sem nome'}), 400
+        
+        # Ler bytes da imagem
+        imagem_bytes = file.read()
+        
+        # Analisar usando Gemini (para solicitações de lote)
+        resultados = analyze_images([imagem_bytes], use_case='solicitacao')
+        
+        if not resultados or len(resultados) == 0:
+            return jsonify({'erro': 'Erro ao analisar imagem'}), 500
+        
+        resultado = resultados[0]
+        
+        return jsonify(resultado), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao analisar imagem: {str(e)}'}), 500
+
+@bp.route('/upload-imagem', methods=['POST'])
+@jwt_required()
+def upload_imagem():
+    """Endpoint para upload de imagem e retorno do caminho"""
+    try:
+        if 'imagem' not in request.files:
+            return jsonify({'erro': 'Nenhuma imagem foi enviada'}), 400
+        
+        file = request.files['imagem']
+        
+        if file.filename == '':
+            return jsonify({'erro': 'Arquivo sem nome'}), 400
+        
+        # Gerar nome único
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4()}_{filename}"
+        filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
+        
+        # Salvar arquivo
+        file.save(filepath)
+        
+        # Retornar caminho relativo
+        return jsonify({
+            'sucesso': True,
+            'caminho': filepath,
+            'url': f'/uploads/{unique_filename}'
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao fazer upload: {str(e)}'}), 500
+
 def analisar_imagem_com_ia(imagem_path):
     """Analisa imagem usando Gemini AI para classificar lote e fornecer justificativa"""
     try:
@@ -209,39 +292,6 @@ def buscar_precos(fornecedor_id, tipo_lote_id):
             'pesado': config_estrelas.pesado_estrelas
         },
         'precos_tipo_lote': precos_tipo
-    }), 200
-
-@bp.route('/analisar-imagem', methods=['POST'])
-@jwt_required()
-def analisar_imagem():
-    """Endpoint para analisar imagem e sugerir classificação com justificativa"""
-    if 'imagem' not in request.files:
-        return jsonify({'erro': 'Nenhuma imagem enviada'}), 400
-    
-    arquivo = request.files['imagem']
-    
-    if arquivo.filename == '':
-        return jsonify({'erro': 'Arquivo inválido'}), 400
-    
-    filename = secure_filename(f"{uuid.uuid4()}_{arquivo.filename}")
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    arquivo.save(filepath)
-    
-    resultado_ia = analisar_imagem_com_ia(filepath)
-    
-    if resultado_ia is None:
-        return jsonify({
-            'imagem_url': f'/uploads/{filename}',
-            'classificacao_sugerida': None,
-            'justificativa_ia': None,
-            'aviso': 'IA não disponível. Configure GEMINI_API_KEY para análise automática.'
-        }), 200
-    
-    return jsonify({
-        'imagem_url': f'/uploads/{filename}',
-        'classificacao_sugerida': resultado_ia['classificacao'],
-        'justificativa_ia': resultado_ia['justificativa'],
-        'resposta_completa': resultado_ia.get('resposta_bruta', '')
     }), 200
 
 @bp.route('/criar', methods=['POST'])
