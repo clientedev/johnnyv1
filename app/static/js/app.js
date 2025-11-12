@@ -264,8 +264,8 @@ function aplicarControleAcesso(user) {
     if (!controle) {
         console.warn('⚠️ Perfil não mapeado:', user.perfil_nome);
         console.log('Permitindo acesso ao dashboard...');
-        return;nome);
-        }
+        return;
+    }
     
     const paginaAtual = window.location.pathname;
     console.log('📍 Página atual:', paginaAtual);
