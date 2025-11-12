@@ -32,9 +32,11 @@ def login():
     
     additional_claims = get_user_jwt_claims(usuario)
     access_token = create_access_token(identity=str(usuario.id), additional_claims=additional_claims)
-    refresh_token = create_refresh_token(identity=str(usuario.id))
+    refresh_token = create_refresh_token(identity=str(usuario.id), additional_claims=additional_claims)
     
     registrar_login(usuario.id, sucesso=True)
+    
+    perfil_nome = usuario.perfil.nome if usuario.perfil else 'Administrador'
     
     permissoes = {}
     if usuario.perfil:
@@ -58,8 +60,12 @@ def login():
             'autorizar_descarte': True
         }
     
+    tela_inicial = get_tela_inicial_by_perfil(perfil_nome)
+    
     usuario_dict = usuario.to_dict()
     usuario_dict['permissoes'] = permissoes
+    usuario_dict['perfil'] = perfil_nome
+    usuario_dict['tela_inicial'] = tela_inicial
     
     return jsonify({
         'token': access_token,
