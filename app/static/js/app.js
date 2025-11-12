@@ -226,58 +226,68 @@ function hasPermission(permission) {
 function aplicarControleAcesso(user) {
     if (!user) return;
     
+    // Administrador tem acesso total
     if (user.tipo === 'admin' || user.perfil_nome === 'Administrador') {
+        console.log('✅ Usuário admin - acesso total');
         return;
     }
     
     const controlePorPerfil = {
         'Comprador (PJ)': {
-            paginasPermitidas: ['/dashboard.html', '/fornecedores.html', '/solicitacoes.html', '/notificacoes.html'],
+            paginasPermitidas: ['/dashboard.html', '/fornecedores.html', '/solicitacoes.html', '/notificacoes.html', '/index.html', '/'],
             modulosVisiveis: ['fornecedores', 'solicitacoes']
         },
         'Conferente / Estoque': {
-            paginasPermitidas: ['/dashboard.html', '/lotes.html', '/entradas.html', '/notificacoes.html'],
+            paginasPermitidas: ['/dashboard.html', '/lotes.html', '/entradas.html', '/notificacoes.html', '/index.html', '/'],
             modulosVisiveis: ['lotes', 'entradas']
         },
         'Separação': {
-            paginasPermitidas: ['/dashboard.html', '/lotes.html', '/notificacoes.html'],
+            paginasPermitidas: ['/dashboard.html', '/lotes.html', '/notificacoes.html', '/index.html', '/'],
             modulosVisiveis: ['lotes']
         },
         'Motorista': {
-            paginasPermitidas: ['/dashboard.html', '/solicitacoes.html', '/notificacoes.html'],
+            paginasPermitidas: ['/dashboard.html', '/solicitacoes.html', '/notificacoes.html', '/index.html', '/'],
             modulosVisiveis: ['solicitacoes']
         },
         'Financeiro': {
-            paginasPermitidas: ['/dashboard.html', '/fornecedores.html', '/solicitacoes.html', '/notificacoes.html'],
+            paginasPermitidas: ['/dashboard.html', '/fornecedores.html', '/solicitacoes.html', '/notificacoes.html', '/index.html', '/'],
             modulosVisiveis: ['fornecedores', 'solicitacoes']
         },
         'Auditoria / BI': {
-            paginasPermitidas: ['/dashboard.html', '/consulta.html', '/notificacoes.html'],
-            modulosVisiveis: ['consulta']
+            paginasPermitidas: ['/dashboard.html', '/consulta.html', '/notificacoes.html', '/index.html', '/'],
+            modulosVisiveis: ['consulta', 'auditoria']
         }
     };
     
     const controle = controlePorPerfil[user.perfil_nome];
     
     if (!controle) {
-        console.warn('Perfil não mapeado:', user.perfil_nome);
-        const paginaAtual = window.location.pathname;
-        if (paginaAtual !== '/dashboard.html' && paginaAtual !== '/' && paginaAtual !== '/notificacoes.html') {
-            showAlert('Seu perfil não possui permissões configuradas. Redirecionando para o dashboard.');
-            window.location.href = '/dashboard.html';
+        console.warn('⚠️ Perfil não mapeado:', user.perfil_nome);
+        console.log('Permitindo acesso ao dashboard...');
+        return;nome);
         }
-        return;
-    }
     
     const paginaAtual = window.location.pathname;
-    if (!controle.paginasPermitidas.includes(paginaAtual) && paginaAtual !== '/' && paginaAtual !== '/index.html') {
-        showAlert('Você não tem permissão para acessar esta página.');
-        window.location.href = controle.paginasPermitidas[0];
+    console.log('📍 Página atual:', paginaAtual);
+    console.log('✅ Páginas permitidas:', controle.paginasPermitidas);
+    
+    // Verificar se a página atual está na lista de permitidas
+    const paginaPermitida = controle.paginasPermitidas.some(p => {
+        return paginaAtual === p || paginaAtual.endsWith(p);
+    });
+    
+    if (!paginaPermitida && paginaAtual !== '/' && paginaAtual !== '/index.html') {
+        console.warn('⛔ Acesso negado à página:', paginaAtual);
+        showAlert(`Você não tem permissão para acessar esta página. Perfil: ${user.perfil_nome}`);
+        setTimeout(() => {
+            window.location.href = '/dashboard.html';
+        }, 1500);
         return;
     }
     
+    console.log('✅ Acesso permitido - Perfil:', user.perfil_nome);
     ocultarModulosNaoPermitidos(controle.modulosVisiveis);
-    ocultarItensMenuNaoPermitidos(controle.paginasPermitidas);
+    ocultarItensMenuNaoPermitidos(controle.paginasPermitidasrmitidas);
 }
 
 function ocultarModulosNaoPermitidos(modulosVisiveis) {
