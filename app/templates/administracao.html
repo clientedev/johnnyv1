@@ -136,7 +136,7 @@
                         <tr>
                             <th>Nome</th>
                             <th>Email</th>
-                            <th>Tipo</th>
+                            <th>Perfil</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -169,10 +169,9 @@
                     <input type="password" id="senhaFuncionario" required minlength="6">
                 </div>
                 <div class="form-group">
-                    <label>Tipo</label>
-                    <select id="tipoFuncionario" required>
-                        <option value="funcionario">Funcionário</option>
-                        <option value="admin">Administrador</option>
+                    <label>Perfil</label>
+                    <select id="perfilFuncionario" required>
+                        <option value="">Selecione um perfil...</option>
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary w-full">Criar Funcionário</button>
@@ -202,10 +201,9 @@
                     <input type="password" id="editSenhaFuncionario" minlength="6">
                 </div>
                 <div class="form-group">
-                    <label>Tipo</label>
-                    <select id="editTipoFuncionario" required>
-                        <option value="funcionario">Funcionário</option>
-                        <option value="admin">Administrador</option>
+                    <label>Perfil</label>
+                    <select id="editPerfilFuncionario" required>
+                        <option value="">Selecione um perfil...</option>
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary w-full">Salvar Alterações</button>
@@ -216,6 +214,8 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
+        let perfisDisponiveis = [];
+
         async function carregarPagina() {
             const user = await verificarAuth();
             if (!user) return;
@@ -226,8 +226,30 @@
                 return;
             }
             
+            await carregarPerfis();
             await carregarFuncionarios();
             await atualizarNotificacoes();
+        }
+
+        async function carregarPerfis() {
+            try {
+                const response = await fetchAPI('/perfis');
+                perfisDisponiveis = await response.json();
+                
+                const selectNovo = document.getElementById('perfilFuncionario');
+                const selectEdit = document.getElementById('editPerfilFuncionario');
+                
+                const options = perfisDisponiveis
+                    .filter(p => p.ativo)
+                    .map(p => `<option value="${p.id}">${p.nome}</option>`)
+                    .join('');
+                
+                selectNovo.innerHTML = '<option value="">Selecione um perfil...</option>' + options;
+                selectEdit.innerHTML = '<option value="">Selecione um perfil...</option>' + options;
+            } catch (error) {
+                console.error('Erro ao carregar perfis:', error);
+                showAlert('Erro ao carregar perfis');
+            }
         }
 
         async function carregarFuncionarios() {
@@ -245,7 +267,7 @@
                 <tr>
                     <td>${f.nome}</td>
                     <td>${f.email}</td>
-                    <td><span class="badge ${f.tipo === 'admin' ? 'badge-success' : 'badge-secondary'}">${f.tipo === 'admin' ? 'Admin' : 'Funcionário'}</span></td>
+                    <td><span class="badge ${f.perfil_nome === 'Administrador' ? 'badge-success' : 'badge-secondary'}">${f.perfil_nome || 'Sem perfil'}</span></td>
                     <td>
                         <button class="btn btn-small btn-secondary" onclick="editarFuncionario(${f.id})">
                             <i class="fas fa-edit"></i> Editar
@@ -270,11 +292,17 @@
         document.getElementById('formNovoFuncionario').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const perfilId = document.getElementById('perfilFuncionario').value;
+            if (!perfilId) {
+                showAlert('Por favor, selecione um perfil');
+                return;
+            }
+            
             const dados = {
                 nome: document.getElementById('nomeFuncionario').value,
                 email: document.getElementById('emailFuncionario').value,
                 senha: document.getElementById('senhaFuncionario').value,
-                tipo: document.getElementById('tipoFuncionario').value
+                perfil_id: parseInt(perfilId)
             };
             
             try {
@@ -298,7 +326,7 @@
             document.getElementById('editFuncionarioId').value = funcionario.id;
             document.getElementById('editNomeFuncionario').value = funcionario.nome;
             document.getElementById('editEmailFuncionario').value = funcionario.email;
-            document.getElementById('editTipoFuncionario').value = funcionario.tipo;
+            document.getElementById('editPerfilFuncionario').value = funcionario.perfil_id || '';
             document.getElementById('editSenhaFuncionario').value = '';
             
             document.getElementById('modalEditarFuncionario').style.display = 'flex';
@@ -312,11 +340,17 @@
         document.getElementById('formEditarFuncionario').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const perfilId = document.getElementById('editPerfilFuncionario').value;
+            if (!perfilId) {
+                showAlert('Por favor, selecione um perfil');
+                return;
+            }
+            
             const id = document.getElementById('editFuncionarioId').value;
             const dados = {
                 nome: document.getElementById('editNomeFuncionario').value,
                 email: document.getElementById('editEmailFuncionario').value,
-                tipo: document.getElementById('editTipoFuncionario').value
+                perfil_id: parseInt(perfilId)
             };
             
             const novaSenha = document.getElementById('editSenhaFuncionario').value;

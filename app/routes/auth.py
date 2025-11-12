@@ -33,10 +33,35 @@ def login():
     
     registrar_login(usuario.id, sucesso=True)
     
+    permissoes = {}
+    if usuario.perfil:
+        permissoes = usuario.perfil.permissoes or {}
+    elif usuario.tipo == 'admin':
+        permissoes = {
+            'gerenciar_usuarios': True,
+            'gerenciar_perfis': True,
+            'gerenciar_fornecedores': True,
+            'gerenciar_veiculos': True,
+            'gerenciar_motoristas': True,
+            'criar_solicitacao': True,
+            'aprovar_solicitacao': True,
+            'rejeitar_solicitacao': True,
+            'criar_lote': True,
+            'aprovar_lote': True,
+            'processar_entrada': True,
+            'visualizar_auditoria': True,
+            'exportar_relatorios': True,
+            'definir_limites': True,
+            'autorizar_descarte': True
+        }
+    
+    usuario_dict = usuario.to_dict()
+    usuario_dict['permissoes'] = permissoes
+    
     return jsonify({
         'token': access_token,
         'refresh_token': refresh_token,
-        'usuario': usuario.to_dict()
+        'usuario': usuario_dict
     }), 200
 
 @bp.route('/refresh', methods=['POST'])
@@ -63,4 +88,29 @@ def get_current_user():
     if not usuario:
         return jsonify({'erro': 'Usuário não encontrado'}), 404
     
-    return jsonify(usuario.to_dict()), 200
+    permissoes = {}
+    if usuario.perfil:
+        permissoes = usuario.perfil.permissoes or {}
+    elif usuario.tipo == 'admin':
+        permissoes = {
+            'gerenciar_usuarios': True,
+            'gerenciar_perfis': True,
+            'gerenciar_fornecedores': True,
+            'gerenciar_veiculos': True,
+            'gerenciar_motoristas': True,
+            'criar_solicitacao': True,
+            'aprovar_solicitacao': True,
+            'rejeitar_solicitacao': True,
+            'criar_lote': True,
+            'aprovar_lote': True,
+            'processar_entrada': True,
+            'visualizar_auditoria': True,
+            'exportar_relatorios': True,
+            'definir_limites': True,
+            'autorizar_descarte': True
+        }
+    
+    usuario_dict = usuario.to_dict()
+    usuario_dict['permissoes'] = permissoes
+    
+    return jsonify(usuario_dict), 200

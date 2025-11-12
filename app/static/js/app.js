@@ -212,7 +212,100 @@ async function verificarAuth() {
     }
 
     initWebSocket();
+    aplicarControleAcesso(user);
     return user;
+}
+
+function hasPermission(permission) {
+    if (!currentUser || !currentUser.permissoes) {
+        return false;
+    }
+    return currentUser.permissoes[permission] === true || currentUser.tipo === 'admin';
+}
+
+function aplicarControleAcesso(user) {
+    if (!user) return;
+    
+    if (user.tipo === 'admin' || user.perfil_nome === 'Administrador') {
+        return;
+    }
+    
+    const controlePorPerfil = {
+        'Comprador (PJ)': {
+            paginasPermitidas: ['/dashboard.html', '/fornecedores.html', '/solicitacoes.html', '/notificacoes.html'],
+            modulosVisiveis: ['fornecedores', 'solicitacoes']
+        },
+        'Conferente / Estoque': {
+            paginasPermitidas: ['/dashboard.html', '/lotes.html', '/entradas.html', '/notificacoes.html'],
+            modulosVisiveis: ['lotes', 'entradas']
+        },
+        'Separação': {
+            paginasPermitidas: ['/dashboard.html', '/lotes.html', '/notificacoes.html'],
+            modulosVisiveis: ['lotes']
+        },
+        'Motorista': {
+            paginasPermitidas: ['/dashboard.html', '/solicitacoes.html', '/notificacoes.html'],
+            modulosVisiveis: ['solicitacoes']
+        },
+        'Financeiro': {
+            paginasPermitidas: ['/dashboard.html', '/fornecedores.html', '/solicitacoes.html', '/notificacoes.html'],
+            modulosVisiveis: ['fornecedores', 'solicitacoes']
+        },
+        'Auditoria / BI': {
+            paginasPermitidas: ['/dashboard.html', '/consulta.html', '/notificacoes.html'],
+            modulosVisiveis: ['consulta']
+        }
+    };
+    
+    const controle = controlePorPerfil[user.perfil_nome];
+    
+    if (!controle) {
+        console.warn('Perfil não mapeado:', user.perfil_nome);
+        const paginaAtual = window.location.pathname;
+        if (paginaAtual !== '/dashboard.html' && paginaAtual !== '/' && paginaAtual !== '/notificacoes.html') {
+            showAlert('Seu perfil não possui permissões configuradas. Redirecionando para o dashboard.');
+            window.location.href = '/dashboard.html';
+        }
+        return;
+    }
+    
+    const paginaAtual = window.location.pathname;
+    if (!controle.paginasPermitidas.includes(paginaAtual) && paginaAtual !== '/' && paginaAtual !== '/index.html') {
+        showAlert('Você não tem permissão para acessar esta página.');
+        window.location.href = controle.paginasPermitidas[0];
+        return;
+    }
+    
+    ocultarModulosNaoPermitidos(controle.modulosVisiveis);
+    ocultarItensMenuNaoPermitidos(controle.paginasPermitidas);
+}
+
+function ocultarModulosNaoPermitidos(modulosVisiveis) {
+    const todosModulos = document.querySelectorAll('.card[onclick*="window.location"]');
+    todosModulos.forEach(modulo => {
+        const onclick = modulo.getAttribute('onclick');
+        let visivel = false;
+        
+        modulosVisiveis.forEach(moduloPermitido => {
+            if (onclick && onclick.includes(moduloPermitido)) {
+                visivel = true;
+            }
+        });
+        
+        if (!visivel) {
+            modulo.style.display = 'none';
+        }
+    });
+}
+
+function ocultarItensMenuNaoPermitidos(paginasPermitidas) {
+    const itensMenu = document.querySelectorAll('.bottom-nav-item');
+    itensMenu.forEach(item => {
+        const href = item.getAttribute('href');
+        if (href && !paginasPermitidas.includes(href) && href !== '/dashboard.html') {
+            item.style.display = 'none';
+        }
+    });
 }
 
 if ('serviceWorker' in navigator) {
