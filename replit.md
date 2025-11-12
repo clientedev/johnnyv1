@@ -354,5 +354,108 @@ Servidor roda em `http://0.0.0.0:5000`
 
 ---
 
-**Última atualização:** 10/11/2025
-**Status:** ✅ Sistema completo com módulo de lotes por classificação IA funcionando
+## 🔐 Sistema RBAC Completo (12/11/2025)
+
+### ✅ Implementado - Módulo de Cadastros Base + RBAC
+
+#### Novos Modelos
+- **Perfil (Role)**: Sistema de perfis com permissões JSON configuráveis
+- **Veiculo**: Cadastro de veículos (placa, renavam, tipo, capacidade, marca, modelo)
+- **Motorista**: Cadastro de motoristas vinculados a veículos (CPF, CNH, telefone)
+- **AuditoriaLog**: Registro completo de todas ações críticas (IP, user agent, timestamp)
+
+#### 7 Perfis Padrão do Sistema
+1. **Administrador** - Acesso total, gerencia usuários, perfis, aprovações
+2. **Comprador (PJ)** - Cria solicitações, cadastra fornecedores, registra preços
+3. **Conferente / Estoque** - Valida chegadas, pesa, confere qualidade, cria lotes
+4. **Separação** - Separa lotes, cria sublotes, solicita descarte
+5. **Motorista** - Visualiza rotas, registra coletas, envia comprovantes
+6. **Financeiro** - Emite notas, controla pagamentos, conciliação
+7. **Auditoria / BI** - Acesso somente leitura a painéis e trilhas
+
+#### Middleware RBAC
+- `@admin_required` - Somente administradores
+- `@permission_required('permissao')` - Verifica permissão específica
+- `@perfil_required('Perfil1', 'Perfil2')` - Verifica perfis permitidos
+- `@somente_leitura_ou_admin` - Bloqueia mutações para perfil Auditoria/BI
+
+#### Autenticação JWT Avançada
+- ✅ Access Token (24 horas de validade)
+- ✅ Refresh Token (30 dias de validade)
+- ✅ Endpoint `/api/auth/refresh` para renovar tokens
+- ✅ Logs de auditoria para login (sucesso/falha)
+
+#### Novas Rotas API
+
+##### Perfis
+- `GET /api/perfis` - Listar perfis ativos
+- `GET /api/perfis/<id>` - Obter perfil específico
+- `POST /api/perfis` - Criar perfil [ADMIN]
+- `PUT /api/perfis/<id>` - Atualizar perfil [ADMIN]
+- `DELETE /api/perfis/<id>` - Deletar perfil [ADMIN]
+
+##### Veículos
+- `GET /api/veiculos` - Listar veículos ativos
+- `GET /api/veiculos/<id>` - Obter veículo
+- `GET /api/veiculos/placa/<placa>` - Buscar por placa
+- `POST /api/veiculos` - Criar veículo [PERMISSÃO: gerenciar_veiculos]
+- `PUT /api/veiculos/<id>` - Atualizar veículo [PERMISSÃO: gerenciar_veiculos]
+- `DELETE /api/veiculos/<id>` - Deletar veículo [ADMIN]
+
+##### Motoristas
+- `GET /api/motoristas` - Listar motoristas ativos
+- `GET /api/motoristas/<id>` - Obter motorista
+- `GET /api/motoristas/cpf/<cpf>` - Buscar por CPF
+- `POST /api/motoristas` - Criar motorista [PERMISSÃO: gerenciar_motoristas]
+- `PUT /api/motoristas/<id>` - Atualizar motorista [PERMISSÃO: gerenciar_motoristas]
+- `DELETE /api/motoristas/<id>` - Deletar motorista [ADMIN]
+
+##### Auditoria
+- `GET /api/auditoria` - Listar logs (filtros: usuario, acao, entidade, datas) [PERMISSÃO: visualizar_auditoria]
+- `GET /api/auditoria/usuario/<id>` - Logs por usuário [PERMISSÃO: visualizar_auditoria]
+- `GET /api/auditoria/entidade/<tipo>/<id>` - Logs por entidade [PERMISSÃO: visualizar_auditoria]
+- `GET /api/auditoria/estatisticas` - Estatísticas de auditoria [PERMISSÃO: visualizar_auditoria]
+
+#### Sistema de Auditoria
+Todas as ações críticas são registradas automaticamente:
+- Criação, atualização e exclusão de entidades
+- Login (sucesso e falha)
+- Captura de IP e User Agent
+- Detalhes JSON da ação
+- Timestamp preciso
+
+#### Utilidades
+- `app/utils/auditoria.py` - Helpers para registro de auditoria
+  - `registrar_auditoria(usuario_id, acao, entidade_tipo, detalhes)`
+  - `registrar_login(usuario_id, sucesso)`
+  - `registrar_criacao/atualizacao/exclusao(...)`
+
+#### Migração de Banco
+- `migrations/007_add_rbac_system.sql` - Script completo de migração
+- Criação de 4 novas tabelas (perfis, veiculos, motoristas, auditoria_logs)
+- Índices otimizados para auditoria
+- Atualização da tabela usuarios (perfil_id, criado_por)
+- Seed automático com os 7 perfis padrão
+
+#### Modelo Usuario Atualizado
+```python
+class Usuario:
+    id, nome, email, senha_hash
+    tipo (admin/funcionario) - mantido para compatibilidade
+    perfil_id - FK para Perfil (novo sistema RBAC)
+    criado_por - FK para Usuario que criou
+    ativo, data_cadastro
+    
+    def has_permission(permission: str) -> bool
+```
+
+### Compatibilidade
+O sistema mantém compatibilidade com o código antigo:
+- Campo `tipo` ainda existe e funciona
+- Administradores sempre têm todas as permissões
+- Perfis adicionam granularidade sem quebrar funcionalidade existente
+
+---
+
+**Última atualização:** 12/11/2025
+**Status:** ✅ Sistema completo com RBAC + módulo de cadastros base + autenticação JWT avançada

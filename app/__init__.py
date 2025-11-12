@@ -18,6 +18,7 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SESSION_SECRET', 'dev-secret-key')
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', os.getenv('SESSION_SECRET', 'jwt-secret-key'))
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
     
     database_url = os.getenv('DATABASE_URL')
     if database_url and database_url.startswith('postgres://'):
@@ -65,7 +66,8 @@ def create_app():
     with app.app_context():
         from app.routes import (auth, usuarios, notificacoes, vendedores,
                                 fornecedores, tipos_lote, dashboard, solicitacao_lotes,
-                                fornecedor_tipo_lote_classificacoes, fornecedor_tipo_lote_precos)
+                                fornecedor_tipo_lote_classificacoes, fornecedor_tipo_lote_precos,
+                                perfis, veiculos, motoristas, auditoria)
         from app.routes import solicitacoes_new as solicitacoes
         from app.routes import lotes_new as lotes
         from app.routes import entradas_new as entradas
@@ -83,6 +85,10 @@ def create_app():
         app.register_blueprint(solicitacao_lotes.bp)
         app.register_blueprint(fornecedor_tipo_lote_classificacoes.bp)
         app.register_blueprint(fornecedor_tipo_lote_precos.bp)
+        app.register_blueprint(perfis.bp)
+        app.register_blueprint(veiculos.bp)
+        app.register_blueprint(motoristas.bp)
+        app.register_blueprint(auditoria.bp)
         
         db.create_all()
         

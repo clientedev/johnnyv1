@@ -5,6 +5,36 @@ from typing import Any
 
 db = SQLAlchemy()
 
+class Perfil(db.Model):  # type: ignore
+    __tablename__ = 'perfis'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(50), unique=True, nullable=False)
+    descricao = db.Column(db.Text)
+    permissoes = db.Column(db.JSON, nullable=False, default=dict)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    usuarios = db.relationship('Usuario', backref='perfil', lazy=True)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'descricao': self.descricao,
+            'permissoes': self.permissoes,
+            'ativo': self.ativo,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+    
+    def has_permission(self, permission: str) -> bool:
+        return self.permissoes.get(permission, False) if self.permissoes else False
+
 class Usuario(db.Model):  # type: ignore
     __tablename__ = 'usuarios'
     
@@ -13,12 +43,16 @@ class Usuario(db.Model):  # type: ignore
     email = db.Column(db.String(120), unique=True, nullable=False)
     senha_hash = db.Column(db.String(255), nullable=False)
     tipo = db.Column(db.String(20), nullable=False)
+    perfil_id = db.Column(db.Integer, db.ForeignKey('perfis.id'), nullable=True)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
+    criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
     solicitacoes = db.relationship('Solicitacao', backref='funcionario', lazy=True, cascade='all, delete-orphan', foreign_keys='Solicitacao.funcionario_id')
     notificacoes = db.relationship('Notificacao', backref='usuario', lazy=True, cascade='all, delete-orphan')
     entradas_processadas = db.relationship('EntradaEstoque', backref='admin', lazy=True, foreign_keys='EntradaEstoque.admin_id')
+    criador = db.relationship('Usuario', remote_side=[id], backref='usuarios_criados')
+    logs_auditoria = db.relationship('AuditoriaLog', backref='usuario', lazy=True, foreign_keys='AuditoriaLog.usuario_id')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -29,9 +63,18 @@ class Usuario(db.Model):  # type: ignore
             'nome': self.nome,
             'email': self.email,
             'tipo': self.tipo,
+            'perfil_id': self.perfil_id,
+            'perfil_nome': self.perfil.nome if self.perfil else None,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
-            'ativo': self.ativo
+            'ativo': self.ativo,
+            'criado_por': self.criado_por,
+            'criador_nome': self.criador.nome if self.criador else None
         }
+    
+    def has_permission(self, permission: str) -> bool:
+        if self.perfil:
+            return self.perfil.has_permission(permission)
+        return self.tipo == 'admin'
 
 class Vendedor(db.Model):  # type: ignore
     __tablename__ = 'vendedores'
@@ -640,4 +683,112 @@ class Configuracao(db.Model):  # type: ignore
             'descricao': self.descricao,
             'tipo': self.tipo,
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
+class Veiculo(db.Model):  # type: ignore
+    __tablename__ = 'veiculos'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    placa = db.Column(db.String(10), unique=True, nullable=False)
+    renavam = db.Column(db.String(20), unique=True)
+    tipo = db.Column(db.String(50), nullable=False)
+    capacidade = db.Column(db.Float)
+    marca = db.Column(db.String(50))
+    modelo = db.Column(db.String(50))
+    ano = db.Column(db.Integer)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    
+    motoristas = db.relationship('Motorista', backref='veiculo', lazy=True)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'placa': self.placa,
+            'renavam': self.renavam,
+            'tipo': self.tipo,
+            'capacidade': self.capacidade,
+            'marca': self.marca,
+            'modelo': self.modelo,
+            'ano': self.ano,
+            'ativo': self.ativo,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None,
+            'criado_por': self.criado_por
+        }
+
+class Motorista(db.Model):  # type: ignore
+    __tablename__ = 'motoristas'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    cpf = db.Column(db.String(14), unique=True, nullable=False)
+    telefone = db.Column(db.String(20))
+    email = db.Column(db.String(120))
+    cnh = db.Column(db.String(20), unique=True)
+    categoria_cnh = db.Column(db.String(5))
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculos.id'), nullable=True)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'cpf': self.cpf,
+            'telefone': self.telefone,
+            'email': self.email,
+            'cnh': self.cnh,
+            'categoria_cnh': self.categoria_cnh,
+            'veiculo_id': self.veiculo_id,
+            'veiculo_placa': self.veiculo.placa if self.veiculo else None,
+            'ativo': self.ativo,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None,
+            'criado_por': self.criado_por
+        }
+
+class AuditoriaLog(db.Model):  # type: ignore
+    __tablename__ = 'auditoria_logs'
+    __table_args__ = (
+        db.Index('idx_usuario_data', 'usuario_id', 'data_acao'),
+        db.Index('idx_entidade_acao', 'entidade_tipo', 'acao'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    acao = db.Column(db.String(50), nullable=False)
+    entidade_tipo = db.Column(db.String(50), nullable=False)
+    entidade_id = db.Column(db.Integer)
+    detalhes = db.Column(db.JSON)
+    ip_address = db.Column(db.String(50))
+    user_agent = db.Column(db.String(500))
+    data_acao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'usuario_id': self.usuario_id,
+            'usuario_nome': self.usuario.nome if self.usuario else 'Sistema',
+            'usuario_email': self.usuario.email if self.usuario else None,
+            'acao': self.acao,
+            'entidade_tipo': self.entidade_tipo,
+            'entidade_id': self.entidade_id,
+            'detalhes': self.detalhes,
+            'ip_address': self.ip_address,
+            'user_agent': self.user_agent,
+            'data_acao': self.data_acao.isoformat() if self.data_acao else None
         }
