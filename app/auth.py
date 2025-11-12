@@ -1,8 +1,9 @@
 import bcrypt
 from functools import wraps
 from flask import jsonify, request
-from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
 from app.models import db, Usuario, Perfil
+from app.rbac_config import check_rota_api_permitida
 
 def hash_senha(senha):
     return bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -77,6 +78,78 @@ def somente_leitura_ou_admin(fn):
         if usuario.perfil and usuario.perfil.nome == PERFIL_AUDITORIA:
             if request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
                 return jsonify({'erro': 'Perfil Auditoria / BI possui apenas acesso de leitura'}), 403
+        
+        return fn(*args, **kwargs)
+    return wrapper
+
+def get_user_jwt_claims(usuario):
+    """
+    Gera claims adicionais do JWT para incluir perfil e permissões do usuário
+    """
+    perfil_nome = None
+    permissoes = {}
+    permissoes_lista = []
+    
+    if usuario.perfil:
+        perfil_nome = usuario.perfil.nome
+        permissoes = usuario.perfil.permissoes or {}
+    elif usuario.tipo == 'admin':
+        perfil_nome = 'Administrador'
+        permissoes = {
+            'gerenciar_usuarios': True,
+            'gerenciar_perfis': True,
+            'gerenciar_fornecedores': True,
+            'gerenciar_veiculos': True,
+            'gerenciar_motoristas': True,
+            'criar_solicitacao': True,
+            'aprovar_solicitacao': True,
+            'rejeitar_solicitacao': True,
+            'criar_lote': True,
+            'aprovar_lote': True,
+            'processar_entrada': True,
+            'visualizar_auditoria': True,
+            'exportar_relatorios': True,
+            'definir_limites': True,
+            'autorizar_descarte': True
+        }
+    
+    permissoes_lista = [k for k, v in permissoes.items() if v]
+    
+    return {
+        'perfil': perfil_nome,
+        'tipo': usuario.tipo,
+        'permissoes': permissoes_lista,
+        'nome': usuario.nome,
+        'email': usuario.email
+    }
+
+def rota_permitida_por_perfil(fn):
+    """
+    Decorator que valida se a rota é permitida para o perfil do usuário
+    """
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        usuario = get_current_user()
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não autenticado'}), 401
+        
+        if usuario.tipo == 'admin':
+            return fn(*args, **kwargs)
+        
+        claims = get_jwt()
+        perfil_nome = claims.get('perfil')
+        
+        if not perfil_nome:
+            return jsonify({'erro': 'Perfil não definido no token'}), 403
+        
+        rota_atual = request.path
+        
+        if not check_rota_api_permitida(perfil_nome, rota_atual):
+            return jsonify({
+                'erro': 'Acesso negado',
+                'mensagem': f'O perfil {perfil_nome} não tem permissão para acessar esta rota'
+            }), 403
         
         return fn(*args, **kwargs)
     return wrapper

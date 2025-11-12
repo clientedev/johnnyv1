@@ -53,7 +53,9 @@
             try {
                 const user = await login(email, senha);
                 
-                if (user.tipo === 'admin') {
+                if (user.tela_inicial) {
+                    window.location.href = user.tela_inicial;
+                } else if (user.tipo === 'admin') {
                     window.location.href = '/dashboard.html';
                 } else {
                     window.location.href = '/funcionario.html';
@@ -66,7 +68,9 @@
         if (getToken()) {
             getCurrentUser().then(user => {
                 if (user) {
-                    if (user.tipo === 'admin') {
+                    if (user.tela_inicial) {
+                        window.location.href = user.tela_inicial;
+                    } else if (user.tipo === 'admin') {
                         window.location.href = '/dashboard.html';
                     } else {
                         window.location.href = '/funcionario.html';

@@ -1,0 +1,262 @@
+let currentUserData = null;
+let currentMenus = [];
+let paginasPermitidas = [];
+let rbacCarregado = false;
+
+async function carregarUsuarioERBAC() {
+    const token = getToken();
+    
+    if (!token) {
+        if (window.location.pathname !== '/' && !window.location.pathname.includes('index.html') && window.location.pathname !== '/acesso-negado.html') {
+            window.location.href = '/';
+        }
+        return null;
+    }
+
+    try {
+        const [userResponse, menusResponse] = await Promise.all([
+            fetchAPI('/auth/me'),
+            fetchAPI('/auth/menus')
+        ]);
+
+        if (!userResponse || !userResponse.ok) {
+            removeToken();
+            window.location.href = '/';
+            return null;
+        }
+
+        currentUserData = await userResponse.json();
+        
+        if (menusResponse && menusResponse.ok) {
+            const menusData = await menusResponse.json();
+            currentMenus = menusData.menus || [];
+            paginasPermitidas = menusData.paginas_permitidas || [];
+        } else {
+            currentMenus = [];
+            paginasPermitidas = [];
+        }
+
+        rbacCarregado = true;
+        return currentUserData;
+    } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
+        currentMenus = [];
+        paginasPermitidas = [];
+        rbacCarregado = true;
+        return currentUserData;
+    }
+}
+
+function verificarPermissao(permissao) {
+    if (!currentUserData) {
+        return false;
+    }
+
+    if (currentUserData.tipo === 'admin') {
+        return true;
+    }
+
+    return currentUserData.permissoes && currentUserData.permissoes.includes(permissao);
+}
+
+function verificarPerfil(...perfisPermitidos) {
+    if (!currentUserData) {
+        return false;
+    }
+
+    if (currentUserData.tipo === 'admin') {
+        return true;
+    }
+
+    return perfisPermitidos.includes(currentUserData.perfil);
+}
+
+function renderizarMenus(containerId = 'navMenu') {
+    const container = document.getElementById(containerId);
+    
+    if (!container) {
+        return;
+    }
+
+    if (!currentMenus || currentMenus.length === 0) {
+        console.warn('Nenhum menu disponível para renderizar');
+        return;
+    }
+
+    container.innerHTML = '';
+
+    currentMenus.forEach(menu => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = menu.url || '#';
+        a.textContent = menu.nome || 'Menu';
+        a.dataset.menuId = menu.id || '';
+
+        if (menu.url && (window.location.pathname === menu.url || window.location.pathname.includes(menu.url))) {
+            a.classList.add('active');
+        }
+
+        li.appendChild(a);
+        container.appendChild(li);
+    });
+}
+
+function renderizarMenusMobile(containerId = 'navMenuMobile') {
+    const container = document.getElementById(containerId);
+    
+    if (!container) {
+        return;
+    }
+
+    if (!currentMenus || currentMenus.length === 0) {
+        console.warn('Nenhum menu disponível para renderizar (mobile)');
+        return;
+    }
+
+    container.innerHTML = '';
+
+    currentMenus.forEach(menu => {
+        const a = document.createElement('a');
+        a.href = menu.url || '#';
+        a.className = 'mobile-nav-item';
+        
+        if (menu.url && (window.location.pathname === menu.url || window.location.pathname.includes(menu.url))) {
+            a.classList.add('active');
+        }
+
+        const icon = document.createElement('span');
+        icon.className = 'material-icons';
+        icon.textContent = menu.icone || 'circle';
+
+        const span = document.createElement('span');
+        span.textContent = menu.nome || 'Menu';
+
+        a.appendChild(icon);
+        a.appendChild(span);
+        container.appendChild(a);
+    });
+}
+
+function ocultarElementosPorPermissao() {
+    document.querySelectorAll('[data-permission]').forEach(elemento => {
+        const permissaoNecessaria = elemento.dataset.permission;
+        if (!verificarPermissao(permissaoNecessaria)) {
+            elemento.style.display = 'none';
+        }
+    });
+}
+
+function ocultarElementosPorPerfil() {
+    document.querySelectorAll('[data-perfil]').forEach(elemento => {
+        const perfisPermitidos = elemento.dataset.perfil.split(',').map(p => p.trim());
+        if (!verificarPerfil(...perfisPermitidos)) {
+            elemento.style.display = 'none';
+        }
+    });
+}
+
+function verificarAcessoPagina() {
+    const paginaAtual = window.location.pathname;
+
+    if (paginaAtual === '/' || paginaAtual === '/index.html' || paginaAtual === '/acesso-negado.html') {
+        return true;
+    }
+
+    if (!rbacCarregado) {
+        console.warn('RBAC ainda não foi carregado, aguardando...');
+        return false;
+    }
+
+    if (!currentUserData) {
+        console.warn('Usuário não autenticado, redirecionando para login');
+        window.location.href = '/';
+        return false;
+    }
+
+    if (currentUserData.tipo === 'admin') {
+        return true;
+    }
+
+    if (!paginasPermitidas || paginasPermitidas.length === 0) {
+        console.error('ERRO CRÍTICO: Nenhuma página permitida configurada para o perfil:', currentUserData.perfil);
+        console.error('Usuário:', currentUserData);
+        console.error('Negando acesso por segurança até que as permissões sejam carregadas');
+        window.location.href = '/acesso-negado.html';
+        return false;
+    }
+
+    const paginaPermitida = paginasPermitidas.some(pagPermitida => {
+        return paginaAtual === pagPermitida || paginaAtual.endsWith(pagPermitida);
+    });
+    
+    if (!paginaPermitida) {
+        console.warn('⛔ Acesso negado à página:', paginaAtual);
+        console.warn('Páginas permitidas:', paginasPermitidas);
+        window.location.href = '/acesso-negado.html';
+        return false;
+    }
+
+    console.log('✅ Acesso permitido à página:', paginaAtual);
+    return true;
+}
+
+function redirecionarParaTelaInicial() {
+    if (currentUserData && currentUserData.tela_inicial) {
+        window.location.href = currentUserData.tela_inicial;
+    } else {
+        window.location.href = '/dashboard.html';
+    }
+}
+
+async function inicializarRBAC() {
+    try {
+        await carregarUsuarioERBAC();
+        
+        if (!rbacCarregado) {
+            console.error('RBAC não pôde ser carregado');
+            return;
+        }
+        
+        if (currentUserData) {
+            renderizarMenus();
+            renderizarMenusMobile();
+            ocultarElementosPorPermissao();
+            ocultarElementosPorPerfil();
+            
+            const acessoPermitido = verificarAcessoPagina();
+            
+            if (!acessoPermitido) {
+                console.warn('Acesso não permitido, verificação bloqueada ou redirecionamento em andamento');
+                return;
+            }
+
+            const userNameElements = document.querySelectorAll('[data-user-name]');
+            if (userNameElements && userNameElements.length > 0) {
+                userNameElements.forEach(el => {
+                    if (el) {
+                        el.textContent = currentUserData.nome || currentUserData.email || '';
+                    }
+                });
+            }
+
+            const userProfileElements = document.querySelectorAll('[data-user-profile]');
+            if (userProfileElements && userProfileElements.length > 0) {
+                userProfileElements.forEach(el => {
+                    if (el) {
+                        el.textContent = currentUserData.perfil || 'Sem perfil';
+                    }
+                });
+            }
+        } else {
+            console.warn('Usuário não está autenticado');
+        }
+    } catch (error) {
+        console.error('Erro ao inicializar RBAC:', error);
+    }
+}
+
+if (typeof window !== 'undefined') {
+    if (window.location.pathname !== '/' && !window.location.pathname.includes('index.html')) {
+        document.addEventListener('DOMContentLoaded', inicializarRBAC);
+    }
+}
