@@ -93,3 +93,4 @@ python-dotenv
 python-socketio
 sqlalchemy
 xlrd
+requests
