@@ -1,24 +1,56 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Solicitacao, ItemSolicitacao, Fornecedor, TipoLote, FornecedorTipoLotePreco, db, Usuario
+from app.models import Solicitacao, ItemSolicitacao, Fornecedor, TipoLote, FornecedorTipoLotePreco, FornecedorTipoLoteClassificacao, db, Usuario
 from app.auth import admin_required
 from datetime import datetime
 import os
 
 bp = Blueprint('solicitacoes', __name__, url_prefix='/api/solicitacoes')
 
-def calcular_valor_item(fornecedor_id, tipo_lote_id, estrelas, peso_kg):
-    """Calcula o valor de um item baseado no preço configurado"""
+def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, estrelas_from_frontend, peso_kg):
+    """Calcula o valor de um item baseado no preço configurado
+    
+    Args:
+        fornecedor_id: ID do fornecedor
+        tipo_lote_id: ID do tipo de lote
+        classificacao: Classificação do item (leve/medio/pesado)
+        estrelas_from_frontend: Estrelas sugeridas pelo frontend (fallback)
+        peso_kg: Peso em kg
+    
+    Returns:
+        tuple: (valor_calculado, preco_por_kg, estrelas_usadas)
+    """
+    # Primeiro tenta usar a configuração de classificação do fornecedor
+    estrelas_final = estrelas_from_frontend
+    
+    classificacao_config = FornecedorTipoLoteClassificacao.query.filter_by(
+        fornecedor_id=fornecedor_id,
+        tipo_lote_id=tipo_lote_id,
+        ativo=True
+    ).first()
+    
+    if classificacao_config and classificacao:
+        estrelas_final = classificacao_config.get_estrelas_por_classificacao(classificacao)
+        print(f"      ✅ Usando estrelas da configuração: {estrelas_final} (classificação: {classificacao})")
+    else:
+        print(f"      ⚠️ Usando estrelas do frontend: {estrelas_final}")
+    
+    # Busca o preço configurado
     preco = FornecedorTipoLotePreco.query.filter_by(
         fornecedor_id=fornecedor_id,
         tipo_lote_id=tipo_lote_id,
-        estrelas=estrelas
+        estrelas=estrelas_final,
+        ativo=True
     ).first()
     
     if not preco:
-        return 0.0
+        print(f"      ❌ Preço não encontrado para {estrelas_final} estrelas!")
+        return (0.0, 0.0, estrelas_final)
     
-    return preco.preco_por_kg * peso_kg
+    valor = preco.preco_por_kg * float(peso_kg)
+    print(f"      ✅ Preço encontrado: R$ {preco.preco_por_kg}/kg × {peso_kg}kg = R$ {valor:.2f}")
+    
+    return (valor, preco.preco_por_kg, estrelas_final)
 
 @bp.route('', methods=['GET'])
 @jwt_required()
@@ -107,35 +139,62 @@ def criar_solicitacao():
         db.session.add(solicitacao)
         db.session.flush()
         
+        print(f"\n{'='*60}")
+        print(f"🆕 CRIANDO SOLICITAÇÃO #{solicitacao.id}")
+        print(f"   Fornecedor: {fornecedor.nome}")
+        print(f"   Total de itens recebidos: {len(data['itens'])}")
+        print(f"{'='*60}")
+        
         for item_data in data['itens']:
+            print(f"\n📦 Item recebido do frontend:")
+            print(f"   {item_data}")
+            
             if not item_data.get('tipo_lote_id') or not item_data.get('peso_kg'):
+                print(f"   ⚠️ Item inválido - pulando")
                 continue
             
             tipo_lote = TipoLote.query.get(item_data['tipo_lote_id'])
             if not tipo_lote:
+                print(f"   ❌ Tipo de lote não encontrado")
                 continue
             
+            print(f"   ✅ Tipo de lote: {tipo_lote.nome}")
+            
+            classificacao = item_data.get('classificacao', 'medio')
             estrelas_final = item_data.get('estrelas_final', 3)
             if estrelas_final is None or not (1 <= estrelas_final <= 5):
                 estrelas_final = 3
             
-            valor = calcular_valor_item(
+            print(f"   📋 Classificação: {classificacao}")
+            print(f"   ⭐ Estrelas (frontend): {estrelas_final}")
+            print(f"   🔍 Calculando valor...")
+            
+            valor, preco_por_kg, estrelas_usadas = calcular_valor_item(
                 data['fornecedor_id'],
                 item_data['tipo_lote_id'],
+                classificacao,
                 estrelas_final,
                 item_data['peso_kg']
             )
             
+            print(f"   💰 Valor final: R$ {valor:.2f}")
+            print(f"   ⭐ Estrelas usadas: {estrelas_usadas}")
+            
             item = ItemSolicitacao(
                 solicitacao_id=solicitacao.id,
                 tipo_lote_id=item_data['tipo_lote_id'],
-                peso_kg=item_data['peso_kg'],
+                peso_kg=float(item_data['peso_kg']),
+                classificacao=classificacao,
                 estrelas_sugeridas_ia=item_data.get('estrelas_sugeridas_ia'),
-                estrelas_final=estrelas_final,
+                estrelas_final=estrelas_usadas,
                 valor_calculado=valor,
+                preco_por_kg_snapshot=preco_por_kg,
+                estrelas_snapshot=estrelas_usadas,
                 imagem_url=item_data.get('imagem_url', ''),
                 observacoes=item_data.get('observacoes', '')
             )
+            
+            print(f"   ✅ Item salvo: Valor=R$ {item.valor_calculado:.2f}, Classificação={item.classificacao}, Estrelas={item.estrelas_final}")
             
             db.session.add(item)
         
