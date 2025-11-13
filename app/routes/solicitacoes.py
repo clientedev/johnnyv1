@@ -169,28 +169,51 @@ def criar_solicitacao():
 @admin_required
 def aprovar_solicitacao(id):
     try:
+        print(f"\n{'='*60}")
+        print(f"🔄 INICIANDO APROVAÇÃO DA SOLICITAÇÃO #{id}")
+        print(f"{'='*60}")
+        
         solicitacao = Solicitacao.query.get(id)
         
         if not solicitacao:
+            print(f"❌ Solicitação #{id} não encontrada")
             return jsonify({'erro': 'Solicitação não encontrada'}), 404
         
+        print(f"✅ Solicitação encontrada: #{solicitacao.id}")
+        print(f"   Status atual: {solicitacao.status}")
+        print(f"   Fornecedor: {solicitacao.fornecedor.nome if solicitacao.fornecedor else 'N/A'}")
+        
         if solicitacao.status != 'pendente':
-            return jsonify({'erro': 'Solicitação já foi processada'}), 400
+            print(f"❌ Status inválido para aprovação: {solicitacao.status}")
+            return jsonify({'erro': f'Solicitação já foi processada (status: {solicitacao.status})'}), 400
         
         if not solicitacao.itens or len(solicitacao.itens) == 0:
+            print(f"❌ Solicitação sem itens")
             return jsonify({'erro': 'Solicitação não possui itens'}), 400
         
+        print(f"✅ Solicitação possui {len(solicitacao.itens)} itens")
+        
+        # Verificar OC existente ANTES de começar a transação
         oc_existente = OrdemCompra.query.filter_by(solicitacao_id=id).first()
         if oc_existente:
-            return jsonify({'erro': 'Já existe uma ordem de compra para esta solicitação'}), 400
+            print(f"⚠️ Já existe OC #{oc_existente.id} para esta solicitação")
+            return jsonify({
+                'erro': f'Já existe uma ordem de compra (#{oc_existente.id}) para esta solicitação',
+                'oc_id': oc_existente.id
+            }), 400
         
         usuario_id = get_jwt_identity()
         data = request.get_json() or {}
         
+        print(f"\n📝 ETAPA 1: Atualizando status da solicitação...")
+        # ETAPA 1: Aprovar a solicitação
         solicitacao.status = 'aprovada'
         solicitacao.data_confirmacao = datetime.utcnow()
         solicitacao.admin_id = usuario_id
+        print(f"✅ Status atualizado para: aprovada")
         
+        print(f"\n📦 ETAPA 2: Criando lotes...")
+        # ETAPA 2: Criar lotes
         lotes_por_tipo = {}
         for item in solicitacao.itens:
             chave = (item.tipo_lote_id, item.estrelas_final)
@@ -198,6 +221,7 @@ def aprovar_solicitacao(id):
                 lotes_por_tipo[chave] = []
             lotes_por_tipo[chave].append(item)
         
+        lotes_criados = []
         for (tipo_lote_id, estrelas), itens in lotes_por_tipo.items():
             peso_total = sum(item.peso_kg for item in itens)
             valor_total = sum((item.valor_calculado or 0.0) for item in itens)
@@ -217,10 +241,18 @@ def aprovar_solicitacao(id):
             db.session.add(lote)
             db.session.flush()
             
+            print(f"   ✅ Lote criado: {lote.numero_lote} (Tipo: {tipo_lote_id}, Estrelas: {estrelas})")
+            lotes_criados.append(lote.numero_lote)
+            
             for item in itens:
                 item.lote_id = lote.id
         
+        print(f"✅ {len(lotes_criados)} lote(s) criado(s): {', '.join(lotes_criados)}")
+        
+        print(f"\n💰 ETAPA 3: Criando Ordem de Compra...")
+        # ETAPA 3: Criar OC
         valor_total_oc = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
+        print(f"   Valor total calculado: R$ {valor_total_oc:.2f}")
         
         oc = OrdemCompra(
             solicitacao_id=id,
@@ -233,6 +265,12 @@ def aprovar_solicitacao(id):
         db.session.add(oc)
         db.session.flush()
         
+        print(f"✅ OC #{oc.id} criada com sucesso")
+        print(f"   Status: {oc.status}")
+        print(f"   Valor: R$ {oc.valor_total:.2f}")
+        
+        print(f"\n📋 ETAPA 4: Registrando auditoria...")
+        # ETAPA 4: Registrar auditoria
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         gps = data.get('gps')
         dispositivo = request.headers.get('User-Agent', '')
@@ -248,13 +286,17 @@ def aprovar_solicitacao(id):
             gps=gps,
             dispositivo=dispositivo
         )
+        print(f"✅ Auditoria registrada")
         
+        print(f"\n🔔 ETAPA 5: Criando notificações...")
+        # ETAPA 5: Criar notificações
         notificacao_funcionario = Notificacao(
             usuario_id=solicitacao.funcionario_id,
             titulo='Solicitação Aprovada',
             mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada, os lotes foram criados e a Ordem de Compra #{oc.id} foi gerada automaticamente.'
         )
         db.session.add(notificacao_funcionario)
+        print(f"   ✅ Notificação para funcionário criada")
         
         usuarios_financeiro = Usuario.query.join(Perfil).filter(
             db.or_(
@@ -274,23 +316,46 @@ def aprovar_solicitacao(id):
                 db.session.add(notificacao_financeiro)
                 usuarios_ids_notificados.add(usuario_fin.id)
         
-        db.session.commit()
+        print(f"   ✅ {len(usuarios_ids_notificados)} notificações para financeiro/admin criadas")
         
+        print(f"\n💾 ETAPA 6: Salvando no banco de dados...")
+        # ETAPA 6: Commit final
+        db.session.commit()
+        print(f"✅ Todas as alterações salvas com sucesso!")
+        
+        print(f"\n📡 ETAPA 7: Enviando notificações WebSocket...")
+        # ETAPA 7: Emitir eventos WebSocket
         socketio.emit('nova_notificacao', {'tipo': 'solicitacao_aprovada', 'solicitacao_id': id}, room='funcionarios')
         socketio.emit('nova_notificacao', {'tipo': 'nova_oc', 'oc_id': oc.id}, room='admins')
+        print(f"✅ Notificações WebSocket enviadas")
+        
+        print(f"\n{'='*60}")
+        print(f"🎉 APROVAÇÃO CONCLUÍDA COM SUCESSO!")
+        print(f"{'='*60}")
+        print(f"   Solicitação: #{solicitacao.id} (aprovada)")
+        print(f"   Lotes criados: {len(lotes_criados)}")
+        print(f"   OC criada: #{oc.id} (em_analise)")
+        print(f"   Valor total: R$ {oc.valor_total:.2f}")
+        print(f"{'='*60}\n")
         
         return jsonify({
             'mensagem': 'Solicitação aprovada, lotes criados e Ordem de Compra gerada com sucesso',
             'solicitacao': solicitacao.to_dict(),
             'oc_id': oc.id,
-            'oc_status': oc.status
+            'oc_status': oc.status,
+            'lotes_criados': lotes_criados,
+            'valor_total': oc.valor_total
         }), 200
     
     except Exception as e:
         db.session.rollback()
-        print(f"ERRO ao aprovar solicitação #{id}: {str(e)}")
+        print(f"\n{'='*60}")
+        print(f"❌ ERRO AO APROVAR SOLICITAÇÃO #{id}")
+        print(f"{'='*60}")
+        print(f"Erro: {str(e)}")
         import traceback
         traceback.print_exc()
+        print(f"{'='*60}\n")
         return jsonify({'erro': f'Erro ao aprovar solicitação: {str(e)}'}), 500
 
 @bp.route('/<int:id>/rejeitar', methods=['POST'])
