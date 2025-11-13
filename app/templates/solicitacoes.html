@@ -914,7 +914,7 @@
 
         async function carregarOCs(status = '') {
             try {
-                let url = '/api/ordens-compra';
+                let url = '/ordens-compra';
                 if (status) url += `?status=${status}`;
                 
                 const response = await fetchAPI(url);
@@ -999,36 +999,7 @@
 
         async function abrirModalAprovarOC(ocId) {
             try {
-                ocAtual = null;
                 const response = await fetchAPI(`/api/ordens-compra/${ocId}`);
-                if (!response || !response.ok) {
-                    showAlert('Erro ao carregar ordem de compra', 'error');
-                    return;
-                }
-
-                ocAtual = await response.json();
-                
-                // Preencher dados do modal
-                document.getElementById('ocNumero').textContent = `#${ocAtual.id}`;
-                document.getElementById('ocFornecedor').textContent = ocAtual.fornecedor_nome || '-';
-                document.getElementById('ocValor').textContent = `R$ ${ocAtual.valor_total.toFixed(2)}`;
-                document.getElementById('ocStatus').textContent = ocAtual.status.toUpperCase();
-                document.getElementById('observacaoOC').value = '';
-
-                // Capturar GPS se disponível
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            gpsAtual = `${position.coords.latitude},${position.coords.longitude}`;
-                        },
-                        (error) => {
-                            console.warn('Erro ao obter localização:', error);
-                            gpsAtual = null;
-                        }
-                    );
-                }
-
-                const response await fetchAPI(`/api/ordens-compra/${ocId}`);
                 if (!response || !response.ok) {
                     showAlert('Erro ao carregar ordem de compra', 'error');
                     return;

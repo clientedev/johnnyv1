@@ -177,16 +177,10 @@ def aprovar_oc(oc_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
-        print(f"[DEBUG] Tentativa de aprovação OC #{oc_id} por usuário ID: {usuario_id}")
-        
         if not usuario:
-            print(f"[ERROR] Usuário {usuario_id} não encontrado")
             return jsonify({'erro': 'Usuário não encontrado'}), 404
         
-        print(f"[DEBUG] Usuário: {usuario.nome}, Tipo: {usuario.tipo}, Perfil: {usuario.perfil.nome if usuario.perfil else 'N/A'}")
-        
         if usuario.tipo != 'admin' and (not usuario.perfil or usuario.perfil.nome not in ['Administrador', 'Financeiro']):
-            print(f"[ERROR] Usuário {usuario.nome} sem permissão para aprovar")
             return jsonify({'erro': 'Apenas Administrador ou Financeiro podem aprovar ordens de compra'}), 403
         
         oc = OrdemCompra.query.get(oc_id)
@@ -244,16 +238,10 @@ def reprovar_oc(oc_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
-        print(f"[DEBUG] Tentativa de reprovação OC #{oc_id} por usuário ID: {usuario_id}")
-        
         if not usuario:
-            print(f"[ERROR] Usuário {usuario_id} não encontrado")
             return jsonify({'erro': 'Usuário não encontrado'}), 404
         
-        print(f"[DEBUG] Usuário: {usuario.nome}, Tipo: {usuario.tipo}, Perfil: {usuario.perfil.nome if usuario.perfil else 'N/A'}")
-        
         if usuario.tipo != 'admin' and (not usuario.perfil or usuario.perfil.nome not in ['Administrador', 'Financeiro']):
-            print(f"[ERROR] Usuário {usuario.nome} sem permissão para reprovar")
             return jsonify({'erro': 'Apenas Administrador ou Financeiro podem reprovar ordens de compra'}), 403
         
         oc = OrdemCompra.query.get(oc_id)
