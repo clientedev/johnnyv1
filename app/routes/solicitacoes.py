@@ -200,8 +200,8 @@ def aprovar_solicitacao(id):
         
         for (tipo_lote_id, estrelas), itens in lotes_por_tipo.items():
             peso_total = sum(item.peso_kg for item in itens)
-            valor_total = sum(item.valor_calculado for item in itens)
-            estrelas_media = sum(item.estrelas_final for item in itens) / len(itens)
+            valor_total = sum((item.valor_calculado or 0.0) for item in itens)
+            estrelas_media = sum((item.estrelas_final or 3) for item in itens) / len(itens)
             
             lote = Lote(
                 fornecedor_id=solicitacao.fornecedor_id,
@@ -288,6 +288,9 @@ def aprovar_solicitacao(id):
     
     except Exception as e:
         db.session.rollback()
+        print(f"ERRO ao aprovar solicitação #{id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'erro': f'Erro ao aprovar solicitação: {str(e)}'}), 500
 
 @bp.route('/<int:id>/rejeitar', methods=['POST'])
