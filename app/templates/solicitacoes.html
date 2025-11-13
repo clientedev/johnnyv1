@@ -730,6 +730,19 @@
             }
 
             const gpsInfo = document.getElementById('gpsInfo');
+            
+            // Preparar itens para envio
+            const itensParaEnvio = itensValidos.map(item => ({
+                tipo_lote_id: parseInt(item.tipo_lote_id),
+                peso_kg: parseFloat(item.peso_kg),
+                classificacao: item.classificacao || 'medio',
+                estrelas_final: item.estrelas_final || 3,
+                observacoes: item.observacoes || ''
+            }));
+            
+            console.log('🔍 DEBUG - Enviando itens:', itensParaEnvio);
+            console.log('🔍 DEBUG - Itens originais:', itensSolicitacao);
+            
             const data = {
                 fornecedor_id: parseInt(document.getElementById('fornecedorSolicitacao').value),
                 tipo_retirada: document.getElementById('tipoRetirada').value,
@@ -740,13 +753,7 @@
                 localizacao_lat: gpsInfo.dataset.lat ? parseFloat(gpsInfo.dataset.lat) : null,
                 localizacao_lng: gpsInfo.dataset.lng ? parseFloat(gpsInfo.dataset.lng) : null,
                 endereco_completo: '',
-                itens: itensValidos.map(item => ({
-                    tipo_lote_id: parseInt(item.tipo_lote_id),
-                    peso_kg: parseFloat(item.peso_kg),
-                    classificacao: item.classificacao,
-                    estrelas_final: item.estrelas_final || 3,
-                    observacoes: item.observacoes || ''
-                }))
+                itens: itensParaEnvio
             };
 
             if (data.rua && data.numero) {
