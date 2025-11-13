@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Fornecedor, Notificacao, Solicitacao, ItemSolicitacao, Usuario, TipoLote, FornecedorTipoLotePreco, Lote, db
+from app.models import Fornecedor, Notificacao, Solicitacao, ItemSolicitacao, Usuario, TipoLote, FornecedorTipoLotePreco, Lote, OrdemCompra, AuditoriaOC, Perfil, db
 from app.auth import admin_required
+from app.utils.auditoria import registrar_auditoria_oc
 from app import socketio
 from datetime import datetime
 
@@ -179,7 +180,12 @@ def aprovar_solicitacao(id):
         if not solicitacao.itens or len(solicitacao.itens) == 0:
             return jsonify({'erro': 'Solicitação não possui itens'}), 400
         
+        oc_existente = OrdemCompra.query.filter_by(solicitacao_id=id).first()
+        if oc_existente:
+            return jsonify({'erro': 'Já existe uma ordem de compra para esta solicitação'}), 400
+        
         usuario_id = get_jwt_identity()
+        data = request.get_json() or {}
         
         solicitacao.status = 'aprovada'
         solicitacao.data_confirmacao = datetime.utcnow()
@@ -214,21 +220,70 @@ def aprovar_solicitacao(id):
             for item in itens:
                 item.lote_id = lote.id
         
-        db.session.commit()
+        valor_total_oc = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
         
-        notificacao = Notificacao(
+        oc = OrdemCompra(
+            solicitacao_id=id,
+            fornecedor_id=solicitacao.fornecedor_id,
+            valor_total=valor_total_oc,
+            status='em_analise',
+            criado_por=usuario_id,
+            observacao=data.get('observacao', f'OC gerada automaticamente pela aprovação da solicitação #{id}')
+        )
+        db.session.add(oc)
+        db.session.flush()
+        
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        gps = data.get('gps')
+        dispositivo = request.headers.get('User-Agent', '')
+        
+        registrar_auditoria_oc(
+            oc_id=oc.id,
+            usuario_id=usuario_id,
+            acao='criacao',
+            status_anterior=None,
+            status_novo='em_analise',
+            observacao=f'OC criada automaticamente pela aprovação da solicitação #{id}',
+            ip=ip,
+            gps=gps,
+            dispositivo=dispositivo
+        )
+        
+        notificacao_funcionario = Notificacao(
             usuario_id=solicitacao.funcionario_id,
             titulo='Solicitação Aprovada',
-            mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada e os lotes foram criados.'
+            mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada, os lotes foram criados e a Ordem de Compra #{oc.id} foi gerada automaticamente.'
         )
-        db.session.add(notificacao)
+        db.session.add(notificacao_funcionario)
+        
+        usuarios_financeiro = Usuario.query.join(Perfil).filter(
+            db.or_(
+                Usuario.tipo == 'admin',
+                Perfil.nome.in_(['Administrador', 'Financeiro'])
+            )
+        ).all()
+        
+        usuarios_ids_notificados = set()
+        for usuario_fin in usuarios_financeiro:
+            if usuario_fin.id not in usuarios_ids_notificados and usuario_fin.id != solicitacao.funcionario_id:
+                notificacao_financeiro = Notificacao(
+                    usuario_id=usuario_fin.id,
+                    titulo='Nova Ordem de Compra',
+                    mensagem=f'Nova Ordem de Compra #{oc.id} criada automaticamente e aguardando aprovação (Solicitação #{solicitacao.id}).'
+                )
+                db.session.add(notificacao_financeiro)
+                usuarios_ids_notificados.add(usuario_fin.id)
+        
         db.session.commit()
         
         socketio.emit('nova_notificacao', {'tipo': 'solicitacao_aprovada', 'solicitacao_id': id}, room='funcionarios')
+        socketio.emit('nova_notificacao', {'tipo': 'nova_oc', 'oc_id': oc.id}, room='admins')
         
         return jsonify({
-            'mensagem': 'Solicitação aprovada e lotes criados com sucesso',
-            'solicitacao': solicitacao.to_dict()
+            'mensagem': 'Solicitação aprovada, lotes criados e Ordem de Compra gerada com sucesso',
+            'solicitacao': solicitacao.to_dict(),
+            'oc_id': oc.id,
+            'oc_status': oc.status
         }), 200
     
     except Exception as e:

@@ -2,23 +2,10 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import OrdemCompra, AuditoriaOC, Solicitacao, Fornecedor, Usuario, ItemSolicitacao, db
 from app.auth import admin_required
+from app.utils.auditoria import registrar_auditoria_oc
 from datetime import datetime
 
 bp = Blueprint('ordens_compra', __name__, url_prefix='/api/ordens-compra')
-
-def registrar_auditoria_oc(oc_id, usuario_id, acao, status_anterior=None, status_novo=None, observacao=None, ip=None, gps=None, dispositivo=None):
-    auditoria = AuditoriaOC(
-        oc_id=oc_id,
-        usuario_id=usuario_id,
-        acao=acao,
-        status_anterior=status_anterior,
-        status_novo=status_novo,
-        observacao=observacao,
-        ip=ip,
-        gps=gps,
-        dispositivo=dispositivo
-    )
-    db.session.add(auditoria)
 
 @bp.route('', methods=['GET'])
 @jwt_required()

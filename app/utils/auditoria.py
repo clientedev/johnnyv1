@@ -1,5 +1,5 @@
 from flask import request
-from app.models import AuditoriaLog, db
+from app.models import AuditoriaLog, AuditoriaOC, db
 from typing import Optional, Dict, Any
 
 def registrar_auditoria(
@@ -67,3 +67,30 @@ def registrar_exclusao(usuario_id: Optional[int], entidade_tipo: str, entidade_i
         entidade_id=entidade_id,
         detalhes=detalhes
     )
+
+def registrar_auditoria_oc(oc_id, usuario_id, acao, status_anterior=None, status_novo=None, observacao=None, ip=None, gps=None, dispositivo=None):
+    """Registra auditoria de ações em Ordem de Compra
+    
+    Args:
+        oc_id: ID da ordem de compra
+        usuario_id: ID do usuário que realizou a ação
+        acao: Tipo de ação (criacao, aprovacao, rejeicao, etc)
+        status_anterior: Status anterior da OC
+        status_novo: Novo status da OC
+        observacao: Observações sobre a ação
+        ip: Endereço IP do usuário
+        gps: Coordenadas GPS (latitude, longitude)
+        dispositivo: Informações do dispositivo/user agent
+    """
+    auditoria = AuditoriaOC(
+        oc_id=oc_id,
+        usuario_id=usuario_id,
+        acao=acao,
+        status_anterior=status_anterior,
+        status_novo=status_novo,
+        observacao=observacao,
+        ip=ip,
+        gps=gps,
+        dispositivo=dispositivo
+    )
+    db.session.add(auditoria)
