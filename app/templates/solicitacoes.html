@@ -87,6 +87,41 @@
                 </table>
             </div>
         </div>
+
+        <div class="flex justify-between items-center mb-3 mt-5" style="flex-wrap: wrap; gap: var(--spacing-md);">
+            <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">📋 Ordens de Compra</h1>
+        </div>
+
+        <div class="card mb-3">
+            <div class="flex gap-2" style="flex-wrap: wrap;">
+                <button class="btn btn-primary btn-small" onclick="filtrarOCStatus('')">Todos</button>
+                <button class="btn btn-warning btn-small" onclick="filtrarOCStatus('em_analise')">Em Análise</button>
+                <button class="btn btn-success btn-small" onclick="filtrarOCStatus('aprovada')">Aprovadas</button>
+                <button class="btn btn-danger btn-small" onclick="filtrarOCStatus('rejeitada')">Rejeitadas</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nº OC</th>
+                            <th>Nº SC</th>
+                            <th>Fornecedor</th>
+                            <th>Valor Total</th>
+                            <th>Status</th>
+                            <th>Aprovador</th>
+                            <th>Data Criação</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaOCs">
+                        <tr><td colspan="8" class="loading">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </main>
 
     <!-- Modal Nova Solicitação -->
@@ -185,11 +220,47 @@
         </div>
     </div>
 
+    <!-- Modal Aprovação/Reprovação OC -->
+    <div class="modal" id="modalAprovarOC">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="tituloModalOC">Aprovar Ordem de Compra</h2>
+                <button class="modal-close" onclick="fecharModalAprovarOC()">&times;</button>
+            </div>
+            <div id="conteudoOC" style="margin-bottom: 1.5rem;"></div>
+            
+            <div class="form-group">
+                <label>Observações</label>
+                <textarea id="observacaoOC" rows="3" placeholder="Observações sobre a aprovação/reprovação"></textarea>
+            </div>
+
+            <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <h4 style="margin: 0 0 0.75rem 0; color: #0369a1;">📍 Captura Automática</h4>
+                <div id="metadadosOC" style="font-size: 0.9rem; color: #666;">
+                    <p><strong>GPS:</strong> <span id="gpsOC">Capturando...</span></p>
+                    <p><strong>IP:</strong> <span id="ipOC">Detectando...</span></p>
+                    <p><strong>Dispositivo:</strong> <span id="dispositivoOC">-</span></p>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-success" onclick="confirmarAcaoOC('aprovar')" style="flex: 1;">
+                    <i class="fas fa-check"></i> Aprovar
+                </button>
+                <button class="btn btn-danger" onclick="confirmarAcaoOC('reprovar')" style="flex: 1;">
+                    <i class="fas fa-times"></i> Reprovar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
         let usuarioAtual = null;
         let solicitacaoAtual = null;
+        let ocAtual = null;
+        let gpsAtual = null;
         let itensSolicitacao = [];
         let todosFornecedores = [];
         let todosTiposLote = [];
@@ -204,6 +275,7 @@
             await carregarFornecedores();
             await carregarTiposLote();
             await carregarSolicitacoes();
+            await carregarOCs();
             await atualizarNotificacoes();
         }
 
@@ -837,6 +909,208 @@
             } catch (error) {
                 console.error('Erro ao rejeitar:', error);
                 showAlert('Erro ao rejeitar solicitação', 'error');
+            }
+        }
+
+        async function carregarOCs(status = '') {
+            try {
+                let url = '/api/ordens-compra';
+                if (status) url += `?status=${status}`;
+                
+                const response = await fetchAPI(url);
+                if (!response || !response.ok) {
+                    const tbody = document.getElementById('tabelaOCs');
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro ao carregar ordens de compra</td></tr>';
+                    return;
+                }
+                
+                const ocs = await response.json();
+                const tbody = document.getElementById('tabelaOCs');
+
+                if (ocs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Nenhuma ordem de compra encontrada</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = ocs.map(oc => {
+                    const statusClass = oc.status === 'aprovada' ? 'badge-aprovada' : 
+                                       oc.status === 'rejeitada' ? 'badge-rejeitada' : 
+                                       oc.status === 'em_analise' ? 'badge-pendente' : 'badge-pendente';
+                    
+                    const statusLabel = oc.status === 'aprovada' ? 'APROVADA' :
+                                       oc.status === 'rejeitada' ? 'REJEITADA' :
+                                       oc.status === 'em_analise' ? 'EM ANÁLISE' : oc.status.toUpperCase();
+                    
+                    const podeAprovar = usuarioAtual && (usuarioAtual.tipo === 'admin' || 
+                        (usuarioAtual.perfil && (usuarioAtual.perfil.nome === 'Administrador' || usuarioAtual.perfil.nome === 'Financeiro')));
+                    
+                    return `
+                        <tr>
+                            <td><strong>#${oc.id}</strong></td>
+                            <td><strong>#${oc.solicitacao_id}</strong></td>
+                            <td>${oc.fornecedor_nome}</td>
+                            <td>R$ ${oc.valor_total.toFixed(2)}</td>
+                            <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+                            <td>${oc.aprovador_nome || '-'}</td>
+                            <td>${formatDate(oc.criado_em)}</td>
+                            <td>
+                                ${podeAprovar && oc.status === 'em_analise' ? 
+                                    `<button class="btn btn-primary" onclick="abrirModalAprovarOC(${oc.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Aprovar/Reprovar</button>` :
+                                    `<button class="btn btn-secondary" onclick="verDetalhesOC(${oc.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Ver Detalhes</button>`
+                                }
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Erro ao carregar OCs:', error);
+                const tbody = document.getElementById('tabelaOCs');
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro ao carregar ordens de compra</td></tr>';
+            }
+        }
+
+        function filtrarOCStatus(status) {
+            carregarOCs(status);
+        }
+
+        async function gerarOC(solicitacaoId) {
+            if (!confirm('Gerar Ordem de Compra para esta solicitação aprovada?')) return;
+
+            try {
+                const response = await fetchAPI(`/api/ordens-compra/solicitacao/${solicitacaoId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({})
+                });
+
+                if (response && response.ok) {
+                    const data = await response.json();
+                    showAlert(data.message || 'Ordem de compra criada com sucesso!', 'success');
+                    await carregarSolicitacoes();
+                    await carregarOCs();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || 'Erro ao gerar ordem de compra', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao gerar OC:', error);
+                showAlert('Erro ao gerar ordem de compra', 'error');
+            }
+        }
+
+        async function abrirModalAprovarOC(ocId) {
+            try {
+                const response = await fetchAPI(`/api/ordens-compra/${ocId}`);
+                if (!response || !response.ok) {
+                    showAlert('Erro ao carregar ordem de compra', 'error');
+                    return;
+                }
+
+                ocAtual = await response.json();
+                
+                document.getElementById('conteudoOC').innerHTML = `
+                    <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px;">
+                        <p><strong>Nº OC:</strong> #${ocAtual.id}</p>
+                        <p><strong>Nº SC:</strong> #${ocAtual.solicitacao_id}</p>
+                        <p><strong>Fornecedor:</strong> ${ocAtual.fornecedor_nome}</p>
+                        <p><strong>Valor Total:</strong> R$ ${ocAtual.valor_total.toFixed(2)}</p>
+                        <p><strong>Status Atual:</strong> ${ocAtual.status.toUpperCase()}</p>
+                    </div>
+                `;
+                
+                document.getElementById('observacaoOC').value = '';
+                
+                document.getElementById('dispositivoOC').textContent = navigator.userAgent;
+                
+                gpsAtual = null;
+                document.getElementById('gpsOC').textContent = 'Capturando...';
+                
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            gpsAtual = `${position.coords.latitude},${position.coords.longitude}`;
+                            document.getElementById('gpsOC').textContent = gpsAtual;
+                        },
+                        (error) => {
+                            console.error('Erro ao capturar GPS:', error);
+                            document.getElementById('gpsOC').textContent = 'Não disponível';
+                        }
+                    );
+                } else {
+                    document.getElementById('gpsOC').textContent = 'Não suportado';
+                }
+                
+                document.getElementById('ipOC').textContent = 'Detectado automaticamente';
+                
+                document.getElementById('modalAprovarOC').classList.add('active');
+            } catch (error) {
+                console.error('Erro ao abrir modal:', error);
+                showAlert('Erro ao carregar dados da ordem de compra', 'error');
+            }
+        }
+
+        function fecharModalAprovarOC() {
+            document.getElementById('modalAprovarOC').classList.remove('active');
+            ocAtual = null;
+            gpsAtual = null;
+        }
+
+        async function confirmarAcaoOC(acao) {
+            if (!ocAtual) return;
+            
+            const observacao = document.getElementById('observacaoOC').value;
+            
+            if (acao === 'reprovar' && !observacao) {
+                showAlert('Por favor, informe o motivo da reprovação', 'error');
+                return;
+            }
+            
+            const confirmMsg = acao === 'aprovar' ? 
+                'Confirma a aprovação desta Ordem de Compra?' : 
+                'Confirma a reprovação desta Ordem de Compra?';
+            
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const endpoint = acao === 'aprovar' ? 
+                    `/api/ordens-compra/${ocAtual.id}/aprovar` : 
+                    `/api/ordens-compra/${ocAtual.id}/reprovar`;
+                
+                const response = await fetchAPI(endpoint, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        observacao: observacao,
+                        gps: gpsAtual
+                    })
+                });
+
+                if (response && response.ok) {
+                    const data = await response.json();
+                    showAlert(data.message || `Ordem de compra ${acao === 'aprovar' ? 'aprovada' : 'reprovada'} com sucesso!`, 'success');
+                    fecharModalAprovarOC();
+                    await carregarOCs();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || `Erro ao ${acao} ordem de compra`, 'error');
+                }
+            } catch (error) {
+                console.error(`Erro ao ${acao} OC:`, error);
+                showAlert(`Erro ao ${acao} ordem de compra`, 'error');
+            }
+        }
+
+        async function verDetalhesOC(ocId) {
+            try {
+                const response = await fetchAPI(`/api/ordens-compra/${ocId}`);
+                if (!response || !response.ok) {
+                    showAlert('Erro ao carregar ordem de compra', 'error');
+                    return;
+                }
+
+                const oc = await response.json();
+                alert(`Ordem de Compra #${oc.id}\n\nStatus: ${oc.status}\nFornecedor: ${oc.fornecedor_nome}\nValor: R$ ${oc.valor_total.toFixed(2)}\nAprovador: ${oc.aprovador_nome || '-'}\n${oc.observacao ? '\nObservação: ' + oc.observacao : ''}`);
+            } catch (error) {
+                console.error('Erro ao carregar detalhes da OC:', error);
+                showAlert('Erro ao carregar detalhes', 'error');
             }
         }
 

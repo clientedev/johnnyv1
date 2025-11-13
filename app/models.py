@@ -470,6 +470,7 @@ class Solicitacao(db.Model):  # type: ignore
     
     itens = db.relationship('ItemSolicitacao', backref='solicitacao', lazy=True, cascade='all, delete-orphan')
     admin = db.relationship('Usuario', foreign_keys=[admin_id], backref='solicitacoes_aprovadas_por_mim')
+    ordem_compra = db.relationship('OrdemCompra', back_populates='solicitacao', uselist=False, cascade='all, delete-orphan')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -791,4 +792,92 @@ class AuditoriaLog(db.Model):  # type: ignore
             'ip_address': self.ip_address,
             'user_agent': self.user_agent,
             'data_acao': self.data_acao.isoformat() if self.data_acao else None
+        }
+
+class OrdemCompra(db.Model):  # type: ignore
+    __tablename__ = 'ordens_compra'
+    __table_args__ = (
+        db.UniqueConstraint('solicitacao_id', name='uq_oc_solicitacao'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    solicitacao_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=False, unique=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    valor_total = db.Column(db.Float, nullable=False, default=0.0)
+    status = db.Column(db.String(50), default='em_analise', nullable=False)
+    aprovado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    aprovado_em = db.Column(db.DateTime, nullable=True)
+    observacao = db.Column(db.Text)
+    ip_aprovacao = db.Column(db.String(50))
+    gps_aprovacao = db.Column(db.String(100))
+    device_info = db.Column(db.String(100))
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    
+    solicitacao = db.relationship('Solicitacao', back_populates='ordem_compra', foreign_keys=[solicitacao_id], uselist=False)
+    fornecedor = db.relationship('Fornecedor', backref='ordens_compra', foreign_keys=[fornecedor_id])
+    aprovador = db.relationship('Usuario', foreign_keys=[aprovado_por], backref='ocs_aprovadas')
+    criador = db.relationship('Usuario', foreign_keys=[criado_por], backref='ocs_criadas')
+    auditorias = db.relationship('AuditoriaOC', backref='ordem_compra', lazy=True, cascade='all, delete-orphan')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'solicitacao_id': self.solicitacao_id,
+            'fornecedor_id': self.fornecedor_id,
+            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
+            'valor_total': round(self.valor_total, 2),
+            'status': self.status,
+            'aprovado_por': self.aprovado_por,
+            'aprovador_nome': self.aprovador.nome if self.aprovador else None,
+            'aprovado_em': self.aprovado_em.isoformat() if self.aprovado_em else None,
+            'observacao': self.observacao,
+            'ip_aprovacao': self.ip_aprovacao,
+            'gps_aprovacao': self.gps_aprovacao,
+            'device_info': self.device_info,
+            'criado_em': self.criado_em.isoformat() if self.criado_em else None,
+            'criado_por': self.criado_por,
+            'criador_nome': self.criador.nome if self.criador else None
+        }
+
+class AuditoriaOC(db.Model):  # type: ignore
+    __tablename__ = 'auditoria_oc'
+    __table_args__ = (
+        db.Index('idx_oc_data', 'oc_id', 'data'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    oc_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    acao = db.Column(db.String(50), nullable=False)
+    status_anterior = db.Column(db.String(50))
+    status_novo = db.Column(db.String(50))
+    observacao = db.Column(db.Text)
+    ip = db.Column(db.String(50))
+    gps = db.Column(db.String(100))
+    dispositivo = db.Column(db.String(100))
+    data = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    
+    usuario = db.relationship('Usuario', backref='auditorias_oc', foreign_keys=[usuario_id])
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'oc_id': self.oc_id,
+            'usuario_id': self.usuario_id,
+            'usuario_nome': self.usuario.nome if self.usuario else 'Sistema',
+            'acao': self.acao,
+            'status_anterior': self.status_anterior,
+            'status_novo': self.status_novo,
+            'observacao': self.observacao,
+            'ip': self.ip,
+            'gps': self.gps,
+            'dispositivo': self.dispositivo,
+            'data': self.data.isoformat() if self.data else None
         }
