@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Fornecedor, Notificacao, Solicitacao, ItemSolicitacao, Usuario, TipoLote, FornecedorTipoLotePreco, Lote, OrdemCompra, AuditoriaOC, Perfil, db
+from app.models import Fornecedor, Notificacao, Solicitacao, ItemSolicitacao, Usuario, TipoLote, FornecedorTipoLotePreco, FornecedorTipoLoteClassificacao, Lote, OrdemCompra, AuditoriaOC, Perfil, db
 from app.auth import admin_required
 from app.utils.auditoria import registrar_auditoria_oc
 from app import socketio
@@ -107,6 +107,7 @@ def criar_solicitacao():
             for item_data in data['itens']:
                 tipo_lote_id = item_data.get('tipo_lote_id')
                 peso_kg = item_data.get('peso_kg', 0)
+                classificacao = item_data.get('classificacao', 'medio')
                 estrelas_final = item_data.get('estrelas_final', 3)
                 
                 if not tipo_lote_id or peso_kg is None or peso_kg <= 0:
@@ -116,23 +117,42 @@ def criar_solicitacao():
                 if not tipo_lote:
                     continue
                 
+                # Buscar configuração de preço por classificação
+                from app.models import FornecedorTipoLoteClassificacao
+                classificacao_config = FornecedorTipoLoteClassificacao.query.filter_by(
+                    fornecedor_id=fornecedor_id,
+                    tipo_lote_id=tipo_lote_id,
+                    ativo=True
+                ).first()
+                
+                # Se existe configuração de classificação, usar as estrelas correspondentes
+                if classificacao_config:
+                    estrelas_final = classificacao_config.get_estrelas_por_classificacao(classificacao)
+                
+                # Buscar preço baseado nas estrelas
                 preco_config = FornecedorTipoLotePreco.query.filter_by(
                     fornecedor_id=fornecedor_id,
                     tipo_lote_id=tipo_lote_id,
-                    estrelas=estrelas_final
+                    estrelas=estrelas_final,
+                    ativo=True
                 ).first()
                 
                 valor_calculado = 0.0
+                preco_por_kg = 0.0
                 if preco_config:
-                    valor_calculado = peso_kg * preco_config.preco_por_kg
+                    preco_por_kg = preco_config.preco_por_kg
+                    valor_calculado = peso_kg * preco_por_kg
                 
                 item = ItemSolicitacao(
                     solicitacao_id=solicitacao.id,
                     tipo_lote_id=tipo_lote_id,
                     peso_kg=peso_kg,
+                    classificacao=classificacao,
                     estrelas_sugeridas_ia=item_data.get('estrelas_sugeridas_ia'),
                     estrelas_final=estrelas_final,
                     valor_calculado=valor_calculado,
+                    preco_por_kg_snapshot=preco_por_kg,
+                    estrelas_snapshot=estrelas_final,
                     imagem_url=item_data.get('imagem_url', ''),
                     observacoes=item_data.get('observacoes', '')
                 )
