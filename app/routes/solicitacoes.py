@@ -364,6 +364,10 @@ def aprovar_solicitacao(id):
         )
         print(f"✅ Auditoria registrada")
         
+        # COMMIT INTERMEDIÁRIO para garantir que a OC seja salva
+        db.session.commit()
+        print(f"💾 OC e auditoria salvas no banco de dados")
+        
         print(f"\n🔔 ETAPA 5: Criando notificações...")
         notificacao_funcionario = Notificacao(
             usuario_id=solicitacao.funcionario_id,
