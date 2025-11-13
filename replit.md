@@ -3,6 +3,25 @@
 ## Overview
 The MRX System is a comprehensive solution for managing the procurement of electronic circuit boards. It features lot-based tracking, quality classification (star ratings), supplier management, and an automated workflow from purchase request to inventory receipt. Key capabilities include AI-powered classification, geolocalized data capture, dynamic pricing, and a robust Role-Based Access Control (RBAC) system. The project aims to streamline the procurement process, enhance traceability, and provide detailed analytics for better decision-making in the electronic board market.
 
+## Recent Changes
+
+### November 13, 2025 - Critical Bug Fix: API URL Duplication
+**Problem:** Solicitações de Compra and Ordens de Compra tables were displaying "Erro ao carregar solicitações" and "Erro ao carregar ordens de compra" instead of loading data.
+
+**Root Cause:** The `fetchAPI()` helper function in `app.js` and `layout.js` already prefixes all endpoints with `/api`. However, templates were passing URLs like `/api/solicitacoes` to `fetchAPI()`, resulting in duplicated URLs like `/api/api/solicitacoes` which returned 404 Not Found errors.
+
+**Solution:** Systematically removed the redundant `/api` prefix from all `fetchAPI()` calls across the codebase:
+- **solicitacoes.html:** Updated `/api/solicitacoes` → `/solicitacoes` and `/api/ordens-compra` → `/ordens-compra`
+- **dashboard.html:** Updated `/api/fornecedores` → `/fornecedores` and `/api/lotes/analisar` → `/lotes/analisar`
+- **funcionario.html:** Updated 5 endpoints to remove `/api` prefix
+- **app.js:** Updated `/api/fornecedores` → `/fornecedores`
+
+**Testing:** Both APIs confirmed working correctly:
+- GET `/api/solicitacoes` returns 200 OK with 5 solicitações
+- GET `/api/ordens-compra` returns 200 OK with 2 ordens de compra
+
+**Convention Established:** All `fetchAPI()` calls should pass endpoints WITHOUT the `/api` prefix. The helper automatically adds it. Direct `fetch()` calls that need absolute paths should either bypass `fetchAPI()` or include the full prefix intentionally.
+
 ## User Preferences
 No specific user preferences were provided in the original document.
 
