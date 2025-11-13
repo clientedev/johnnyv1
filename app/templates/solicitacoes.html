@@ -886,9 +886,17 @@
                 });
 
                 if (response && response.ok) {
-                    showAlert('Solicitação aprovada! Lotes criados automaticamente.', 'success');
+                    const data = await response.json();
+                    console.log('✅ Resposta da aprovação:', data);
+                    
+                    showAlert('Solicitação aprovada! Lotes criados e OC gerada automaticamente.', 'success');
                     fecharModalDetalhes();
+                    
+                    // Recarregar ambas as tabelas
                     await carregarSolicitacoes();
+                    await carregarOCs();
+                    
+                    console.log('✅ Tabelas recarregadas com sucesso');
                 } else {
                     const error = await response.json();
                     showAlert(error.erro || 'Erro ao aprovar solicitação', 'error');
@@ -925,17 +933,29 @@
 
         async function carregarOCs(status = '') {
             try {
+                console.log('🔄 Carregando OCs...');
                 let url = '/ordens-compra';
                 if (status) url += `?status=${status}`;
                 
                 const response = await fetchAPI(url);
-                if (!response || !response.ok) {
+                
+                if (!response) {
+                    console.error('❌ Sem resposta do servidor');
+                    const tbody = document.getElementById('tabelaOCs');
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro de conexão com o servidor</td></tr>';
+                    return;
+                }
+                
+                if (!response.ok) {
+                    console.error('❌ Erro HTTP:', response.status);
                     const tbody = document.getElementById('tabelaOCs');
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro ao carregar ordens de compra</td></tr>';
                     return;
                 }
                 
                 const ocs = await response.json();
+                console.log(`✅ ${ocs.length} OC(s) carregada(s)`);
+                
                 const tbody = document.getElementById('tabelaOCs');
 
                 if (ocs.length === 0) {
