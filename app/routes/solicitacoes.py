@@ -227,6 +227,10 @@ def criar_solicitacao():
 @bp.route('/<int:id>/aprovar', methods=['POST'])
 @admin_required
 def aprovar_solicitacao(id):
+    oc = None
+    lotes_criados = []
+    solicitacao = None
+    
     try:
         print(f"\n{'='*60}")
         print(f"🔄 INICIANDO APROVAÇÃO DA SOLICITAÇÃO #{id}")
@@ -235,172 +239,166 @@ def aprovar_solicitacao(id):
         usuario_id = get_jwt_identity()
         data = request.get_json() or {}
         
-        print(f"\n🔒 Adquirindo lock na solicitação...")
-        # Usar lock FOR UPDATE na solicitação para evitar condições de corrida
-        # Isso garante que apenas uma thread processe esta solicitação por vez
-        solicitacao = Solicitacao.query.filter_by(id=id).with_for_update().first()
-        
-        if not solicitacao:
-            print(f"❌ Solicitação #{id} não encontrada")
-            return jsonify({'erro': 'Solicitação não encontrada'}), 404
-        
-        print(f"✅ Lock adquirido: Solicitação #{solicitacao.id}")
-        print(f"   Status atual: {solicitacao.status}")
-        print(f"   Fornecedor: {solicitacao.fornecedor.nome if solicitacao.fornecedor else 'N/A'}")
-        
-        # Verificar status após obter o lock
-        if solicitacao.status != 'pendente':
-            print(f"❌ Status inválido: {solicitacao.status}")
-            return jsonify({'erro': f'Solicitação já foi processada (status: {solicitacao.status})'}), 400
-        
-        # Verificar se tem itens
-        if not solicitacao.itens or len(solicitacao.itens) == 0:
-            print(f"❌ Solicitação sem itens")
-            return jsonify({'erro': 'Solicitação não possui itens'}), 400
-        
-        print(f"✅ Solicitação possui {len(solicitacao.itens)} itens")
-        
-        # Validar que todos os itens têm valores calculados (aceita zero, rejeita None e negativos)
-        itens_sem_preco = [item for item in solicitacao.itens if item.valor_calculado is None or item.valor_calculado < 0]
-        if itens_sem_preco:
-            print(f"❌ Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido")
-            return jsonify({
-                'erro': f'Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido. Configure os preços antes de aprovar.',
-                'itens_sem_preco': len(itens_sem_preco)
-            }), 400
-        
-        # Verificar se já existe OC (proteção adicional ao constraint do banco)
-        oc_existente = OrdemCompra.query.filter_by(solicitacao_id=id).first()
-        if oc_existente:
-            print(f"⚠️ Já existe OC #{oc_existente.id} para esta solicitação")
-            return jsonify({
-                'erro': f'Já existe uma ordem de compra (#{oc_existente.id}) para esta solicitação',
-                'oc_id': oc_existente.id
-            }), 400
-        
-        print(f"\n📝 ETAPA 1: Atualizando status da solicitação...")
-        # ETAPA 1: Aprovar a solicitação
-        solicitacao.status = 'aprovada'
-        solicitacao.data_confirmacao = datetime.utcnow()
-        solicitacao.admin_id = usuario_id
-        print(f"✅ Status atualizado para: aprovada")
-        
-        print(f"\n📦 ETAPA 2: Criando lotes...")
-        # ETAPA 2: Criar lotes
-        lotes_por_tipo = {}
-        for item in solicitacao.itens:
-            chave = (item.tipo_lote_id, item.estrelas_final)
-            if chave not in lotes_por_tipo:
-                lotes_por_tipo[chave] = []
-            lotes_por_tipo[chave].append(item)
-        
-        lotes_criados = []
-        for (tipo_lote_id, estrelas), itens in lotes_por_tipo.items():
-            peso_total = sum(item.peso_kg for item in itens)
-            valor_total = sum((item.valor_calculado or 0.0) for item in itens)
-            estrelas_media = sum((item.estrelas_final or 3) for item in itens) / len(itens)
+        # Transação atômica: tudo ou nada
+        with db.session.begin():
+            print(f"\n🔒 Adquirindo lock na solicitação...")
+            # Usar lock FOR UPDATE na solicitação para evitar condições de corrida
+            # Isso garante que apenas uma thread processe esta solicitação por vez
+            solicitacao = Solicitacao.query.filter_by(id=id).with_for_update().first()
             
-            lote = Lote(
+            if not solicitacao:
+                print(f"❌ Solicitação #{id} não encontrada")
+                raise ValueError('Solicitação não encontrada')
+            
+            print(f"✅ Lock adquirido: Solicitação #{solicitacao.id}")
+            print(f"   Status atual: {solicitacao.status}")
+            print(f"   Fornecedor: {solicitacao.fornecedor.nome if solicitacao.fornecedor else 'N/A'}")
+            
+            # Verificar status após obter o lock
+            if solicitacao.status != 'pendente':
+                print(f"❌ Status inválido: {solicitacao.status}")
+                raise ValueError(f'Solicitação já foi processada (status: {solicitacao.status})')
+            
+            # Verificar se tem itens
+            if not solicitacao.itens or len(solicitacao.itens) == 0:
+                print(f"❌ Solicitação sem itens")
+                raise ValueError('Solicitação não possui itens')
+            
+            print(f"✅ Solicitação possui {len(solicitacao.itens)} itens")
+            
+            # Validar que todos os itens têm valores calculados (aceita zero, rejeita None e negativos)
+            itens_sem_preco = [item for item in solicitacao.itens if item.valor_calculado is None or item.valor_calculado < 0]
+            if itens_sem_preco:
+                print(f"❌ Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido")
+                raise ValueError(f'Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido. Configure os preços antes de aprovar.')
+            
+            # Verificar se já existe OC (proteção adicional ao constraint do banco)
+            oc_existente = OrdemCompra.query.filter_by(solicitacao_id=id).first()
+            if oc_existente:
+                print(f"⚠️ Já existe OC #{oc_existente.id} para esta solicitação")
+                raise ValueError(f'Já existe uma ordem de compra (#{oc_existente.id}) para esta solicitação')
+            
+            print(f"\n📝 ETAPA 1: Atualizando status da solicitação...")
+            # ETAPA 1: Aprovar a solicitação
+            solicitacao.status = 'aprovada'
+            solicitacao.data_confirmacao = datetime.utcnow()
+            solicitacao.admin_id = usuario_id
+            print(f"✅ Status atualizado para: aprovada")
+            
+            print(f"\n📦 ETAPA 2: Criando lotes...")
+            # ETAPA 2: Criar lotes
+            lotes_por_tipo = {}
+            for item in solicitacao.itens:
+                chave = (item.tipo_lote_id, item.estrelas_final)
+                if chave not in lotes_por_tipo:
+                    lotes_por_tipo[chave] = []
+                lotes_por_tipo[chave].append(item)
+            
+            for (tipo_lote_id, estrelas), itens in lotes_por_tipo.items():
+                peso_total = sum(item.peso_kg for item in itens)
+                valor_total = sum((item.valor_calculado or 0.0) for item in itens)
+                estrelas_media = sum((item.estrelas_final or 3) for item in itens) / len(itens)
+                
+                lote = Lote(
+                    fornecedor_id=solicitacao.fornecedor_id,
+                    tipo_lote_id=tipo_lote_id,
+                    solicitacao_origem_id=solicitacao.id,
+                    peso_total_kg=peso_total,
+                    valor_total=valor_total,
+                    quantidade_itens=len(itens),
+                    estrelas_media=estrelas_media,
+                    tipo_retirada=solicitacao.tipo_retirada,
+                    status='aberto'
+                )
+                db.session.add(lote)
+                db.session.flush()
+                
+                print(f"   ✅ Lote criado: {lote.numero_lote} (Tipo: {tipo_lote_id}, Estrelas: {estrelas})")
+                lotes_criados.append(lote.numero_lote)
+                
+                for item in itens:
+                    item.lote_id = lote.id
+            
+            print(f"✅ {len(lotes_criados)} lote(s) criado(s): {', '.join(lotes_criados)}")
+            
+            print(f"\n💰 ETAPA 3: Criando Ordem de Compra...")
+            # ETAPA 3: Criar OC
+            valor_total_oc = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
+            print(f"   Valor total calculado: R$ {valor_total_oc:.2f}")
+            
+            if valor_total_oc < 0:
+                raise ValueError('Valor total da OC não pode ser negativo')
+            
+            oc = OrdemCompra(
+                solicitacao_id=id,
                 fornecedor_id=solicitacao.fornecedor_id,
-                tipo_lote_id=tipo_lote_id,
-                solicitacao_origem_id=solicitacao.id,
-                peso_total_kg=peso_total,
-                valor_total=valor_total,
-                quantidade_itens=len(itens),
-                estrelas_media=estrelas_media,
-                tipo_retirada=solicitacao.tipo_retirada,
-                status='aberto'
+                valor_total=valor_total_oc,
+                status='em_analise',
+                criado_por=usuario_id,
+                observacao=data.get('observacao', f'OC gerada automaticamente pela aprovação da solicitação #{id}')
             )
-            db.session.add(lote)
+            db.session.add(oc)
             db.session.flush()
             
-            print(f"   ✅ Lote criado: {lote.numero_lote} (Tipo: {tipo_lote_id}, Estrelas: {estrelas})")
-            lotes_criados.append(lote.numero_lote)
+            print(f"✅ OC #{oc.id} criada com sucesso")
+            print(f"   Status: {oc.status}")
+            print(f"   Valor: R$ {oc.valor_total:.2f}")
             
-            for item in itens:
-                item.lote_id = lote.id
-        
-        print(f"✅ {len(lotes_criados)} lote(s) criado(s): {', '.join(lotes_criados)}")
-        
-        print(f"\n💰 ETAPA 3: Criando Ordem de Compra...")
-        # ETAPA 3: Criar OC
-        valor_total_oc = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
-        print(f"   Valor total calculado: R$ {valor_total_oc:.2f}")
-        
-        if valor_total_oc < 0:
-            raise ValueError('Valor total da OC não pode ser negativo')
-        
-        oc = OrdemCompra(
-            solicitacao_id=id,
-            fornecedor_id=solicitacao.fornecedor_id,
-            valor_total=valor_total_oc,
-            status='em_analise',
-            criado_por=usuario_id,
-            observacao=data.get('observacao', f'OC gerada automaticamente pela aprovação da solicitação #{id}')
-        )
-        db.session.add(oc)
-        db.session.flush()
-        
-        print(f"✅ OC #{oc.id} criada com sucesso")
-        print(f"   Status: {oc.status}")
-        print(f"   Valor: R$ {oc.valor_total:.2f}")
-        
-        print(f"\n📋 ETAPA 4: Registrando auditoria...")
-        # ETAPA 4: Registrar auditoria
-        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        gps = data.get('gps')
-        dispositivo = request.headers.get('User-Agent', '')
-        
-        registrar_auditoria_oc(
-            oc_id=oc.id,
-            usuario_id=usuario_id,
-            acao='criacao',
-            status_anterior=None,
-            status_novo='em_analise',
-            observacao=f'OC criada automaticamente pela aprovação da solicitação #{id}',
-            ip=ip,
-            gps=gps,
-            dispositivo=dispositivo
-        )
-        print(f"✅ Auditoria registrada")
-        
-        print(f"\n🔔 ETAPA 5: Criando notificações...")
-        # ETAPA 5: Criar notificações
-        notificacao_funcionario = Notificacao(
-            usuario_id=solicitacao.funcionario_id,
-            titulo='Solicitação Aprovada',
-            mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada, os lotes foram criados e a Ordem de Compra #{oc.id} foi gerada automaticamente.'
-        )
-        db.session.add(notificacao_funcionario)
-        print(f"   ✅ Notificação para funcionário criada")
-        
-        usuarios_financeiro = Usuario.query.join(Perfil).filter(
-            db.or_(
-                Usuario.tipo == 'admin',
-                Perfil.nome.in_(['Administrador', 'Financeiro'])
+            print(f"\n📋 ETAPA 4: Registrando auditoria...")
+            # ETAPA 4: Registrar auditoria
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            gps = data.get('gps')
+            dispositivo = request.headers.get('User-Agent', '')
+            
+            registrar_auditoria_oc(
+                oc_id=oc.id,
+                usuario_id=usuario_id,
+                acao='criacao',
+                status_anterior=None,
+                status_novo='em_analise',
+                observacao=f'OC criada automaticamente pela aprovação da solicitação #{id}',
+                ip=ip,
+                gps=gps,
+                dispositivo=dispositivo
             )
-        ).all()
-        
-        usuarios_ids_notificados = set()
-        for usuario_fin in usuarios_financeiro:
-            if usuario_fin.id not in usuarios_ids_notificados and usuario_fin.id != solicitacao.funcionario_id:
-                notificacao_financeiro = Notificacao(
-                    usuario_id=usuario_fin.id,
-                    titulo='Nova Ordem de Compra',
-                    mensagem=f'Nova Ordem de Compra #{oc.id} criada automaticamente e aguardando aprovação (Solicitação #{solicitacao.id}).'
+            print(f"✅ Auditoria registrada")
+            
+            print(f"\n🔔 ETAPA 5: Criando notificações...")
+            # ETAPA 5: Criar notificações
+            notificacao_funcionario = Notificacao(
+                usuario_id=solicitacao.funcionario_id,
+                titulo='Solicitação Aprovada',
+                mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada, os lotes foram criados e a Ordem de Compra #{oc.id} foi gerada automaticamente.'
+            )
+            db.session.add(notificacao_funcionario)
+            print(f"   ✅ Notificação para funcionário criada")
+            
+            usuarios_financeiro = Usuario.query.join(Perfil).filter(
+                db.or_(
+                    Usuario.tipo == 'admin',
+                    Perfil.nome.in_(['Administrador', 'Financeiro'])
                 )
-                db.session.add(notificacao_financeiro)
-                usuarios_ids_notificados.add(usuario_fin.id)
+            ).all()
+            
+            usuarios_ids_notificados = set()
+            for usuario_fin in usuarios_financeiro:
+                if usuario_fin.id not in usuarios_ids_notificados and usuario_fin.id != solicitacao.funcionario_id:
+                    notificacao_financeiro = Notificacao(
+                        usuario_id=usuario_fin.id,
+                        titulo='Nova Ordem de Compra',
+                        mensagem=f'Nova Ordem de Compra #{oc.id} criada automaticamente e aguardando aprovação (Solicitação #{solicitacao.id}).'
+                    )
+                    db.session.add(notificacao_financeiro)
+                    usuarios_ids_notificados.add(usuario_fin.id)
+            
+            print(f"   ✅ {len(usuarios_ids_notificados)} notificações para financeiro/admin criadas")
         
-        print(f"   ✅ {len(usuarios_ids_notificados)} notificações para financeiro/admin criadas")
+        # FIM DO BLOCO DE TRANSAÇÃO - commit automático aqui
+        print(f"\n💾 Transação concluída com sucesso!")
         
-        print(f"\n💾 ETAPA 6: Salvando no banco de dados...")
-        # ETAPA 6: Commit final
-        db.session.commit()
-        print(f"✅ Todas as alterações salvas com sucesso!")
-        
-        print(f"\n📡 ETAPA 7: Enviando notificações WebSocket...")
-        # ETAPA 7: Emitir eventos WebSocket
+        # ETAPAS 6 e 7: Efeitos colaterais FORA da transação
+        print(f"\n📡 ETAPA 6: Enviando notificações WebSocket...")
+        # WebSocket emits fora da transação para não causar rollback se falharem
         socketio.emit('nova_notificacao', {'tipo': 'solicitacao_aprovada', 'solicitacao_id': id}, room='funcionarios')
         socketio.emit('nova_notificacao', {'tipo': 'nova_oc', 'oc_id': oc.id}, room='admins')
         print(f"✅ Notificações WebSocket enviadas")
@@ -423,10 +421,19 @@ def aprovar_solicitacao(id):
             'valor_total': oc.valor_total
         }), 200
     
-    except Exception as e:
-        db.session.rollback()
+    except ValueError as e:
+        # Rollback já foi feito automaticamente pelo context manager
         print(f"\n{'='*60}")
-        print(f"❌ ERRO AO APROVAR SOLICITAÇÃO #{id}")
+        print(f"❌ ERRO DE VALIDAÇÃO NA SOLICITAÇÃO #{id}")
+        print(f"{'='*60}")
+        print(f"Erro: {str(e)}")
+        print(f"{'='*60}\n")
+        return jsonify({'erro': str(e)}), 400
+    
+    except Exception as e:
+        # Rollback já foi feito automaticamente pelo context manager
+        print(f"\n{'='*60}")
+        print(f"❌ ERRO INESPERADO AO APROVAR SOLICITAÇÃO #{id}")
         print(f"{'='*60}")
         print(f"Erro: {str(e)}")
         import traceback
