@@ -1008,7 +1008,7 @@
             if (!confirm('Gerar Ordem de Compra para esta solicitação aprovada?')) return;
 
             try {
-                const response = await fetchAPI(`/api/ordens-compra/solicitacao/${solicitacaoId}`, {
+                const response = await fetchAPI(`/ordens-compra/solicitacao/${solicitacaoId}`, {
                     method: 'POST',
                     body: JSON.stringify({})
                 });
@@ -1030,7 +1030,7 @@
 
         async function abrirModalAprovarOC(ocId) {
             try {
-                const response = await fetchAPI(`/api/ordens-compra/${ocId}`);
+                const response = await fetchAPI(`/ordens-compra/${ocId}`);
                 if (!response || !response.ok) {
                     showAlert('Erro ao carregar ordem de compra', 'error');
                     return;
@@ -1103,8 +1103,8 @@
 
             try {
                 const endpoint = acao === 'aprovar' ? 
-                    `/api/ordens-compra/${ocAtual.id}/aprovar` : 
-                    `/api/ordens-compra/${ocAtual.id}/reprovar`;
+                    `/ordens-compra/${ocAtual.id}/aprovar` : 
+                    `/ordens-compra/${ocAtual.id}/reprovar`;
                 
                 const response = await fetchAPI(endpoint, {
                     method: 'PATCH',
@@ -1131,7 +1131,7 @@
 
         async function verDetalhesOC(ocId) {
             try {
-                const response = await fetchAPI(`/api/ordens-compra/${ocId}`);
+                const response = await fetchAPI(`/ordens-compra/${ocId}`);
                 if (!response || !response.ok) {
                     showAlert('Erro ao carregar ordem de compra', 'error');
                     return;
