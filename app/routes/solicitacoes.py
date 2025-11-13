@@ -110,12 +110,22 @@ def criar_solicitacao():
                 classificacao = item_data.get('classificacao', 'medio')
                 estrelas_final = item_data.get('estrelas_final', 3)
                 
+                print(f"\n🔍 DEBUG - Processando item:")
+                print(f"   Tipo Lote ID: {tipo_lote_id}")
+                print(f"   Peso: {peso_kg} kg")
+                print(f"   Classificação: {classificacao}")
+                print(f"   Estrelas (frontend): {estrelas_final}")
+                
                 if not tipo_lote_id or peso_kg is None or peso_kg <= 0:
+                    print(f"   ⚠️ Item inválido - pulando")
                     continue
                 
                 tipo_lote = TipoLote.query.get(tipo_lote_id)
                 if not tipo_lote:
+                    print(f"   ❌ Tipo de lote não encontrado")
                     continue
+                
+                print(f"   ✅ Tipo de lote: {tipo_lote.nome}")
                 
                 # Buscar configuração de preço por classificação
                 from app.models import FornecedorTipoLoteClassificacao
@@ -128,6 +138,10 @@ def criar_solicitacao():
                 # Se existe configuração de classificação, usar as estrelas correspondentes
                 if classificacao_config:
                     estrelas_final = classificacao_config.get_estrelas_por_classificacao(classificacao)
+                    print(f"   ✅ Configuração de classificação encontrada")
+                    print(f"   ⭐ Estrelas (backend): {estrelas_final}")
+                else:
+                    print(f"   ⚠️ Nenhuma configuração de classificação encontrada - usando estrelas do frontend")
                 
                 # Buscar preço baseado nas estrelas
                 preco_config = FornecedorTipoLotePreco.query.filter_by(
@@ -142,6 +156,22 @@ def criar_solicitacao():
                 if preco_config:
                     preco_por_kg = preco_config.preco_por_kg
                     valor_calculado = peso_kg * preco_por_kg
+                    print(f"   ✅ Preço encontrado: R$ {preco_por_kg}/kg")
+                    print(f"   💰 Valor calculado: R$ {valor_calculado:.2f}")
+                else:
+                    print(f"   ❌ PROBLEMA: Preço não encontrado para {estrelas_final} estrelas!")
+                    print(f"   🔍 Buscando preços disponíveis para este tipo de lote...")
+                    precos_disponiveis = FornecedorTipoLotePreco.query.filter_by(
+                        fornecedor_id=fornecedor_id,
+                        tipo_lote_id=tipo_lote_id,
+                        ativo=True
+                    ).all()
+                    if precos_disponiveis:
+                        print(f"   📋 Preços disponíveis:")
+                        for p in precos_disponiveis:
+                            print(f"      - {p.estrelas} estrelas: R$ {p.preco_por_kg}/kg")
+                    else:
+                        print(f"   ⚠️ Nenhum preço cadastrado para este fornecedor e tipo de lote!")
                 
                 item = ItemSolicitacao(
                     solicitacao_id=solicitacao.id,

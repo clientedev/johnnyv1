@@ -604,6 +604,7 @@
         function calcularValorItem(item) {
             if (!item.tipo_lote_id || !item.peso_kg || item.peso_kg <= 0 || !item.classificacao) {
                 item.valor_calculado = 0;
+                item.estrelas_final = 3;
                 return;
             }
 
@@ -612,8 +613,10 @@
             
             if (precoInfo && precoInfo.preco_por_kg) {
                 item.valor_calculado = item.peso_kg * precoInfo.preco_por_kg;
+                item.estrelas_final = precoInfo.estrelas;
             } else {
                 item.valor_calculado = 0;
+                item.estrelas_final = 3;
                 console.warn(`Preço não encontrado para tipo ${item.tipo_lote_id} e classificação ${item.classificacao}`);
             }
         }
@@ -740,7 +743,8 @@
                 itens: itensValidos.map(item => ({
                     tipo_lote_id: parseInt(item.tipo_lote_id),
                     peso_kg: parseFloat(item.peso_kg),
-                    estrelas_final: parseInt(item.estrelas_final),
+                    classificacao: item.classificacao,
+                    estrelas_final: item.estrelas_final || 3,
                     observacoes: item.observacoes || ''
                 }))
             };
