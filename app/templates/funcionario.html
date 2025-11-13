@@ -187,7 +187,7 @@
         }
 
         async function carregarEmpresas() {
-            const response = await fetchAPI('/api/fornecedores');
+            const response = await fetchAPI('/fornecedores');
             const empresas = await response.json();
 
             const select = document.getElementById('empresaSelect');
@@ -196,7 +196,7 @@
         }
 
         async function carregarRelatorios() {
-            const response = await fetchAPI('/api/solicitacoes');
+            const response = await fetchAPI('/solicitacoes');
             const relatorios = await response.json();
 
             const tbody = document.getElementById('tabelaRelatorios');
@@ -250,7 +250,7 @@
             // Criar solicitação
             try {
                 const observacoes = document.getElementById('observacoesGerais').value;
-                const response = await fetchAPI('/api/solicitacoes', {
+                const response = await fetchAPI('/solicitacoes', {
                     method: 'POST',
                     body: JSON.stringify({
                         fornecedor_id: parseInt(fornecedorId),
@@ -309,7 +309,7 @@
             resultadoDiv.style.display = 'block';
 
             try {
-                const response = await fetchAPI('/api/placas/analisar', {
+                const response = await fetchAPI('/placas/analisar', {
                     method: 'POST',
                     body: formData
                 });
@@ -566,7 +566,7 @@
             showAlert('🤖 Analisando placa com IA...', 'info');
             
             try {
-                const response = await fetchAPI('/api/placas/analisar', {
+                const response = await fetchAPI('/placas/analisar', {
                     method: 'POST',
                     body: formData
                 });

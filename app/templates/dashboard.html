@@ -1733,7 +1733,7 @@
 
         async function carregarEmpresasScanner() {
             try {
-                const response = await fetchAPI('/api/fornecedores');
+                const response = await fetchAPI('/fornecedores');
                 if (!response || !response.ok) {
                     console.error('Erro ao carregar fornecedores para scanner');
                     return;
@@ -1770,7 +1770,7 @@
             resultadoDiv.style.display = 'block';
 
             try {
-                const response = await fetchAPI('/api/lotes/analisar', {
+                const response = await fetchAPI('/lotes/analisar', {
                     method: 'POST',
                     body: formData
                 });

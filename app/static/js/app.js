@@ -386,7 +386,7 @@ function closeScanner() {
 
 async function carregarEmpresasScanner() {
     try {
-        const response = await fetchAPI('/api/fornecedores');
+        const response = await fetchAPI('/fornecedores');
         if (!response) {
             console.error('Erro: Sem resposta do servidor');
             return;

@@ -345,7 +345,7 @@
 
         async function carregarSolicitacoes(status = '') {
             try {
-                let url = '/api/solicitacoes';
+                let url = '/solicitacoes';
                 if (status) url += `?status=${status}`;
                 
                 const response = await fetchAPI(url);
@@ -914,7 +914,7 @@
 
         async function carregarOCs(status = '') {
             try {
-                let url = '/api/ordens-compra';
+                let url = '/ordens-compra';
                 if (status) url += `?status=${status}`;
                 
                 const response = await fetchAPI(url);
