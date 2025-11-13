@@ -529,6 +529,13 @@ class ItemSolicitacao(db.Model):  # type: ignore
             raise ValueError('Estrelas deve estar entre 1 e 5')
         if 'classificacao' in kwargs and kwargs['classificacao'] and kwargs['classificacao'] not in ['leve', 'medio', 'pesado']:
             raise ValueError('Classificação deve ser: leve, medio ou pesado')
+        if 'valor_calculado' in kwargs and kwargs['valor_calculado'] is not None and kwargs['valor_calculado'] < 0:
+            raise ValueError('Valor calculado não pode ser negativo')
+        if 'peso_kg' in kwargs and (kwargs['peso_kg'] is None or kwargs['peso_kg'] <= 0):
+            raise ValueError('Peso deve ser maior que zero')
+        # Garantir que valor_calculado nunca seja None (usar 0.0 como padrão)
+        if 'valor_calculado' not in kwargs or kwargs['valor_calculado'] is None:
+            kwargs['valor_calculado'] = 0.0
         super().__init__(**kwargs)
     
     def to_dict(self):

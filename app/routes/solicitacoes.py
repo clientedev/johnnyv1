@@ -232,27 +232,44 @@ def aprovar_solicitacao(id):
         print(f"🔄 INICIANDO APROVAÇÃO DA SOLICITAÇÃO #{id}")
         print(f"{'='*60}")
         
-        solicitacao = Solicitacao.query.get(id)
+        usuario_id = get_jwt_identity()
+        data = request.get_json() or {}
+        
+        print(f"\n🔒 Adquirindo lock na solicitação...")
+        # Usar lock FOR UPDATE na solicitação para evitar condições de corrida
+        # Isso garante que apenas uma thread processe esta solicitação por vez
+        solicitacao = Solicitacao.query.filter_by(id=id).with_for_update().first()
         
         if not solicitacao:
             print(f"❌ Solicitação #{id} não encontrada")
             return jsonify({'erro': 'Solicitação não encontrada'}), 404
         
-        print(f"✅ Solicitação encontrada: #{solicitacao.id}")
+        print(f"✅ Lock adquirido: Solicitação #{solicitacao.id}")
         print(f"   Status atual: {solicitacao.status}")
         print(f"   Fornecedor: {solicitacao.fornecedor.nome if solicitacao.fornecedor else 'N/A'}")
         
+        # Verificar status após obter o lock
         if solicitacao.status != 'pendente':
-            print(f"❌ Status inválido para aprovação: {solicitacao.status}")
+            print(f"❌ Status inválido: {solicitacao.status}")
             return jsonify({'erro': f'Solicitação já foi processada (status: {solicitacao.status})'}), 400
         
+        # Verificar se tem itens
         if not solicitacao.itens or len(solicitacao.itens) == 0:
             print(f"❌ Solicitação sem itens")
             return jsonify({'erro': 'Solicitação não possui itens'}), 400
         
         print(f"✅ Solicitação possui {len(solicitacao.itens)} itens")
         
-        # Verificar OC existente ANTES de começar a transação
+        # Validar que todos os itens têm valores calculados (aceita zero, rejeita None e negativos)
+        itens_sem_preco = [item for item in solicitacao.itens if item.valor_calculado is None or item.valor_calculado < 0]
+        if itens_sem_preco:
+            print(f"❌ Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido")
+            return jsonify({
+                'erro': f'Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido. Configure os preços antes de aprovar.',
+                'itens_sem_preco': len(itens_sem_preco)
+            }), 400
+        
+        # Verificar se já existe OC (proteção adicional ao constraint do banco)
         oc_existente = OrdemCompra.query.filter_by(solicitacao_id=id).first()
         if oc_existente:
             print(f"⚠️ Já existe OC #{oc_existente.id} para esta solicitação")
@@ -260,9 +277,6 @@ def aprovar_solicitacao(id):
                 'erro': f'Já existe uma ordem de compra (#{oc_existente.id}) para esta solicitação',
                 'oc_id': oc_existente.id
             }), 400
-        
-        usuario_id = get_jwt_identity()
-        data = request.get_json() or {}
         
         print(f"\n📝 ETAPA 1: Atualizando status da solicitação...")
         # ETAPA 1: Aprovar a solicitação
@@ -312,6 +326,9 @@ def aprovar_solicitacao(id):
         # ETAPA 3: Criar OC
         valor_total_oc = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
         print(f"   Valor total calculado: R$ {valor_total_oc:.2f}")
+        
+        if valor_total_oc < 0:
+            raise ValueError('Valor total da OC não pode ser negativo')
         
         oc = OrdemCompra(
             solicitacao_id=id,
@@ -484,3 +501,94 @@ def deletar_solicitacao(id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': f'Erro ao deletar solicitação: {str(e)}'}), 500
+
+@bp.route('/debug/<int:id>', methods=['GET'])
+@admin_required
+def diagnostico_solicitacao(id):
+    """
+    Endpoint de diagnóstico para verificar o estado completo de uma solicitação
+    Retorna informações detalhadas sobre status, OC associada, valores e preços
+    """
+    try:
+        solicitacao = Solicitacao.query.get(id)
+        
+        if not solicitacao:
+            return jsonify({'erro': 'Solicitação não encontrada'}), 404
+        
+        # Verificar OC associada
+        oc = OrdemCompra.query.filter_by(solicitacao_id=id).first()
+        
+        # Analisar itens
+        itens_info = []
+        valor_total_calculado = 0.0
+        itens_com_problema = []
+        
+        for item in solicitacao.itens:
+            # Buscar preço configurado atual
+            preco_config = FornecedorTipoLotePreco.query.filter_by(
+                fornecedor_id=solicitacao.fornecedor_id,
+                tipo_lote_id=item.tipo_lote_id,
+                estrelas=item.estrelas_final,
+                ativo=True
+            ).first()
+            
+            item_dict = {
+                'id': item.id,
+                'tipo_lote_id': item.tipo_lote_id,
+                'tipo_lote_nome': item.tipo_lote.nome if item.tipo_lote else None,
+                'peso_kg': item.peso_kg,
+                'estrelas_final': item.estrelas_final,
+                'classificacao': item.classificacao,
+                'valor_calculado': item.valor_calculado,
+                'preco_por_kg_snapshot': item.preco_por_kg_snapshot,
+                'preco_atual_configurado': preco_config.preco_por_kg if preco_config else None,
+                'preco_config_existe': preco_config is not None,
+                'tem_problema': item.valor_calculado is None or item.valor_calculado < 0
+            }
+            
+            if item.valor_calculado is not None and item.valor_calculado >= 0:
+                valor_total_calculado += item.valor_calculado
+            else:
+                itens_com_problema.append(item.id)
+            
+            itens_info.append(item_dict)
+        
+        # Diagnóstico geral
+        diagnostico = {
+            'solicitacao': {
+                'id': solicitacao.id,
+                'status': solicitacao.status,
+                'fornecedor_id': solicitacao.fornecedor_id,
+                'fornecedor_nome': solicitacao.fornecedor.nome if solicitacao.fornecedor else None,
+                'data_envio': solicitacao.data_envio.isoformat() if solicitacao.data_envio else None,
+                'data_confirmacao': solicitacao.data_confirmacao.isoformat() if solicitacao.data_confirmacao else None,
+                'total_itens': len(solicitacao.itens)
+            },
+            'ordem_compra': {
+                'existe': oc is not None,
+                'id': oc.id if oc else None,
+                'valor_total': float(oc.valor_total) if oc else None,
+                'status': oc.status if oc else None
+            },
+            'itens': itens_info,
+            'analise': {
+                'valor_total_calculado': valor_total_calculado,
+                'itens_com_problema': len(itens_com_problema),
+                'ids_itens_problema': itens_com_problema,
+                'pode_aprovar': len(itens_com_problema) == 0 and solicitacao.status == 'pendente',
+                'motivo_bloqueio': None
+            }
+        }
+        
+        # Determinar motivo de bloqueio
+        if solicitacao.status != 'pendente':
+            diagnostico['analise']['motivo_bloqueio'] = f'Status não é pendente: {solicitacao.status}'
+        elif len(itens_com_problema) > 0:
+            diagnostico['analise']['motivo_bloqueio'] = f'{len(itens_com_problema)} itens sem preço válido'
+        elif oc:
+            diagnostico['analise']['motivo_bloqueio'] = f'Já existe OC #{oc.id} para esta solicitação'
+        
+        return jsonify(diagnostico), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao executar diagnóstico: {str(e)}'}), 500

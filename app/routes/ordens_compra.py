@@ -76,7 +76,19 @@ def criar_oc(sc_id):
         if not solicitacao.itens or len(solicitacao.itens) == 0:
             return jsonify({'erro': 'Solicitação não possui itens'}), 400
         
-        valor_total = sum(item.valor_calculado for item in solicitacao.itens)
+        # Validar que todos os itens têm preços válidos (aceita zero, rejeita None e negativos)
+        itens_invalidos = [item for item in solicitacao.itens if item.valor_calculado is None or item.valor_calculado < 0]
+        if itens_invalidos:
+            return jsonify({
+                'erro': f'Existem {len(itens_invalidos)} itens sem preço configurado ou com valor inválido',
+                'itens_invalidos': len(itens_invalidos)
+            }), 400
+        
+        # Calcular valor total tratando None como 0.0
+        valor_total = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
+        
+        if valor_total < 0:
+            return jsonify({'erro': 'Valor total da OC não pode ser negativo'}), 400
         
         data = request.get_json() or {}
         
