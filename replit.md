@@ -35,11 +35,14 @@ No specific user preferences were provided in the original document.
 - **RBAC System:** Implements a comprehensive Role-Based Access Control with 7 standard profiles (Administrator, Buyer, Inspector/Stock, Separation, Driver, Finance, Audit/BI).
 - **Advanced JWT Authentication:** Features access tokens (24-hour validity) and refresh tokens (30-day validity) with a refresh endpoint.
 - **Auditing System:** Automatically logs all critical actions, including creation, updates, deletions, and login attempts (success/failure), capturing IP, user agent, and detailed JSON data.
+- **Purchase Order (Ordem de Compra - OC) Module:** Complete workflow for generating purchase orders from approved requests with strict 1:1 relationship enforcement, RBAC controls, and comprehensive audit trails including GPS/IP/device metadata capture.
 - **Data Models:**
     - `TipoLote`: Configurable board types (up to 150), with name, code, description, unit of measure, and active status.
     - `FornecedorTipoLotePreco`: Price matrix (up to 750 points per supplier) defining price per kg for supplier/lot type/star combinations.
     - `Solicitacao`: Purchase requests including employee, supplier, pickup type, status, observations, and timestamps.
     - `ItemSolicitacao`: Individual request items detailing lot type, weight, AI-suggested stars, final stars, calculated value, image URL, and observations.
+    - `OrdemCompra`: Purchase orders generated from approved requests with 1:1 relationship to Solicitacao, tracking status (em_analise/aprovada/rejeitada/cancelada), approver, total value, and telemetry metadata (IP, GPS coordinates, device info).
+    - `AuditoriaOC`: Comprehensive audit trail for purchase orders, logging all status changes, approvals, rejections, cancellations with full metadata capture (user, timestamps, before/after status, IP, GPS, user agent).
     - `Lote`: Grouping of items by supplier/type/stars with unique tracking number, total weight/value, quantity, average stars, and status.
     - `EntradaEstoque`: Final inventory entries linked to lots, with status, entry/processing dates, and admin details.
     - `Perfil (Role)`: Defines system roles with configurable JSON permissions.
