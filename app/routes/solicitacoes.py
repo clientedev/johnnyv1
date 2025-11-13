@@ -103,8 +103,17 @@ def criar_solicitacao():
         db.session.add(solicitacao)
         db.session.commit()
         
+        print(f"\n{'='*60}")
+        print(f"🆕 NOVA SOLICITAÇÃO #{solicitacao.id} CRIADA")
+        print(f"   Fornecedor: {fornecedor.nome}")
+        print(f"   Total de itens: {len(data.get('itens', []))}")
+        print(f"{'='*60}")
+        
         if 'itens' in data and isinstance(data['itens'], list):
             for item_data in data['itens']:
+                print(f"\n📦 Dados recebidos do frontend:")
+                print(f"   {item_data}")
+                
                 tipo_lote_id = item_data.get('tipo_lote_id')
                 peso_kg = item_data.get('peso_kg', 0)
                 classificacao = item_data.get('classificacao', 'medio')
