@@ -286,8 +286,8 @@ def aprovar_solicitacao(id):
         
         print(f"✅ Todas as validações passaram!")
         
-        # FASE 2: TRANSAÇÃO ATÔMICA - TUDO OU NADA
-        print(f"\n💾 FASE 2: Iniciando transação atômica...")
+        # FASE 2: ATUALIZAÇÃO E CRIAÇÃO - SEM TRANSAÇÃO ANINHADA
+        print(f"\n💾 FASE 2: Salvando alterações no banco...")
         
         print(f"\n📝 ETAPA 1: Atualizando status da solicitação...")
         solicitacao.status = 'aprovada'
@@ -295,7 +295,7 @@ def aprovar_solicitacao(id):
         solicitacao.admin_id = usuario_id
         print(f"✅ Status atualizado para: aprovada")
         
-        print(f"\n💰 ETAPA 2: Criando Ordem de Compra PRIMEIRO...")
+        print(f"\n💰 ETAPA 2: Criando Ordem de Compra...")
         oc = OrdemCompra(
             solicitacao_id=id,
             fornecedor_id=solicitacao.fornecedor_id,
@@ -364,9 +364,20 @@ def aprovar_solicitacao(id):
         )
         print(f"✅ Auditoria registrada")
         
-        # COMMIT INTERMEDIÁRIO para garantir que a OC seja salva
+        # COMMIT PRINCIPAL - Salvar tudo de uma vez
+        print(f"\n💾 Salvando TODAS as alterações no banco...")
         db.session.commit()
-        print(f"💾 OC e auditoria salvas no banco de dados")
+        print(f"✅ COMMIT REALIZADO - Dados persistidos no banco")
+        
+        # Verificar se OC foi realmente salva
+        print(f"\n🔍 VERIFICAÇÃO: Consultando OC no banco...")
+        oc_verificacao = OrdemCompra.query.filter_by(id=oc.id).first()
+        if oc_verificacao:
+            print(f"   ✅ OC #{oc_verificacao.id} CONFIRMADA no banco de dados")
+            print(f"      Solicitação ID: {oc_verificacao.solicitacao_id}")
+            print(f"      Valor: R$ {oc_verificacao.valor_total:.2f}")
+        else:
+            print(f"   ❌ ERRO CRÍTICO: OC NÃO encontrada no banco após commit!")
         
         print(f"\n🔔 ETAPA 5: Criando notificações...")
         notificacao_funcionario = Notificacao(
