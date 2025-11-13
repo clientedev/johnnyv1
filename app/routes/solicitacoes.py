@@ -295,7 +295,23 @@ def aprovar_solicitacao(id):
         solicitacao.admin_id = usuario_id
         print(f"✅ Status atualizado para: aprovada")
         
-        print(f"\n📦 ETAPA 2: Criando lotes...")
+        print(f"\n💰 ETAPA 2: Criando Ordem de Compra PRIMEIRO...")
+        oc = OrdemCompra(
+            solicitacao_id=id,
+            fornecedor_id=solicitacao.fornecedor_id,
+            valor_total=valor_total_oc,
+            status='em_analise',
+            criado_por=usuario_id,
+            observacao=data.get('observacao', f'OC gerada automaticamente pela aprovação da solicitação #{id}')
+        )
+        db.session.add(oc)
+        db.session.flush()
+        
+        print(f"✅ OC #{oc.id} criada com sucesso")
+        print(f"   Status: {oc.status}")
+        print(f"   Valor: R$ {oc.valor_total:.2f}")
+        
+        print(f"\n📦 ETAPA 3: Criando lotes...")
         lotes_por_tipo = {}
         for item in solicitacao.itens:
             chave = (item.tipo_lote_id, item.estrelas_final)
@@ -330,23 +346,7 @@ def aprovar_solicitacao(id):
         
         print(f"✅ {len(lotes_criados)} lote(s) criado(s): {', '.join(lotes_criados)}")
         
-        print(f"\n💰 ETAPA 3: Criando Ordem de Compra...")
-        oc = OrdemCompra(
-            solicitacao_id=id,
-            fornecedor_id=solicitacao.fornecedor_id,
-            valor_total=valor_total_oc,
-            status='em_analise',
-            criado_por=usuario_id,
-            observacao=data.get('observacao', f'OC gerada automaticamente pela aprovação da solicitação #{id}')
-        )
-        db.session.add(oc)
-        db.session.flush()
-        
-        print(f"✅ OC #{oc.id} criada com sucesso")
-        print(f"   Status: {oc.status}")
-        print(f"   Valor: R$ {oc.valor_total:.2f}")
-        
-        print(f"\n📋 ETAPA 4: Registrando auditoria...")
+        print(f"\n📋 ETAPA 4: Registrando auditoria da OC...")
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         gps = data.get('gps')
         dispositivo = request.headers.get('User-Agent', '')
@@ -368,15 +368,19 @@ def aprovar_solicitacao(id):
         notificacao_funcionario = Notificacao(
             usuario_id=solicitacao.funcionario_id,
             titulo='Solicitação Aprovada',
-            mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada, os lotes foram criados e a Ordem de Compra #{oc.id} foi gerada automaticamente.'
+            mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada! OC #{oc.id} criada (R$ {oc.valor_total:.2f}) e {len(lotes_criados)} lote(s) gerado(s).'
         )
         db.session.add(notificacao_funcionario)
         print(f"   ✅ Notificação para funcionário criada")
         
-        usuarios_financeiro = Usuario.query.join(Perfil).filter(
-            db.or_(
-                Usuario.tipo == 'admin',
-                Perfil.nome.in_(['Administrador', 'Financeiro'])
+        # Buscar usuários do financeiro e administradores
+        usuarios_financeiro = Usuario.query.filter(
+            db.and_(
+                Usuario.ativo == True,
+                db.or_(
+                    Usuario.tipo == 'admin',
+                    Usuario.perfil.has(Perfil.nome.in_(['Administrador', 'Financeiro']))
+                )
             )
         ).all()
         
@@ -385,8 +389,8 @@ def aprovar_solicitacao(id):
             if usuario_fin.id not in usuarios_ids_notificados and usuario_fin.id != solicitacao.funcionario_id:
                 notificacao_financeiro = Notificacao(
                     usuario_id=usuario_fin.id,
-                    titulo='Nova Ordem de Compra',
-                    mensagem=f'Nova Ordem de Compra #{oc.id} criada automaticamente e aguardando aprovação (Solicitação #{solicitacao.id}).'
+                    titulo='Nova Ordem de Compra - Aprovação Pendente',
+                    mensagem=f'OC #{oc.id} gerada (R$ {oc.valor_total:.2f}) da Solicitação #{solicitacao.id} - Fornecedor: {solicitacao.fornecedor.nome}. Aguardando sua aprovação!'
                 )
                 db.session.add(notificacao_financeiro)
                 usuarios_ids_notificados.add(usuario_fin.id)
@@ -400,8 +404,21 @@ def aprovar_solicitacao(id):
         # FASE 3: EFEITOS COLATERAIS (após commit bem-sucedido)
         print(f"\n📡 FASE 3: Enviando notificações WebSocket...")
         try:
-            socketio.emit('nova_notificacao', {'tipo': 'solicitacao_aprovada', 'solicitacao_id': id}, room='funcionarios')
-            socketio.emit('nova_notificacao', {'tipo': 'nova_oc', 'oc_id': oc.id}, room='admins')
+            socketio.emit('nova_notificacao', {
+                'tipo': 'solicitacao_aprovada',
+                'solicitacao_id': id,
+                'oc_id': oc.id,
+                'valor_total': float(oc.valor_total)
+            }, room='funcionarios')
+            
+            socketio.emit('nova_notificacao', {
+                'tipo': 'nova_oc',
+                'oc_id': oc.id,
+                'solicitacao_id': id,
+                'valor_total': float(oc.valor_total),
+                'fornecedor': solicitacao.fornecedor.nome
+            }, room='admins')
+            
             print(f"✅ Notificações WebSocket enviadas")
         except Exception as ws_error:
             print(f"⚠️ Erro ao enviar WebSocket (não crítico): {str(ws_error)}")
