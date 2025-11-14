@@ -132,7 +132,7 @@
                             </thead>
                             <tbody>
                                 <tr style="border-bottom: 1px solid #e5e7eb;">
-                                    <td style="padding: 0.75rem; font-weight: 600; color: #059669;">🪶 Leve</td>
+                                    <td style="padding: 0.75rem; font-weight: 600; color: #059669;">Leve</td>
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_leve_1" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_leve_2" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_leve_3" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
@@ -210,9 +210,9 @@
                     precosInfo = '<div style="font-size: 0.85rem;">';
                     ['leve', 'medio', 'pesado'].forEach(classif => {
                         if (precos[classif]) {
-                            const icone = classif === 'leve' ? '🪶' : classif === 'medio' ? '' : '';
                             const estrelas = Object.keys(precos[classif]).length;
-                            precosInfo += `<span style="margin-right: 1rem;">${icone} ${estrelas} preços</span>`;
+                            const nome = classif.charAt(0).toUpperCase() + classif.slice(1);
+                            precosInfo += `<span style="margin-right: 1rem;">${nome}: ${estrelas} preços</span>`;
                         }
                     });
                     precosInfo += '</div>';

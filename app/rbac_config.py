@@ -39,18 +39,10 @@ PERFIL_CONFIG = {
             '/funcionarios.html'
         ],
         'menus': [
+            {'id': 'usuarios', 'nome': 'Admin', 'url': '/administracao.html', 'icone': 'settings'},
             {'id': 'dashboard', 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'dashboard'},
-            {'id': 'usuarios', 'nome': 'Usuários', 'url': '/usuarios.html', 'icone': 'people'},
-            {'id': 'perfis', 'nome': 'Perfis', 'url': '/perfis.html', 'icone': 'security'},
-            {'id': 'fornecedores', 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'business'},
-            {'id': 'produtos', 'nome': 'Produtos', 'url': '/produtos.html', 'icone': 'inventory'},
             {'id': 'solicitacoes', 'nome': 'Solicitações', 'url': '/solicitacoes.html', 'icone': 'request_quote'},
-            {'id': 'lotes', 'nome': 'Lotes', 'url': '/lotes.html', 'icone': 'inventory_2'},
-            {'id': 'estoque', 'nome': 'Estoque', 'url': '/estoque.html', 'icone': 'warehouse'},
-            {'id': 'veiculos', 'nome': 'Veículos', 'url': '/veiculos.html', 'icone': 'local_shipping'},
-            {'id': 'motoristas', 'nome': 'Motoristas', 'url': '/motoristas.html', 'icone': 'badge'},
-            {'id': 'financeiro', 'nome': 'Financeiro', 'url': '/financeiro.html', 'icone': 'payments'},
-            {'id': 'auditoria', 'nome': 'Auditoria', 'url': '/auditoria.html', 'icone': 'verified'}
+            {'id': 'fornecedores', 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'business'}
         ]
     },
     'Comprador (PJ)': {
