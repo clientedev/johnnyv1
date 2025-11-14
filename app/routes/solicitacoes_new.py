@@ -245,7 +245,7 @@ def aprovar_solicitacao(id):
         print(f"{'='*60}")
         
         usuario_id = get_jwt_identity()
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         
         print(f"\n🔍 FASE 1: Validações preliminares (SEM modificar dados)...")
         
