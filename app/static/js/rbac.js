@@ -135,8 +135,8 @@ function renderizarMenusMobile(containerId = 'navMenuMobile') {
         a.appendChild(span);
         container.appendChild(a);
 
-        // Adicionar FAB button após o primeiro item de menu
-        if (index === 0) {
+        // Adicionar FAB button após o segundo item de menu (Dashboard)
+        if (index === 1) {
             const fabContainer = document.createElement('div');
             fabContainer.className = 'fab-container';
             
