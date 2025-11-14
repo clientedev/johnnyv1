@@ -301,8 +301,19 @@
                 if (response && response.ok) {
                     todosTiposLote = await response.json();
                     
+                    console.log('Tipos de lote recebidos do servidor:', todosTiposLote);
+                    
+                    // Verificar se há tipos de lote configurados
+                    if (!todosTiposLote || todosTiposLote.length === 0) {
+                        showAlert('Este fornecedor não tem tipos de lote configurados. Configure os tipos de lote para este fornecedor antes de criar uma solicitação.', 'error');
+                        precosFornecedorSelecionado = {};
+                        return;
+                    }
+                    
                     // Montar estrutura de preços para cálculo rápido
                     precosFornecedorSelecionado = {};
+                    let temPrecos = false;
+                    
                     todosTiposLote.forEach(tipo => {
                         if (tipo.precos_por_classificacao) {
                             Object.keys(tipo.precos_por_classificacao).forEach(classificacao => {
@@ -312,15 +323,29 @@
                                     preco_por_kg: preco.preco_por_kg,
                                     estrelas: preco.estrelas
                                 };
+                                temPrecos = true;
                             });
                         }
                     });
                     
+                    // Verificar se há preços configurados
+                    if (!temPrecos) {
+                        showAlert('Este fornecedor não tem preços configurados para os tipos de lote. Configure os preços antes de criar uma solicitação.', 'error');
+                        precosFornecedorSelecionado = {};
+                        todosTiposLote = [];
+                        return;
+                    }
+                    
                     console.log('Tipos de lote carregados:', todosTiposLote);
                     console.log('Preços por classificação:', precosFornecedorSelecionado);
+                } else {
+                    showAlert('Erro ao carregar tipos de lote do fornecedor', 'error');
+                    precosFornecedorSelecionado = {};
+                    todosTiposLote = [];
                 }
             } catch (error) {
                 console.error('Erro ao carregar tipos de lote:', error);
+                showAlert('Erro ao carregar configurações do fornecedor', 'error');
                 precosFornecedorSelecionado = {};
                 todosTiposLote = [];
             }
@@ -399,8 +424,13 @@
                 return;
             }
 
+            if (!todosTiposLote || todosTiposLote.length === 0) {
+                showAlert('Este fornecedor não tem tipos de lote configurados. Por favor, configure os tipos de lote para este fornecedor.', 'error');
+                return;
+            }
+
             if (Object.keys(precosFornecedorSelecionado).length === 0) {
-                showAlert('Este fornecedor não tem preços configurados', 'error');
+                showAlert('Este fornecedor não tem preços configurados. Por favor, configure os preços para os tipos de lote deste fornecedor.', 'error');
                 return;
             }
 
