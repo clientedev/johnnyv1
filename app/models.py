@@ -865,7 +865,7 @@ class AuditoriaOC(db.Model):  # type: ignore
     observacao = db.Column(db.Text)
     ip = db.Column(db.String(50))
     gps = db.Column(db.String(100))
-    dispositivo = db.Column(db.String(100))
+    dispositivo = db.Column(db.String(500))
     data = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     
     usuario = db.relationship('Usuario', backref='auditorias_oc', foreign_keys=[usuario_id])
