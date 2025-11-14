@@ -635,12 +635,7 @@ def listar_tipos_lote_fornecedor(fornecedor_id):
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
         
         print(f"   Fornecedor: {fornecedor.nome}")
-        
-        if not verificar_acesso_fornecedor(fornecedor_id, usuario_id):
-            print(f"   ❌ Sem permissão de acesso")
-            return jsonify({'erro': 'Você não tem permissão para acessar este fornecedor'}), 403
-        
-        print(f"   ✅ Acesso autorizado")
+        print(f"   ✅ Acesso autorizado (endpoint de consulta pública para criação de solicitações)")
         
         # Buscar configurações de classificação do fornecedor (novo schema)
         from app.models import FornecedorTipoLoteClassificacao, TipoLotePreco

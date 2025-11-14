@@ -568,7 +568,8 @@
                     });
                 }
                 
-                await carregarTiposLoteNoFormulario(tiposSelecionados);
+                // Não carregar tipos de lote ao editar (apenas ao criar novo)
+                // await carregarTiposLoteNoFormulario(tiposSelecionados);
 
                 document.getElementById('dadosCNPJ').style.display = 'block';
                 document.getElementById('modalFornecedor').classList.add('active');
