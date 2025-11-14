@@ -283,13 +283,18 @@
 
         async function carregarTiposLoteNoFormulario(tiposJaSelecionados = {}) {
             try {
+                console.log('🔍 Iniciando carregamento de tipos de lote...');
                 const response = await fetchAPI('/tipos-lote');
+                console.log('📥 Resposta recebida:', response);
+                
                 if (!response || !response.ok) {
+                    console.error('❌ Erro na resposta:', response ? response.status : 'null');
                     document.getElementById('selecionarTiposLote').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar tipos de lote.</p>';
                     return;
                 }
                 
                 const tiposLote = await response.json();
+                console.log('📦 Tipos de lote carregados:', tiposLote.length);
                 
                 if (tiposLote.length === 0) {
                     document.getElementById('selecionarTiposLote').innerHTML = '<p style="text-align: center; color: #666;">Nenhum tipo de lote cadastrado. <a href="/tipos-lote.html">Cadastre aqui</a></p>';
