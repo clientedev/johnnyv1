@@ -5,6 +5,37 @@ The MRX System is a comprehensive solution for managing the procurement of elect
 
 ## Recent Changes
 
+### November 14, 2025 - Critical Fix: Automatic OC Generation on Approval
+**Problem:** When approving purchase requests (Solicitações), the system was only updating the status to "approved" but NOT creating the corresponding Purchase Order (Ordem de Compra), lots, audit records, or notifications.
+
+**Root Cause:** The system had duplicate approval endpoints:
+- `solicitacoes.py` (legacy, not in use): contained full OC creation logic
+- `solicitacoes_new.py` (active): only changed status without creating OC
+
+Additionally, the approval endpoint was failing with "400 Bad Request" when the frontend sent requests without a JSON body.
+
+**Solution:**
+1. **Consolidated approval logic:** Replaced the simplified approval function in `solicitacoes_new.py` with the complete version that:
+   - Creates Purchase Order (OC) automatically with status "em_analise"
+   - Generates lots grouped by type and star rating
+   - Registers comprehensive audit trail
+   - Creates notifications for employees and finance team
+   - Emits real-time WebSocket events
+
+2. **Fixed 400 Bad Request error:** Changed `request.get_json()` to `request.get_json(silent=True)` to handle empty request bodies gracefully.
+
+3. **Retroactive data correction:** Created missing OC #3 (R$ 1,221.00) for previously approved request #2.
+
+**Testing:** End-to-end approval test confirmed:
+- ✅ OC #4 created successfully (R$ 9,768.00) for request #3
+- ✅ Lot created and linked (94670294-6F88-43AA-8DAC-78DC9594BFEC)
+- ✅ Audit records registered
+- ✅ Notifications created (3 total)
+- ✅ WebSocket events emitted
+- ✅ All data persisted correctly
+
+**Impact:** The complete approval workflow is now fully operational. Approving any purchase request will automatically trigger the entire OC creation pipeline.
+
 ### November 13, 2025 - Critical Bug Fix: API URL Duplication
 **Problem:** Solicitações de Compra and Ordens de Compra tables were displaying "Erro ao carregar solicitações" and "Erro ao carregar ordens de compra" instead of loading data.
 
