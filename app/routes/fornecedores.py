@@ -623,13 +623,24 @@ def listar_tipos_lote_fornecedor(fornecedor_id):
     try:
         usuario_id = get_jwt_identity()
         
+        print(f"\n{'='*60}")
+        print(f" ENDPOINT: /api/fornecedores/{fornecedor_id}/tipos-lote")
+        print(f"{'='*60}")
+        print(f"   Usuário ID: {usuario_id}")
+        
         fornecedor = Fornecedor.query.get(fornecedor_id)
         
         if not fornecedor:
+            print(f"   ❌ Fornecedor não encontrado")
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
         
+        print(f"   Fornecedor: {fornecedor.nome}")
+        
         if not verificar_acesso_fornecedor(fornecedor_id, usuario_id):
+            print(f"   ❌ Sem permissão de acesso")
             return jsonify({'erro': 'Você não tem permissão para acessar este fornecedor'}), 403
+        
+        print(f"   ✅ Acesso autorizado")
         
         # Buscar configurações de classificação do fornecedor (novo schema)
         from app.models import FornecedorTipoLoteClassificacao, TipoLotePreco
@@ -639,11 +650,16 @@ def listar_tipos_lote_fornecedor(fornecedor_id):
             ativo=True
         ).all()
         
+        print(f"   Total de configs encontradas: {len(configs)}")
+        
         resultado = []
         for config in configs:
             tipo_lote = config.tipo_lote
             if not tipo_lote:
+                print(f"   ⚠️ Config sem tipo_lote associado")
                 continue
+            
+            print(f"\n   Processando tipo lote: {tipo_lote.nome} (ID: {tipo_lote.id})")
             
             tipo_dict = tipo_lote.to_dict()
             
@@ -654,11 +670,15 @@ def listar_tipos_lote_fornecedor(fornecedor_id):
                 'pesado': config.pesado_estrelas
             }
             
+            print(f"   Estrelas configuradas: L={config.leve_estrelas}, M={config.medio_estrelas}, P={config.pesado_estrelas}")
+            
             # Buscar preços para cada classificação baseado nas estrelas
             tipo_dict['precos_por_classificacao'] = {}
             
             for classificacao in ['leve', 'medio', 'pesado']:
                 estrelas = config.get_estrelas_por_classificacao(classificacao)
+                
+                print(f"   Buscando preço: classificacao={classificacao}, estrelas={estrelas}")
                 
                 # Buscar preço do tipo de lote para esta classificação+estrelas
                 preco = TipoLotePreco.query.filter_by(
@@ -673,12 +693,22 @@ def listar_tipos_lote_fornecedor(fornecedor_id):
                         'estrelas': estrelas,
                         'preco_por_kg': preco.preco_por_kg
                     }
+                    print(f"   ✅ Preço encontrado: R$ {preco.preco_por_kg}/kg")
+                else:
+                    print(f"   ❌ Preço NÃO encontrado")
             
             resultado.append(tipo_dict)
+        
+        print(f"\n   Total de tipos de lote retornados: {len(resultado)}")
+        print(f"{'='*60}\n")
         
         return jsonify(resultado), 200
     
     except Exception as e:
+        print(f"   ❌ ERRO: {str(e)}")
+        print(f"{'='*60}\n")
+        import traceback
+        traceback.print_exc()
         return jsonify({'erro': f'Erro ao listar tipos de lote: {str(e)}'}), 500
 
 @bp.route('/consultar-cnpj/<string:cnpj>', methods=['GET'])
