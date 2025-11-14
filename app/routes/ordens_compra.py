@@ -192,7 +192,7 @@ def obter_oc(oc_id):
         return jsonify({'erro': f'Erro ao obter ordem de compra: {str(e)}'}), 500
 
 @bp.route('/<int:oc_id>/aprovar', methods=['PATCH'])
-@jwt_required()
+@admin_required
 def aprovar_oc(oc_id):
     try:
         usuario_id = get_jwt_identity()
@@ -253,7 +253,7 @@ def aprovar_oc(oc_id):
         return jsonify({'erro': f'Erro ao aprovar ordem de compra: {str(e)}'}), 500
 
 @bp.route('/<int:oc_id>/reprovar', methods=['PATCH'])
-@jwt_required()
+@admin_required
 def reprovar_oc(oc_id):
     try:
         usuario_id = get_jwt_identity()

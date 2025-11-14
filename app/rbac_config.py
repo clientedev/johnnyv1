@@ -57,10 +57,10 @@ PERFIL_CONFIG = {
         'tela_inicial': '/solicitacoes.html',
         'rotas_api_permitidas': [
             '/api/solicitacoes',
-            '/api/fornecedores'
+            '/api/fornecedores',
+            '/api/notificacoes'
         ],
         'paginas_permitidas': [
-            '/dashboard.html',
             '/solicitacoes.html',
             '/fornecedores.html',
             '/fornecedores-lista.html',
@@ -68,10 +68,8 @@ PERFIL_CONFIG = {
             '/compras.html'
         ],
         'menus': [
-            {'id': 'solicitacoes', 'nome': 'Minhas Solicitações', 'url': '/solicitacoes.html', 'icone': 'request_quote'},
-            {'id': 'compras', 'nome': 'Compras', 'url': '/compras.html', 'icone': 'add_circle'},
-            {'id': 'fornecedores', 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'business'},
-            {'id': 'dashboard', 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'dashboard'}
+            {'id': 'solicitacoes', 'nome': 'Solicitações', 'url': '/solicitacoes.html', 'icone': 'request_quote'},
+            {'id': 'fornecedores', 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'business'}
         ]
     },
     'Conferente / Estoque': {
