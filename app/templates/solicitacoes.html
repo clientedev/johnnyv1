@@ -289,21 +289,37 @@
 
         async function carregarPrecosFornecedor() {
             const fornecedorId = document.getElementById('fornecedorSolicitacao').value;
+            
+            console.log('🔍 carregarPrecosFornecedor chamada. Fornecedor ID:', fornecedorId);
+            
             if (!fornecedorId) {
+                console.log('⚠️ Nenhum fornecedor selecionado');
                 precosFornecedorSelecionado = {};
                 todosTiposLote = [];
                 return;
             }
 
             try {
+                const url = `/api/fornecedores/${fornecedorId}/tipos-lote`;
+                console.log('📡 Fazendo chamada para:', url);
+                
                 // Buscar tipos de lote do fornecedor com preços por classificação
-                const response = await fetchAPI(`/api/fornecedores/${fornecedorId}/tipos-lote`);
+                const response = await fetchAPI(url);
+                
+                console.log('📥 Resposta recebida:', response);
+                
                 if (response && response.ok) {
                     todosTiposLote = await response.json();
+                    
+                    console.log('✅ Tipos de lote recebidos:', todosTiposLote);
+                    console.log('📊 Total de tipos:', todosTiposLote.length);
                     
                     // Montar estrutura de preços para cálculo rápido
                     precosFornecedorSelecionado = {};
                     todosTiposLote.forEach(tipo => {
+                        console.log(`  Processando tipo: ${tipo.nome} (ID: ${tipo.id})`);
+                        console.log(`  Preços disponíveis:`, tipo.precos_por_classificacao);
+                        
                         if (tipo.precos_por_classificacao) {
                             Object.keys(tipo.precos_por_classificacao).forEach(classificacao => {
                                 const preco = tipo.precos_por_classificacao[classificacao];
@@ -312,15 +328,27 @@
                                     preco_por_kg: preco.preco_por_kg,
                                     estrelas: preco.estrelas
                                 };
+                                console.log(`    ✓ ${key} -> R$ ${preco.preco_por_kg}/kg (${preco.estrelas} estrelas)`);
                             });
+                        } else {
+                            console.log(`    ⚠️ Sem preços por classificação`);
                         }
                     });
                     
-                    console.log('Tipos de lote carregados:', todosTiposLote);
-                    console.log('Preços por classificação:', precosFornecedorSelecionado);
+                    console.log('💰 Estrutura final de preços:', precosFornecedorSelecionado);
+                    console.log('📦 Total de combinações de preços:', Object.keys(precosFornecedorSelecionado).length);
+                } else {
+                    console.error('❌ Resposta não OK:', response ? response.status : 'null');
+                    if (response) {
+                        const errorText = await response.text();
+                        console.error('Erro do servidor:', errorText);
+                    }
+                    precosFornecedorSelecionado = {};
+                    todosTiposLote = [];
                 }
             } catch (error) {
-                console.error('Erro ao carregar tipos de lote:', error);
+                console.error('❌ Erro ao carregar tipos de lote:', error);
+                console.error('Stack trace:', error.stack);
                 precosFornecedorSelecionado = {};
                 todosTiposLote = [];
             }
