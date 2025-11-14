@@ -48,4 +48,4 @@ def criar_produtos_exemplo():
     
     if count > 0:
         db.session.commit()
-        print(f"✅ {count} produtos de exemplo criados automaticamente!")
+        print(f" {count} produtos de exemplo criados automaticamente!")

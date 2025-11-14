@@ -228,13 +228,13 @@ function aplicarControleAcesso(user) {
     
     // Administrador tem acesso total
     if (user.tipo === 'admin' || user.perfil_nome === 'Administrador') {
-        console.log('✅ Usuário admin - acesso total');
+        console.log(' Usuário admin - acesso total');
         return;
     }
     
     const controlePorPerfil = {
         'Comprador (PJ)': {
-            paginasPermitidas: ['/dashboard.html', '/fornecedores.html', '/solicitacoes.html', '/notificacoes.html', '/index.html', '/'],
+            paginasPermitidas: ['/fornecedores.html', '/solicitacoes.html', '/notificacoes.html', '/index.html', '/'],
             modulosVisiveis: ['fornecedores', 'solicitacoes']
         },
         'Conferente / Estoque': {
@@ -262,14 +262,14 @@ function aplicarControleAcesso(user) {
     const controle = controlePorPerfil[user.perfil_nome];
     
     if (!controle) {
-        console.warn('⚠️ Perfil não mapeado:', user.perfil_nome);
+        console.warn(' Perfil não mapeado:', user.perfil_nome);
         console.log('Permitindo acesso ao dashboard...');
         return;
     }
     
     const paginaAtual = window.location.pathname;
-    console.log('📍 Página atual:', paginaAtual);
-    console.log('✅ Páginas permitidas:', controle.paginasPermitidas);
+    console.log(' Página atual:', paginaAtual);
+    console.log(' Páginas permitidas:', controle.paginasPermitidas);
     
     // Verificar se a página atual está na lista de permitidas
     const paginaPermitida = controle.paginasPermitidas.some(p => {
@@ -277,17 +277,16 @@ function aplicarControleAcesso(user) {
     });
     
     if (!paginaPermitida && paginaAtual !== '/' && paginaAtual !== '/index.html') {
-        console.warn('⛔ Acesso negado à página:', paginaAtual);
+        console.warn(' Acesso negado à página:', paginaAtual);
         showAlert(`Você não tem permissão para acessar esta página. Perfil: ${user.perfil_nome}`);
         setTimeout(() => {
-            window.location.href = '/dashboard.html';
+            window.location.href = user.tela_inicial || '/solicitacoes.html';
         }, 1500);
         return;
     }
     
-    console.log('✅ Acesso permitido - Perfil:', user.perfil_nome);
+    console.log(' Acesso permitido - Perfil:', user.perfil_nome);
     ocultarModulosNaoPermitidos(controle.modulosVisiveis);
-    ocultarItensMenuNaoPermitidos(controle.paginasPermitidasrmitidas);
 }
 
 function ocultarModulosNaoPermitidos(modulosVisiveis) {
@@ -304,16 +303,6 @@ function ocultarModulosNaoPermitidos(modulosVisiveis) {
         
         if (!visivel) {
             modulo.style.display = 'none';
-        }
-    });
-}
-
-function ocultarItensMenuNaoPermitidos(paginasPermitidas) {
-    const itensMenu = document.querySelectorAll('.bottom-nav-item');
-    itensMenu.forEach(item => {
-        const href = item.getAttribute('href');
-        if (href && !paginasPermitidas.includes(href) && href !== '/dashboard.html') {
-            item.style.display = 'none';
         }
     });
 }
@@ -454,7 +443,7 @@ async function obterLocalizacaoAutomatica() {
                         endereco: enderecoCompleto
                     };
                     
-                    console.log('📍 Localização obtida:', enderecoCompleto);
+                    console.log(' Localização obtida:', enderecoCompleto);
                     resolve(currentLocationData);
                 } else {
                     currentLocationData = {
@@ -516,7 +505,7 @@ async function capturarLocalizacaoScanner() {
             locationInfo.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${location.endereco}`;
             locationInfo.style.display = 'block';
         }
-        showAlert('📍 Localização capturada com sucesso!', 'success');
+        showAlert(' Localização capturada com sucesso!', 'success');
         if (btn) {
             btn.innerHTML = '<i class="fas fa-check"></i> Localização Capturada';
         }

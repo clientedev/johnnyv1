@@ -6,6 +6,7 @@
     <title>Dashboard - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -389,28 +390,8 @@
     </header>
 
     <!-- Bottom Navigation (Mobile) -->
-    <nav class="bottom-nav">
-        <a href="/administracao.html" class="bottom-nav-item">
-            <i class="fas fa-cog icon"></i>
-            <span>Admin</span>
-        </a>
-        <a href="/dashboard.html" class="bottom-nav-item active">
-            <i class="fas fa-chart-line icon"></i>
-            <span>Dashboard</span>
-        </a>
-        <div class="fab-container">
-            <button class="fab-button" onclick="window.location.href='/solicitacoes.html'" aria-label="Nova Solicitação">
-                <i class="fas fa-plus icon"></i>
-            </button>
-        </div>
-        <a href="/solicitacoes.html" class="bottom-nav-item">
-            <i class="fas fa-file-alt icon"></i>
-            <span>Solicitações</span>
-        </a>
-        <a href="/fornecedores.html" class="bottom-nav-item">
-            <i class="fas fa-building icon"></i>
-            <span>Fornecedores</span>
-        </a>
+    <nav class="bottom-nav" id="navMenuMobile">
+        <!-- Menus serão renderizados dinamicamente pelo RBAC -->
     </nav>
 
     <!-- Scanner Modal -->
@@ -444,7 +425,7 @@
                         <option value="media">Média</option>
                     </select>
                     <button type="button" class="btn btn-secondary w-full" onclick="analisarLoteComIA()" style="margin-top: 0.5rem;">
-                        🤖 Analisar com IA Gemini
+                         Analisar com IA Gemini
                     </button>
                     <div id="resultadoAnaliseIA" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #ecfdf5; border-radius: 6px; font-size: 0.85rem; color: #065f46;"></div>
                 </div>
@@ -561,6 +542,8 @@
     </main>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/rbac.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
         let currentModule = 'geral';
@@ -1766,7 +1749,7 @@
             formData.append('imagem', fotoInput.files[0]);
 
             const resultadoDiv = document.getElementById('resultadoAnaliseIA');
-            resultadoDiv.innerHTML = '🔄 Analisando com IA Gemini...';
+            resultadoDiv.innerHTML = ' Analisando com IA Gemini...';
             resultadoDiv.style.display = 'block';
 
             try {
@@ -1778,18 +1761,18 @@
                 if (response && response.ok) {
                     const resultado = await response.json();
                     document.getElementById('tipoLote').value = resultado.classificacao;
-                    resultadoDiv.innerHTML = `✅ ${resultado.mensagem}`;
+                    resultadoDiv.innerHTML = ` ${resultado.mensagem}`;
                     resultadoDiv.style.background = '#ecfdf5';
                     resultadoDiv.style.color = '#065f46';
                 } else {
                     const error = response ? await response.json() : {erro: 'Erro de conexão'};
-                    resultadoDiv.innerHTML = `❌ ${error.erro || 'Erro ao analisar'}`;
+                    resultadoDiv.innerHTML = ` ${error.erro || 'Erro ao analisar'}`;
                     resultadoDiv.style.background = '#fee2e2';
                     resultadoDiv.style.color = '#991b1b';
                 }
             } catch (error) {
                 console.error('Erro:', error);
-                resultadoDiv.innerHTML = '❌ Erro ao analisar. Tente novamente.';
+                resultadoDiv.innerHTML = ' Erro ao analisar. Tente novamente.';
                 resultadoDiv.style.background = '#fee2e2';
                 resultadoDiv.style.color = '#991b1b';
             }

@@ -112,7 +112,7 @@
                 <!-- Grid de Preços 3x5 -->
                 <div style="background: #f0fdf4; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #10b981;">
                     <h4 style="margin: 0 0 1rem 0; color: #047857;">
-                        💰 Tabela de Preços por Classificação e Estrelas (R$/kg)
+                         Tabela de Preços por Classificação e Estrelas (R$/kg)
                     </h4>
                     <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280;">
                         Configure os 15 preços: 3 classificações × 5 estrelas cada
@@ -123,11 +123,11 @@
                             <thead>
                                 <tr style="background: #059669; color: white;">
                                     <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Classificação</th>
-                                    <th style="padding: 0.75rem; text-align: center;">⭐ 1</th>
-                                    <th style="padding: 0.75rem; text-align: center;">⭐⭐ 2</th>
-                                    <th style="padding: 0.75rem; text-align: center;">⭐⭐⭐ 3</th>
-                                    <th style="padding: 0.75rem; text-align: center;">⭐⭐⭐⭐ 4</th>
-                                    <th style="padding: 0.75rem; text-align: center;">⭐⭐⭐⭐⭐ 5</th>
+                                    <th style="padding: 0.75rem; text-align: center;"> 1</th>
+                                    <th style="padding: 0.75rem; text-align: center;"> 2</th>
+                                    <th style="padding: 0.75rem; text-align: center;"> 3</th>
+                                    <th style="padding: 0.75rem; text-align: center;"> 4</th>
+                                    <th style="padding: 0.75rem; text-align: center;"> 5</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -140,7 +140,7 @@
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_leve_5" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid #e5e7eb;">
-                                    <td style="padding: 0.75rem; font-weight: 600; color: #f59e0b;">⚖️ Médio</td>
+                                    <td style="padding: 0.75rem; font-weight: 600; color: #f59e0b;"> Médio</td>
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_medio_1" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_medio_2" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_medio_3" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
@@ -148,7 +148,7 @@
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_medio_5" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 0.75rem; font-weight: 600; color: #ef4444;">⚓ Pesado</td>
+                                    <td style="padding: 0.75rem; font-weight: 600; color: #ef4444;"> Pesado</td>
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_pesado_1" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_pesado_2" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
                                     <td style="padding: 0.5rem;"><input type="number" id="preco_pesado_3" step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" required></td>
@@ -210,7 +210,7 @@
                     precosInfo = '<div style="font-size: 0.85rem;">';
                     ['leve', 'medio', 'pesado'].forEach(classif => {
                         if (precos[classif]) {
-                            const icone = classif === 'leve' ? '🪶' : classif === 'medio' ? '⚖️' : '⚓';
+                            const icone = classif === 'leve' ? '🪶' : classif === 'medio' ? '' : '';
                             const estrelas = Object.keys(precos[classif]).length;
                             precosInfo += `<span style="margin-right: 1rem;">${icone} ${estrelas} preços</span>`;
                         }

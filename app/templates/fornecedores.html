@@ -6,6 +6,7 @@
     <title>Fornecedores - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -72,14 +73,14 @@
                     <div style="display: flex; gap: 0.5rem;">
                         <input type="text" id="cnpj" placeholder="00.000.000/0000-00" style="flex: 1;">
                         <button type="button" class="btn btn-secondary" onclick="buscarCNPJ()" id="btnBuscarCNPJ">
-                            🔍 Buscar
+                             Buscar
                         </button>
                     </div>
                     <small style="color: #666;">Digite o CNPJ e clique em Buscar para preencher automaticamente</small>
                 </div>
 
                 <div id="dadosCNPJ" style="display: none; background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <h4 style="margin: 0 0 1rem 0; color: #0369a1;">📋 Dados da Receita Federal</h4>
+                    <h4 style="margin: 0 0 1rem 0; color: #0369a1;"> Dados da Receita Federal</h4>
                     
                     <div class="form-group">
                         <label>Nome / Razão Social</label>
@@ -133,13 +134,13 @@
                 <div class="form-group" style="margin-top: 1.5rem;">
                     <label style="display: flex; align-items: center; cursor: pointer;">
                         <input type="checkbox" id="temOutroEndereco" onchange="toggleEnderecoVisita()" style="margin-right: 0.5rem;">
-                        <strong>📍 Endereço para visita diferente do CNPJ cadastrado</strong>
+                        <strong> Endereço para visita diferente do CNPJ cadastrado</strong>
                     </label>
                     <small style="color: #666; margin-left: 1.5rem;">Marque se o local de coleta é diferente do endereço do CNPJ</small>
                 </div>
 
                 <div id="camposEnderecoVisita" style="display: none; background: #fef3c7; padding: 1rem; border-radius: 8px; margin-top: 0.5rem; border-left: 4px solid #f59e0b;">
-                    <h4 style="margin: 0 0 1rem 0; color: #92400e;">📌 Endereço de Visita/Coleta</h4>
+                    <h4 style="margin: 0 0 1rem 0; color: #92400e;"> Endereço de Visita/Coleta</h4>
                     
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
@@ -186,7 +187,7 @@
                 <!-- Seleção de Tipos de Lote (Apenas Administrador) -->
                 <div data-perfil="Administrador" style="background: #eff6ff; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid #3b82f6;">
                     <h4 style="margin: 0 0 1rem 0; color: #1e40af; display: flex; align-items: center; gap: 0.5rem;">
-                        📦 Tipos de Lote que o Fornecedor Aceita
+                         Tipos de Lote que o Fornecedor Aceita
                     </h4>
                     <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280;">
                         Selecione quais tipos de lote este fornecedor compra e quantas estrelas de qualidade ele aceita para cada tipo.
@@ -197,7 +198,7 @@
                     </div>
                 </div>
                 
-                <button type="submit" class="btn btn-primary w-full">💾 Salvar Fornecedor</button>
+                <button type="submit" class="btn btn-primary w-full"> Salvar Fornecedor</button>
             </form>
         </div>
     </div>
@@ -248,9 +249,9 @@
                         <td>${f.telefone || '-'}</td>
                         <td>${f.cidade || '-'}</td>
                         <td>
-                            <button class="btn btn-secondary" onclick="editarFornecedor(${f.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">✏️ Editar</button>
-                            ${isAdmin ? `<button class="btn btn-primary" onclick="editarFornecedor(${f.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">⭐ Estrelas</button>` : ''}
-                            ${isAdmin ? `<button class="btn btn-danger" onclick="deletarFornecedor(${f.id}, '${f.nome}')" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">🗑️ Excluir</button>` : ''}
+                            <button class="btn btn-secondary" onclick="editarFornecedor(${f.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;"> Editar</button>
+                            ${isAdmin ? `<button class="btn btn-primary" onclick="editarFornecedor(${f.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;"> Estrelas</button>` : ''}
+                            ${isAdmin ? `<button class="btn btn-danger" onclick="deletarFornecedor(${f.id}, '${f.nome}')" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;"> Excluir</button>` : ''}
                         </td>
                     </tr>
                 `).join('');
@@ -310,7 +311,7 @@
                                        onchange="toggleTipoLote(${tipo.id})"
                                        style="margin-right: 0.5rem;">
                                 <div style="flex: 1;">
-                                    <strong>📦 ${tipo.nome}</strong>
+                                    <strong> ${tipo.nome}</strong>
                                     ${tipo.codigo ? `<span style="margin-left: 0.5rem; font-size: 0.85rem; color: #6b7280;">(${tipo.codigo})</span>` : ''}
                                 </div>
                             </label>
@@ -320,31 +321,31 @@
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                                         <label style="min-width: 60px; font-size: 0.85rem; color: #6b7280;">🪶 Leve:</label>
                                         <select id="estrelas_leve_${tipo.id}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; flex: 1;">
-                                            <option value="1" ${config.leve == 1 ? 'selected' : ''}>⭐ 1</option>
-                                            <option value="2" ${config.leve == 2 ? 'selected' : ''}>⭐⭐ 2</option>
-                                            <option value="3" ${config.leve == 3 ? 'selected' : ''}>⭐⭐⭐ 3</option>
-                                            <option value="4" ${config.leve == 4 ? 'selected' : ''}>⭐⭐⭐⭐ 4</option>
-                                            <option value="5" ${config.leve == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ 5</option>
+                                            <option value="1" ${config.leve == 1 ? 'selected' : ''}> 1</option>
+                                            <option value="2" ${config.leve == 2 ? 'selected' : ''}> 2</option>
+                                            <option value="3" ${config.leve == 3 ? 'selected' : ''}> 3</option>
+                                            <option value="4" ${config.leve == 4 ? 'selected' : ''}> 4</option>
+                                            <option value="5" ${config.leve == 5 ? 'selected' : ''}> 5</option>
                                         </select>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <label style="min-width: 60px; font-size: 0.85rem; color: #6b7280;">📦 Médio:</label>
+                                        <label style="min-width: 60px; font-size: 0.85rem; color: #6b7280;"> Médio:</label>
                                         <select id="estrelas_medio_${tipo.id}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; flex: 1;">
-                                            <option value="1" ${config.medio == 1 ? 'selected' : ''}>⭐ 1</option>
-                                            <option value="2" ${config.medio == 2 ? 'selected' : ''}>⭐⭐ 2</option>
-                                            <option value="3" ${config.medio == 3 ? 'selected' : ''}>⭐⭐⭐ 3</option>
-                                            <option value="4" ${config.medio == 4 ? 'selected' : ''}>⭐⭐⭐⭐ 4</option>
-                                            <option value="5" ${config.medio == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ 5</option>
+                                            <option value="1" ${config.medio == 1 ? 'selected' : ''}> 1</option>
+                                            <option value="2" ${config.medio == 2 ? 'selected' : ''}> 2</option>
+                                            <option value="3" ${config.medio == 3 ? 'selected' : ''}> 3</option>
+                                            <option value="4" ${config.medio == 4 ? 'selected' : ''}> 4</option>
+                                            <option value="5" ${config.medio == 5 ? 'selected' : ''}> 5</option>
                                         </select>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <label style="min-width: 60px; font-size: 0.85rem; color: #6b7280;">🏗️ Pesado:</label>
+                                        <label style="min-width: 60px; font-size: 0.85rem; color: #6b7280;"> Pesado:</label>
                                         <select id="estrelas_pesado_${tipo.id}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; flex: 1;">
-                                            <option value="1" ${config.pesado == 1 ? 'selected' : ''}>⭐ 1</option>
-                                            <option value="2" ${config.pesado == 2 ? 'selected' : ''}>⭐⭐ 2</option>
-                                            <option value="3" ${config.pesado == 3 ? 'selected' : ''}>⭐⭐⭐ 3</option>
-                                            <option value="4" ${config.pesado == 4 ? 'selected' : ''}>⭐⭐⭐⭐ 4</option>
-                                            <option value="5" ${config.pesado == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ 5</option>
+                                            <option value="1" ${config.pesado == 1 ? 'selected' : ''}> 1</option>
+                                            <option value="2" ${config.pesado == 2 ? 'selected' : ''}> 2</option>
+                                            <option value="3" ${config.pesado == 3 ? 'selected' : ''}> 3</option>
+                                            <option value="4" ${config.pesado == 4 ? 'selected' : ''}> 4</option>
+                                            <option value="5" ${config.pesado == 5 ? 'selected' : ''}> 5</option>
                                         </select>
                                     </div>
                                 </div>
@@ -420,7 +421,7 @@
                     document.getElementById('bairro').setAttribute('readonly', 'true');
                     
                     document.getElementById('dadosCNPJ').style.display = 'block';
-                    showAlert('✅ Dados do CNPJ carregados com sucesso! Os campos foram bloqueados pois vieram da Receita Federal.', 'success');
+                    showAlert(' Dados do CNPJ carregados com sucesso! Os campos foram bloqueados pois vieram da Receita Federal.', 'success');
                 } else {
                     showAlert('CNPJ não encontrado. Preencha os dados manualmente.', 'error');
                     document.getElementById('dadosCNPJ').style.display = 'block';
@@ -431,7 +432,7 @@
                 document.getElementById('dadosCNPJ').style.display = 'block';
             } finally {
                 btn.disabled = false;
-                btn.textContent = '🔍 Buscar';
+                btn.textContent = ' Buscar';
             }
         }
 
@@ -678,7 +679,7 @@
                                 return `
                                     <div>
                                         <label style="font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">
-                                            ${'⭐'.repeat(estrelas)}
+                                            ${''.repeat(estrelas)}
                                         </label>
                                         <input 
                                             type="number" 

@@ -177,7 +177,7 @@
                                 </button>
                                 ${e.status === 'pendente' ? `
                                     <button class="btn btn-success" onclick="processarEntrada(${e.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
-                                        ✓ Processar
+                                         Processar
                                     </button>
                                 ` : ''}
                             </td>
@@ -233,7 +233,7 @@
 
                 html += `
                     <div style="background: #eff6ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                        <h3 style="margin: 0 0 1rem 0;">🏷️ Rastreamento do Lote</h3>
+                        <h3 style="margin: 0 0 1rem 0;"> Rastreamento do Lote</h3>
                         <p><strong>Número do Lote:</strong> ${lote.numero_lote}</p>
                         <p><strong>Fornecedor:</strong> ${lote.fornecedor_nome}</p>
                         <p><strong>Tipo de Lote:</strong> ${lote.tipo_lote_nome}</p>
@@ -246,7 +246,7 @@
 
                 html += `
                     <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                        <h3 style="margin: 0 0 1rem 0;">📊 Detalhes do Material</h3>
+                        <h3 style="margin: 0 0 1rem 0;"> Detalhes do Material</h3>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                             <span><strong>Total de itens:</strong></span>
                             <span>${lote.quantidade_itens || 0}</span>
@@ -257,7 +257,7 @@
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                             <span><strong>Estrelas média:</strong></span>
-                            <span>${lote.estrelas_media ? '⭐'.repeat(Math.round(lote.estrelas_media)) + ' (' + lote.estrelas_media.toFixed(1) + ')' : '-'}</span>
+                            <span>${lote.estrelas_media ? ''.repeat(Math.round(lote.estrelas_media)) + ' (' + lote.estrelas_media.toFixed(1) + ')' : '-'}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span><strong>Valor total:</strong></span>
@@ -269,7 +269,7 @@
                 if (entradaAtual.observacoes) {
                     html += `
                         <div style="background: #fef3c7; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                            <h3 style="margin: 0 0 0.5rem 0;">💬 Observações</h3>
+                            <h3 style="margin: 0 0 0.5rem 0;"> Observações</h3>
                             <p style="margin: 0;">${entradaAtual.observacoes}</p>
                         </div>
                     `;
@@ -280,7 +280,7 @@
                 const acoesDiv = document.getElementById('acoesEntrada');
                 if (entradaAtual.status === 'pendente') {
                     acoesDiv.innerHTML = `
-                        <button class="btn btn-success" onclick="processarEntrada(${entradaAtual.id})">✓ Processar Entrada</button>
+                        <button class="btn btn-success" onclick="processarEntrada(${entradaAtual.id})"> Processar Entrada</button>
                     `;
                 } else {
                     acoesDiv.innerHTML = '';

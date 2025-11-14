@@ -115,17 +115,17 @@ function renderizarMenusMobile(containerId = 'navMenuMobile') {
 
     container.innerHTML = '';
 
-    currentMenus.forEach(menu => {
+    currentMenus.forEach((menu, index) => {
         const a = document.createElement('a');
         a.href = menu.url || '#';
-        a.className = 'mobile-nav-item';
+        a.className = 'bottom-nav-item';
         
         if (menu.url && (window.location.pathname === menu.url || window.location.pathname.includes(menu.url))) {
             a.classList.add('active');
         }
 
         const icon = document.createElement('span');
-        icon.className = 'material-icons';
+        icon.className = 'material-icons icon';
         icon.textContent = menu.icone || 'circle';
 
         const span = document.createElement('span');
@@ -134,6 +134,30 @@ function renderizarMenusMobile(containerId = 'navMenuMobile') {
         a.appendChild(icon);
         a.appendChild(span);
         container.appendChild(a);
+
+        // Adicionar FAB button após o primeiro item de menu
+        if (index === 0) {
+            const fabContainer = document.createElement('div');
+            fabContainer.className = 'fab-container';
+            
+            const fabButton = document.createElement('button');
+            fabButton.className = 'fab-button';
+            fabButton.setAttribute('aria-label', 'Nova Solicitação');
+            fabButton.onclick = function() {
+                if (typeof abrirModalNovaSolicitacao === 'function') {
+                    abrirModalNovaSolicitacao();
+                } else {
+                    window.location.href = '/solicitacoes.html';
+                }
+            };
+            
+            const fabIcon = document.createElement('i');
+            fabIcon.className = 'fas fa-plus icon';
+            
+            fabButton.appendChild(fabIcon);
+            fabContainer.appendChild(fabButton);
+            container.appendChild(fabContainer);
+        }
     });
 }
 
@@ -190,13 +214,13 @@ function verificarAcessoPagina() {
     });
     
     if (!paginaPermitida) {
-        console.warn('⛔ Acesso negado à página:', paginaAtual);
+        console.warn(' Acesso negado à página:', paginaAtual);
         console.warn('Páginas permitidas:', paginasPermitidas);
         window.location.href = '/acesso-negado.html';
         return false;
     }
 
-    console.log('✅ Acesso permitido à página:', paginaAtual);
+    console.log(' Acesso permitido à página:', paginaAtual);
     return true;
 }
 

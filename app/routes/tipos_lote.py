@@ -417,7 +417,7 @@ def exportar_excel():
             ws_tipos.column_dimensions[column[0].column_letter].width = adjusted_width
         
         ws_estrelas = wb.create_sheet('Estrelas por Fornecedor')
-        headers_estrelas = ['Tipo de Lote', 'Fornecedor', 'Leve (⭐)', 'Médio (⭐)', 'Pesado (⭐)', 'Ativo']
+        headers_estrelas = ['Tipo de Lote', 'Fornecedor', 'Leve ()', 'Médio ()', 'Pesado ()', 'Ativo']
         ws_estrelas.append(headers_estrelas)
         
         for cell in ws_estrelas[1]:

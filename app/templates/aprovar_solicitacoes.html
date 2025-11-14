@@ -214,7 +214,7 @@
             if (solicitacoes.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <p>✓ Nenhuma solicitação pendente de aprovação</p>
+                        <p> Nenhuma solicitação pendente de aprovação</p>
                     </div>
                 `;
                 return;
@@ -265,7 +265,7 @@
                             <label>Classificação:</label>
                             <span class="classificacao-display classificacao-${item.classificacao}">
                                 ${item.classificacao ? item.classificacao.toUpperCase() : 'NÃO INFORMADO'}
-                                - ${'★'.repeat(item.estrelas_final)}
+                                - ${''.repeat(item.estrelas_final)}
                             </span>
                             ${item.classificacao_sugerida_ia ? `
                                 <span style="color: #6b7280; margin-left: 10px;">

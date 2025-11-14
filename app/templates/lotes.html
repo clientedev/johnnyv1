@@ -198,7 +198,7 @@
                         <td>${l.quantidade_itens || 0}</td>
                         <td>${parseFloat(l.peso_total_kg || 0).toFixed(2)}</td>
                         <td>R$ ${parseFloat(l.valor_total || 0).toFixed(2)}</td>
-                        <td>${l.estrelas_media ? '⭐'.repeat(Math.round(l.estrelas_media)) : '-'}</td>
+                        <td>${l.estrelas_media ? ''.repeat(Math.round(l.estrelas_media)) : '-'}</td>
                         <td><span class="badge badge-${l.status}">${l.status.toUpperCase()}</span></td>
                         <td>
                             <button class="btn btn-secondary" onclick="verDetalhes(${l.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
@@ -206,10 +206,10 @@
                             </button>
                             ${l.status === 'aberto' ? `
                                 <button class="btn btn-success" onclick="aprovarLote(${l.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
-                                    ✓
+                                    
                                 </button>
                                 <button class="btn btn-danger" onclick="rejeitarLote(${l.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
-                                    ✗
+                                    
                                 </button>
                             ` : ''}
                         </td>
@@ -281,7 +281,7 @@
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                             <span><strong>Estrelas média:</strong></span>
-                            <span>${loteAtual.estrelas_media ? '⭐'.repeat(Math.round(loteAtual.estrelas_media)) + ' (' + loteAtual.estrelas_media.toFixed(1) + ')' : '-'}</span>
+                            <span>${loteAtual.estrelas_media ? ''.repeat(Math.round(loteAtual.estrelas_media)) + ' (' + loteAtual.estrelas_media.toFixed(1) + ')' : '-'}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span><strong>Valor total:</strong></span>
@@ -293,7 +293,7 @@
                 if (loteAtual.observacoes) {
                     html += `
                         <div style="background: #fef3c7; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                            <h3 style="margin: 0 0 0.5rem 0;">💬 Observações</h3>
+                            <h3 style="margin: 0 0 0.5rem 0;"> Observações</h3>
                             <p style="margin: 0;">${loteAtual.observacoes}</p>
                         </div>
                     `;
@@ -301,12 +301,12 @@
 
                 if (loteAtual.itens && loteAtual.itens.length > 0) {
                     html += `
-                        <h3 style="margin: 1.5rem 0 1rem 0;">📦 Itens do Lote (${loteAtual.itens.length})</h3>
+                        <h3 style="margin: 1.5rem 0 1rem 0;"> Itens do Lote (${loteAtual.itens.length})</h3>
                         ${loteAtual.itens.map(item => `
                             <div class="card" style="margin-bottom: 1rem;">
                                 <p><strong>Tipo:</strong> ${item.tipo_lote_nome}</p>
                                 <p><strong>Peso:</strong> ${item.peso_kg} kg</p>
-                                <p><strong>Estrelas:</strong> ${'⭐'.repeat(item.estrelas_final)}</p>
+                                <p><strong>Estrelas:</strong> ${''.repeat(item.estrelas_final)}</p>
                                 <p><strong>Valor:</strong> R$ ${item.valor_calculado.toFixed(2)}</p>
                                 ${item.observacoes ? `<p><strong>Obs:</strong> ${item.observacoes}</p>` : ''}
                             </div>
@@ -319,8 +319,8 @@
                 const acoesDiv = document.getElementById('acoesLote');
                 if (loteAtual.status === 'aberto') {
                     acoesDiv.innerHTML = `
-                        <button class="btn btn-success" onclick="aprovarLote(${loteAtual.id})">✓ Aprovar Lote</button>
-                        <button class="btn btn-danger" onclick="rejeitarLote(${loteAtual.id})">✗ Rejeitar Lote</button>
+                        <button class="btn btn-success" onclick="aprovarLote(${loteAtual.id})"> Aprovar Lote</button>
+                        <button class="btn btn-danger" onclick="rejeitarLote(${loteAtual.id})"> Rejeitar Lote</button>
                     `;
                 } else {
                     acoesDiv.innerHTML = '';

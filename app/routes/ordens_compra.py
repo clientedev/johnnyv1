@@ -12,7 +12,7 @@ bp = Blueprint('ordens_compra', __name__, url_prefix='/api/ordens-compra')
 def listar_ocs():
     try:
         print(f"\n{'='*60}")
-        print(f"📋 LISTANDO ORDENS DE COMPRA")
+        print(f" LISTANDO ORDENS DE COMPRA")
         print(f"{'='*60}")
         
         usuario_id = get_jwt_identity()
@@ -40,11 +40,11 @@ def listar_ocs():
         
         # Contar total de OCs no banco ANTES do filtro de perfil
         total_ocs_db = OrdemCompra.query.count()
-        print(f"   📊 Total de OCs no banco: {total_ocs_db}")
+        print(f"    Total de OCs no banco: {total_ocs_db}")
         
         ocs = query.order_by(OrdemCompra.criado_em.desc()).all()
         
-        print(f"   ✅ {len(ocs)} OC(s) encontrada(s) após filtros")
+        print(f"    {len(ocs)} OC(s) encontrada(s) após filtros")
         
         resultado = []
         for oc in ocs:
@@ -59,13 +59,13 @@ def listar_ocs():
             print(f"      - OC #{oc.id}: SC #{oc.solicitacao_id}, Fornecedor: {oc.fornecedor.nome if oc.fornecedor else 'N/A'}, Valor: R$ {oc.valor_total:.2f}, Status: {oc.status}")
         
         print(f"\n{'='*60}")
-        print(f"✅ Retornando {len(resultado)} OC(s)")
+        print(f" Retornando {len(resultado)} OC(s)")
         print(f"{'='*60}\n")
         
         return jsonify(resultado), 200
     
     except Exception as e:
-        print(f"\n❌ ERRO ao listar OCs: {str(e)}")
+        print(f"\n ERRO ao listar OCs: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'erro': f'Erro ao listar ordens de compra: {str(e)}'}), 500

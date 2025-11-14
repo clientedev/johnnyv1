@@ -115,7 +115,7 @@
 
                 <div id="camposPrecosPadrao" style="background: #f0fdf4; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #10b981;">
                     <h4 style="margin: 0 0 1rem 0; color: #047857; display: flex; align-items: center; gap: 0.5rem;">
-                        💰 Preços por Classificação
+                         Preços por Classificação
                     </h4>
                     <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280;">
                         Configure os 3 preços por kg para cada classificação de lote. <strong>Obrigatório!</strong>
@@ -132,7 +132,7 @@
                         </div>
                         
                         <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; font-weight: 500; color: #f59e0b;">⚖️ Médio</label>
+                            <label style="margin: 0; font-weight: 500; color: #f59e0b;"> Médio</label>
                             <div style="display: flex; align-items: center;">
                                 <span style="margin-right: 0.5rem;">R$</span>
                                 <input type="number" id="precoMedio" step="0.01" min="0" placeholder="0.00" required style="flex: 1; padding: 0.5rem;">
@@ -141,7 +141,7 @@
                         </div>
                         
                         <div style="display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 1rem;">
-                            <label style="margin: 0; font-weight: 500; color: #ef4444;">⚓ Pesado</label>
+                            <label style="margin: 0; font-weight: 500; color: #ef4444;"> Pesado</label>
                             <div style="display: flex; align-items: center;">
                                 <span style="margin-right: 0.5rem;">R$</span>
                                 <input type="number" id="precoPesado" step="0.01" min="0" placeholder="0.00" required style="flex: 1; padding: 0.5rem;">
@@ -158,7 +158,7 @@
 
                 <div id="secaoEstrelasFornecedores" style="margin-top: 1.5rem; background: #fef3c7; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #f59e0b;">
                     <h4 style="margin: 0 0 0.5rem 0; color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
-                        ⭐ Estrelas por Fornecedor
+                         Estrelas por Fornecedor
                     </h4>
                     <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #78350f;">
                         Configure quantas estrelas cada fornecedor atribui para as classificações Leve, Médio e Pesado.
@@ -275,8 +275,8 @@
                     <td style="font-size: 0.85rem;">
                         <div style="display: flex; flex-direction: column; gap: 0.25rem;">
                             <span>🪶 Leve: <strong>${leve}</strong></span>
-                            <span>⚖️ Médio: <strong>${medio}</strong></span>
-                            <span>⚓ Pesado: <strong>${pesado}</strong></span>
+                            <span> Médio: <strong>${medio}</strong></span>
+                            <span> Pesado: <strong>${pesado}</strong></span>
                         </div>
                     </td>
                     <td>
@@ -328,15 +328,15 @@
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
                                 <div>
-                                    <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Leve (⭐)</label>
+                                    <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Leve ()</label>
                                     <input type="number" class="estrela-leve" data-fornecedor-id="${f.id}" min="1" max="5" value="${classif.leve_estrelas || 1}" style="width: 100%; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px;">
                                 </div>
                                 <div>
-                                    <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Médio (⭐)</label>
+                                    <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Médio ()</label>
                                     <input type="number" class="estrela-medio" data-fornecedor-id="${f.id}" min="1" max="5" value="${classif.medio_estrelas || 1}" style="width: 100%; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px;">
                                 </div>
                                 <div>
-                                    <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Pesado (⭐)</label>
+                                    <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Pesado ()</label>
                                     <input type="number" class="estrela-pesado" data-fornecedor-id="${f.id}" min="1" max="5" value="${classif.pesado_estrelas || 1}" style="width: 100%; padding: 0.375rem; border: 1px solid #d1d5db; border-radius: 4px;">
                                 </div>
                             </div>
@@ -546,15 +546,15 @@
                 }
 
                 let mensagem = `Importação concluída!\n`;
-                mensagem += `✅ ${result.tipos_criados} tipo(s) criado(s)\n`;
-                mensagem += `♻️ ${result.tipos_atualizados} tipo(s) atualizado(s)\n`;
+                mensagem += ` ${result.tipos_criados} tipo(s) criado(s)\n`;
+                mensagem += ` ${result.tipos_atualizados} tipo(s) atualizado(s)\n`;
                 if (result.estrelas_criadas || result.estrelas_atualizadas) {
-                    mensagem += `⭐ ${result.estrelas_criadas || 0} estrela(s) criada(s)\n`;
-                    mensagem += `⭐ ${result.estrelas_atualizadas || 0} estrela(s) atualizada(s)`;
+                    mensagem += ` ${result.estrelas_criadas || 0} estrela(s) criada(s)\n`;
+                    mensagem += ` ${result.estrelas_atualizadas || 0} estrela(s) atualizada(s)`;
                 }
                 
                 if (result.erros && result.erros.length > 0) {
-                    mensagem += `\n\n⚠️ ${result.erros.length} erro(s):\n`;
+                    mensagem += `\n\n ${result.erros.length} erro(s):\n`;
                     mensagem += result.erros.slice(0, 5).join('\n');
                     if (result.erros.length > 5) {
                         mensagem += `\n... e mais ${result.erros.length - 5} erro(s)`;
@@ -666,23 +666,23 @@
                                         🪶 Leve
                                     </label>
                                     <select class="form-control" id="leve_${fornecedor.id}" style="width: 100%;">
-                                        ${[1,2,3,4,5].map(n => `<option value="${n}" ${leve === n ? 'selected' : ''}>${'⭐'.repeat(n)} ${n}</option>`).join('')}
+                                        ${[1,2,3,4,5].map(n => `<option value="${n}" ${leve === n ? 'selected' : ''}>${''.repeat(n)} ${n}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div>
                                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
-                                        ⚖️ Médio
+                                         Médio
                                     </label>
                                     <select class="form-control" id="medio_${fornecedor.id}" style="width: 100%;">
-                                        ${[1,2,3,4,5].map(n => `<option value="${n}" ${medio === n ? 'selected' : ''}>${'⭐'.repeat(n)} ${n}</option>`).join('')}
+                                        ${[1,2,3,4,5].map(n => `<option value="${n}" ${medio === n ? 'selected' : ''}>${''.repeat(n)} ${n}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div>
                                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
-                                        ⚓ Pesado
+                                         Pesado
                                     </label>
                                     <select class="form-control" id="pesado_${fornecedor.id}" style="width: 100%;">
-                                        ${[1,2,3,4,5].map(n => `<option value="${n}" ${pesado === n ? 'selected' : ''}>${'⭐'.repeat(n)} ${n}</option>`).join('')}
+                                        ${[1,2,3,4,5].map(n => `<option value="${n}" ${pesado === n ? 'selected' : ''}>${''.repeat(n)} ${n}</option>`).join('')}
                                     </select>
                                 </div>
                             </div>
@@ -813,11 +813,11 @@
                 }
 
                 let mensagem = `Importação de Estrelas Concluída!\n\n`;
-                mensagem += `✅ ${result.criados} classificação(ões) criada(s)\n`;
-                mensagem += `♻️ ${result.atualizados} classificação(ões) atualizada(s)`;
+                mensagem += ` ${result.criados} classificação(ões) criada(s)\n`;
+                mensagem += ` ${result.atualizados} classificação(ões) atualizada(s)`;
                 
                 if (result.erros && result.erros.length > 0) {
-                    mensagem += `\n\n⚠️ ${result.total_erros} erro(s):\n`;
+                    mensagem += `\n\n ${result.total_erros} erro(s):\n`;
                     mensagem += result.erros.slice(0, 5).join('\n');
                     if (result.erros.length > 5) {
                         mensagem += `\n... e mais ${result.erros.length - 5} erro(s)`;

@@ -82,7 +82,7 @@ Não adicione informações extras, apenas a classificação e justificativa."""
             linhas = [l.strip() for l in resultado_texto.split('\n') if l.strip()]
             justificativa = linhas[0] if linhas else "Placa analisada"
         
-        mensagem_final = f"🤖 Classificação IA: {classificacao.upper()} — {justificativa}"
+        mensagem_final = f" Classificação IA: {classificacao.upper()} — {justificativa}"
         
         return {
             'classificacao': classificacao,

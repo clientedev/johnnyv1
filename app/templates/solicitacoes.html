@@ -6,6 +6,7 @@
     <title>Solicitações - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -27,28 +28,8 @@
     </header>
 
     <!-- Bottom Navigation (Mobile) -->
-    <nav class="bottom-nav">
-        <a href="/administracao.html" class="bottom-nav-item">
-            <i class="fas fa-cog icon"></i>
-            <span>Admin</span>
-        </a>
-        <a href="/dashboard.html" class="bottom-nav-item">
-            <i class="fas fa-chart-line icon"></i>
-            <span>Dashboard</span>
-        </a>
-        <div class="fab-container">
-            <button class="fab-button" onclick="abrirModalNovaSolicitacao()" aria-label="Nova Solicitação">
-                <i class="fas fa-plus icon"></i>
-            </button>
-        </div>
-        <a href="/solicitacoes.html" class="bottom-nav-item active">
-            <i class="fas fa-file-alt icon"></i>
-            <span>Solicitações</span>
-        </a>
-        <a href="/fornecedores.html" class="bottom-nav-item">
-            <i class="fas fa-building icon"></i>
-            <span>Fornecedores</span>
-        </a>
+    <nav class="bottom-nav" id="navMenuMobile">
+        <!-- Menus serão renderizados dinamicamente pelo RBAC -->
     </nav>
 
     <main class="container mt-4">
@@ -89,7 +70,7 @@
         </div>
 
         <div class="flex justify-between items-center mb-3 mt-5" style="flex-wrap: wrap; gap: var(--spacing-md);">
-            <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">📋 Ordens de Compra</h1>
+            <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);"> Ordens de Compra</h1>
         </div>
 
         <div class="card mb-3">
@@ -148,7 +129,7 @@
                 </div>
 
                 <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <h4 style="margin: 0 0 0.75rem 0; color: #0369a1;">📍 Localização</h4>
+                    <h4 style="margin: 0 0 0.75rem 0; color: #0369a1;"> Localização</h4>
                     
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
                         <div class="form-group" style="margin-bottom: 0;">
@@ -180,7 +161,7 @@
                 <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #e5e7eb;">
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 style="margin: 0;">📦 Itens da Solicitação</h3>
+                    <h3 style="margin: 0;"> Itens da Solicitação</h3>
                     <button type="button" class="btn btn-primary" onclick="adicionarItem()">+ Adicionar Item</button>
                 </div>
 
@@ -203,7 +184,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-full mt-3" id="btnEnviarSolicitacao">📤 Enviar Solicitação</button>
+                <button type="submit" class="btn btn-primary w-full mt-3" id="btnEnviarSolicitacao"> Enviar Solicitação</button>
             </form>
         </div>
     </div>
@@ -235,7 +216,7 @@
             </div>
 
             <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                <h4 style="margin: 0 0 0.75rem 0; color: #0369a1;">📍 Captura Automática</h4>
+                <h4 style="margin: 0 0 0.75rem 0; color: #0369a1;"> Captura Automática</h4>
                 <div id="metadadosOC" style="font-size: 0.9rem; color: #666;">
                     <p><strong>GPS:</strong> <span id="gpsOC">Capturando...</span></p>
                     <p><strong>IP:</strong> <span id="ipOC">Detectando...</span></p>
@@ -255,6 +236,8 @@
     </div>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/rbac.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
         let usuarioAtual = null;
@@ -460,7 +443,7 @@
                     
                     <!-- Foto e Análise IA -->
                     <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">📷 Foto do Lote</label>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;"> Foto do Lote</label>
                         
                         ${item.imagem_url ? `
                             <div style="margin-bottom: 0.75rem;">
@@ -484,7 +467,7 @@
                         
                         ${item.classificacao_ia && item.justificativa_ia ? `
                             <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fff3e0; border-radius: 6px; border-left: 4px solid #ff9800;">
-                                <strong>🤖 Análise IA:</strong> ${item.classificacao_ia.toUpperCase()}<br>
+                                <strong> Análise IA:</strong> ${item.classificacao_ia.toUpperCase()}<br>
                                 <small style="color: #666;">${item.justificativa_ia}</small>
                             </div>
                         ` : ''}
@@ -740,8 +723,8 @@
                 observacoes: item.observacoes || ''
             }));
             
-            console.log('🔍 DEBUG - Enviando itens:', itensParaEnvio);
-            console.log('🔍 DEBUG - Itens originais:', itensSolicitacao);
+            console.log(' DEBUG - Enviando itens:', itensParaEnvio);
+            console.log(' DEBUG - Itens originais:', itensSolicitacao);
             
             const data = {
                 fornecedor_id: parseInt(document.getElementById('fornecedorSolicitacao').value),
@@ -784,7 +767,7 @@
             } finally {
                 const btn = document.getElementById('btnEnviarSolicitacao');
                 btn.disabled = false;
-                btn.textContent = '📤 Enviar Solicitação';
+                btn.textContent = ' Enviar Solicitação';
             }
         });
 
@@ -814,7 +797,7 @@
                 if (solicitacaoAtual.rua || solicitacaoAtual.localizacao_lat) {
                     html += `
                         <div style="background: #eff6ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                            <h3 style="margin: 0 0 1rem 0;">📍 Localização</h3>
+                            <h3 style="margin: 0 0 1rem 0;"> Localização</h3>
                             ${solicitacaoAtual.endereco_completo ? `<p>${solicitacaoAtual.endereco_completo}</p>` : ''}
                             ${solicitacaoAtual.localizacao_lat ? `<p>GPS: ${solicitacaoAtual.localizacao_lat.toFixed(6)}, ${solicitacaoAtual.localizacao_lng.toFixed(6)}</p>` : ''}
                         </div>
@@ -824,7 +807,7 @@
                 if (solicitacaoAtual.observacoes) {
                     html += `
                         <div style="background: #fef3c7; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                            <h3 style="margin: 0 0 0.5rem 0;">💬 Observações</h3>
+                            <h3 style="margin: 0 0 0.5rem 0;"> Observações</h3>
                             <p style="margin: 0;">${solicitacaoAtual.observacoes}</p>
                         </div>
                     `;
@@ -832,12 +815,12 @@
 
                 if (solicitacaoAtual.itens && solicitacaoAtual.itens.length > 0) {
                     html += `
-                        <h3 style="margin: 1.5rem 0 1rem 0;">📦 Itens (${solicitacaoAtual.itens.length})</h3>
+                        <h3 style="margin: 1.5rem 0 1rem 0;"> Itens (${solicitacaoAtual.itens.length})</h3>
                         ${solicitacaoAtual.itens.map(item => `
                             <div class="card" style="margin-bottom: 1rem;">
                                 <p><strong>Tipo:</strong> ${item.tipo_lote_nome}</p>
                                 <p><strong>Peso:</strong> ${item.peso_kg} kg</p>
-                                <p><strong>Estrelas:</strong> ${'⭐'.repeat(item.estrelas_final)}</p>
+                                <p><strong>Estrelas:</strong> ${''.repeat(item.estrelas_final)}</p>
                                 <p><strong>Valor:</strong> R$ ${item.valor_calculado.toFixed(2)}</p>
                                 ${item.observacoes ? `<p><strong>Obs:</strong> ${item.observacoes}</p>` : ''}
                                 ${item.lote_numero ? `<p><strong>Lote Gerado:</strong> ${item.lote_numero}</p>` : ''}
@@ -859,8 +842,8 @@
                 const acoesDiv = document.getElementById('acoesAdmin');
                 if (usuarioAtual.tipo === 'admin' && solicitacaoAtual.status === 'pendente') {
                     acoesDiv.innerHTML = `
-                        <button class="btn btn-success" onclick="aprovarSolicitacao()">✓ Aprovar</button>
-                        <button class="btn btn-danger" onclick="rejeitarSolicitacao()">✗ Rejeitar</button>
+                        <button class="btn btn-success" onclick="aprovarSolicitacao()"> Aprovar</button>
+                        <button class="btn btn-danger" onclick="rejeitarSolicitacao()"> Rejeitar</button>
                     `;
                 } else {
                     acoesDiv.innerHTML = '';
@@ -887,7 +870,7 @@
 
                 if (response && response.ok) {
                     const data = await response.json();
-                    console.log('✅ Resposta da aprovação:', data);
+                    console.log(' Resposta da aprovação:', data);
                     
                     showAlert('Solicitação aprovada! Lotes criados e OC gerada automaticamente.', 'success');
                     fecharModalDetalhes();
@@ -896,7 +879,7 @@
                     await carregarSolicitacoes();
                     await carregarOCs();
                     
-                    console.log('✅ Tabelas recarregadas com sucesso');
+                    console.log(' Tabelas recarregadas com sucesso');
                 } else {
                     const error = await response.json();
                     showAlert(error.erro || 'Erro ao aprovar solicitação', 'error');
@@ -933,28 +916,28 @@
 
         async function carregarOCs(status = '') {
             try {
-                console.log('🔄 Carregando OCs...');
+                console.log(' Carregando OCs...');
                 let url = '/ordens-compra';
                 if (status) url += `?status=${status}`;
                 
                 const response = await fetchAPI(url);
                 
                 if (!response) {
-                    console.error('❌ Sem resposta do servidor');
+                    console.error(' Sem resposta do servidor');
                     const tbody = document.getElementById('tabelaOCs');
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro de conexão com o servidor</td></tr>';
                     return;
                 }
                 
                 if (!response.ok) {
-                    console.error('❌ Erro HTTP:', response.status);
+                    console.error(' Erro HTTP:', response.status);
                     const tbody = document.getElementById('tabelaOCs');
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro ao carregar ordens de compra</td></tr>';
                     return;
                 }
                 
                 const ocs = await response.json();
-                console.log(`✅ ${ocs.length} OC(s) carregada(s)`);
+                console.log(` ${ocs.length} OC(s) carregada(s)`);
                 
                 const tbody = document.getElementById('tabelaOCs');
 

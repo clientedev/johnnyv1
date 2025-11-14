@@ -35,9 +35,9 @@ def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, estrelas_fro
 
     if classificacao_config and classificacao:
         estrelas_final = classificacao_config.get_estrelas_por_classificacao(classificacao)
-        print(f"      ✅ Usando estrelas da configuração: {estrelas_final} (classificação: {classificacao})")
+        print(f"       Usando estrelas da configuração: {estrelas_final} (classificação: {classificacao})")
     else:
-        print(f"      ⚠️ Usando estrelas do frontend: {estrelas_final}")
+        print(f"       Usando estrelas do frontend: {estrelas_final}")
 
     # Busca o preço na tabela TipoLotePreco (tabela global de preços)
     preco = TipoLotePreco.query.filter_by(
@@ -48,8 +48,8 @@ def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, estrelas_fro
     ).first()
 
     if not preco:
-        print(f"      ❌ Preço não encontrado em TipoLotePreco!")
-        print(f"      🔍 Buscando preços disponíveis para tipo_lote={tipo_lote_id}, classificacao={classificacao}...")
+        print(f"       Preço não encontrado em TipoLotePreco!")
+        print(f"       Buscando preços disponíveis para tipo_lote={tipo_lote_id}, classificacao={classificacao}...")
 
         # Lista todos os preços disponíveis para debug
         precos_disponiveis = TipoLotePreco.query.filter_by(
@@ -59,16 +59,16 @@ def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, estrelas_fro
         ).all()
 
         if precos_disponiveis:
-            print(f"      📋 Preços cadastrados para classificação '{classificacao}':")
+            print(f"       Preços cadastrados para classificação '{classificacao}':")
             for p in precos_disponiveis:
                 print(f"         - {p.estrelas} estrelas: R$ {p.preco_por_kg}/kg")
         else:
-            print(f"      ⚠️ Nenhum preço cadastrado para tipo_lote={tipo_lote_id}, classificacao={classificacao}")
+            print(f"       Nenhum preço cadastrado para tipo_lote={tipo_lote_id}, classificacao={classificacao}")
 
         return (0.0, 0.0, estrelas_final)
 
     valor = preco.preco_por_kg * float(peso_kg)
-    print(f"      ✅ Preço encontrado: R$ {preco.preco_por_kg}/kg × {peso_kg}kg = R$ {valor:.2f}")
+    print(f"       Preço encontrado: R$ {preco.preco_por_kg}/kg × {peso_kg}kg = R$ {valor:.2f}")
 
     return (valor, preco.preco_por_kg, estrelas_final)
 
@@ -160,34 +160,34 @@ def criar_solicitacao():
         db.session.flush()
 
         print(f"\n{'='*60}")
-        print(f"🆕 CRIANDO SOLICITAÇÃO #{solicitacao.id}")
+        print(f" CRIANDO SOLICITAÇÃO #{solicitacao.id}")
         print(f"   Fornecedor: {fornecedor.nome}")
         print(f"   Total de itens recebidos: {len(data['itens'])}")
         print(f"{'='*60}")
 
         for item_data in data['itens']:
-            print(f"\n📦 Item recebido do frontend:")
+            print(f"\n Item recebido do frontend:")
             print(f"   {item_data}")
 
             if not item_data.get('tipo_lote_id') or not item_data.get('peso_kg'):
-                print(f"   ⚠️ Item inválido - pulando")
+                print(f"    Item inválido - pulando")
                 continue
 
             tipo_lote = TipoLote.query.get(item_data['tipo_lote_id'])
             if not tipo_lote:
-                print(f"   ❌ Tipo de lote não encontrado")
+                print(f"    Tipo de lote não encontrado")
                 continue
 
-            print(f"   ✅ Tipo de lote: {tipo_lote.nome}")
+            print(f"    Tipo de lote: {tipo_lote.nome}")
 
             classificacao = item_data.get('classificacao', 'medio')
             estrelas_final = item_data.get('estrelas_final', 3)
             if estrelas_final is None or not (1 <= estrelas_final <= 5):
                 estrelas_final = 3
 
-            print(f"   📋 Classificação: {classificacao}")
-            print(f"   ⭐ Estrelas (frontend): {estrelas_final}")
-            print(f"   🔍 Calculando valor...")
+            print(f"    Classificação: {classificacao}")
+            print(f"    Estrelas (frontend): {estrelas_final}")
+            print(f"    Calculando valor...")
 
             valor, preco_por_kg, estrelas_usadas = calcular_valor_item(
                 data['fornecedor_id'],
@@ -197,8 +197,8 @@ def criar_solicitacao():
                 item_data['peso_kg']
             )
 
-            print(f"   💰 Valor final: R$ {valor:.2f}")
-            print(f"   ⭐ Estrelas usadas: {estrelas_usadas}")
+            print(f"    Valor final: R$ {valor:.2f}")
+            print(f"    Estrelas usadas: {estrelas_usadas}")
 
             item = ItemSolicitacao(
                 solicitacao_id=solicitacao.id,
@@ -214,7 +214,7 @@ def criar_solicitacao():
                 observacoes=item_data.get('observacoes', '')
             )
 
-            print(f"   ✅ Item salvo: Valor=R$ {item.valor_calculado:.2f}, Classificação={item.classificacao}, Estrelas={item.estrelas_final}")
+            print(f"    Item salvo: Valor=R$ {item.valor_calculado:.2f}, Classificação={item.classificacao}, Estrelas={item.estrelas_final}")
 
             db.session.add(item)
 
@@ -241,62 +241,62 @@ def aprovar_solicitacao(id):
     
     try:
         print(f"\n{'='*60}")
-        print(f"🔄 INICIANDO APROVAÇÃO DA SOLICITAÇÃO #{id}")
+        print(f" INICIANDO APROVAÇÃO DA SOLICITAÇÃO #{id}")
         print(f"{'='*60}")
         
         usuario_id = get_jwt_identity()
         data = request.get_json(silent=True) or {}
         
-        print(f"\n🔍 FASE 1: Validações preliminares (SEM modificar dados)...")
+        print(f"\n FASE 1: Validações preliminares (SEM modificar dados)...")
         
         solicitacao = Solicitacao.query.get(id)
         
         if not solicitacao:
-            print(f"❌ Solicitação #{id} não encontrada")
+            print(f" Solicitação #{id} não encontrada")
             return jsonify({'erro': 'Solicitação não encontrada'}), 404
         
-        print(f"✅ Solicitação encontrada: #{solicitacao.id}")
+        print(f" Solicitação encontrada: #{solicitacao.id}")
         print(f"   Status atual: {solicitacao.status}")
         print(f"   Fornecedor: {solicitacao.fornecedor.nome if solicitacao.fornecedor else 'N/A'}")
         
         if solicitacao.status != 'pendente':
-            print(f"❌ Status inválido: {solicitacao.status}")
+            print(f" Status inválido: {solicitacao.status}")
             return jsonify({'erro': f'Solicitação já foi processada (status: {solicitacao.status})'}), 400
         
         if not solicitacao.itens or len(solicitacao.itens) == 0:
-            print(f"❌ Solicitação sem itens")
+            print(f" Solicitação sem itens")
             return jsonify({'erro': 'Solicitação não possui itens'}), 400
         
-        print(f"✅ Solicitação possui {len(solicitacao.itens)} itens")
+        print(f" Solicitação possui {len(solicitacao.itens)} itens")
         
         itens_sem_preco = [item for item in solicitacao.itens if item.valor_calculado is None or item.valor_calculado < 0]
         if itens_sem_preco:
-            print(f"❌ Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido")
+            print(f" Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido")
             return jsonify({'erro': f'Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido. Configure os preços antes de aprovar.'}), 400
         
         oc_existente = OrdemCompra.query.filter_by(solicitacao_id=id).first()
         if oc_existente:
-            print(f"⚠️ Já existe OC #{oc_existente.id} para esta solicitação")
+            print(f" Já existe OC #{oc_existente.id} para esta solicitação")
             return jsonify({'erro': f'Já existe uma ordem de compra (#{oc_existente.id}) para esta solicitação'}), 400
         
         valor_total_oc = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
-        print(f"💰 Valor total calculado: R$ {valor_total_oc:.2f}")
+        print(f" Valor total calculado: R$ {valor_total_oc:.2f}")
         
         if valor_total_oc < 0:
-            print(f"❌ Valor total negativo")
+            print(f" Valor total negativo")
             return jsonify({'erro': 'Valor total da OC não pode ser negativo'}), 400
         
-        print(f"✅ Todas as validações passaram!")
+        print(f" Todas as validações passaram!")
         
-        print(f"\n💾 FASE 2: Salvando alterações no banco...")
+        print(f"\n FASE 2: Salvando alterações no banco...")
         
-        print(f"\n📝 ETAPA 1: Atualizando status da solicitação...")
+        print(f"\n ETAPA 1: Atualizando status da solicitação...")
         solicitacao.status = 'aprovada'
         solicitacao.data_confirmacao = datetime.utcnow()
         solicitacao.admin_id = usuario_id
-        print(f"✅ Status atualizado para: aprovada")
+        print(f" Status atualizado para: aprovada")
         
-        print(f"\n💰 ETAPA 2: Criando Ordem de Compra...")
+        print(f"\n ETAPA 2: Criando Ordem de Compra...")
         oc = OrdemCompra(
             solicitacao_id=id,
             fornecedor_id=solicitacao.fornecedor_id,
@@ -308,11 +308,11 @@ def aprovar_solicitacao(id):
         db.session.add(oc)
         db.session.flush()
         
-        print(f"✅ OC #{oc.id} criada com sucesso")
+        print(f" OC #{oc.id} criada com sucesso")
         print(f"   Status: {oc.status}")
         print(f"   Valor: R$ {oc.valor_total:.2f}")
         
-        print(f"\n📦 ETAPA 3: Criando lotes...")
+        print(f"\n ETAPA 3: Criando lotes...")
         lotes_por_tipo = {}
         for item in solicitacao.itens:
             chave = (item.tipo_lote_id, item.estrelas_final)
@@ -339,15 +339,15 @@ def aprovar_solicitacao(id):
             db.session.add(lote)
             db.session.flush()
             
-            print(f"   ✅ Lote criado: {lote.numero_lote} (Tipo: {tipo_lote_id}, Estrelas: {estrelas})")
+            print(f"    Lote criado: {lote.numero_lote} (Tipo: {tipo_lote_id}, Estrelas: {estrelas})")
             lotes_criados.append(lote.numero_lote)
             
             for item in itens:
                 item.lote_id = lote.id
         
-        print(f"✅ {len(lotes_criados)} lote(s) criado(s): {', '.join(lotes_criados)}")
+        print(f" {len(lotes_criados)} lote(s) criado(s): {', '.join(lotes_criados)}")
         
-        print(f"\n📋 ETAPA 4: Registrando auditoria da OC...")
+        print(f"\n ETAPA 4: Registrando auditoria da OC...")
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         gps = data.get('gps')
         dispositivo = request.headers.get('User-Agent', '')
@@ -363,29 +363,29 @@ def aprovar_solicitacao(id):
             gps=gps,
             dispositivo=dispositivo
         )
-        print(f"✅ Auditoria registrada")
+        print(f" Auditoria registrada")
         
-        print(f"\n💾 Salvando TODAS as alterações no banco...")
+        print(f"\n Salvando TODAS as alterações no banco...")
         db.session.commit()
-        print(f"✅ COMMIT REALIZADO - Dados persistidos no banco")
+        print(f" COMMIT REALIZADO - Dados persistidos no banco")
         
-        print(f"\n🔍 VERIFICAÇÃO: Consultando OC no banco...")
+        print(f"\n VERIFICAÇÃO: Consultando OC no banco...")
         oc_verificacao = OrdemCompra.query.filter_by(id=oc.id).first()
         if oc_verificacao:
-            print(f"   ✅ OC #{oc_verificacao.id} CONFIRMADA no banco de dados")
+            print(f"    OC #{oc_verificacao.id} CONFIRMADA no banco de dados")
             print(f"      Solicitação ID: {oc_verificacao.solicitacao_id}")
             print(f"      Valor: R$ {oc_verificacao.valor_total:.2f}")
         else:
-            print(f"   ❌ ERRO CRÍTICO: OC NÃO encontrada no banco após commit!")
+            print(f"    ERRO CRÍTICO: OC NÃO encontrada no banco após commit!")
         
-        print(f"\n🔔 ETAPA 5: Criando notificações...")
+        print(f"\n ETAPA 5: Criando notificações...")
         notificacao_funcionario = Notificacao(
             usuario_id=solicitacao.funcionario_id,
             titulo='Solicitação Aprovada',
             mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada! OC #{oc.id} criada (R$ {oc.valor_total:.2f}) e {len(lotes_criados)} lote(s) gerado(s).'
         )
         db.session.add(notificacao_funcionario)
-        print(f"   ✅ Notificação para funcionário criada")
+        print(f"    Notificação para funcionário criada")
         
         usuarios_financeiro = Usuario.query.filter(
             db.and_(
@@ -408,12 +408,12 @@ def aprovar_solicitacao(id):
                 db.session.add(notificacao_financeiro)
                 usuarios_ids_notificados.add(usuario_fin.id)
         
-        print(f"   ✅ {len(usuarios_ids_notificados)} notificações para financeiro/admin criadas")
+        print(f"    {len(usuarios_ids_notificados)} notificações para financeiro/admin criadas")
         
         db.session.commit()
-        print(f"\n💾 Transação commitada com sucesso!")
+        print(f"\n Transação commitada com sucesso!")
         
-        print(f"\n📡 FASE 3: Enviando notificações WebSocket...")
+        print(f"\n FASE 3: Enviando notificações WebSocket...")
         try:
             socketio.emit('nova_notificacao', {
                 'tipo': 'solicitacao_aprovada',
@@ -430,12 +430,12 @@ def aprovar_solicitacao(id):
                 'fornecedor': solicitacao.fornecedor.nome
             }, room='admins')
             
-            print(f"✅ Notificações WebSocket enviadas")
+            print(f" Notificações WebSocket enviadas")
         except Exception as ws_error:
-            print(f"⚠️ Erro ao enviar WebSocket (não crítico): {str(ws_error)}")
+            print(f" Erro ao enviar WebSocket (não crítico): {str(ws_error)}")
         
         print(f"\n{'='*60}")
-        print(f"🎉 APROVAÇÃO CONCLUÍDA COM SUCESSO!")
+        print(f" APROVAÇÃO CONCLUÍDA COM SUCESSO!")
         print(f"{'='*60}")
         print(f"   Solicitação: #{solicitacao.id} (aprovada)")
         print(f"   Lotes criados: {len(lotes_criados)}")
@@ -455,7 +455,7 @@ def aprovar_solicitacao(id):
     except Exception as e:
         db.session.rollback()
         print(f"\n{'='*60}")
-        print(f"❌ ERRO AO APROVAR SOLICITAÇÃO #{id}")
+        print(f" ERRO AO APROVAR SOLICITAÇÃO #{id}")
         print(f"{'='*60}")
         print(f"Erro: {str(e)}")
         import traceback
