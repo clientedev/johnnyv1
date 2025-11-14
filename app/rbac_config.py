@@ -50,6 +50,7 @@ PERFIL_CONFIG = {
         'rotas_api_permitidas': [
             '/api/solicitacoes',
             '/api/fornecedores',
+            '/api/tipos-lote',
             '/api/notificacoes'
         ],
         'paginas_permitidas': [
