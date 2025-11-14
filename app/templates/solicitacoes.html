@@ -297,7 +297,7 @@
 
             try {
                 // Buscar tipos de lote do fornecedor com preços por classificação
-                const response = await fetchAPI(`/fornecedores/${fornecedorId}/tipos-lote`);
+                const response = await fetchAPI(`/api/fornecedores/${fornecedorId}/tipos-lote`);
                 if (response && response.ok) {
                     todosTiposLote = await response.json();
                     
