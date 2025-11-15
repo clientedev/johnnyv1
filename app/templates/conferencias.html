@@ -2,6 +2,10 @@
 
 {% block title %}Conferências de Recebimento{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row mb-4">
@@ -138,7 +142,10 @@ function renderizarTabela() {
     const tbody = document.querySelector('#tabela-conferencias tbody');
     tbody.innerHTML = '';
     
+    console.log('📊 Renderizando conferências:', conferencias.length);
+    
     conferencias.forEach(conf => {
+        console.log('Conferência:', conf.id, 'Status:', conf.conferencia_status);
         const tr = document.createElement('tr');
         
         const statusBadge = getStatusBadge(conf.conferencia_status);
@@ -180,9 +187,12 @@ function getStatusBadge(status) {
 }
 
 function getBotaoAcao(conf) {
+    console.log('🔘 getBotaoAcao - ID:', conf.id, 'Status:', conf.conferencia_status);
+    
     if (conf.conferencia_status === 'PENDENTE') {
         return `<a href="/conferencia-form/${conf.id}" class="btn btn-sm btn-primary">Processar</a>`;
     } else if (conf.conferencia_status === 'DIVERGENTE') {
+        console.log('✅ Retornando botão ENVIAR P/ ADM para conferência', conf.id);
         return `<button class="btn btn-sm btn-warning" onclick="enviarParaAdmDireto(${conf.id})">
                     <i class="bi bi-exclamation-triangle"></i> Enviar p/ ADM
                 </button>`;
