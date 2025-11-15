@@ -4,6 +4,10 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<style>
+    /* Cache busting - version 2.0 */
+    .conferencia-table-v2 { display: table; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -94,6 +98,9 @@
 </div>
 
 <script>
+// VERSÃO 2.0 - Cache busting timestamp
+console.log('🔄 Script de conferências carregado - v2.0 -', new Date().toISOString());
+
 const CONFERENCIA_API_URL = '/api/conferencia';
 let conferencias = [];
 
@@ -242,6 +249,7 @@ document.getElementById('filtro-status').addEventListener('change', (e) => {
     carregarConferencias(e.target.value);
 });
 
+console.log('✅ Iniciando carregamento de dados');
 carregarEstatisticas();
 carregarConferencias();
 
