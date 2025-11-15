@@ -30,6 +30,143 @@ def registrar_auditoria_conferencia(conferencia, acao, usuario_id, detalhes=None
         conferencia.auditoria = []
     conferencia.auditoria.append(entrada_auditoria)
 
+def criar_lote_apos_conferencia(conferencia, usuario_id, decisao='ACEITAR', percentual_desconto=None, motivo='', gps=None, device_id=None):
+    from app.models import MovimentacaoEstoque, LoteSeparacao
+    
+    os = OrdemServico.query.get(conferencia.os_id)
+    oc = OrdemCompra.query.get(conferencia.oc_id)
+    
+    if not os or not oc:
+        raise ValueError('OS ou OC não encontrada')
+    
+    peso_final = conferencia.peso_real if conferencia.peso_real else conferencia.peso_fornecedor
+    peso_liquido = peso_final
+    
+    if decisao == 'ACEITAR_COM_DESCONTO' and percentual_desconto:
+        peso_liquido = peso_final * (1 - percentual_desconto / 100)
+    
+    ano = datetime.now().year
+    numero_sequencial = Lote.query.filter(
+        Lote.numero_lote.like(f"{ano}-%")
+    ).count() + 1
+    numero_lote = f"{ano}-{str(numero_sequencial).zfill(5)}"
+    
+    tipo_lote_id = None
+    if oc.solicitacao and oc.solicitacao.itens:
+        primeiro_item = oc.solicitacao.itens[0]
+        tipo_lote_id = primeiro_item.tipo_lote_id
+    
+    if not tipo_lote_id:
+        raise ValueError('Tipo de lote não encontrado. A solicitação deve ter itens com tipo_lote_id válido.')
+    
+    divergencias_registradas = []
+    if conferencia.divergencia:
+        divergencias_registradas.append({
+            'tipo': conferencia.tipo_divergencia,
+            'percentual_diferenca': conferencia.percentual_diferenca,
+            'peso_previsto': conferencia.peso_fornecedor,
+            'peso_recebido': peso_final,
+            'decisao_adm': decisao,
+            'motivo': motivo
+        })
+    
+    lote = Lote(
+        numero_lote=numero_lote,
+        fornecedor_id=oc.fornecedor_id,
+        tipo_lote_id=tipo_lote_id,
+        solicitacao_origem_id=oc.solicitacao_id if oc.solicitacao else None,
+        oc_id=oc.id,
+        os_id=os.id,
+        conferencia_id=conferencia.id,
+        peso_bruto_recebido=peso_final,
+        peso_liquido=peso_liquido,
+        peso_total_kg=peso_liquido,
+        qualidade_recebida=conferencia.qualidade,
+        status='AGUARDANDO_SEPARACAO',
+        conferente_id=conferencia.conferente_id,
+        anexos=conferencia.fotos_pesagem or [],
+        divergencias=divergencias_registradas,
+        auditoria=[{
+            'acao': 'LOTE_CRIADO_APOS_CONFERENCIA',
+            'usuario_id': usuario_id,
+            'timestamp': datetime.utcnow().isoformat(),
+            'ip': request.remote_addr,
+            'device_id': conferencia.device_id_conferencia or device_id,
+            'gps': conferencia.gps_conferencia or gps,
+            'detalhes': {
+                'conferencia_id': conferencia.id,
+                'os_id': os.id,
+                'oc_id': oc.id,
+                'decisao': decisao,
+                'divergencia': conferencia.divergencia,
+                'tipo_divergencia': conferencia.tipo_divergencia
+            }
+        }],
+        data_criacao=datetime.utcnow()
+    )
+    db.session.add(lote)
+    db.session.flush()
+    
+    if oc.solicitacao and oc.solicitacao.itens:
+        for item in oc.solicitacao.itens:
+            item.lote_id = lote.id
+    
+    entrada_estoque = EntradaEstoque(
+        lote_id=lote.id,
+        status='recebido',
+        admin_id=usuario_id,
+        observacoes=f'Entrada automática após conferência aprovada. Decisão: {decisao}',
+        data_entrada=datetime.utcnow()
+    )
+    db.session.add(entrada_estoque)
+    
+    movimentacao = MovimentacaoEstoque(
+        lote_id=lote.id,
+        tipo='ENTRADA_RECEBIMENTO',
+        localizacao_origem='EXTERNO',
+        localizacao_destino='PATIO_RECEBIMENTO',
+        peso=peso_liquido,
+        usuario_id=usuario_id,
+        observacoes=f'Entrada inicial após conferência. OS: {os.numero_os}',
+        dados_before={},
+        dados_after={
+            'lote_id': lote.id,
+            'numero_lote': numero_lote,
+            'localizacao': 'PATIO_RECEBIMENTO',
+            'peso': peso_liquido
+        },
+        auditoria=[{
+            'acao': 'MOVIMENTACAO_CRIADA',
+            'usuario_id': usuario_id,
+            'timestamp': datetime.utcnow().isoformat(),
+            'ip': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent'),
+            'gps': gps,
+            'device_id': device_id
+        }],
+        data_movimentacao=datetime.utcnow()
+    )
+    db.session.add(movimentacao)
+    
+    separacao = LoteSeparacao(
+        lote_id=lote.id,
+        status='AGUARDANDO_SEPARACAO',
+        auditoria=[{
+            'acao': 'SEPARACAO_CRIADA_AUTOMATICAMENTE',
+            'usuario_id': usuario_id,
+            'timestamp': datetime.utcnow().isoformat(),
+            'ip': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent'),
+            'gps': gps,
+            'device_id': device_id,
+            'divergencia_conferencia': conferencia.divergencia,
+            'decisao_adm': decisao
+        }]
+    )
+    db.session.add(separacao)
+    
+    return lote
+
 @bp.route('', methods=['GET'])
 @jwt_required()
 def listar_conferencias():
@@ -228,12 +365,33 @@ def registrar_pesagem(id):
             device_id=data.get('device_id')
         )
         
+        lote_criado = None
+        if conferencia.conferencia_status == 'APROVADA':
+            try:
+                lote_criado = criar_lote_apos_conferencia(
+                    conferencia=conferencia,
+                    usuario_id=usuario_id,
+                    decisao='ACEITAR',
+                    motivo='Aprovação automática - sem divergência',
+                    gps=data.get('gps'),
+                    device_id=data.get('device_id')
+                )
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'erro': f'Erro ao criar lote após conferência: {str(e)}'}), 500
+        
         db.session.commit()
         
-        return jsonify({
+        response_data = {
             'mensagem': 'Pesagem registrada com sucesso',
             'conferencia': conferencia.to_dict()
-        }), 200
+        }
+        
+        if lote_criado:
+            response_data['lote_criado'] = lote_criado.to_dict()
+            response_data['mensagem'] = 'Pesagem registrada e lote criado com sucesso'
+        
+        return jsonify(response_data), 200
     
     except Exception as e:
         db.session.rollback()
@@ -315,138 +473,23 @@ def decisao_adm(id):
         conferencia.decisao_adm_em = datetime.utcnow()
         conferencia.decisao_adm_motivo = data.get('motivo', '')
         
+        lote_criado = None
         if decisao in ['ACEITAR', 'ACEITAR_COM_DESCONTO']:
             conferencia.conferencia_status = 'APROVADA'
             
-            os = OrdemServico.query.get(conferencia.os_id)
-            oc = OrdemCompra.query.get(conferencia.oc_id)
-            
-            if os and oc:
-                from app.models import MovimentacaoEstoque, LoteSeparacao
-                
-                peso_final = conferencia.peso_real if conferencia.peso_real else conferencia.peso_fornecedor
-                peso_liquido = peso_final
-                
-                if decisao == 'ACEITAR_COM_DESCONTO' and data.get('percentual_desconto'):
-                    percentual_desc = data['percentual_desconto']
-                    peso_liquido = peso_final * (1 - percentual_desc / 100)
-                
-                ano = datetime.now().year
-                numero_sequencial = Lote.query.filter(
-                    Lote.numero_lote.like(f"{ano}-%")
-                ).count() + 1
-                numero_lote = f"{ano}-{str(numero_sequencial).zfill(5)}"
-                
-                tipo_lote_id = None
-                if oc.solicitacao and oc.solicitacao.itens:
-                    primeiro_item = oc.solicitacao.itens[0]
-                    tipo_lote_id = primeiro_item.tipo_lote_id
-                
-                divergencias_registradas = []
-                if conferencia.divergencia:
-                    divergencias_registradas.append({
-                        'tipo': conferencia.tipo_divergencia,
-                        'percentual_diferenca': conferencia.percentual_diferenca,
-                        'peso_previsto': conferencia.peso_fornecedor,
-                        'peso_recebido': peso_final,
-                        'decisao_adm': decisao,
-                        'motivo': data.get('motivo', '')
-                    })
-                
-                lote = Lote(
-                    numero_lote=numero_lote,
-                    fornecedor_id=oc.fornecedor_id,
-                    tipo_lote_id=tipo_lote_id or 1,
-                    solicitacao_origem_id=oc.solicitacao_id if oc.solicitacao else None,
-                    oc_id=oc.id,
-                    os_id=os.id,
-                    conferencia_id=conferencia.id,
-                    peso_bruto_recebido=peso_final,
-                    peso_liquido=peso_liquido,
-                    peso_total_kg=peso_liquido,
-                    qualidade_recebida=conferencia.qualidade,
-                    status='AGUARDANDO_SEPARACAO',
-                    conferente_id=conferencia.conferente_id,
-                    anexos=conferencia.fotos_pesagem or [],
-                    divergencias=divergencias_registradas,
-                    auditoria=[{
-                        'acao': 'LOTE_CRIADO_APOS_CONFERENCIA',
-                        'usuario_id': usuario_id,
-                        'timestamp': datetime.utcnow().isoformat(),
-                        'ip': request.remote_addr,
-                        'device_id': conferencia.device_id_conferencia,
-                        'gps': conferencia.gps_conferencia,
-                        'detalhes': {
-                            'conferencia_id': conferencia.id,
-                            'os_id': os.id,
-                            'oc_id': oc.id,
-                            'decisao': decisao,
-                            'divergencia': conferencia.divergencia,
-                            'tipo_divergencia': conferencia.tipo_divergencia
-                        }
-                    }],
-                    data_criacao=datetime.utcnow()
-                )
-                db.session.add(lote)
-                db.session.flush()
-                
-                if oc.solicitacao and oc.solicitacao.itens:
-                    for item in oc.solicitacao.itens:
-                        item.lote_id = lote.id
-                
-                entrada_estoque = EntradaEstoque(
-                    lote_id=lote.id,
-                    status='recebido',
-                    admin_id=usuario_id,
-                    observacoes=f'Entrada automática após conferência aprovada. Decisão: {decisao}',
-                    data_entrada=datetime.utcnow()
-                )
-                db.session.add(entrada_estoque)
-                
-                movimentacao = MovimentacaoEstoque(
-                    lote_id=lote.id,
-                    tipo='ENTRADA_RECEBIMENTO',
-                    localizacao_origem='EXTERNO',
-                    localizacao_destino='PATIO_RECEBIMENTO',
-                    peso=peso_liquido,
+            try:
+                lote_criado = criar_lote_apos_conferencia(
+                    conferencia=conferencia,
                     usuario_id=usuario_id,
-                    observacoes=f'Entrada inicial após conferência. OS: {os.numero_os}',
-                    dados_before={},
-                    dados_after={
-                        'lote_id': lote.id,
-                        'numero_lote': numero_lote,
-                        'localizacao': 'PATIO_RECEBIMENTO',
-                        'peso': peso_liquido
-                    },
-                    auditoria=[{
-                        'acao': 'MOVIMENTACAO_CRIADA',
-                        'usuario_id': usuario_id,
-                        'timestamp': datetime.utcnow().isoformat(),
-                        'ip': request.remote_addr,
-                        'user_agent': request.headers.get('User-Agent'),
-                        'gps': data.get('gps'),
-                        'device_id': data.get('device_id')
-                    }],
-                    data_movimentacao=datetime.utcnow()
+                    decisao=decisao,
+                    percentual_desconto=data.get('percentual_desconto'),
+                    motivo=data.get('motivo', ''),
+                    gps=data.get('gps'),
+                    device_id=data.get('device_id')
                 )
-                db.session.add(movimentacao)
-                
-                separacao = LoteSeparacao(
-                    lote_id=lote.id,
-                    status='AGUARDANDO_SEPARACAO',
-                    auditoria=[{
-                        'acao': 'SEPARACAO_CRIADA_AUTOMATICAMENTE',
-                        'usuario_id': usuario_id,
-                        'timestamp': datetime.utcnow().isoformat(),
-                        'ip': request.remote_addr,
-                        'user_agent': request.headers.get('User-Agent'),
-                        'gps': data.get('gps'),
-                        'device_id': data.get('device_id'),
-                        'divergencia_conferencia': conferencia.divergencia,
-                        'decisao_adm': decisao
-                    }]
-                )
-                db.session.add(separacao)
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'erro': f'Erro ao criar lote: {str(e)}'}), 500
         else:
             conferencia.conferencia_status = 'REJEITADA'
         
@@ -475,10 +518,16 @@ def decisao_adm(id):
         
         db.session.commit()
         
-        return jsonify({
+        response_data = {
             'mensagem': f'Decisão {decisao} registrada com sucesso',
             'conferencia': conferencia.to_dict()
-        }), 200
+        }
+        
+        if lote_criado:
+            response_data['lote_criado'] = lote_criado.to_dict()
+            response_data['mensagem'] = f'Decisão {decisao} registrada e lote criado com sucesso'
+        
+        return jsonify(response_data), 200
     
     except Exception as e:
         db.session.rollback()
