@@ -47,37 +47,27 @@ def listar_os():
         if not usuario:
             return jsonify({'erro': 'Usuário não encontrado'}), 404
         
-        print(f"\n{'='*60}")
-        print(f" LISTANDO ORDENS DE SERVIÇO")
-        print(f"{'='*60}")
-        print(f"   Usuário: {usuario.nome} (ID: {usuario_id})")
-        
         query = OrdemServico.query
         
         status = request.args.get('status')
         if status:
             query = query.filter_by(status=status)
-            print(f"   Filtro status: {status}")
         
         motorista_id = request.args.get('motorista_id', type=int)
         if motorista_id:
             query = query.filter_by(motorista_id=motorista_id)
-            print(f"   Filtro motorista_id: {motorista_id}")
         
         data_inicio = request.args.get('data_inicio')
         if data_inicio:
             query = query.filter(OrdemServico.criado_em >= datetime.fromisoformat(data_inicio))
-            print(f"   Filtro data_inicio: {data_inicio}")
         
         data_fim = request.args.get('data_fim')
         if data_fim:
             query = query.filter(OrdemServico.criado_em <= datetime.fromisoformat(data_fim))
-            print(f"   Filtro data_fim: {data_fim}")
         
         oc_id = request.args.get('oc_id', type=int)
         if oc_id:
             query = query.filter_by(oc_id=oc_id)
-            print(f"   Filtro oc_id: {oc_id}")
         
         if usuario.tipo == 'funcionario':
             perfil_nome = usuario.perfil.nome if usuario.perfil else None
@@ -86,23 +76,14 @@ def listar_os():
                 motorista = Motorista.query.filter_by(usuario_id=usuario_id).first()
                 if motorista:
                     query = query.filter_by(motorista_id=motorista.id)
-                    print(f"   Filtro motorista (perfil): {motorista.id}")
                 else:
-                    print("   Motorista não encontrado, retornando lista vazia")
                     return jsonify([]), 200
         
         os_list = query.order_by(OrdemServico.criado_em.desc()).all()
         
-        print(f"   Total de OS encontradas: {len(os_list)}")
-        for os in os_list:
-            print(f"     - OS #{os.id}: {os.numero_os} - Status: {os.status}")
-        
-        print(f"{'='*60}\n")
-        
         return jsonify([os.to_dict() for os in os_list]), 200
     
     except Exception as e:
-        print(f"ERRO ao listar OS: {str(e)}")
         return jsonify({'erro': f'Erro ao listar OS: {str(e)}'}), 500
 
 @bp.route('/<int:id>', methods=['GET'])
