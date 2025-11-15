@@ -1,11 +1,45 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import OrdemCompra, AuditoriaOC, Solicitacao, Fornecedor, Usuario, ItemSolicitacao, db
+from app.models import OrdemCompra, AuditoriaOC, Solicitacao, Fornecedor, Usuario, ItemSolicitacao, OrdemServico, db
 from app.auth import admin_required
 from app.utils.auditoria import registrar_auditoria_oc
 from datetime import datetime
 
 bp = Blueprint('ordens_compra', __name__, url_prefix='/api/ordens-compra')
+
+def gerar_numero_os():
+    """Gera número único para Ordem de Serviço"""
+    import uuid
+    timestamp = datetime.now().strftime('%Y%m%d')
+    random_str = uuid.uuid4().hex[:6].upper()
+    return f"OS-{timestamp}-{random_str}"
+
+def criar_snapshot_fornecedor(fornecedor):
+    """Cria snapshot dos dados do fornecedor para a OS"""
+    return {
+        'id': fornecedor.id,
+        'nome': fornecedor.nome,
+        'cnpj': fornecedor.cnpj if hasattr(fornecedor, 'cnpj') else None,
+        'endereco': fornecedor.endereco if hasattr(fornecedor, 'endereco') else None,
+        'cidade': fornecedor.cidade if hasattr(fornecedor, 'cidade') else None,
+        'estado': fornecedor.estado if hasattr(fornecedor, 'estado') else None,
+        'telefone': fornecedor.telefone if hasattr(fornecedor, 'telefone') else None,
+    }
+
+def registrar_auditoria_os(os, acao, usuario_id, detalhes=None):
+    """Registra ação de auditoria na OS"""
+    entrada_auditoria = {
+        'acao': acao,
+        'usuario_id': usuario_id,
+        'timestamp': datetime.utcnow().isoformat(),
+        'detalhes': detalhes or {},
+        'ip': request.remote_addr,
+        'user_agent': request.headers.get('User-Agent')
+    }
+    
+    if os.auditoria is None:
+        os.auditoria = []
+    os.auditoria.append(entrada_auditoria)
 
 @bp.route('', methods=['GET'])
 @jwt_required()
@@ -239,13 +273,77 @@ def aprovar_oc(oc_id):
                 gps=oc.gps_aprovacao,
                 dispositivo=oc.device_info
             )
+            
+            # ========================================
+            # GERAÇÃO AUTOMÁTICA DE OS
+            # ========================================
+            print(f"\n{'='*60}")
+            print(f" OC #{oc.id} APROVADA - Criando OS automaticamente...")
+            print(f"{'='*60}")
+            
+            try:
+                # Buscar fornecedor para criar snapshot
+                fornecedor = Fornecedor.query.get(oc.fornecedor_id)
+                if not fornecedor:
+                    raise Exception(f'Fornecedor {oc.fornecedor_id} não encontrado')
+                
+                print(f"   Fornecedor: {fornecedor.nome}")
+                
+                # Verificar se já existe OS para esta OC
+                os_existente = OrdemServico.query.filter_by(oc_id=oc.id).first()
+                if os_existente:
+                    print(f"   ⚠️  OS já existe: {os_existente.numero_os}")
+                    os = os_existente
+                else:
+                    # Gerar número único da OS
+                    numero_os = gerar_numero_os()
+                    fornecedor_snap = criar_snapshot_fornecedor(fornecedor)
+                    
+                    print(f"   Número OS: {numero_os}")
+                    print(f"   Status inicial: PENDENTE")
+                    
+                    # Criar a Ordem de Serviço automaticamente
+                    os = OrdemServico(
+                        oc_id=oc.id,
+                        numero_os=numero_os,
+                        fornecedor_snapshot=fornecedor_snap,
+                        tipo='COLETA',  # Padrão: coleta no fornecedor
+                        status='PENDENTE',  # Status inicial
+                        created_by=usuario_id
+                    )
+                    db.session.add(os)
+                    
+                    # Registrar auditoria da OS
+                    registrar_auditoria_os(os, 'CRIACAO', usuario_id, {
+                        'oc_id': oc.id,
+                        'criado_automaticamente': True,
+                        'motivo': 'OC aprovada'
+                    })
+                    
+                    print(f"   ✅ OS criada com sucesso!")
+                
+            except Exception as e:
+                print(f"   ❌ ERRO ao criar OS: {str(e)}")
+                db.session.rollback()
+                return jsonify({
+                    'erro': f'OC aprovada mas falha ao criar OS: {str(e)}',
+                    'oc_aprovada': True,
+                    'oc_id': oc.id
+                }), 500
+            
+            print(f"{'='*60}\n")
         
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'message': 'Ordem de compra aprovada com sucesso',
-            'oc': oc.to_dict()
+            'message': 'Ordem de compra aprovada e OS gerada com sucesso',
+            'oc': oc.to_dict(),
+            'os_criada': {
+                'id': os.id,
+                'numero_os': os.numero_os,
+                'status': os.status
+            }
         }), 200
     
     except Exception as e:
