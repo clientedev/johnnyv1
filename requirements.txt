@@ -77,3 +77,15 @@ python-dotenv==1.0.0
 python-socketio==5.11.1
 sqlalchemy
 xlrd
+flask
+flask-cors
+flask-jwt-extended
+flask-migrate
+flask-socketio
+flask-sqlalchemy
+gevent
+gevent-websocket
+google-generativeai
+pillow
+psycopg2-binary
+python-dotenv
