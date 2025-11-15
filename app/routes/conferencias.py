@@ -118,12 +118,23 @@ def iniciar_conferencia(os_id):
             return jsonify({'erro': 'Ordem de Compra não encontrada'}), 404
         
         data = request.get_json() or {}
-        peso_fornecedor = data.get('peso_fornecedor') or oc.valor_total
+        
+        peso_total_previsto = 0
+        quantidade_total_prevista = 0
+        if oc.solicitacao and oc.solicitacao.itens:
+            for item in oc.solicitacao.itens:
+                peso_kg = item.peso_kg or 0
+                quantidade = item.quantidade or 0
+                peso_total_previsto += peso_kg * quantidade
+                quantidade_total_prevista += quantidade
+        
+        peso_fornecedor = data.get('peso_fornecedor') or peso_total_previsto
         
         conferencia = ConferenciaRecebimento(
             os_id=os_id,
             oc_id=os.oc_id,
             peso_fornecedor=peso_fornecedor,
+            quantidade_prevista=quantidade_total_prevista,
             conferencia_status='PENDENTE',
             conferente_id=usuario_id
         )

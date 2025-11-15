@@ -381,10 +381,14 @@ def registrar_evento(id):
             if not conferencia_existente:
                 oc = OrdemCompra.query.get(os.oc_id)
                 if oc:
-                    peso_previsto = oc.valor_total
+                    peso_previsto = 0
                     quantidade_prevista = 0
                     if oc.solicitacao and oc.solicitacao.itens:
-                        quantidade_prevista = sum(item.quantidade for item in oc.solicitacao.itens)
+                        for item in oc.solicitacao.itens:
+                            peso_kg = item.peso_kg or 0
+                            quantidade = item.quantidade or 0
+                            peso_previsto += peso_kg * quantidade
+                            quantidade_prevista += quantidade
                     
                     conferencia = ConferenciaRecebimento(
                         os_id=os.id,
