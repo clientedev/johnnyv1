@@ -14,14 +14,16 @@ def calcular_percentual_diferenca(peso_fornecedor, peso_real):
         return 0
     return abs((peso_real - peso_fornecedor) / peso_fornecedor) * 100
 
-def registrar_auditoria_conferencia(conferencia, acao, usuario_id, detalhes=None):
+def registrar_auditoria_conferencia(conferencia, acao, usuario_id, detalhes=None, gps=None, device_id=None):
     entrada_auditoria = {
         'acao': acao,
         'usuario_id': usuario_id,
         'timestamp': datetime.utcnow().isoformat(),
         'detalhes': detalhes or {},
         'ip': request.remote_addr,
-        'user_agent': request.headers.get('User-Agent')
+        'user_agent': request.headers.get('User-Agent'),
+        'gps': gps,
+        'device_id': device_id
     }
     
     if conferencia.auditoria is None:
@@ -139,10 +141,14 @@ def iniciar_conferencia(os_id):
         )
         
         db.session.add(conferencia)
-        registrar_auditoria_conferencia(conferencia, 'INICIO_CONFERENCIA', usuario_id, {
-            'os_id': os_id,
-            'oc_id': os.oc_id
-        })
+        registrar_auditoria_conferencia(
+            conferencia, 
+            'INICIO_CONFERENCIA', 
+            usuario_id, 
+            detalhes={'os_id': os_id, 'oc_id': os.oc_id},
+            gps=data.get('gps'),
+            device_id=data.get('device_id')
+        )
         
         db.session.commit()
         
@@ -206,16 +212,21 @@ def registrar_pesagem(id):
             conferencia.tipo_divergencia = 'QUALIDADE_RUIM'
             conferencia.conferencia_status = 'DIVERGENTE'
         
-        registrar_auditoria_conferencia(conferencia, 'PESAGEM_REGISTRADA', usuario_id, {
-            'peso_real': data['peso_real'],
-            'quantidade_real': data.get('quantidade_real'),
-            'qualidade': conferencia.qualidade,
-            'observacoes': conferencia.observacoes,
-            'divergencia': conferencia.divergencia,
-            'percentual_diferenca': conferencia.percentual_diferenca,
-            'gps': data.get('gps'),
-            'device_id': data.get('device_id')
-        })
+        registrar_auditoria_conferencia(
+            conferencia, 
+            'PESAGEM_REGISTRADA', 
+            usuario_id, 
+            detalhes={
+                'peso_real': data['peso_real'],
+                'quantidade_real': data.get('quantidade_real'),
+                'qualidade': conferencia.qualidade,
+                'observacoes': conferencia.observacoes,
+                'divergencia': conferencia.divergencia,
+                'percentual_diferenca': conferencia.percentual_diferenca
+            },
+            gps=data.get('gps'),
+            device_id=data.get('device_id')
+        )
         
         db.session.commit()
         
@@ -243,10 +254,18 @@ def enviar_para_adm(id):
         
         conferencia.conferencia_status = 'AGUARDANDO_ADM'
         
-        registrar_auditoria_conferencia(conferencia, 'ENVIADO_PARA_ADM', usuario_id, {
-            'tipo_divergencia': conferencia.tipo_divergencia,
-            'percentual_diferenca': conferencia.percentual_diferenca
-        })
+        data = request.get_json() or {}
+        registrar_auditoria_conferencia(
+            conferencia, 
+            'ENVIADO_PARA_ADM', 
+            usuario_id, 
+            detalhes={
+                'tipo_divergencia': conferencia.tipo_divergencia,
+                'percentual_diferenca': conferencia.percentual_diferenca
+            },
+            gps=data.get('gps'),
+            device_id=data.get('device_id')
+        )
         
         admins = Usuario.query.filter_by(tipo='admin').all()
         for admin in admins:
@@ -396,7 +415,10 @@ def decisao_adm(id):
                         'acao': 'MOVIMENTACAO_CRIADA',
                         'usuario_id': usuario_id,
                         'timestamp': datetime.utcnow().isoformat(),
-                        'ip': request.remote_addr
+                        'ip': request.remote_addr,
+                        'user_agent': request.headers.get('User-Agent'),
+                        'gps': data.get('gps'),
+                        'device_id': data.get('device_id')
                     }],
                     data_movimentacao=datetime.utcnow()
                 )
@@ -409,18 +431,29 @@ def decisao_adm(id):
                         auditoria=[{
                             'acao': 'SEPARACAO_CRIADA_AUTOMATICAMENTE',
                             'usuario_id': usuario_id,
-                            'timestamp': datetime.utcnow().isoformat()
+                            'timestamp': datetime.utcnow().isoformat(),
+                            'ip': request.remote_addr,
+                            'user_agent': request.headers.get('User-Agent'),
+                            'gps': data.get('gps'),
+                            'device_id': data.get('device_id')
                         }]
                     )
                     db.session.add(separacao)
         else:
             conferencia.conferencia_status = 'REJEITADA'
         
-        registrar_auditoria_conferencia(conferencia, 'DECISAO_ADM', usuario_id, {
-            'decisao': decisao,
-            'motivo': data.get('motivo'),
-            'percentual_desconto': data.get('percentual_desconto')
-        })
+        registrar_auditoria_conferencia(
+            conferencia, 
+            'DECISAO_ADM', 
+            usuario_id, 
+            detalhes={
+                'decisao': decisao,
+                'motivo': data.get('motivo'),
+                'percentual_desconto': data.get('percentual_desconto')
+            },
+            gps=data.get('gps'),
+            device_id=data.get('device_id')
+        )
         
         if conferencia.conferente_id:
             notificacao = Notificacao(
@@ -499,10 +532,17 @@ def upload_foto(id):
             
             conferencia.fotos_pesagem.append(caminho_arquivo)
             
-            registrar_auditoria_conferencia(conferencia, 'FOTO_ADICIONADA', usuario_id, {
-                'caminho_arquivo': caminho_arquivo,
-                'nome_original': foto.filename
-            })
+            registrar_auditoria_conferencia(
+                conferencia, 
+                'FOTO_ADICIONADA', 
+                usuario_id, 
+                detalhes={
+                    'caminho_arquivo': caminho_arquivo,
+                    'nome_original': foto.filename
+                },
+                gps=None,
+                device_id=None
+            )
             
             db.session.commit()
             

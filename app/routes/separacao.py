@@ -6,14 +6,16 @@ from datetime import datetime
 
 bp = Blueprint('separacao', __name__, url_prefix='/api/separacao')
 
-def registrar_auditoria_separacao(separacao, acao, usuario_id, detalhes=None):
+def registrar_auditoria_separacao(separacao, acao, usuario_id, detalhes=None, gps=None, device_id=None):
     entrada_auditoria = {
         'acao': acao,
         'usuario_id': usuario_id,
         'timestamp': datetime.utcnow().isoformat(),
         'detalhes': detalhes or {},
         'ip': request.remote_addr,
-        'user_agent': request.headers.get('User-Agent')
+        'user_agent': request.headers.get('User-Agent'),
+        'gps': gps,
+        'device_id': device_id
     }
     
     if separacao.auditoria is None:
@@ -90,10 +92,14 @@ def iniciar_separacao(id):
         separacao.ip_inicio = request.remote_addr
         separacao.device_id = data.get('device_id')
         
-        registrar_auditoria_separacao(separacao, 'SEPARACAO_INICIADA', usuario_id, {
-            'gps': data.get('gps'),
-            'device_id': data.get('device_id')
-        })
+        registrar_auditoria_separacao(
+            separacao, 
+            'SEPARACAO_INICIADA', 
+            usuario_id, 
+            detalhes={'data_inicio': separacao.data_inicio.isoformat()},
+            gps=data.get('gps'),
+            device_id=data.get('device_id')
+        )
         
         lote = separacao.lote
         if lote:
@@ -162,6 +168,9 @@ def criar_sublote(id):
                 'usuario_id': usuario_id,
                 'timestamp': datetime.utcnow().isoformat(),
                 'ip': request.remote_addr,
+                'user_agent': request.headers.get('User-Agent'),
+                'gps': data.get('gps'),
+                'device_id': data.get('device_id') or separacao.device_id,
                 'separacao_id': separacao.id,
                 'lote_pai_id': lote_pai.id
             }],
@@ -172,11 +181,18 @@ def criar_sublote(id):
         
         separacao.peso_total_sublotes = (separacao.peso_total_sublotes or 0) + data['peso']
         
-        registrar_auditoria_separacao(separacao, 'SUBLOTE_CRIADO', usuario_id, {
-            'sublote_numero': numero_lote,
-            'peso': data['peso'],
-            'tipo_lote_id': data['tipo_lote_id']
-        })
+        registrar_auditoria_separacao(
+            separacao, 
+            'SUBLOTE_CRIADO', 
+            usuario_id, 
+            detalhes={
+                'sublote_numero': numero_lote,
+                'peso': data['peso'],
+                'tipo_lote_id': data['tipo_lote_id']
+            },
+            gps=data.get('gps'),
+            device_id=data.get('device_id') or separacao.device_id
+        )
         
         db.session.commit()
         
@@ -228,7 +244,10 @@ def criar_residuo(id):
                 'acao': 'RESIDUO_CRIADO',
                 'usuario_id': usuario_id,
                 'timestamp': datetime.utcnow().isoformat(),
-                'ip': request.remote_addr
+                'ip': request.remote_addr,
+                'user_agent': request.headers.get('User-Agent'),
+                'gps': data.get('gps'),
+                'device_id': data.get('device_id') or separacao.device_id
             }],
             criado_em=datetime.utcnow()
         )
@@ -237,11 +256,18 @@ def criar_residuo(id):
         
         separacao.peso_total_residuos = (separacao.peso_total_residuos or 0) + data['peso']
         
-        registrar_auditoria_separacao(separacao, 'RESIDUO_CRIADO', usuario_id, {
-            'material': data['material'],
-            'peso': data['peso'],
-            'justificativa': data['justificativa']
-        })
+        registrar_auditoria_separacao(
+            separacao, 
+            'RESIDUO_CRIADO', 
+            usuario_id, 
+            detalhes={
+                'material': data['material'],
+                'peso': data['peso'],
+                'justificativa': data['justificativa']
+            },
+            gps=data.get('gps'),
+            device_id=data.get('device_id') or separacao.device_id
+        )
         
         admins = Usuario.query.filter_by(tipo='admin').all()
         for admin in admins:
@@ -314,12 +340,19 @@ def finalizar_separacao(id):
         
         lote_pai.status = 'PROCESSADO'
         
-        registrar_auditoria_separacao(separacao, 'SEPARACAO_FINALIZADA', usuario_id, {
-            'peso_total_sublotes': separacao.peso_total_sublotes,
-            'peso_total_residuos': separacao.peso_total_residuos,
-            'percentual_aproveitamento': separacao.percentual_aproveitamento,
-            'gps': data.get('gps')
-        })
+        registrar_auditoria_separacao(
+            separacao, 
+            'SEPARACAO_FINALIZADA', 
+            usuario_id, 
+            detalhes={
+                'peso_total_sublotes': separacao.peso_total_sublotes,
+                'peso_total_residuos': separacao.peso_total_residuos,
+                'percentual_aproveitamento': separacao.percentual_aproveitamento,
+                'data_finalizacao': separacao.data_finalizacao.isoformat()
+            },
+            gps=data.get('gps'),
+            device_id=separacao.device_id
+        )
         
         db.session.commit()
         
