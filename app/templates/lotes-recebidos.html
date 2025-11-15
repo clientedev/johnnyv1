@@ -113,7 +113,8 @@
         </div>
     </div>
 
-    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/rbac.js"></script>
     <script>
         let lotes = [];
 
@@ -133,7 +134,7 @@
                 
                 const response = await fetch(url, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 
@@ -209,7 +210,7 @@
             try {
                 const response = await fetch('/api/estoque/estatisticas', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 
@@ -228,7 +229,7 @@
             try {
                 const response = await fetch(`/api/estoque/lotes/${loteId}`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 
@@ -338,7 +339,7 @@
             try {
                 const response = await fetch('/api/fornecedores', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 
@@ -363,14 +364,20 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('access_token');
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
             console.log('🔐 Token presente:', !!token);
             
             if (!token) {
                 console.error('❌ Token de autenticação não encontrado');
                 document.getElementById('tabelaLotes').innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--danger-color);">Você precisa fazer login para acessar esta página</td></tr>';
                 setTimeout(() => window.location.href = '/index.html', 2000);
+                return;
+            }
+            
+            // Verificar autenticação antes de carregar dados
+            const user = await verificarAuth();
+            if (!user) {
                 return;
             }
             
