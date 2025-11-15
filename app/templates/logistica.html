@@ -372,12 +372,13 @@
         </div>
     </div>
 
+    <script src="/static/js/layout.js"></script>
     <script>
         let osAtual = null;
 
         async function carregarEstatisticas() {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = getToken();
                 const response = await fetch('/api/os/estatisticas', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -394,7 +395,7 @@
 
         async function carregarOS() {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = getToken();
                 const status = document.getElementById('filtro-status').value;
                 const motorista = document.getElementById('filtro-motorista').value;
                 const dataInicio = document.getElementById('filtro-data-inicio').value;
@@ -445,7 +446,7 @@
 
         async function verDetalhes(osId) {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = getToken();
                 const response = await fetch(`/api/os/${osId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -479,7 +480,7 @@
 
         async function carregarMotoristas() {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = getToken();
                 const response = await fetch('/api/motoristas', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -503,7 +504,7 @@
 
         async function carregarVeiculos() {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = getToken();
                 const response = await fetch('/api/veiculos', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -523,7 +524,7 @@
             e.preventDefault();
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = getToken();
                 const motorista_id = document.getElementById('motorista-select').value;
                 const veiculo_id = document.getElementById('veiculo-select').value;
 
@@ -573,6 +574,5 @@
         carregarOS();
         carregarMotoristas();
     </script>
-    <script src="/static/js/layout.js"></script>
 </body>
 </html>
