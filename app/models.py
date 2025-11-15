@@ -1024,8 +1024,11 @@ class ConferenciaRecebimento(db.Model):  # type: ignore
     oc_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=False)
     peso_fornecedor = db.Column(db.Float, nullable=True)
     peso_real = db.Column(db.Float, nullable=True)
+    quantidade_prevista = db.Column(db.Integer, nullable=True)
+    quantidade_real = db.Column(db.Integer, nullable=True)
     fotos_pesagem = db.Column(db.JSON, default=lambda: [], nullable=True)
     qualidade = db.Column(db.String(50), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
     divergencia = db.Column(db.Boolean, default=False, nullable=False)
     tipo_divergencia = db.Column(db.String(50), nullable=True)
     percentual_diferenca = db.Column(db.Float, nullable=True)
@@ -1038,6 +1041,8 @@ class ConferenciaRecebimento(db.Model):  # type: ignore
     decisao_adm_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     decisao_adm_em = db.Column(db.DateTime, nullable=True)
     decisao_adm_motivo = db.Column(db.Text, nullable=True)
+    gps_conferencia = db.Column(db.JSON, nullable=True)
+    device_id_conferencia = db.Column(db.String(255), nullable=True)
     
     ordem_compra = db.relationship('OrdemCompra', backref='conferencias', foreign_keys=[oc_id])
     conferente = db.relationship('Usuario', foreign_keys=[conferente_id], backref='conferencias_realizadas')
@@ -1053,8 +1058,11 @@ class ConferenciaRecebimento(db.Model):  # type: ignore
             'oc_id': self.oc_id,
             'peso_fornecedor': self.peso_fornecedor,
             'peso_real': self.peso_real,
+            'quantidade_prevista': self.quantidade_prevista,
+            'quantidade_real': self.quantidade_real,
             'fotos_pesagem': self.fotos_pesagem,
             'qualidade': self.qualidade,
+            'observacoes': self.observacoes,
             'divergencia': self.divergencia,
             'tipo_divergencia': self.tipo_divergencia,
             'percentual_diferenca': self.percentual_diferenca,
@@ -1068,5 +1076,7 @@ class ConferenciaRecebimento(db.Model):  # type: ignore
             'decisao_adm_por': self.decisao_adm_por,
             'decisao_adm_por_nome': self.decisor_adm.nome if self.decisor_adm else None,
             'decisao_adm_em': self.decisao_adm_em.isoformat() if self.decisao_adm_em else None,
-            'decisao_adm_motivo': self.decisao_adm_motivo
+            'decisao_adm_motivo': self.decisao_adm_motivo,
+            'gps_conferencia': self.gps_conferencia,
+            'device_id_conferencia': self.device_id_conferencia
         }

@@ -163,21 +163,25 @@ def registrar_pesagem(id):
             return jsonify({'erro': 'Conferência não encontrada'}), 404
         
         conferencia.peso_real = data['peso_real']
-        conferencia.qualidade = data.get('qualidade', 'BOA')
+        conferencia.quantidade_real = data.get('quantidade_real')
+        conferencia.qualidade = data.get('qualidade', 'A')
+        conferencia.observacoes = data.get('observacoes', '')
         conferencia.fotos_pesagem = data.get('fotos', [])
+        
+        if data.get('gps'):
+            conferencia.gps_conferencia = data['gps']
+        
+        conferencia.device_id_conferencia = data.get('device_id')
         
         if conferencia.peso_fornecedor:
             percentual_dif = calcular_percentual_diferenca(conferencia.peso_fornecedor, data['peso_real'])
             conferencia.percentual_diferenca = percentual_dif
             
-            limite_divergencia = 5.0
+            limite_divergencia = 10.0
             
             if percentual_dif > limite_divergencia:
                 conferencia.divergencia = True
-                if data['peso_real'] < conferencia.peso_fornecedor:
-                    conferencia.tipo_divergencia = 'PESO'
-                else:
-                    conferencia.tipo_divergencia = 'PESO'
+                conferencia.tipo_divergencia = 'PESO_EXCEDENTE' if data['peso_real'] > conferencia.peso_fornecedor else 'PESO_INSUFICIENTE'
                 conferencia.conferencia_status = 'DIVERGENTE'
             else:
                 conferencia.divergencia = False
@@ -185,16 +189,20 @@ def registrar_pesagem(id):
         else:
             conferencia.conferencia_status = 'APROVADA'
         
-        if data.get('qualidade') in ['RUIM', 'DANIFICADO']:
+        if data.get('qualidade') in ['C', 'Descartável']:
             conferencia.divergencia = True
-            conferencia.tipo_divergencia = 'QUALIDADE'
+            conferencia.tipo_divergencia = 'QUALIDADE_RUIM'
             conferencia.conferencia_status = 'DIVERGENTE'
         
         registrar_auditoria_conferencia(conferencia, 'PESAGEM_REGISTRADA', usuario_id, {
             'peso_real': data['peso_real'],
+            'quantidade_real': data.get('quantidade_real'),
             'qualidade': conferencia.qualidade,
+            'observacoes': conferencia.observacoes,
             'divergencia': conferencia.divergencia,
-            'percentual_diferenca': conferencia.percentual_diferenca
+            'percentual_diferenca': conferencia.percentual_diferenca,
+            'gps': data.get('gps'),
+            'device_id': data.get('device_id')
         })
         
         db.session.commit()

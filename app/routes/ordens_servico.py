@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, OrdemServico, OrdemCompra, Fornecedor, Motorista, Veiculo, Usuario, Notificacao, GPSLog
+from app.models import db, OrdemServico, OrdemCompra, Fornecedor, Motorista, Veiculo, Usuario, Notificacao, GPSLog, ConferenciaRecebimento
 from app.auth import admin_required
 from datetime import datetime
 
@@ -376,6 +376,49 @@ def registrar_evento(id):
             os.status = 'ENTREGUE'
         elif evento == 'FINALIZEI':
             os.status = 'FINALIZADA'
+            
+            conferencia_existente = ConferenciaRecebimento.query.filter_by(os_id=os.id).first()
+            if not conferencia_existente:
+                oc = OrdemCompra.query.get(os.oc_id)
+                if oc:
+                    peso_previsto = oc.valor_total
+                    quantidade_prevista = 0
+                    if oc.solicitacao and oc.solicitacao.itens:
+                        quantidade_prevista = sum(item.quantidade for item in oc.solicitacao.itens)
+                    
+                    conferencia = ConferenciaRecebimento(
+                        os_id=os.id,
+                        oc_id=os.oc_id,
+                        peso_fornecedor=peso_previsto,
+                        quantidade_prevista=quantidade_prevista,
+                        conferencia_status='PENDENTE',
+                        auditoria=[{
+                            'acao': 'CRIACAO_AUTOMATICA',
+                            'usuario_id': usuario_id,
+                            'timestamp': datetime.utcnow().isoformat(),
+                            'detalhes': {'os_id': os.id, 'oc_id': os.oc_id, 'criado_por': 'FINALIZACAO_OS'},
+                            'ip': request.remote_addr,
+                            'user_agent': request.headers.get('User-Agent')
+                        }]
+                    )
+                    db.session.add(conferencia)
+                    
+                    conferentes = Usuario.query.join(Usuario.perfil).filter(
+                        db.or_(
+                            db.text("perfis.nome = 'Conferente / Estoque'"),
+                            db.text("perfis.nome = 'Administrador'")
+                        )
+                    ).all()
+                    
+                    for conferente in conferentes:
+                        notificacao = Notificacao(
+                            usuario_id=conferente.id,
+                            titulo='Nova Conferência Pendente',
+                            mensagem=f'OS {os.numero_os} foi finalizada. Conferência #{conferencia.id if conferencia.id else "nova"} criada e aguardando processamento.',
+                            tipo='nova_conferencia',
+                            lida=False
+                        )
+                        db.session.add(notificacao)
         
         registrar_auditoria_os(os, f'EVENTO_{evento}', usuario_id, {
             'gps': data['gps'],
