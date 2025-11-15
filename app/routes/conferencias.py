@@ -310,7 +310,7 @@ def decisao_adm(id):
                 
                 if decisao == 'ACEITAR_COM_DESCONTO' and data.get('percentual_desconto'):
                     percentual_desc = data['percentual_desconto']
-                    valor_final = oc.valor_total * (1 - percentual_desconto / 100)
+                    valor_final = oc.valor_total * (1 - percentual_desc / 100)
                 
                 if solicitacao.itens:
                     for item in solicitacao.itens:
@@ -324,8 +324,8 @@ def decisao_adm(id):
                             
                             if lote_existente:
                                 lote_existente.peso_total_kg += item.peso_kg
-                                lote_existente.valor_total += item.valor_total
-                                lote_existente.quantidade_placas += item.quantidade
+                                lote_existente.valor_total += item.valor_calculado
+                                lote_existente.quantidade_itens += 1
                             else:
                                 numero_lote = f"LOTE-{uuid.uuid4().hex[:8].upper()}"
                                 lote = Lote(
@@ -333,8 +333,8 @@ def decisao_adm(id):
                                     fornecedor_id=oc.fornecedor_id,
                                     tipo_lote_id=tipo_lote.id,
                                     peso_total_kg=item.peso_kg,
-                                    valor_total=item.valor_total,
-                                    quantidade_placas=item.quantidade,
+                                    valor_total=item.valor_calculado,
+                                    quantidade_itens=1,
                                     status='aberto',
                                     data_criacao=datetime.utcnow()
                                 )
