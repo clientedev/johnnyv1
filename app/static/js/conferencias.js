@@ -1,3 +1,4 @@
+
 // CONFERENCIAS.JS - Versão 2.0 - Independente
 console.log('🔄 conferencias.js carregado - v2.0 -', new Date().toISOString());
 
@@ -64,6 +65,21 @@ function renderizarTabela() {
         
         const fornecedor = conf.ordem_servico?.fornecedor_snapshot?.nome || '-';
         
+        // Gerar botão de ação baseado no status
+        let botaoAcao = '';
+        if (conf.conferencia_status === 'PENDENTE') {
+            botaoAcao = `<a href="/conferencia-form/${conf.id}" class="btn btn-sm btn-primary">Processar</a>`;
+        } else if (conf.conferencia_status === 'DIVERGENTE') {
+            console.log('✅ Renderizando botão ENVIAR P/ ADM para conferência', conf.id);
+            botaoAcao = `<button class="btn btn-sm btn-warning" onclick="enviarParaAdmDireto(${conf.id})">
+                            <i class="bi bi-exclamation-triangle"></i> Enviar p/ ADM
+                        </button>`;
+        } else if (conf.conferencia_status === 'AGUARDANDO_ADM') {
+            botaoAcao = `<a href="/conferencia-decisao-adm/${conf.id}" class="btn btn-sm btn-warning">Decidir</a>`;
+        } else {
+            botaoAcao = `<button class="btn btn-sm btn-secondary" onclick="verDetalhes(${conf.id})">Ver Detalhes</button>`;
+        }
+        
         tr.innerHTML = `
             <td>${conf.id}</td>
             <td>${conf.os_id}</td>
@@ -74,7 +90,7 @@ function renderizarTabela() {
             <td>${divergenciaBadge}</td>
             <td>${statusBadge}</td>
             <td>
-                ${getBotaoAcao(conf)}
+                ${botaoAcao}
             </td>
         `;
         
@@ -93,28 +109,13 @@ function getStatusBadge(status) {
     return badges[status] || status;
 }
 
-function getBotaoAcao(conf) {
-    console.log('🔘 getBotaoAcao - ID:', conf.id, 'Status:', conf.conferencia_status);
-    
-    if (conf.conferencia_status === 'PENDENTE') {
-        return `<a href="/conferencia-form/${conf.id}" class="btn btn-sm btn-primary">Processar</a>`;
-    } else if (conf.conferencia_status === 'DIVERGENTE') {
-        console.log('✅ Retornando botão ENVIAR P/ ADM para conferência', conf.id);
-        return `<button class="btn btn-sm btn-warning" onclick="enviarParaAdmDireto(${conf.id})">
-                    <i class="bi bi-exclamation-triangle"></i> Enviar p/ ADM
-                </button>`;
-    } else if (conf.conferencia_status === 'AGUARDANDO_ADM') {
-        return `<a href="/conferencia-decisao-adm/${conf.id}" class="btn btn-sm btn-warning">Decidir</a>`;
-    } else {
-        return `<button class="btn btn-sm btn-secondary" onclick="verDetalhes(${conf.id})">Ver Detalhes</button>`;
-    }
-}
-
 function verDetalhes(id) {
     window.location.href = `/conferencia-form/${id}`;
 }
 
 async function enviarParaAdmDireto(conferenciaId) {
+    console.log('🚀 enviarParaAdmDireto chamada para conferência:', conferenciaId);
+    
     if (!confirm('Confirma o envio desta divergência para análise administrativa?')) {
         return;
     }
