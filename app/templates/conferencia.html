@@ -331,13 +331,19 @@
                 const response = await fetch('/api/conferencia/estatisticas', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                
+                if (!response.ok) {
+                    console.error('Erro na resposta da API estatísticas:', response.status);
+                    return;
+                }
+                
                 const data = await response.json();
                 
-                document.getElementById('stat-total').textContent = data.total_conferencias;
-                document.getElementById('stat-pendentes').textContent = data.pendentes;
-                document.getElementById('stat-divergentes').textContent = data.divergentes;
-                document.getElementById('stat-aguardando').textContent = data.aguardando_adm;
-                document.getElementById('stat-aprovadas').textContent = data.aprovadas;
+                document.getElementById('stat-total').textContent = data.total_conferencias || 0;
+                document.getElementById('stat-pendentes').textContent = data.pendentes || 0;
+                document.getElementById('stat-divergentes').textContent = data.divergentes || 0;
+                document.getElementById('stat-aguardando').textContent = data.aguardando_adm || 0;
+                document.getElementById('stat-aprovadas').textContent = data.aprovadas || 0;
             } catch (error) {
                 console.error('Erro ao carregar estatísticas:', error);
             }
@@ -349,12 +355,20 @@
                 const response = await fetch('/api/conferencia', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                
+                if (!response.ok) {
+                    console.error('Erro na resposta da API:', response.status);
+                    const tbody = document.getElementById('conf-list');
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: red;">Erro ao carregar conferências. Verifique sua autenticação.</td></tr>';
+                    return;
+                }
+                
                 const conferencias = await response.json();
 
                 const tbody = document.getElementById('conf-list');
                 tbody.innerHTML = '';
 
-                if (conferencias.length === 0) {
+                if (!Array.isArray(conferencias) || conferencias.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Nenhuma conferência encontrada</td></tr>';
                     return;
                 }
