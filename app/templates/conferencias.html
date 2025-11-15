@@ -143,8 +143,10 @@ function renderizarTabela() {
         
         const statusBadge = getStatusBadge(conf.conferencia_status);
         const divergenciaBadge = conf.divergencia ? 
-            `<span class="badge bg-danger">${conf.percentual_diferenca?.toFixed(1)}%</span>` : 
-            '<span class="badge bg-success">OK</span>';
+            `<span class="badge bg-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i> ${conf.percentual_diferenca?.toFixed(1)}%
+            </span>` : 
+            '<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> OK</span>';
         
         const fornecedor = conf.ordem_servico?.fornecedor_snapshot?.nome || '-';
         
@@ -180,6 +182,10 @@ function getStatusBadge(status) {
 function getBotaoAcao(conf) {
     if (conf.conferencia_status === 'PENDENTE') {
         return `<a href="/conferencia-form/${conf.id}" class="btn btn-sm btn-primary">Processar</a>`;
+    } else if (conf.conferencia_status === 'DIVERGENTE') {
+        return `<button class="btn btn-sm btn-warning" onclick="enviarParaAdmDireto(${conf.id})">
+                    <i class="bi bi-exclamation-triangle"></i> Enviar p/ ADM
+                </button>`;
     } else if (conf.conferencia_status === 'AGUARDANDO_ADM') {
         return `<a href="/conferencia-decisao-adm/${conf.id}" class="btn btn-sm btn-warning">Decidir</a>`;
     } else {
@@ -189,6 +195,37 @@ function getBotaoAcao(conf) {
 
 function verDetalhes(id) {
     window.location.href = `/conferencia-form/${id}`;
+}
+
+async function enviarParaAdmDireto(conferenciaId) {
+    if (!confirm('Confirma o envio desta divergência para análise administrativa?')) {
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/${conferenciaId}/enviar-para-adm`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            alert('✅ Divergência enviada para análise administrativa com sucesso!');
+            // Recarregar a lista
+            const filtro = document.getElementById('filtro-status').value;
+            await carregarConferencias(filtro);
+            await carregarEstatisticas();
+        } else {
+            const error = await response.json();
+            alert('❌ Erro: ' + (error.erro || 'Erro ao enviar para ADM'));
+        }
+    } catch (error) {
+        console.error('Erro ao enviar para ADM:', error);
+        alert('❌ Erro ao enviar para análise administrativa');
+    }
 }
 
 document.getElementById('filtro-status').addEventListener('change', (e) => {
