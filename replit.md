@@ -5,6 +5,37 @@ The MRX System is a comprehensive solution for managing the procurement of elect
 
 ## Recent Changes
 
+### November 15, 2025 - Feature: Automatic OS Generation on OC Approval
+**Feature:** When approving Purchase Orders (Ordens de Compra), the system now automatically generates a Service Order (Ordem de Serviço - OS) to streamline the workflow.
+
+**Implementation:** Modified `app/routes/ordens_compra.py` to:
+1. **Automatic OS Creation:** After approving an OC, the system automatically creates an OS with:
+   - Type: 'COLETA' (Collection)
+   - Status: 'PENDENTE' (Pending)
+   - Unique OS number: `OS-YYYYMMDD-XXXXXX` format
+   - Snapshot of supplier data at creation time
+   - Comprehensive audit trail
+
+2. **Idempotency:** The system checks if an OS already exists for the OC before creating a new one, preventing duplicates
+
+3. **Error Handling:** Implemented robust try/except within nested transaction with automatic rollback if OS creation fails
+
+4. **Detailed Logging:** Added comprehensive debug logs for troubleshooting and monitoring
+
+**Testing:** End-to-end test confirmed:
+- ✅ OC #2 (R$ 60.50) approved successfully
+- ✅ OS #1 (OS-20251115-E64F56) created automatically with status PENDENTE
+- ✅ OS linked correctly to OC #2
+- ✅ Audit trail registered
+- ✅ Response includes OS information
+
+**Architect Recommendations for Future Improvements:**
+1. Extract duplicated helper functions (`gerar_numero_os`, `criar_snapshot_fornecedor`, `registrar_auditoria_os`) to shared module (`app/services/os_helpers.py`) to prevent code divergence
+2. Add unique constraint on `OrdemServico.oc_id` to prevent race conditions in simultaneous approvals
+3. Add automated tests for OS creation workflow
+
+**Impact:** The complete workflow is now: Solicitação → OC → OS (all automated). Users only need to approve the Solicitação and then the OC, and the OS is generated automatically.
+
 ### November 14, 2025 - Critical Fix: Automatic OC Generation on Approval
 **Problem:** When approving purchase requests (Solicitações), the system was only updating the status to "approved" but NOT creating the corresponding Purchase Order (Ordem de Compra), lots, audit records, or notifications.
 
