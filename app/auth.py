@@ -20,10 +20,10 @@ def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         usuario = get_current_user()
-        
+
         if not usuario or usuario.tipo != 'admin':
             return jsonify({'erro': 'Acesso negado. Apenas administradores podem acessar este recurso.'}), 403
-        
+
         return fn(*args, **kwargs)
     return wrapper
 
@@ -32,16 +32,16 @@ def permission_required(permission: str):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             usuario = get_current_user()
-            
+
             if not usuario:
                 return jsonify({'erro': 'Usuário não autenticado'}), 401
-            
+
             if usuario.tipo == 'admin':
                 return fn(*args, **kwargs)
-            
+
             if not usuario.has_permission(permission):
                 return jsonify({'erro': f'Acesso negado. Permissão necessária: {permission}'}), 403
-            
+
             return fn(*args, **kwargs)
         return wrapper
     return decorator
@@ -51,13 +51,13 @@ def perfil_required(*perfis_permitidos):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             usuario = get_current_user()
-            
+
             if not usuario or not usuario.perfil:
                 return jsonify({'erro': 'Usuário sem perfil definido'}), 403
-            
+
             if usuario.perfil.nome not in perfis_permitidos and usuario.tipo != 'admin':
                 return jsonify({'erro': f'Acesso negado. Perfis permitidos: {", ".join(perfis_permitidos)}'}), 403
-            
+
             return fn(*args, **kwargs)
         return wrapper
     return decorator
@@ -68,17 +68,17 @@ def somente_leitura_ou_admin(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         usuario = get_current_user()
-        
+
         if not usuario:
             return jsonify({'erro': 'Usuário não autenticado'}), 401
-        
+
         if usuario.tipo == 'admin':
             return fn(*args, **kwargs)
-        
+
         if usuario.perfil and usuario.perfil.nome == PERFIL_AUDITORIA:
             if request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
                 return jsonify({'erro': 'Perfil Auditoria / BI possui apenas acesso de leitura'}), 403
-        
+
         return fn(*args, **kwargs)
     return wrapper
 
@@ -89,7 +89,7 @@ def get_user_jwt_claims(usuario):
     perfil_nome = None
     permissoes = {}
     permissoes_lista = []
-    
+
     if usuario.perfil:
         perfil_nome = usuario.perfil.nome
         permissoes = usuario.perfil.permissoes or {}
@@ -112,9 +112,9 @@ def get_user_jwt_claims(usuario):
             'definir_limites': True,
             'autorizar_descarte': True
         }
-    
+
     permissoes_lista = [k for k, v in permissoes.items() if v]
-    
+
     return {
         'perfil': perfil_nome,
         'tipo': usuario.tipo,
@@ -130,33 +130,33 @@ def rota_permitida_por_perfil(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         usuario = get_current_user()
-        
+
         if not usuario:
             return jsonify({'erro': 'Usuário não autenticado'}), 401
-        
+
         if usuario.tipo == 'admin':
             return fn(*args, **kwargs)
-        
+
         claims = get_jwt()
         perfil_nome = claims.get('perfil')
-        
+
         if not perfil_nome:
             return jsonify({'erro': 'Perfil não definido no token'}), 403
-        
+
         rota_atual = request.path
-        
+
         if not check_rota_api_permitida(perfil_nome, rota_atual):
             return jsonify({
                 'erro': 'Acesso negado',
                 'mensagem': f'O perfil {perfil_nome} não tem permissão para acessar esta rota'
             }), 403
-        
+
         return fn(*args, **kwargs)
     return wrapper
 
 def criar_perfis_padrao():
     perfis_existentes = {p.nome for p in Perfil.query.all()}
-    
+
     perfis = [
         {
             'nome': 'Administrador',
@@ -256,28 +256,28 @@ def criar_perfis_padrao():
             }
         }
     ]
-    
+
     for perfil_data in perfis:
         if perfil_data['nome'] not in perfis_existentes:
             perfil = Perfil(**perfil_data)
             db.session.add(perfil)
             print(f'Perfil criado: {perfil_data["nome"]}')
-    
+
     db.session.commit()
 
 def criar_admin_padrao():
     import os
-    
+
     criar_perfis_padrao()
-    
+
     admin_count = Usuario.query.filter_by(tipo='admin').count()
-    
+
     if admin_count == 0:
         admin_email = os.getenv('ADMIN_EMAIL', 'admin@sistema.com')
         admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')
-        
+
         perfil_admin = Perfil.query.filter_by(nome='Administrador').first()
-        
+
         admin = Usuario(
             nome='Administrador',
             email=admin_email,
@@ -288,6 +288,6 @@ def criar_admin_padrao():
         db.session.add(admin)
         db.session.commit()
         print(f'Usuário administrador criado: {admin_email}')
-        
+
         if admin_password == 'admin123':
             print('AVISO: Usando senha padrão! Configure ADMIN_EMAIL e ADMIN_PASSWORD nas variáveis de ambiente.')

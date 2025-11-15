@@ -106,16 +106,17 @@ PERFIL_CONFIG = {
         ]
     },
     'Motorista': {
-        'tela_inicial': '/funcionario.html',
+        'tela_inicial': '/app-motorista.html',
         'rotas_api_permitidas': [
-            '/api/solicitacoes'
+            '/api/solicitacoes',
+            '/api/motoristas'
         ],
         'paginas_permitidas': [
-            '/funcionario.html',
+            '/app-motorista.html',
             '/notificacoes.html'
         ],
         'menus': [
-            {'id': 'funcionario', 'nome': 'Minhas Coletas', 'url': '/funcionario.html', 'icone': 'local_shipping'},
+            {'id': 'app-motorista', 'nome': 'Meu App', 'url': '/app-motorista.html', 'icone': 'local_shipping'},
             {'id': 'notificacoes', 'nome': 'Notificações', 'url': '/notificacoes.html', 'icone': 'notifications'}
         ]
     },
@@ -173,6 +174,24 @@ PERFIL_CONFIG = {
     }
 }
 
+TIPOS_USUARIO = {
+    'admin': {
+        'nome': 'Administrador',
+        'descricao': 'Acesso total ao sistema',
+        'homepage': '/dashboard.html'
+    },
+    'funcionario': {
+        'nome': 'Funcionário',
+        'descricao': 'Acesso limitado baseado no perfil',
+        'homepage': '/funcionario.html'
+    },
+    'motorista': {
+        'nome': 'Motorista',
+        'descricao': 'Acesso ao app de entregas',
+        'homepage': '/app-motorista.html'
+    }
+}
+
 def get_perfil_config(perfil_nome):
     """
     Retorna a configuração de um perfil específico
@@ -204,11 +223,11 @@ def check_rota_api_permitida(perfil_nome, rota):
     """
     config = get_perfil_config(perfil_nome)
     rotas_api_permitidas = config.get('rotas_api_permitidas', [])
-    
+
     for rota_permitida in rotas_api_permitidas:
         if rota.startswith(rota_permitida):
             return True
-    
+
     return False
 
 def check_pagina_permitida(perfil_nome, pagina):
@@ -217,11 +236,11 @@ def check_pagina_permitida(perfil_nome, pagina):
     """
     config = get_perfil_config(perfil_nome)
     paginas_permitidas = config.get('paginas_permitidas', [])
-    
+
     for pagina_permitida in paginas_permitidas:
         if pagina == pagina_permitida or pagina.endswith(pagina_permitida):
             return True
-    
+
     return False
 
 def get_paginas_permitidas(perfil_nome):

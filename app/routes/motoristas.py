@@ -32,15 +32,22 @@ def buscar_por_cpf(cpf):
 @bp.route('', methods=['POST'])
 @permission_required('gerenciar_motoristas')
 def criar_motorista():
+    from app.auth import hash_senha
     data = request.get_json()
     
     if not data or not data.get('nome') or not data.get('cpf'):
         return jsonify({'erro': 'Nome e CPF são obrigatórios'}), 400
     
+    if not data.get('email'):
+        return jsonify({'erro': 'Email é obrigatório para criar usuário do motorista'}), 400
+    
     cpf_limpo = data['cpf'].replace('.', '').replace('-', '')
     
     if Motorista.query.filter_by(cpf=cpf_limpo).first():
         return jsonify({'erro': 'Já existe um motorista com este CPF'}), 400
+    
+    if Usuario.query.filter_by(email=data['email']).first():
+        return jsonify({'erro': 'Já existe um usuário com este email'}), 400
     
     if data.get('cnh') and Motorista.query.filter_by(cnh=data['cnh']).first():
         return jsonify({'erro': 'Já existe um motorista com esta CNH'}), 400
@@ -53,11 +60,25 @@ def criar_motorista():
     try:
         usuario_id = int(get_jwt_identity())
         
+        # Criar usuário para o motorista
+        senha_padrao = data.get('senha', cpf_limpo[-4:])  # Usa últimos 4 dígitos do CPF como senha padrão
+        usuario = Usuario(
+            nome=data['nome'],
+            email=data['email'],
+            senha_hash=hash_senha(senha_padrao),
+            tipo='motorista',
+            perfil_id=None,
+            criado_por=usuario_id
+        )
+        db.session.add(usuario)
+        db.session.flush()  # Para obter o ID do usuário
+        
         motorista = Motorista(
+            usuario_id=usuario.id,
             nome=data['nome'],
             cpf=cpf_limpo,
             telefone=data.get('telefone'),
-            email=data.get('email'),
+            email=data['email'],
             cnh=data.get('cnh'),
             categoria_cnh=data.get('categoria_cnh'),
             veiculo_id=data.get('veiculo_id'),
@@ -68,9 +89,17 @@ def criar_motorista():
         db.session.add(motorista)
         db.session.commit()
         
-        registrar_criacao(usuario_id, 'motorista', motorista.id, {'nome': motorista.nome, 'cpf': motorista.cpf})
+        registrar_criacao(usuario_id, 'motorista', motorista.id, {
+            'nome': motorista.nome, 
+            'cpf': motorista.cpf,
+            'email': data['email'],
+            'usuario_id': usuario.id
+        })
         
-        return jsonify(motorista.to_dict()), 201
+        return jsonify({
+            **motorista.to_dict(),
+            'senha_gerada': senha_padrao
+        }), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': str(e)}), 400

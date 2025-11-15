@@ -734,6 +734,7 @@ class Motorista(db.Model):  # type: ignore
     __tablename__ = 'motoristas'
     
     id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), unique=True, nullable=True)
     nome = db.Column(db.String(100), nullable=False)
     cpf = db.Column(db.String(14), unique=True, nullable=False)
     telefone = db.Column(db.String(20))
@@ -746,12 +747,17 @@ class Motorista(db.Model):  # type: ignore
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
+    usuario = db.relationship('Usuario', foreign_keys=[usuario_id], backref='motorista_profile')
+    
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
     
     def to_dict(self):
         return {
             'id': self.id,
+            'usuario_id': self.usuario_id,
+            'usuario_nome': self.usuario.nome if self.usuario else None,
+            'usuario_email': self.usuario.email if self.usuario else None,
             'nome': self.nome,
             'cpf': self.cpf,
             'telefone': self.telefone,
