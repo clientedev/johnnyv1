@@ -116,14 +116,32 @@
     <script src="/static/js/app.js"></script>
     <script src="/static/js/rbac.js"></script>
     <script>
+        // Função logout local caso não esteja disponível
+        if (typeof logout !== 'function') {
+            function logout() {
+                localStorage.removeItem('token');
+                window.location.href = '/index.html';
+            }
+        }
+        
         let lotes = [];
 
         async function carregarLotes() {
             const tbody = document.getElementById('tabelaLotes');
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">Carregando lotes...</td></tr>';
+            
             try {
-                const status = document.getElementById('filtroStatus').value;
-                const fornecedor = document.getElementById('filtroFornecedor').value;
-                const divergencia = document.getElementById('filtroDivergencia').value;
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('❌ Token não encontrado');
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--danger-color);">Sessão expirada. Redirecionando...</td></tr>';
+                    setTimeout(() => window.location.href = '/index.html', 1500);
+                    return;
+                }
+                
+                const status = document.getElementById('filtroStatus')?.value || '';
+                const fornecedor = document.getElementById('filtroFornecedor')?.value || '';
+                const divergencia = document.getElementById('filtroDivergencia')?.value || '';
                 
                 let url = '/api/estoque/lotes?';
                 if (status) url += `status=${status}&`;
@@ -131,20 +149,33 @@
                 if (divergencia) url += `com_divergencia=${divergencia}&`;
                 
                 console.log('🔍 Carregando lotes da URL:', url);
+                console.log('🔑 Token presente:', !!token);
                 
                 const response = await fetch(url, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     }
                 });
                 
+                console.log('📡 Status da resposta:', response.status);
+                
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        console.error('❌ Não autorizado - token inválido');
+                        localStorage.removeItem('token');
+                        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--danger-color);">Sessão expirada. Redirecionando...</td></tr>';
+                        setTimeout(() => window.location.href = '/index.html', 1500);
+                        return;
+                    }
+                    
                     const errorData = await response.json().catch(() => ({ erro: 'Erro desconhecido' }));
                     throw new Error(errorData.erro || `Erro HTTP ${response.status}`);
                 }
                 
                 const data = await response.json();
-                console.log('✅ Lotes carregados:', data);
+                console.log('✅ Lotes recebidos:', data);
+                console.log('📊 Quantidade de lotes:', Array.isArray(data) ? data.length : 'não é array');
                 
                 lotes = Array.isArray(data) ? data : [];
                 renderizarLotes();
@@ -365,6 +396,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Inicializando página Lotes Recebidos');
+            
             const token = localStorage.getItem('token');
             console.log('🔐 Token presente:', !!token);
             
@@ -376,14 +409,42 @@
             }
             
             // Verificar autenticação antes de carregar dados
-            const user = await verificarAuth();
-            if (!user) {
+            console.log('🔍 Verificando autenticação...');
+            let user = null;
+            
+            // Tentar verificar auth se a função existir
+            if (typeof verificarAuth === 'function') {
+                try {
+                    user = await verificarAuth();
+                    console.log('✅ Usuário autenticado:', user?.nome || user?.email);
+                } catch (error) {
+                    console.error('⚠️ Erro ao verificar auth:', error);
+                }
+            }
+            
+            // Mesmo se verificarAuth falhar, tentar carregar os dados se temos token
+            if (!user && !token) {
+                console.error('❌ Sem usuário e sem token, abortando');
                 return;
             }
             
-            carregarFornecedores();
-            carregarLotes();
+            console.log('📂 Carregando fornecedores...');
+            try {
+                await carregarFornecedores();
+            } catch (error) {
+                console.error('⚠️ Erro ao carregar fornecedores:', error);
+            }
+            
+            console.log('📦 Carregando lotes...');
+            try {
+                await carregarLotes();
+            } catch (error) {
+                console.error('❌ Erro ao carregar lotes:', error);
+            }
+            
+            // Atualizar a cada 30 segundos
             setInterval(() => {
+                console.log('🔄 Atualizando lotes automaticamente...');
                 carregarLotes();
             }, 30000);
         });

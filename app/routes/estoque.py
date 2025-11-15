@@ -10,22 +10,29 @@ bp = Blueprint('estoque', __name__, url_prefix='/api/estoque')
 @jwt_required()
 def listar_lotes_estoque():
     try:
+        usuario_id = get_jwt_identity()
+        print(f"🔍 Listando lotes para usuário ID: {usuario_id}")
+        
         query = Lote.query
         
         status = request.args.get('status')
         if status:
+            print(f"  Filtro status: {status}")
             query = query.filter_by(status=status)
         
         fornecedor_id = request.args.get('fornecedor_id', type=int)
         if fornecedor_id:
+            print(f"  Filtro fornecedor_id: {fornecedor_id}")
             query = query.filter_by(fornecedor_id=fornecedor_id)
         
         material = request.args.get('material')
         if material:
+            print(f"  Filtro material: {material}")
             query = query.filter(Lote.tipo_lote.has(nome=material))
         
         com_divergencia = request.args.get('com_divergencia')
         if com_divergencia == 'true':
+            print(f"  Filtro com_divergencia: true")
             query = query.filter(Lote.divergencias != None)
             query = query.filter(Lote.divergencias != [])
         
@@ -38,6 +45,11 @@ def listar_lotes_estoque():
         
         lotes = query.order_by(Lote.data_criacao.desc()).all()
         print(f"✅ Encontrados {len(lotes)} lotes no estoque")
+        
+        if len(lotes) > 0:
+            print(f"📦 Exemplo de lote encontrado:")
+            lote_exemplo = lotes[0]
+            print(f"   ID: {lote_exemplo.id}, Número: {lote_exemplo.numero_lote}, Status: {lote_exemplo.status}")
         
         resultado = []
         for lote in lotes:
