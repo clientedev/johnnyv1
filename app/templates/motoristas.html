@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -107,6 +106,9 @@
     </div>
 
     <script src="/static/js/utils.js"></script>
+    <script src="/static/js/layout.js"></script>
+    <script src="/static/js/rbac.js"></script>
+    <script src="/static/js/app.js"></script>
     <script>
         async function carregarPagina() {
             const user = await verificarAuth();
@@ -114,7 +116,7 @@
                 window.location.href = '/acesso-negado.html';
                 return;
             }
-            
+
             await carregarVeiculos();
             await carregarMotoristas();
         }
@@ -123,7 +125,7 @@
             try {
                 const response = await fetchAPI('/veiculos');
                 const veiculos = await response.json();
-                
+
                 const select = document.getElementById('veiculoMotorista');
                 select.innerHTML = '<option value="">Selecione...</option>' + 
                     veiculos.filter(v => v.ativo).map(v => 
@@ -138,14 +140,14 @@
             try {
                 const response = await fetchAPI('/motoristas');
                 const motoristas = await response.json();
-                
+
                 const tbody = document.getElementById('tabelaMotoristas');
-                
+
                 if (motoristas.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="7">Nenhum motorista cadastrado</td></tr>';
                     return;
                 }
-                
+
                 tbody.innerHTML = motoristas.map(m => `
                     <tr>
                         <td>${m.nome}</td>
@@ -180,7 +182,7 @@
 
         document.getElementById('formNovoMotorista').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const dados = {
                 nome: document.getElementById('nomeMotorista').value,
                 cpf: document.getElementById('cpfMotorista').value,
@@ -191,15 +193,15 @@
                 categoria_cnh: document.getElementById('categoriaCnhMotorista').value,
                 veiculo_id: document.getElementById('veiculoMotorista').value || undefined
             };
-            
+
             try {
                 const response = await fetchAPI('/motoristas', {
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
-                
+
                 const result = await response.json();
-                
+
                 alert(`Motorista criado com sucesso!\nEmail: ${dados.email}\nSenha: ${result.senha_gerada}\n\nGuarde estas credenciais!`);
                 fecharModalNovoMotorista();
                 await carregarMotoristas();
@@ -212,7 +214,7 @@
             if (!confirm(`Tem certeza que deseja excluir o motorista ${nome}?`)) {
                 return;
             }
-            
+
             try {
                 await fetchAPI(`/motoristas/${id}`, { method: 'DELETE' });
                 alert('Motorista excluído com sucesso!');

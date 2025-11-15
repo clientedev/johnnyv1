@@ -53,6 +53,11 @@ function logout() {
     window.location.href = '/';
 }
 
+// Torna logout disponível globalmente
+if (typeof window !== 'undefined') {
+    window.logout = logout;
+}
+
 function showAlert(message, type = 'error') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type}`;
