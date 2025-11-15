@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Motorista, Veiculo
-from app.auth import permission_required, admin_required, perfil_required
+from app.models import db, Motorista, Veiculo, Usuario
+from app.auth import permission_required, admin_required, perfil_required, hash_senha
 from app.utils.auditoria import registrar_criacao, registrar_atualizacao, registrar_exclusao
 
 bp = Blueprint('motoristas', __name__, url_prefix='/api/motoristas')
@@ -32,7 +32,6 @@ def buscar_por_cpf(cpf):
 @bp.route('', methods=['POST'])
 @permission_required('gerenciar_motoristas')
 def criar_motorista():
-    from app.auth import hash_senha
     data = request.get_json()
     
     if not data or not data.get('nome') or not data.get('cpf'):
