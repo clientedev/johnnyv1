@@ -305,10 +305,26 @@
 
         async function carregarMinhasOS() {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.error('Token não encontrado. Redirecionando para login...');
+                    window.location.href = '/';
+                    return;
+                }
                 const response = await fetch('/api/os', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        console.error('Token inválido. Redirecionando para login...');
+                        localStorage.removeItem('token');
+                        window.location.href = '/';
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const os_list = await response.json();
 
                 const pendentes = os_list.filter(os => os.status === 'AGENDADA' || os.status === 'PENDENTE');
@@ -386,7 +402,7 @@
             }
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = localStorage.getItem('token');
                 const deviceId = localStorage.getItem('device_id') || generateDeviceId();
                 
                 const response = await fetch(`/api/os/${osId}/iniciar-rota`, {
@@ -429,7 +445,7 @@
             e.preventDefault();
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = localStorage.getItem('token');
                 const deviceId = localStorage.getItem('device_id') || generateDeviceId();
                 const observacao = document.getElementById('evento-obs').value;
 
@@ -482,7 +498,6 @@
 
         function sairApp() {
             if (confirm('Deseja realmente sair do aplicativo?')) {
-                localStorage.removeItem('access_token');
                 localStorage.removeItem('token');
                 localStorage.removeItem('device_id');
                 window.location.href = '/';

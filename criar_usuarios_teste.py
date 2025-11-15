@@ -6,7 +6,7 @@ import os
 os.environ['DATABASE_URL'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/mrx_db')
 
 from app import create_app
-from app.models import db, Usuario, Perfil
+from app.models import db, Usuario, Perfil, Motorista
 from app.auth import hash_senha
 
 def criar_usuarios_teste():
@@ -31,6 +31,24 @@ def criar_usuarios_teste():
             usuario_existente = Usuario.query.filter_by(email=email).first()
             if usuario_existente:
                 print(f"⚠️  Usuário {email} já existe. Pulando...")
+                
+                # Se for motorista, verificar se tem registro de motorista
+                if perfil_nome == 'Motorista':
+                    motorista_existente = Motorista.query.filter_by(usuario_id=usuario_existente.id).first()
+                    if not motorista_existente:
+                        print(f"   🚗 Criando registro de motorista para {email}...")
+                        motorista = Motorista(
+                            usuario_id=usuario_existente.id,
+                            nome=usuario_existente.nome,
+                            cpf='12345678900',
+                            email=email,
+                            telefone='11999999999',
+                            ativo=True,
+                            criado_por=usuario_existente.id
+                        )
+                        db.session.add(motorista)
+                        print(f"   ✅ Registro de motorista criado!")
+                
                 continue
             
             # Buscar perfil
@@ -50,7 +68,23 @@ def criar_usuarios_teste():
             )
             
             db.session.add(usuario)
+            db.session.flush()
+            
             print(f"✅ Criado: {email} | Perfil: {perfil_nome} | Senha: teste123")
+            
+            # Se for motorista, criar registro correspondente
+            if perfil_nome == 'Motorista':
+                motorista = Motorista(
+                    usuario_id=usuario.id,
+                    nome=usuario.nome,
+                    cpf='12345678900',
+                    email=email,
+                    telefone='11999999999',
+                    ativo=True,
+                    criado_por=usuario.id
+                )
+                db.session.add(motorista)
+                print(f"   🚗 Registro de motorista criado!")
         
         db.session.commit()
         

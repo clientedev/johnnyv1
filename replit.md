@@ -5,6 +5,62 @@ The MRX System is a comprehensive solution for managing the procurement of elect
 
 ## Recent Changes
 
+### November 15, 2025 - Critical Fix: Motorista App Not Loading OSs
+**Problem:** When logging in as a driver (motorista), the app was not loading Service Orders (Ordens de Serviço), displaying empty tabs even when OSs were assigned to the driver.
+
+**Root Causes:**
+1. **Missing Motorista Record:** Test user `motorista@teste.com` had the "Motorista" profile but no corresponding record in the `motoristas` table
+2. **Token Mismatch:** App was looking for `access_token` in localStorage, but the system stores it as `token`
+3. **OS Not Assigned:** The existing OS was not assigned to the test driver
+
+**Solutions Implemented:**
+
+1. **Created Motorista Record:**
+   - Created motorista record for user `motorista@teste.com` (ID: 6)
+   - CPF: 12345678900
+   - Phone: 11999999999
+   - Active status: true
+
+2. **Fixed Token Authentication:**
+   - Updated `app/templates/app-motorista.html` to use `localStorage.getItem('token')` instead of `'access_token'`
+   - Added validation to check if token exists before making API calls
+   - Added automatic redirect to login page if token is missing or invalid (401)
+   - Improved error handling with proper HTTP status checks
+
+3. **Assigned OS to Driver:**
+   - Updated OS `OS-20251115-491FB5` to motorista_id=3
+   - Status: AGENDADA (ready to be started by driver)
+
+4. **Updated Test User Creation Script:**
+   - Modified `criar_usuarios_teste.py` to automatically create `motoristas` records
+   - Script now checks if existing users with "Motorista" profile have corresponding motorista records
+   - Auto-creates missing records with default CPF and phone number
+
+**Testing:** 
+- ✅ Motorista record created successfully
+- ✅ OS assigned to motorista
+- ✅ Token authentication fixed
+- ✅ App now properly validates authentication state
+- ✅ Auto-redirect to login when not authenticated
+
+**Documentation:**
+- Created comprehensive `GUIA_APP_MOTORISTA.md` with:
+  - Complete workflow documentation
+  - Step-by-step usage instructions
+  - GPS requirements
+  - Troubleshooting guide
+  - All event types and their transitions
+
+**Impact:** The motorista app now works correctly. Drivers can:
+- View their assigned OSs (filtered automatically by motorista_id)
+- Track OS status across 3 tabs (Pendentes, Em Rota, Finalizadas)
+- Complete the full workflow: Iniciar Rota → Chegar no Fornecedor → Coletar Material → Sair → Chegar na Matriz → Finalizar
+- All events are logged with GPS coordinates, timestamps, and audit trail
+
+**Credentials for Testing:**
+- Email: motorista@teste.com
+- Password: teste123
+
 ### November 15, 2025 - Feature: Automatic OS Generation on OC Approval
 **Feature:** When approving Purchase Orders (Ordens de Compra), the system now automatically generates a Service Order (Ordem de Serviço - OS) to streamline the workflow.
 
