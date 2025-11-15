@@ -32,6 +32,18 @@ def app_motorista():
 def conferencia():
     return render_template('conferencia.html')
 
+@app.route('/conferencias')
+def conferencias():
+    return render_template('conferencias.html')
+
+@app.route('/conferencia-form/<int:id>')
+def conferencia_form(id):
+    return render_template('conferencia-form.html')
+
+@app.route('/conferencia-decisao-adm/<int:id>')
+def conferencia_decisao_adm(id):
+    return render_template('conferencia-decisao-adm.html')
+
 @app.route('/<path:path>')
 def serve_page(path):
     if path.startswith('api/'):

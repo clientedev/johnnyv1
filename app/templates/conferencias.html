@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block title %}Conferências de Recebimento{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>📦 Conferências de Recebimento</h2>
+            <p class="text-muted">Gerenciamento de conferências de chegada de material</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6>Pendentes</h6>
+                    <h3 id="stat-pendentes">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h6>Divergentes</h6>
+                    <h3 id="stat-divergentes">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6>Aguardando ADM</h6>
+                    <h3 id="stat-aguardando">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6>Aprovadas</h6>
+                    <h3 id="stat-aprovadas">-</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label>Filtrar por Status:</label>
+            <select class="form-select" id="filtro-status">
+                <option value="">Todos</option>
+                <option value="PENDENTE">Pendente</option>
+                <option value="DIVERGENTE">Divergente</option>
+                <option value="AGUARDANDO_ADM">Aguardando ADM</option>
+                <option value="APROVADA">Aprovada</option>
+                <option value="REJEITADA">Rejeitada</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tabela-conferencias">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>OS</th>
+                                    <th>OC</th>
+                                    <th>Fornecedor</th>
+                                    <th>Peso Previsto</th>
+                                    <th>Peso Real</th>
+                                    <th>Divergência</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_URL = '/api/conferencia';
+let conferencias = [];
+
+async function carregarEstatisticas() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/estatisticas`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const stats = await response.json();
+            document.getElementById('stat-pendentes').textContent = stats.pendentes || 0;
+            document.getElementById('stat-divergentes').textContent = stats.divergentes || 0;
+            document.getElementById('stat-aguardando').textContent = stats.aguardando_adm || 0;
+            document.getElementById('stat-aprovadas').textContent = stats.aprovadas || 0;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar estatísticas:', error);
+    }
+}
+
+async function carregarConferencias(status = '') {
+    try {
+        const token = localStorage.getItem('token');
+        const url = status ? `${API_URL}?status=${status}` : API_URL;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            conferencias = await response.json();
+            renderizarTabela();
+        }
+    } catch (error) {
+        console.error('Erro ao carregar conferências:', error);
+        alert('Erro ao carregar conferências');
+    }
+}
+
+function renderizarTabela() {
+    const tbody = document.querySelector('#tabela-conferencias tbody');
+    tbody.innerHTML = '';
+    
+    conferencias.forEach(conf => {
+        const tr = document.createElement('tr');
+        
+        const statusBadge = getStatusBadge(conf.conferencia_status);
+        const divergenciaBadge = conf.divergencia ? 
+            `<span class="badge bg-danger">${conf.percentual_diferenca?.toFixed(1)}%</span>` : 
+            '<span class="badge bg-success">OK</span>';
+        
+        const fornecedor = conf.ordem_servico?.fornecedor_snapshot?.nome || '-';
+        
+        tr.innerHTML = `
+            <td>${conf.id}</td>
+            <td>${conf.os_id}</td>
+            <td>${conf.oc_id}</td>
+            <td>${fornecedor}</td>
+            <td>${conf.peso_fornecedor ? conf.peso_fornecedor.toFixed(2) + ' kg' : '-'}</td>
+            <td>${conf.peso_real ? conf.peso_real.toFixed(2) + ' kg' : '-'}</td>
+            <td>${divergenciaBadge}</td>
+            <td>${statusBadge}</td>
+            <td>
+                ${getBotaoAcao(conf)}
+            </td>
+        `;
+        
+        tbody.appendChild(tr);
+    });
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        'PENDENTE': '<span class="badge bg-primary">Pendente</span>',
+        'DIVERGENTE': '<span class="badge bg-warning text-dark">Divergente</span>',
+        'AGUARDANDO_ADM': '<span class="badge bg-info">Aguardando ADM</span>',
+        'APROVADA': '<span class="badge bg-success">Aprovada</span>',
+        'REJEITADA': '<span class="badge bg-danger">Rejeitada</span>'
+    };
+    return badges[status] || status;
+}
+
+function getBotaoAcao(conf) {
+    if (conf.conferencia_status === 'PENDENTE') {
+        return `<a href="/conferencia-form/${conf.id}" class="btn btn-sm btn-primary">Processar</a>`;
+    } else if (conf.conferencia_status === 'AGUARDANDO_ADM') {
+        return `<a href="/conferencia-decisao-adm/${conf.id}" class="btn btn-sm btn-warning">Decidir</a>`;
+    } else {
+        return `<button class="btn btn-sm btn-secondary" onclick="verDetalhes(${conf.id})">Ver Detalhes</button>`;
+    }
+}
+
+function verDetalhes(id) {
+    window.location.href = `/conferencia-form/${id}`;
+}
+
+document.getElementById('filtro-status').addEventListener('change', (e) => {
+    carregarConferencias(e.target.value);
+});
+
+carregarEstatisticas();
+carregarConferencias();
+
+setInterval(() => {
+    carregarEstatisticas();
+    const filtro = document.getElementById('filtro-status').value;
+    carregarConferencias(filtro);
+}, 30000);
+</script>
+{% endblock %}
