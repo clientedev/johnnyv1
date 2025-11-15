@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotes Recebidos - MRX Systems</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content" style="justify-content: space-between;">
+            <div class="logo">
+                <img src="/static/images/mrx-logo.png" alt="MRX">
+                <span>Lotes Recebidos</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count" id="headerNotificationCount" style="display: none;">0</span>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Sair</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mt-4">
+        <h1 style="font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: 1.5rem;">Lotes Recebidos</h1>
+
+        <!-- Filtros -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Status</label>
+                    <select id="filtroStatus" onchange="carregarLotes()">
+                        <option value="">Todos</option>
+                        <option value="AGUARDANDO_SEPARACAO">Aguardando Separação</option>
+                        <option value="EM_SEPARACAO">Em Separação</option>
+                        <option value="PROCESSADO">Processado</option>
+                        <option value="APROVADO">Aprovado</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Fornecedor</label>
+                    <select id="filtroFornecedor" onchange="carregarLotes()">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Com Divergência</label>
+                    <select id="filtroDivergencia" onchange="carregarLotes()">
+                        <option value="">Todos</option>
+                        <option value="true">Sim</option>
+                        <option value="false">Não</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="card" style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: bold; color: var(--warning-color);" id="statAguardandoSeparacao">0</div>
+                <div style="color: var(--gray-600); font-size: 0.875rem;">Aguardando Separação</div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: bold; color: var(--info-color);" id="statEmSeparacao">0</div>
+                <div style="color: var(--gray-600); font-size: 0.875rem;">Em Separação</div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: bold; color: var(--success-color);" id="statProcessados">0</div>
+                <div style="color: var(--gray-600); font-size: 0.875rem;">Processados</div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: bold; color: var(--primary-color);" id="statPesoTotal">0 kg</div>
+                <div style="color: var(--gray-600); font-size: 0.875rem;">Peso Total Estoque</div>
+            </div>
+        </div>
+
+        <!-- Tabela de Lotes -->
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Número do Lote</th>
+                            <th>Fornecedor</th>
+                            <th>Tipo de Lote</th>
+                            <th>Peso (kg)</th>
+                            <th>Qualidade</th>
+                            <th>Status</th>
+                            <th>Localização</th>
+                            <th>Data Criação</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaLotes">
+                        <tr><td colspan="9" class="loading">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Detalhes do Lote -->
+    <div class="modal" id="modalDetalhes">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <span class="close" onclick="fecharModal()">&times;</span>
+            <h2>Detalhes do Lote</h2>
+            <div id="modalDetalhesConteudo"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script>
+        let lotes = [];
+
+        async function carregarLotes() {
+            try {
+                const status = document.getElementById('filtroStatus').value;
+                const fornecedor = document.getElementById('filtroFornecedor').value;
+                const divergencia = document.getElementById('filtroDivergencia').value;
+                
+                let url = '/api/estoque/lotes?';
+                if (status) url += `status=${status}&`;
+                if (fornecedor) url += `fornecedor_id=${fornecedor}&`;
+                if (divergencia) url += `com_divergencia=${divergencia}&`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Erro ao carregar lotes');
+                
+                lotes = await response.json();
+                renderizarLotes();
+                atualizarEstatisticas();
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar lotes: ' + error.message);
+            }
+        }
+
+        function renderizarLotes() {
+            const tbody = document.getElementById('tabelaLotes');
+            
+            if (lotes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--gray-600);">Nenhum lote encontrado</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = lotes.map(lote => {
+                const statusClass = {
+                    'AGUARDANDO_SEPARACAO': 'status-pendente',
+                    'EM_SEPARACAO': 'status-em-andamento',
+                    'PROCESSADO': 'status-aprovado',
+                    'APROVADO': 'status-aprovado',
+                    'BLOQUEADO': 'status-rejeitado'
+                }[lote.status] || '';
+                
+                const qualidadeClass = {
+                    'A': 'status-aprovado',
+                    'B': 'status-em-andamento',
+                    'C': 'status-rejeitado'
+                }[lote.qualidade_recebida] || '';
+                
+                return `
+                    <tr>
+                        <td><strong>${lote.numero_lote || '-'}</strong></td>
+                        <td>${lote.fornecedor_nome || '-'}</td>
+                        <td>${lote.tipo_lote_nome || '-'}</td>
+                        <td><strong>${lote.peso_total_kg?.toFixed(2) || '0'} kg</strong></td>
+                        <td>
+                            <span class="status ${qualidadeClass}">
+                                ${lote.qualidade_recebida || '-'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status ${statusClass}">
+                                ${formatarStatus(lote.status)}
+                            </span>
+                        </td>
+                        <td>${lote.localizacao_atual || 'PATIO_RECEBIMENTO'}</td>
+                        <td>${formatarData(lote.data_criacao)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="verDetalhes(${lote.id})">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function atualizarEstatisticas() {
+            try {
+                const response = await fetch('/api/estoque/estatisticas', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                const stats = await response.json();
+                
+                document.getElementById('statAguardandoSeparacao').textContent = stats.aguardando_separacao || 0;
+                document.getElementById('statEmSeparacao').textContent = stats.em_separacao || 0;
+                document.getElementById('statProcessados').textContent = stats.processados || 0;
+                document.getElementById('statPesoTotal').textContent = `${(stats.peso_total_estoque || 0).toFixed(2)} kg`;
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        async function verDetalhes(loteId) {
+            try {
+                const response = await fetch(`/api/estoque/lotes/${loteId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                const lote = await response.json();
+                
+                const anexosHTML = lote.anexos && lote.anexos.length > 0 
+                    ? lote.anexos.map(anexo => `<img src="/${anexo}" style="max-width: 200px; margin: 0.5rem;">`).join('')
+                    : '<p>Sem anexos</p>';
+                
+                const divergenciasHTML = lote.divergencias && lote.divergencias.length > 0
+                    ? lote.divergencias.map(div => `
+                        <div class="alert alert-warning">
+                            <strong>Tipo:</strong> ${div.tipo}<br>
+                            <strong>Diferença:</strong> ${div.percentual_diferenca?.toFixed(2)}%<br>
+                            <strong>Peso Previsto:</strong> ${div.peso_previsto?.toFixed(2)} kg<br>
+                            <strong>Peso Recebido:</strong> ${div.peso_recebido?.toFixed(2)} kg<br>
+                            <strong>Decisão ADM:</strong> ${div.decisao_adm}<br>
+                            <strong>Motivo:</strong> ${div.motivo || '-'}
+                        </div>
+                    `).join('')
+                    : '<p>Sem divergências</p>';
+                
+                const movimentacoesHTML = lote.movimentacoes && lote.movimentacoes.length > 0
+                    ? `<table class="table-sm">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Origem</th>
+                                <th>Destino</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${lote.movimentacoes.map(mov => `
+                                <tr>
+                                    <td>${mov.tipo}</td>
+                                    <td>${mov.localizacao_origem || '-'}</td>
+                                    <td>${mov.localizacao_destino || '-'}</td>
+                                    <td>${formatarData(mov.data_movimentacao)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>`
+                    : '<p>Sem movimentações</p>';
+                
+                document.getElementById('modalDetalhesConteudo').innerHTML = `
+                    <div style="display: grid; gap: 1.5rem;">
+                        <div>
+                            <h3>Informações Gerais</h3>
+                            <p><strong>Número do Lote:</strong> ${lote.numero_lote}</p>
+                            <p><strong>Fornecedor:</strong> ${lote.fornecedor_nome || '-'}</p>
+                            <p><strong>Tipo de Lote:</strong> ${lote.tipo_lote_nome || '-'}</p>
+                            <p><strong>Peso Bruto:</strong> ${lote.peso_bruto_recebido?.toFixed(2) || '-'} kg</p>
+                            <p><strong>Peso Líquido:</strong> ${lote.peso_liquido?.toFixed(2) || '-'} kg</p>
+                            <p><strong>Qualidade:</strong> ${lote.qualidade_recebida || '-'}</p>
+                            <p><strong>Status:</strong> ${formatarStatus(lote.status)}</p>
+                            <p><strong>Conferente:</strong> ${lote.conferente_nome || '-'}</p>
+                            <p><strong>Data Criação:</strong> ${formatarData(lote.data_criacao)}</p>
+                        </div>
+                        
+                        <div>
+                            <h3>Divergências</h3>
+                            ${divergenciasHTML}
+                        </div>
+                        
+                        <div>
+                            <h3>Anexos e Evidências</h3>
+                            ${anexosHTML}
+                        </div>
+                        
+                        <div>
+                            <h3>Histórico de Movimentações</h3>
+                            ${movimentacoesHTML}
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('modalDetalhes').style.display = 'block';
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar detalhes do lote');
+            }
+        }
+
+        function fecharModal() {
+            document.getElementById('modalDetalhes').style.display = 'none';
+        }
+
+        function formatarStatus(status) {
+            const statusMap = {
+                'AGUARDANDO_SEPARACAO': 'Aguardando Separação',
+                'EM_SEPARACAO': 'Em Separação',
+                'PROCESSADO': 'Processado',
+                'APROVADO': 'Aprovado',
+                'BLOQUEADO': 'Bloqueado'
+            };
+            return statusMap[status] || status;
+        }
+
+        function formatarData(dataStr) {
+            if (!dataStr) return '-';
+            const data = new Date(dataStr);
+            return data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function carregarFornecedores() {
+            try {
+                const response = await fetch('/api/fornecedores', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                const fornecedores = await response.json();
+                const select = document.getElementById('filtroFornecedor');
+                
+                fornecedores.forEach(fornecedor => {
+                    const option = document.createElement('option');
+                    option.value = fornecedor.id;
+                    option.textContent = fornecedor.nome;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar fornecedores:', error);
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalDetalhes');
+            if (event.target == modal) {
+                fecharModal();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarFornecedores();
+            carregarLotes();
+            setInterval(() => {
+                carregarLotes();
+            }, 30000);
+        });
+    </script>
+</body>
+</html>
