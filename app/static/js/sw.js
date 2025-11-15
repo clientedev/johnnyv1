@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gestao-placas-v2';
+const CACHE_NAME = 'gestao-placas-v3';
 const urlsToCache = [
   '/',
   '/static/css/style.css',
@@ -17,9 +17,17 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Nunca cachear chamadas de API, uploads ou requisições que não sejam GET
   if (event.request.url.includes('/api/') || 
       event.request.url.includes('/uploads/') ||
       event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // NUNCA cachear arquivos JavaScript com query strings (ex: conferencias.js?v=123)
+  // Isso permite que versões atualizadas sejam carregadas imediatamente
+  if (event.request.url.includes('.js?')) {
     event.respondWith(fetch(event.request));
     return;
   }
@@ -48,4 +56,6 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  // Forçar o novo service worker a assumir controle imediatamente
+  event.waitUntil(clients.claim());
 });
