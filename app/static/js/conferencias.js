@@ -51,9 +51,17 @@ function renderizarTabela() {
     tbody.innerHTML = '';
     
     console.log('📊 Renderizando conferências:', conferencias.length);
+    console.log('📋 Dados completos das conferências:', JSON.stringify(conferencias, null, 2));
     
     conferencias.forEach(conf => {
-        console.log('Conferência:', conf.id, 'Status:', conf.conferencia_status);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('Conferência ID:', conf.id);
+        console.log('Status:', conf.conferencia_status);
+        console.log('Tipo do status:', typeof conf.conferencia_status);
+        console.log('Status === "DIVERGENTE"?', conf.conferencia_status === 'DIVERGENTE');
+        console.log('Status === "PENDENTE"?', conf.conferencia_status === 'PENDENTE');
+        console.log('Status === "AGUARDANDO_ADM"?', conf.conferencia_status === 'AGUARDANDO_ADM');
+        
         const tr = document.createElement('tr');
         
         const statusBadge = getStatusBadge(conf.conferencia_status);
@@ -68,17 +76,22 @@ function renderizarTabela() {
         // Gerar botão de ação baseado no status
         let botaoAcao = '';
         if (conf.conferencia_status === 'PENDENTE') {
+            console.log('→ Criando botão PROCESSAR');
             botaoAcao = `<a href="/conferencia-form/${conf.id}" class="btn btn-sm btn-primary">Processar</a>`;
         } else if (conf.conferencia_status === 'DIVERGENTE') {
-            console.log('✅ Renderizando botão ENVIAR P/ ADM para conferência', conf.id);
+            console.log('→ ✅ Criando botão ENVIAR P/ ADM');
             botaoAcao = `<button class="btn btn-sm btn-warning" onclick="enviarParaAdmDireto(${conf.id})">
                             <i class="bi bi-exclamation-triangle"></i> Enviar p/ ADM
                         </button>`;
         } else if (conf.conferencia_status === 'AGUARDANDO_ADM') {
+            console.log('→ Criando botão DECIDIR');
             botaoAcao = `<a href="/conferencia-decisao-adm/${conf.id}" class="btn btn-sm btn-warning">Decidir</a>`;
         } else {
+            console.log('→ Criando botão VER DETALHES (status:', conf.conferencia_status, ')');
             botaoAcao = `<button class="btn btn-sm btn-secondary" onclick="verDetalhes(${conf.id})">Ver Detalhes</button>`;
         }
+        
+        console.log('→ Botão HTML gerado:', botaoAcao);
         
         tr.innerHTML = `
             <td>${conf.id}</td>
