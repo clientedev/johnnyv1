@@ -118,6 +118,7 @@
         let lotes = [];
 
         async function carregarLotes() {
+            const tbody = document.getElementById('tabelaLotes');
             try {
                 const status = document.getElementById('filtroStatus').value;
                 const fornecedor = document.getElementById('filtroFornecedor').value;
@@ -128,20 +129,28 @@
                 if (fornecedor) url += `fornecedor_id=${fornecedor}&`;
                 if (divergencia) url += `com_divergencia=${divergencia}&`;
                 
+                console.log('🔍 Carregando lotes da URL:', url);
+                
                 const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                     }
                 });
                 
-                if (!response.ok) throw new Error('Erro ao carregar lotes');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ erro: 'Erro desconhecido' }));
+                    throw new Error(errorData.erro || `Erro HTTP ${response.status}`);
+                }
                 
-                lotes = await response.json();
+                const data = await response.json();
+                console.log('✅ Lotes carregados:', data);
+                
+                lotes = Array.isArray(data) ? data : [];
                 renderizarLotes();
                 atualizarEstatisticas();
             } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao carregar lotes: ' + error.message);
+                console.error('❌ Erro ao carregar lotes:', error);
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--danger-color);">Erro ao carregar lotes: ${error.message}</td></tr>`;
             }
         }
 
@@ -355,6 +364,16 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('access_token');
+            console.log('🔐 Token presente:', !!token);
+            
+            if (!token) {
+                console.error('❌ Token de autenticação não encontrado');
+                document.getElementById('tabelaLotes').innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--danger-color);">Você precisa fazer login para acessar esta página</td></tr>';
+                setTimeout(() => window.location.href = '/index.html', 2000);
+                return;
+            }
+            
             carregarFornecedores();
             carregarLotes();
             setInterval(() => {

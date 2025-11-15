@@ -37,25 +37,34 @@ def listar_lotes_estoque():
             query = query.filter(Lote.data_criacao <= datetime.fromisoformat(data_fim))
         
         lotes = query.order_by(Lote.data_criacao.desc()).all()
+        print(f"✅ Encontrados {len(lotes)} lotes no estoque")
         
         resultado = []
         for lote in lotes:
-            lote_dict = lote.to_dict()
-            
-            if lote.movimentacoes:
-                ultima_movimentacao = sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)[0]
-                lote_dict['localizacao_atual'] = ultima_movimentacao.localizacao_destino
-            else:
-                lote_dict['localizacao_atual'] = 'PATIO_RECEBIMENTO'
-            
-            if lote.entrada_estoque:
-                lote_dict['entrada_estoque'] = lote.entrada_estoque.to_dict()
-            
-            resultado.append(lote_dict)
+            try:
+                lote_dict = lote.to_dict()
+                
+                if lote.movimentacoes:
+                    ultima_movimentacao = sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)[0]
+                    lote_dict['localizacao_atual'] = ultima_movimentacao.localizacao_destino
+                else:
+                    lote_dict['localizacao_atual'] = 'PATIO_RECEBIMENTO'
+                
+                if lote.entrada_estoque:
+                    lote_dict['entrada_estoque'] = lote.entrada_estoque.to_dict()
+                
+                resultado.append(lote_dict)
+            except Exception as e:
+                print(f"⚠️ Erro ao processar lote {lote.id}: {str(e)}")
+                continue
         
+        print(f"📦 Retornando {len(resultado)} lotes processados")
         return jsonify(resultado), 200
     
     except Exception as e:
+        print(f"❌ Erro ao listar lotes: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'erro': f'Erro ao listar lotes: {str(e)}'}), 500
 
 @bp.route('/lotes/<int:id>', methods=['GET'])
