@@ -204,18 +204,63 @@ def get_perfil_config(perfil_nome):
     })
 
 def get_menus_by_perfil(perfil_nome):
-    """
-    Retorna os menus permitidos para um perfil
-    """
-    config = get_perfil_config(perfil_nome)
-    return config.get('menus', [])
+    """Retorna os menus que devem ser exibidos para cada perfil"""
+    if not perfil_nome or perfil_nome == 'Administrador':
+        return [
+            {'nome': 'Dashboard', 'icone': 'fa-home', 'url': '/dashboard.html'},
+            {'nome': 'Cadastros', 'icone': 'fa-database', 'url': '/administracao.html'},
+            {'nome': 'Solicitações', 'icone': 'fa-plus-circle', 'url': '/solicitacoes.html'},
+            {'nome': 'Aprovação', 'icone': 'fa-check-circle', 'url': '/aprovar_solicitacoes.html'},
+            {'nome': 'Compras', 'icone': 'fa-shopping-cart', 'url': '/compras.html'},
+            {'nome': 'Logística', 'icone': 'fa-truck', 'url': '/logistica.html'},
+            {'nome': 'Conferência', 'icone': 'fa-clipboard-check', 'url': '/conferencia.html'},
+            {'nome': 'Kanban', 'icone': 'fa-tasks', 'url': '/kanban.html'},
+            {'nome': 'Lotes', 'icone': 'fa-boxes', 'url': '/lotes.html'},
+            {'nome': 'Entradas', 'icone': 'fa-arrow-down', 'url': '/entradas.html'},
+            {'nome': 'Consulta', 'icone': 'fa-search', 'url': '/consulta.html'}
+        ]
+
+    menus_por_perfil = {
+        'Comprador': [
+            {'nome': 'Dashboard', 'icone': 'fa-home', 'url': '/dashboard.html'},
+            {'nome': 'Solicitações', 'icone': 'fa-plus-circle', 'url': '/solicitacoes.html'},
+            {'nome': 'Compras', 'icone': 'fa-shopping-cart', 'url': '/compras.html'}
+        ],
+        'Aprovador': [
+            {'nome': 'Dashboard', 'icone': 'fa-home', 'url': '/dashboard.html'},
+            {'nome': 'Aprovação', 'icone': 'fa-check-circle', 'url': '/aprovar_solicitacoes.html'}
+        ],
+        'Conferente': [
+            {'nome': 'Dashboard', 'icone': 'fa-home', 'url': '/dashboard.html'},
+            {'nome': 'Conferência', 'icone': 'fa-clipboard-check', 'url': '/conferencia.html'},
+            {'nome': 'Entradas', 'icone': 'fa-arrow-down', 'url': '/entradas.html'}
+        ],
+        'Logística': [
+            {'nome': 'Dashboard', 'icone': 'fa-home', 'url': '/dashboard.html'},
+            {'nome': 'Logística', 'icone': 'fa-truck', 'url': '/logistica.html'},
+            {'nome': 'Kanban', 'icone': 'fa-tasks', 'url': '/kanban.html'}
+        ],
+        'Motorista': [
+            {'nome': 'Minhas Rotas', 'icone': 'fa-route', 'url': '/app-motorista.html'}
+        ]
+    }
+
+    return menus_por_perfil.get(perfil_nome, [])
 
 def get_tela_inicial_by_perfil(perfil_nome):
-    """
-    Retorna a tela inicial de um perfil
-    """
-    config = get_perfil_config(perfil_nome)
-    return config.get('tela_inicial', '/acesso-negado.html')
+    """Retorna a tela inicial baseada no perfil"""
+    if not perfil_nome or perfil_nome == 'Administrador':
+        return '/dashboard.html'
+
+    mapeamento = {
+        'Comprador': '/solicitacoes.html',
+        'Aprovador': '/aprovar_solicitacoes.html',
+        'Conferente': '/conferencia.html',
+        'Logística': '/logistica.html',
+        'Motorista': '/app-motorista.html'
+    }
+
+    return mapeamento.get(perfil_nome, '/acesso-negado.html')
 
 def check_rota_api_permitida(perfil_nome, rota):
     """
@@ -244,8 +289,38 @@ def check_pagina_permitida(perfil_nome, pagina):
     return False
 
 def get_paginas_permitidas(perfil_nome):
-    """
-    Retorna a lista de páginas permitidas para um perfil
-    """
-    config = get_perfil_config(perfil_nome)
-    return config.get('paginas_permitidas', [])
+    """Retorna lista de páginas que o perfil pode acessar"""
+    if not perfil_nome or perfil_nome == 'Administrador':
+        return [
+            '/dashboard.html', '/administracao.html', '/solicitacoes.html', 
+            '/aprovar_solicitacoes.html', '/compras.html', '/logistica.html',
+            '/conferencia.html', '/kanban.html', '/lotes.html', '/entradas.html',
+            '/consulta.html', '/fornecedores.html', '/tipos-lote.html',
+            '/veiculos.html', '/motoristas.html', '/usuarios.html',
+            '/perfis.html', '/configuracoes.html', '/notificacoes.html'
+        ]
+
+    paginas_por_perfil = {
+        'Comprador': [
+            '/dashboard.html', '/solicitacoes.html', '/fornecedores.html',
+            '/tipos-lote.html', '/consulta.html', '/notificacoes.html'
+        ],
+        'Aprovador': [
+            '/dashboard.html', '/aprovar_solicitacoes.html', '/consulta.html',
+            '/notificacoes.html'
+        ],
+        'Conferente': [
+            '/dashboard.html', '/conferencia.html', '/consulta.html',
+            '/notificacoes.html'
+        ],
+        'Logística': [
+            '/dashboard.html', '/logistica.html', '/kanban.html',
+            '/veiculos.html', '/motoristas.html', '/consulta.html',
+            '/notificacoes.html'
+        ],
+        'Motorista': [
+            '/app-motorista.html', '/notificacoes.html'
+        ]
+    }
+
+    return paginas_por_perfil.get(perfil_nome, [])

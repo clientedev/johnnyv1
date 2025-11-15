@@ -36,10 +36,23 @@ def login():
     
     registrar_login(usuario.id, sucesso=True)
     
-    perfil_nome = usuario.perfil.nome if usuario.perfil else 'Administrador'
+    # Determinar o perfil do usuário
+    if usuario.tipo == 'motorista':
+        perfil_nome = 'Motorista'
+    elif usuario.perfil:
+        perfil_nome = usuario.perfil.nome
+    elif usuario.tipo == 'admin':
+        perfil_nome = 'Administrador'
+    else:
+        perfil_nome = usuario.perfil.nome if usuario.perfil else 'Sem perfil'
     
     permissoes = {}
-    if usuario.perfil:
+    if usuario.tipo == 'motorista':
+        permissoes = {
+            'visualizar_os': True,
+            'atualizar_os': True
+        }
+    elif usuario.perfil:
         permissoes = usuario.perfil.permissoes or {}
     elif usuario.tipo == 'admin':
         permissoes = {
@@ -99,12 +112,27 @@ def get_current_user_endpoint():
         return jsonify({'erro': 'Usuário não encontrado'}), 404
     
     claims = get_jwt()
-    perfil_nome = claims.get('perfil', 'Sem perfil')
+    
+    # Determinar o perfil do usuário
+    if usuario.tipo == 'motorista':
+        perfil_nome = 'Motorista'
+    elif usuario.perfil:
+        perfil_nome = usuario.perfil.nome
+    elif usuario.tipo == 'admin':
+        perfil_nome = 'Administrador'
+    else:
+        perfil_nome = claims.get('perfil', 'Sem perfil')
     
     permissoes = {}
     permissoes_lista = claims.get('permissoes', [])
     
-    if usuario.perfil:
+    if usuario.tipo == 'motorista':
+        permissoes = {
+            'visualizar_os': True,
+            'atualizar_os': True
+        }
+        permissoes_lista = list(permissoes.keys())
+    elif usuario.perfil:
         permissoes = usuario.perfil.permissoes or {}
     elif usuario.tipo == 'admin':
         permissoes = {
