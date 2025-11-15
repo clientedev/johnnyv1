@@ -90,13 +90,13 @@
 </div>
 
 <script>
-const API_URL = '/api/conferencia';
+const CONFERENCIA_API_URL = '/api/conferencia';
 let conferencias = [];
 
 async function carregarEstatisticas() {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/estatisticas`, {
+        const response = await fetch(`${CONFERENCIA_API_URL}/estatisticas`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -117,7 +117,7 @@ async function carregarEstatisticas() {
 async function carregarConferencias(status = '') {
     try {
         const token = localStorage.getItem('token');
-        const url = status ? `${API_URL}?status=${status}` : API_URL;
+        const url = status ? `${CONFERENCIA_API_URL}?status=${status}` : CONFERENCIA_API_URL;
         const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -204,7 +204,7 @@ async function enviarParaAdmDireto(conferenciaId) {
     
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/${conferenciaId}/enviar-para-adm`, {
+        const response = await fetch(`${CONFERENCIA_API_URL}/${conferenciaId}/enviar-para-adm`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`
