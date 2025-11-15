@@ -382,6 +382,8 @@
                     let acoes = '';
                     if (conf.conferencia_status === 'PENDENTE') {
                         acoes = `<button class="btn btn-primary" onclick="abrirPesagem(${conf.id})">Registrar Pesagem</button>`;
+                    } else if (conf.conferencia_status === 'DIVERGENTE') {
+                        acoes = `<button class="btn btn-warning" onclick="enviarParaAdmDireto(${conf.id})">⚠️ Enviar p/ ADM</button>`;
                     } else if (conf.conferencia_status === 'AGUARDANDO_ADM') {
                         acoes = `<button class="btn btn-warning" onclick="abrirDecisao(${conf.id})">Decidir</button>`;
                     }
@@ -412,6 +414,32 @@
             confAtual = confId;
             carregarInfoConferencia(confId);
             document.getElementById('decisao-modal').style.display = 'block';
+        }
+
+        async function enviarParaAdmDireto(conferenciaId) {
+            if (!confirm('Confirma o envio desta divergência para análise administrativa?')) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/conferencia/${conferenciaId}/enviar-para-adm`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    alert('✅ Divergência enviada para análise administrativa com sucesso!');
+                    carregarConferencias();
+                    carregarEstatisticas();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erro: ' + (error.erro || 'Erro ao enviar para ADM'));
+                }
+            } catch (error) {
+                console.error('Erro ao enviar para ADM:', error);
+                alert('❌ Erro ao enviar para análise administrativa');
+            }
         }
 
         async function carregarInfoConferencia(confId) {
