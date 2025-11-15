@@ -16,6 +16,22 @@ def serve_upload(filename):
 def index():
     return render_template('index.html')
 
+@app.route('/logistica')
+def logistica():
+    return render_template('logistica.html')
+
+@app.route('/kanban')
+def kanban():
+    return render_template('kanban.html')
+
+@app.route('/app-motorista')
+def app_motorista():
+    return render_template('app-motorista.html')
+
+@app.route('/conferencia')
+def conferencia():
+    return render_template('conferencia.html')
+
 @app.route('/<path:path>')
 def serve_page(path):
     if path.startswith('api/'):

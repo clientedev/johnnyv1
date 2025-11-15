@@ -1,0 +1,373 @@
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.models import db, ConferenciaRecebimento, OrdemServico, OrdemCompra, Usuario, Notificacao, EntradaEstoque, Lote
+from app.auth import admin_required
+from datetime import datetime
+import uuid
+
+bp = Blueprint('conferencias', __name__, url_prefix='/api/conferencia')
+
+def calcular_percentual_diferenca(peso_fornecedor, peso_real):
+    if not peso_fornecedor or peso_fornecedor == 0:
+        return 0
+    return abs((peso_real - peso_fornecedor) / peso_fornecedor) * 100
+
+def registrar_auditoria_conferencia(conferencia, acao, usuario_id, detalhes=None):
+    entrada_auditoria = {
+        'acao': acao,
+        'usuario_id': usuario_id,
+        'timestamp': datetime.utcnow().isoformat(),
+        'detalhes': detalhes or {},
+        'ip': request.remote_addr,
+        'user_agent': request.headers.get('User-Agent')
+    }
+    
+    if conferencia.auditoria is None:
+        conferencia.auditoria = []
+    conferencia.auditoria.append(entrada_auditoria)
+
+@bp.route('', methods=['GET'])
+@jwt_required()
+def listar_conferencias():
+    try:
+        usuario_id = get_jwt_identity()
+        usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
+        query = ConferenciaRecebimento.query
+        
+        status = request.args.get('status')
+        if status:
+            query = query.filter_by(conferencia_status=status)
+        
+        conferencias = query.order_by(ConferenciaRecebimento.criado_em.desc()).all()
+        
+        resultado = []
+        for conf in conferencias:
+            conf_dict = conf.to_dict()
+            if conf.ordem_servico:
+                conf_dict['ordem_servico'] = {
+                    'id': conf.ordem_servico.id,
+                    'numero_os': conf.ordem_servico.numero_os,
+                    'fornecedor_snapshot': conf.ordem_servico.fornecedor_snapshot
+                }
+            if conf.ordem_compra:
+                conf_dict['ordem_compra'] = {
+                    'id': conf.ordem_compra.id,
+                    'valor_total': conf.ordem_compra.valor_total
+                }
+            resultado.append(conf_dict)
+        
+        return jsonify(resultado), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao listar conferências: {str(e)}'}), 500
+
+@bp.route('/<int:id>', methods=['GET'])
+@jwt_required()
+def obter_conferencia(id):
+    try:
+        conferencia = ConferenciaRecebimento.query.get(id)
+        
+        if not conferencia:
+            return jsonify({'erro': 'Conferência não encontrada'}), 404
+        
+        conf_dict = conferencia.to_dict()
+        
+        if conferencia.ordem_servico:
+            conf_dict['ordem_servico'] = conferencia.ordem_servico.to_dict()
+        
+        if conferencia.ordem_compra:
+            conf_dict['ordem_compra'] = conferencia.ordem_compra.to_dict()
+            if conferencia.ordem_compra.solicitacao:
+                conf_dict['solicitacao'] = conferencia.ordem_compra.solicitacao.to_dict()
+        
+        return jsonify(conf_dict), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao obter conferência: {str(e)}'}), 500
+
+@bp.route('/os/<int:os_id>/iniciar', methods=['POST'])
+@jwt_required()
+def iniciar_conferencia(os_id):
+    try:
+        usuario_id = get_jwt_identity()
+        usuario = Usuario.query.get(usuario_id)
+        
+        perfil_nome = usuario.perfil.nome if usuario.perfil else None
+        if perfil_nome not in ['Conferente / Estoque', 'Administrador'] and usuario.tipo != 'admin':
+            return jsonify({'erro': 'Acesso negado. Apenas conferentes podem iniciar conferências'}), 403
+        
+        os = OrdemServico.query.get(os_id)
+        if not os:
+            return jsonify({'erro': 'Ordem de Serviço não encontrada'}), 404
+        
+        if os.status not in ['ENTREGUE', 'FINALIZADA']:
+            return jsonify({'erro': f'Conferência só pode ser iniciada quando OS estiver ENTREGUE ou FINALIZADA. Status atual: {os.status}'}), 400
+        
+        conferencia_existente = ConferenciaRecebimento.query.filter_by(os_id=os_id).first()
+        if conferencia_existente:
+            return jsonify({'erro': 'Já existe uma conferência para esta OS', 'conferencia': conferencia_existente.to_dict()}), 400
+        
+        oc = OrdemCompra.query.get(os.oc_id)
+        if not oc:
+            return jsonify({'erro': 'Ordem de Compra não encontrada'}), 404
+        
+        data = request.get_json() or {}
+        peso_fornecedor = data.get('peso_fornecedor') or oc.valor_total
+        
+        conferencia = ConferenciaRecebimento(
+            os_id=os_id,
+            oc_id=os.oc_id,
+            peso_fornecedor=peso_fornecedor,
+            conferencia_status='PENDENTE',
+            conferente_id=usuario_id
+        )
+        
+        db.session.add(conferencia)
+        registrar_auditoria_conferencia(conferencia, 'INICIO_CONFERENCIA', usuario_id, {
+            'os_id': os_id,
+            'oc_id': os.oc_id
+        })
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'Conferência iniciada com sucesso',
+            'conferencia': conferencia.to_dict()
+        }), 201
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao iniciar conferência: {str(e)}'}), 500
+
+@bp.route('/<int:id>/registrar-pesagem', methods=['PUT'])
+@jwt_required()
+def registrar_pesagem(id):
+    try:
+        usuario_id = get_jwt_identity()
+        usuario = Usuario.query.get(usuario_id)
+        data = request.get_json()
+        
+        if not data or not data.get('peso_real'):
+            return jsonify({'erro': 'peso_real é obrigatório'}), 400
+        
+        perfil_nome = usuario.perfil.nome if usuario.perfil else None
+        if perfil_nome not in ['Conferente / Estoque', 'Administrador'] and usuario.tipo != 'admin':
+            return jsonify({'erro': 'Acesso negado'}), 403
+        
+        conferencia = ConferenciaRecebimento.query.get(id)
+        if not conferencia:
+            return jsonify({'erro': 'Conferência não encontrada'}), 404
+        
+        conferencia.peso_real = data['peso_real']
+        conferencia.qualidade = data.get('qualidade', 'BOA')
+        conferencia.fotos_pesagem = data.get('fotos', [])
+        
+        if conferencia.peso_fornecedor:
+            percentual_dif = calcular_percentual_diferenca(conferencia.peso_fornecedor, data['peso_real'])
+            conferencia.percentual_diferenca = percentual_dif
+            
+            limite_divergencia = 5.0
+            
+            if percentual_dif > limite_divergencia:
+                conferencia.divergencia = True
+                if data['peso_real'] < conferencia.peso_fornecedor:
+                    conferencia.tipo_divergencia = 'PESO'
+                else:
+                    conferencia.tipo_divergencia = 'PESO'
+                conferencia.conferencia_status = 'DIVERGENTE'
+            else:
+                conferencia.divergencia = False
+                conferencia.conferencia_status = 'APROVADA'
+        else:
+            conferencia.conferencia_status = 'APROVADA'
+        
+        if data.get('qualidade') in ['RUIM', 'DANIFICADO']:
+            conferencia.divergencia = True
+            conferencia.tipo_divergencia = 'QUALIDADE'
+            conferencia.conferencia_status = 'DIVERGENTE'
+        
+        registrar_auditoria_conferencia(conferencia, 'PESAGEM_REGISTRADA', usuario_id, {
+            'peso_real': data['peso_real'],
+            'qualidade': conferencia.qualidade,
+            'divergencia': conferencia.divergencia,
+            'percentual_diferenca': conferencia.percentual_diferenca
+        })
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'Pesagem registrada com sucesso',
+            'conferencia': conferencia.to_dict()
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao registrar pesagem: {str(e)}'}), 500
+
+@bp.route('/<int:id>/enviar-para-adm', methods=['PUT'])
+@jwt_required()
+def enviar_para_adm(id):
+    try:
+        usuario_id = get_jwt_identity()
+        
+        conferencia = ConferenciaRecebimento.query.get(id)
+        if not conferencia:
+            return jsonify({'erro': 'Conferência não encontrada'}), 404
+        
+        if not conferencia.divergencia:
+            return jsonify({'erro': 'Apenas conferências com divergência podem ser enviadas para ADM'}), 400
+        
+        conferencia.conferencia_status = 'AGUARDANDO_ADM'
+        
+        registrar_auditoria_conferencia(conferencia, 'ENVIADO_PARA_ADM', usuario_id, {
+            'tipo_divergencia': conferencia.tipo_divergencia,
+            'percentual_diferenca': conferencia.percentual_diferenca
+        })
+        
+        admins = Usuario.query.filter_by(tipo='admin').all()
+        for admin in admins:
+            notificacao = Notificacao(
+                usuario_id=admin.id,
+                titulo='Divergência em Conferência',
+                mensagem=f'Conferência #{conferencia.id} com divergência de {conferencia.percentual_diferenca:.2f}% precisa de análise',
+                tipo='divergencia_conferencia',
+                lida=False
+            )
+            db.session.add(notificacao)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'Conferência enviada para análise administrativa',
+            'conferencia': conferencia.to_dict()
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao enviar para ADM: {str(e)}'}), 500
+
+@bp.route('/<int:id>/decisao-adm', methods=['PUT'])
+@admin_required
+def decisao_adm(id):
+    try:
+        usuario_id = get_jwt_identity()
+        data = request.get_json()
+        
+        if not data or not data.get('decisao'):
+            return jsonify({'erro': 'decisao é obrigatória (ACEITAR, ACEITAR_COM_DESCONTO, REJEITAR)'}), 400
+        
+        conferencia = ConferenciaRecebimento.query.get(id)
+        if not conferencia:
+            return jsonify({'erro': 'Conferência não encontrada'}), 404
+        
+        if conferencia.conferencia_status != 'AGUARDANDO_ADM':
+            return jsonify({'erro': 'Conferência não está aguardando decisão administrativa'}), 400
+        
+        decisao = data['decisao'].upper()
+        if decisao not in ['ACEITAR', 'ACEITAR_COM_DESCONTO', 'REJEITAR']:
+            return jsonify({'erro': 'Decisão inválida'}), 400
+        
+        conferencia.decisao_adm = decisao
+        conferencia.decisao_adm_por = usuario_id
+        conferencia.decisao_adm_em = datetime.utcnow()
+        conferencia.decisao_adm_motivo = data.get('motivo', '')
+        
+        if decisao in ['ACEITAR', 'ACEITAR_COM_DESCONTO']:
+            conferencia.conferencia_status = 'APROVADA'
+            
+            os = OrdemServico.query.get(conferencia.os_id)
+            oc = OrdemCompra.query.get(conferencia.oc_id)
+            
+            if os and oc and oc.solicitacao:
+                solicitacao = oc.solicitacao
+                
+                peso_final = conferencia.peso_real if conferencia.peso_real else conferencia.peso_fornecedor
+                valor_final = oc.valor_total
+                
+                if decisao == 'ACEITAR_COM_DESCONTO' and data.get('percentual_desconto'):
+                    percentual_desc = data['percentual_desconto']
+                    valor_final = oc.valor_total * (1 - percentual_desconto / 100)
+                
+                if solicitacao.itens:
+                    for item in solicitacao.itens:
+                        tipo_lote = item.tipo_lote
+                        if tipo_lote:
+                            lote_existente = Lote.query.filter_by(
+                                fornecedor_id=oc.fornecedor_id,
+                                tipo_lote_id=tipo_lote.id,
+                                status='aberto'
+                            ).first()
+                            
+                            if lote_existente:
+                                lote_existente.peso_total_kg += item.peso_kg
+                                lote_existente.valor_total += item.valor_total
+                                lote_existente.quantidade_placas += item.quantidade
+                            else:
+                                numero_lote = f"LOTE-{uuid.uuid4().hex[:8].upper()}"
+                                lote = Lote(
+                                    numero_lote=numero_lote,
+                                    fornecedor_id=oc.fornecedor_id,
+                                    tipo_lote_id=tipo_lote.id,
+                                    peso_total_kg=item.peso_kg,
+                                    valor_total=item.valor_total,
+                                    quantidade_placas=item.quantidade,
+                                    status='aberto',
+                                    data_criacao=datetime.utcnow()
+                                )
+                                db.session.add(lote)
+        else:
+            conferencia.conferencia_status = 'REJEITADA'
+        
+        registrar_auditoria_conferencia(conferencia, 'DECISAO_ADM', usuario_id, {
+            'decisao': decisao,
+            'motivo': data.get('motivo'),
+            'percentual_desconto': data.get('percentual_desconto')
+        })
+        
+        if conferencia.conferente_id:
+            notificacao = Notificacao(
+                usuario_id=conferencia.conferente_id,
+                titulo=f'Conferência {decisao.title()}',
+                mensagem=f'A conferência #{conferencia.id} foi {decisao.lower()} pelo administrador',
+                tipo='decisao_conferencia',
+                lida=False
+            )
+            db.session.add(notificacao)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': f'Decisão {decisao} registrada com sucesso',
+            'conferencia': conferencia.to_dict()
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao registrar decisão: {str(e)}'}), 500
+
+@bp.route('/estatisticas', methods=['GET'])
+@jwt_required()
+def obter_estatisticas():
+    try:
+        total_conferencias = ConferenciaRecebimento.query.count()
+        pendentes = ConferenciaRecebimento.query.filter_by(conferencia_status='PENDENTE').count()
+        divergentes = ConferenciaRecebimento.query.filter_by(conferencia_status='DIVERGENTE').count()
+        aguardando_adm = ConferenciaRecebimento.query.filter_by(conferencia_status='AGUARDANDO_ADM').count()
+        aprovadas = ConferenciaRecebimento.query.filter_by(conferencia_status='APROVADA').count()
+        rejeitadas = ConferenciaRecebimento.query.filter_by(conferencia_status='REJEITADA').count()
+        
+        return jsonify({
+            'total_conferencias': total_conferencias,
+            'pendentes': pendentes,
+            'divergentes': divergentes,
+            'aguardando_adm': aguardando_adm,
+            'aprovadas': aprovadas,
+            'rejeitadas': rejeitadas
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao obter estatísticas: {str(e)}'}), 500

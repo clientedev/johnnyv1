@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logística - MRX Systems</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .logistica-container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logistica-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .logistica-header h1 {
+            color: #2c7a3e;
+            margin: 0;
+        }
+
+        .filtros {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .filtros-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .filtro-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filtro-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .filtro-group select,
+        .filtro-group input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 32px;
+            color: #2c7a3e;
+        }
+
+        .stat-card p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .os-table {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .os-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .os-table th {
+            background: #2c7a3e;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .os-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .os-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pendente { background: #ffc107; color: #000; }
+        .status-agendada { background: #17a2b8; color: #fff; }
+        .status-em_rota { background: #007bff; color: #fff; }
+        .status-finalizada { background: #28a745; color: #fff; }
+        .status-cancelada { background: #dc3545; color: #fff; }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #2c7a3e;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #235d31;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #2c7a3e;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .kanban-link {
+            background: #17a2b8;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .kanban-link:hover {
+            background: #138496;
+        }
+    </style>
+</head>
+<body>
+    {% include 'includes/_rbac_header.html' %}
+    {% include 'includes/_rbac_nav.html' %}
+
+    <div class="logistica-container">
+        <div class="logistica-header">
+            <h1>Logística - Ordens de Serviço</h1>
+            <div class="actions">
+                <a href="/kanban" class="kanban-link">Ver Kanban</a>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <h3 id="stat-total">0</h3>
+                <p>Total de OS</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="stat-pendentes">0</h3>
+                <p>Pendentes</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="stat-em-rota">0</h3>
+                <p>Em Rota</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="stat-finalizadas">0</h3>
+                <p>Finalizadas</p>
+            </div>
+        </div>
+
+        <div class="filtros">
+            <div class="filtros-grid">
+                <div class="filtro-group">
+                    <label>Status</label>
+                    <select id="filtro-status">
+                        <option value="">Todos</option>
+                        <option value="PENDENTE">Pendente</option>
+                        <option value="AGENDADA">Agendada</option>
+                        <option value="EM_ROTA">Em Rota</option>
+                        <option value="FINALIZADA">Finalizada</option>
+                        <option value="CANCELADA">Cancelada</option>
+                    </select>
+                </div>
+                <div class="filtro-group">
+                    <label>Motorista</label>
+                    <select id="filtro-motorista">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filtro-group">
+                    <label>Data Início</label>
+                    <input type="date" id="filtro-data-inicio">
+                </div>
+                <div class="filtro-group">
+                    <label>Data Fim</label>
+                    <input type="date" id="filtro-data-fim">
+                </div>
+            </div>
+        </div>
+
+        <div class="os-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nº OS</th>
+                        <th>Fornecedor</th>
+                        <th>Tipo</th>
+                        <th>Status</th>
+                        <th>Motorista</th>
+                        <th>Veículo</th>
+                        <th>Janela Coleta</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="os-list">
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px;">
+                            Carregando...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="detalhes-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Detalhes da OS</h2>
+                <span class="close" onclick="fecharModal('detalhes-modal')">&times;</span>
+            </div>
+            <div id="os-detalhes"></div>
+        </div>
+    </div>
+
+    <div id="atribuir-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Atribuir Motorista</h2>
+                <span class="close" onclick="fecharModal('atribuir-modal')">&times;</span>
+            </div>
+            <form id="form-atribuir">
+                <div class="form-group">
+                    <label>Motorista *</label>
+                    <select id="motorista-select" required>
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Veículo</label>
+                    <select id="veiculo-select">
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary">Atribuir</button>
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('atribuir-modal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let osAtual = null;
+
+        async function carregarEstatisticas() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/os/estatisticas', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                document.getElementById('stat-total').textContent = data.total_os;
+                document.getElementById('stat-pendentes').textContent = data.pendentes;
+                document.getElementById('stat-em-rota').textContent = data.em_rota;
+                document.getElementById('stat-finalizadas').textContent = data.finalizadas;
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        async function carregarOS() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const status = document.getElementById('filtro-status').value;
+                const motorista = document.getElementById('filtro-motorista').value;
+                const dataInicio = document.getElementById('filtro-data-inicio').value;
+                const dataFim = document.getElementById('filtro-data-fim').value;
+
+                let url = '/api/os?';
+                if (status) url += `status=${status}&`;
+                if (motorista) url += `motorista_id=${motorista}&`;
+                if (dataInicio) url += `data_inicio=${dataInicio}&`;
+                if (dataFim) url += `data_fim=${dataFim}&`;
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const os_list = await response.json();
+
+                const tbody = document.getElementById('os-list');
+                tbody.innerHTML = '';
+
+                if (os_list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Nenhuma OS encontrada</td></tr>';
+                    return;
+                }
+
+                os_list.forEach(os => {
+                    const tr = document.createElement('tr');
+                    const statusClass = `status-${os.status.toLowerCase().replace('_', '-')}`;
+                    
+                    tr.innerHTML = `
+                        <td><strong>${os.numero_os}</strong></td>
+                        <td>${os.fornecedor_snapshot.nome}</td>
+                        <td>${os.tipo}</td>
+                        <td><span class="status-badge ${statusClass}">${os.status}</span></td>
+                        <td>${os.motorista_nome || '-'}</td>
+                        <td>${os.veiculo_placa || '-'}</td>
+                        <td>${os.janela_coleta_inicio ? new Date(os.janela_coleta_inicio).toLocaleString('pt-BR') : '-'}</td>
+                        <td>
+                            <button class="btn btn-primary" onclick="verDetalhes(${os.id})">Ver</button>
+                            ${os.status === 'PENDENTE' ? `<button class="btn btn-secondary" onclick="abrirAtribuir(${os.id})">Atribuir</button>` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar OS:', error);
+            }
+        }
+
+        async function verDetalhes(osId) {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/os/${osId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const os = await response.json();
+
+                const detalhes = document.getElementById('os-detalhes');
+                detalhes.innerHTML = `
+                    <p><strong>Número OS:</strong> ${os.numero_os}</p>
+                    <p><strong>Status:</strong> <span class="status-badge status-${os.status.toLowerCase()}">${os.status}</span></p>
+                    <p><strong>Fornecedor:</strong> ${os.fornecedor_snapshot.nome}</p>
+                    <p><strong>Tipo:</strong> ${os.tipo}</p>
+                    <p><strong>Motorista:</strong> ${os.motorista_nome || 'Não atribuído'}</p>
+                    <p><strong>Veículo:</strong> ${os.veiculo_placa || 'Não atribuído'}</p>
+                    <p><strong>Janela de Coleta:</strong> ${os.janela_coleta_inicio ? new Date(os.janela_coleta_inicio).toLocaleString('pt-BR') : 'Não definida'}</p>
+                    <p><strong>Criado em:</strong> ${new Date(os.criado_em).toLocaleString('pt-BR')}</p>
+                `;
+
+                document.getElementById('detalhes-modal').style.display = 'block';
+            } catch (error) {
+                console.error('Erro ao carregar detalhes:', error);
+                alert('Erro ao carregar detalhes da OS');
+            }
+        }
+
+        async function abrirAtribuir(osId) {
+            osAtual = osId;
+            await carregarMotoristas();
+            await carregarVeiculos();
+            document.getElementById('atribuir-modal').style.display = 'block';
+        }
+
+        async function carregarMotoristas() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/motoristas', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const motoristas = await response.json();
+
+                const select = document.getElementById('motorista-select');
+                select.innerHTML = '<option value="">Selecione...</option>';
+                motoristas.forEach(m => {
+                    select.innerHTML += `<option value="${m.id}">${m.usuario_nome} - CNH: ${m.cnh}</option>`;
+                });
+
+                const filtroSelect = document.getElementById('filtro-motorista');
+                filtroSelect.innerHTML = '<option value="">Todos</option>';
+                motoristas.forEach(m => {
+                    filtroSelect.innerHTML += `<option value="${m.id}">${m.usuario_nome}</option>`;
+                });
+            } catch (error) {
+                console.error('Erro ao carregar motoristas:', error);
+            }
+        }
+
+        async function carregarVeiculos() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/veiculos', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const veiculos = await response.json();
+
+                const select = document.getElementById('veiculo-select');
+                select.innerHTML = '<option value="">Selecione...</option>';
+                veiculos.forEach(v => {
+                    select.innerHTML += `<option value="${v.id}">${v.placa} - ${v.modelo}</option>`;
+                });
+            } catch (error) {
+                console.error('Erro ao carregar veículos:', error);
+            }
+        }
+
+        document.getElementById('form-atribuir').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const motorista_id = document.getElementById('motorista-select').value;
+                const veiculo_id = document.getElementById('veiculo-select').value;
+
+                const response = await fetch(`/api/os/${osAtual}/atribuir-motorista`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ motorista_id: parseInt(motorista_id), veiculo_id: veiculo_id ? parseInt(veiculo_id) : null })
+                });
+
+                if (response.ok) {
+                    alert('Motorista atribuído com sucesso!');
+                    fecharModal('atribuir-modal');
+                    carregarOS();
+                    carregarEstatisticas();
+                } else {
+                    const error = await response.json();
+                    alert('Erro: ' + error.erro);
+                }
+            } catch (error) {
+                console.error('Erro ao atribuir motorista:', error);
+                alert('Erro ao atribuir motorista');
+            }
+        });
+
+        function fecharModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        document.getElementById('filtro-status').addEventListener('change', carregarOS);
+        document.getElementById('filtro-motorista').addEventListener('change', carregarOS);
+        document.getElementById('filtro-data-inicio').addEventListener('change', carregarOS);
+        document.getElementById('filtro-data-fim').addEventListener('change', carregarOS);
+
+        window.onclick = function(event) {
+            const modais = document.getElementsByClassName('modal');
+            for (let modal of modais) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            }
+        }
+
+        carregarEstatisticas();
+        carregarOS();
+        carregarMotoristas();
+    </script>
+</body>
+</html>

@@ -888,3 +888,179 @@ class AuditoriaOC(db.Model):  # type: ignore
             'dispositivo': self.dispositivo,
             'data': self.data.isoformat() if self.data else None
         }
+
+class OrdemServico(db.Model):  # type: ignore
+    __tablename__ = 'ordens_servico'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    oc_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=False)
+    numero_os = db.Column(db.String(50), unique=True, nullable=False)
+    fornecedor_snapshot = db.Column(db.JSON, nullable=False)
+    tipo = db.Column(db.String(20), nullable=False, default='COLETA')
+    janela_coleta_inicio = db.Column(db.DateTime, nullable=True)
+    janela_coleta_fim = db.Column(db.DateTime, nullable=True)
+    motorista_id = db.Column(db.Integer, db.ForeignKey('motoristas.id'), nullable=True)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculos.id'), nullable=True)
+    rota = db.Column(db.JSON, nullable=True)
+    status = db.Column(db.String(50), default='PENDENTE', nullable=False)
+    gps_logs = db.Column(db.JSON, default=lambda: [], nullable=True)
+    attachments = db.Column(db.JSON, default=lambda: [], nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    ordem_compra = db.relationship('OrdemCompra', backref='ordens_servico', foreign_keys=[oc_id])
+    motorista = db.relationship('Motorista', backref='ordens_servico', foreign_keys=[motorista_id])
+    veiculo = db.relationship('Veiculo', backref='ordens_servico', foreign_keys=[veiculo_id])
+    criador = db.relationship('Usuario', foreign_keys=[created_by], backref='os_criadas')
+    eventos_gps = db.relationship('GPSLog', backref='ordem_servico', lazy=True, cascade='all, delete-orphan')
+    rotas_operacionais = db.relationship('RotaOperacional', backref='ordem_servico', lazy=True, cascade='all, delete-orphan')
+    conferencias = db.relationship('ConferenciaRecebimento', backref='ordem_servico', lazy=True, cascade='all, delete-orphan')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'oc_id': self.oc_id,
+            'numero_os': self.numero_os,
+            'fornecedor_snapshot': self.fornecedor_snapshot,
+            'tipo': self.tipo,
+            'janela_coleta_inicio': self.janela_coleta_inicio.isoformat() if self.janela_coleta_inicio else None,
+            'janela_coleta_fim': self.janela_coleta_fim.isoformat() if self.janela_coleta_fim else None,
+            'motorista_id': self.motorista_id,
+            'motorista_nome': self.motorista.usuario.nome if self.motorista and self.motorista.usuario else None,
+            'veiculo_id': self.veiculo_id,
+            'veiculo_placa': self.veiculo.placa if self.veiculo else None,
+            'rota': self.rota,
+            'status': self.status,
+            'gps_logs': self.gps_logs,
+            'attachments': self.attachments,
+            'created_by': self.created_by,
+            'criador_nome': self.criador.nome if self.criador else None,
+            'auditoria': self.auditoria,
+            'criado_em': self.criado_em.isoformat() if self.criado_em else None,
+            'atualizado_em': self.atualizado_em.isoformat() if self.atualizado_em else None
+        }
+
+class RotaOperacional(db.Model):  # type: ignore
+    __tablename__ = 'rotas_operacionais'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=False)
+    motorista_id = db.Column(db.Integer, db.ForeignKey('motoristas.id'), nullable=False)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey('veiculos.id'), nullable=False)
+    pontos = db.Column(db.JSON, nullable=False)
+    km_estimado = db.Column(db.Float, nullable=True)
+    km_real = db.Column(db.Float, nullable=True)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    finalizado_em = db.Column(db.DateTime, nullable=True)
+    
+    motorista = db.relationship('Motorista', backref='rotas_operacionais', foreign_keys=[motorista_id])
+    veiculo = db.relationship('Veiculo', backref='rotas_operacionais', foreign_keys=[veiculo_id])
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'os_id': self.os_id,
+            'motorista_id': self.motorista_id,
+            'motorista_nome': self.motorista.usuario.nome if self.motorista and self.motorista.usuario else None,
+            'veiculo_id': self.veiculo_id,
+            'veiculo_placa': self.veiculo.placa if self.veiculo else None,
+            'pontos': self.pontos,
+            'km_estimado': self.km_estimado,
+            'km_real': self.km_real,
+            'criado_em': self.criado_em.isoformat() if self.criado_em else None,
+            'finalizado_em': self.finalizado_em.isoformat() if self.finalizado_em else None
+        }
+
+class GPSLog(db.Model):  # type: ignore
+    __tablename__ = 'gps_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=False)
+    evento = db.Column(db.String(50), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    precisao = db.Column(db.Float, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    device_id = db.Column(db.String(255), nullable=True)
+    ip = db.Column(db.String(50), nullable=True)
+    dados_adicionais = db.Column(db.JSON, nullable=True)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'os_id': self.os_id,
+            'evento': self.evento,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'precisao': self.precisao,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'device_id': self.device_id,
+            'ip': self.ip,
+            'dados_adicionais': self.dados_adicionais
+        }
+
+class ConferenciaRecebimento(db.Model):  # type: ignore
+    __tablename__ = 'conferencias_recebimento'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=False)
+    oc_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=False)
+    peso_fornecedor = db.Column(db.Float, nullable=True)
+    peso_real = db.Column(db.Float, nullable=True)
+    fotos_pesagem = db.Column(db.JSON, default=lambda: [], nullable=True)
+    qualidade = db.Column(db.String(50), nullable=True)
+    divergencia = db.Column(db.Boolean, default=False, nullable=False)
+    tipo_divergencia = db.Column(db.String(50), nullable=True)
+    percentual_diferenca = db.Column(db.Float, nullable=True)
+    conferencia_status = db.Column(db.String(50), default='PENDENTE', nullable=False)
+    conferente_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    decisao_adm = db.Column(db.String(50), nullable=True)
+    decisao_adm_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    decisao_adm_em = db.Column(db.DateTime, nullable=True)
+    decisao_adm_motivo = db.Column(db.Text, nullable=True)
+    
+    ordem_compra = db.relationship('OrdemCompra', backref='conferencias', foreign_keys=[oc_id])
+    conferente = db.relationship('Usuario', foreign_keys=[conferente_id], backref='conferencias_realizadas')
+    decisor_adm = db.relationship('Usuario', foreign_keys=[decisao_adm_por], backref='decisoes_conferencia')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'os_id': self.os_id,
+            'oc_id': self.oc_id,
+            'peso_fornecedor': self.peso_fornecedor,
+            'peso_real': self.peso_real,
+            'fotos_pesagem': self.fotos_pesagem,
+            'qualidade': self.qualidade,
+            'divergencia': self.divergencia,
+            'tipo_divergencia': self.tipo_divergencia,
+            'percentual_diferenca': self.percentual_diferenca,
+            'conferencia_status': self.conferencia_status,
+            'conferente_id': self.conferente_id,
+            'conferente_nome': self.conferente.nome if self.conferente else None,
+            'auditoria': self.auditoria,
+            'criado_em': self.criado_em.isoformat() if self.criado_em else None,
+            'atualizado_em': self.atualizado_em.isoformat() if self.atualizado_em else None,
+            'decisao_adm': self.decisao_adm,
+            'decisao_adm_por': self.decisao_adm_por,
+            'decisao_adm_por_nome': self.decisor_adm.nome if self.decisor_adm else None,
+            'decisao_adm_em': self.decisao_adm_em.isoformat() if self.decisao_adm_em else None,
+            'decisao_adm_motivo': self.decisao_adm_motivo
+        }
