@@ -5,6 +5,45 @@ The MRX System is a comprehensive solution for managing the procurement of elect
 
 ## Recent Changes
 
+### November 15, 2025 - Critical Fix: GPS Not Working in Motorista App
+**Problem:** GPS indicator showed "GPS Ativo" but drivers couldn't start routes, receiving "GPS não está ativo" error even when GPS permission was granted.
+
+**Root Cause:** Visual indicator started as "GPS Ativo" by default, but the JavaScript variable `gpsAtivo` started as `false`. The `watchPosition` API takes several seconds to obtain the first location. If a driver clicked "Iniciar Rota" before the first GPS fix, the check failed.
+
+**Solutions Implemented:**
+
+1. **Improved GPS Initialization:**
+   - Changed initial state to "Aguardando GPS..." with spinner icon
+   - GPS indicator now accurately reflects real GPS status:
+     - 🔵 Spinning icon while waiting for first location
+     - 🟢 Check icon when GPS is active and ready
+     - 🔴 Alert icon when GPS fails or permission denied
+
+2. **Better Error Messages:**
+   - If clicked before GPS ready: "Aguardando primeira localização GPS. Por favor, aguarde alguns segundos e tente novamente."
+   - Specific messages for different failure scenarios
+   - Console logs show detailed GPS status and errors
+
+3. **Enhanced GPS Configuration:**
+   - Added 10-second timeout for GPS acquisition
+   - Set `maximumAge: 0` to ensure fresh coordinates
+   - Added detailed error handling for permission, position, and timeout errors
+
+4. **Debug Logging:**
+   - Console shows GPS initialization: 🌍 "Inicializando GPS..."
+   - Shows successful GPS fix: ✅ "GPS ativo: {coords}"
+   - Shows attempts to start routes/events with GPS status
+   - Detailed error codes for GPS failures
+
+**Testing:**
+- ✅ Indicator shows "Aguardando GPS..." on page load
+- ✅ Changes to "GPS Ativo" when location obtained
+- ✅ Clear error message if clicked too early
+- ✅ Console logs help debug GPS issues
+- ✅ All GPS-dependent operations validate properly
+
+**Impact:** Drivers now understand GPS status and know to wait for "GPS Ativo" indicator before attempting operations. Error messages guide them through troubleshooting.
+
 ### November 15, 2025 - Critical Fix: Motorista App Not Loading OSs
 **Problem:** When logging in as a driver (motorista), the app was not loading Service Orders (Ordens de Serviço), displaying empty tabs even when OSs were assigned to the driver.
 

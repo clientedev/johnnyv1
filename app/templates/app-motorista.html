@@ -258,8 +258,8 @@
     <div id="em-rota" class="tab-content"></div>
     <div id="finalizadas" class="tab-content"></div>
 
-    <div class="gps-indicator" id="gps-status">
-        GPS Ativo
+    <div class="gps-indicator offline" id="gps-status">
+        <i class="fas fa-spinner fa-spin"></i> Aguardando GPS...
     </div>
 
     <div id="evento-modal" class="modal">
@@ -281,27 +281,53 @@
         let currentEvento = null;
         let gpsAtivo = false;
         let ultimaLocalizacao = null;
+        let gpsWatchId = null;
 
-        if ('geolocation' in navigator) {
-            navigator.geolocation.watchPosition(
-                (position) => {
-                    ultimaLocalizacao = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        precisao: position.coords.accuracy
-                    };
-                    gpsAtivo = true;
-                    document.getElementById('gps-status').textContent = 'GPS Ativo';
-                    document.getElementById('gps-status').classList.remove('offline');
-                },
-                (error) => {
-                    gpsAtivo = false;
-                    document.getElementById('gps-status').textContent = 'GPS Inativo';
-                    document.getElementById('gps-status').classList.add('offline');
-                },
-                { enableHighAccuracy: true }
-            );
+        function inicializarGPS() {
+            if ('geolocation' in navigator) {
+                console.log('🌍 Inicializando GPS...');
+                
+                gpsWatchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        ultimaLocalizacao = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            precisao: position.coords.accuracy
+                        };
+                        gpsAtivo = true;
+                        const statusEl = document.getElementById('gps-status');
+                        statusEl.innerHTML = '<i class="fas fa-check-circle"></i> GPS Ativo';
+                        statusEl.classList.remove('offline');
+                        console.log('✅ GPS ativo:', ultimaLocalizacao);
+                    },
+                    (error) => {
+                        gpsAtivo = false;
+                        const statusEl = document.getElementById('gps-status');
+                        statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> GPS Inativo';
+                        statusEl.classList.add('offline');
+                        console.error('❌ Erro GPS:', error.message);
+                        
+                        if (error.code === 1) {
+                            console.warn('Permissão de localização negada');
+                        } else if (error.code === 2) {
+                            console.warn('Posição indisponível');
+                        } else if (error.code === 3) {
+                            console.warn('Timeout ao obter localização');
+                        }
+                    },
+                    { 
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                console.error('❌ Geolocalização não suportada pelo navegador');
+                alert('Seu navegador não suporta geolocalização. Use um navegador mais recente.');
+            }
         }
+
+        inicializarGPS();
 
         async function carregarMinhasOS() {
             try {
@@ -396,14 +422,27 @@
         }
 
         async function iniciarRota(osId) {
+            console.log('🚗 Tentando iniciar rota...', { gpsAtivo, ultimaLocalizacao });
+            
             if (!gpsAtivo || !ultimaLocalizacao) {
-                alert('GPS não está ativo. Ative o GPS para iniciar a rota.');
+                let mensagem = 'GPS não está ativo.';
+                
+                if (!navigator.geolocation) {
+                    mensagem = 'Seu navegador não suporta GPS.';
+                } else if (!ultimaLocalizacao) {
+                    mensagem = 'Aguardando primeira localização GPS. Por favor, aguarde alguns segundos e tente novamente.';
+                }
+                
+                alert(mensagem);
+                console.warn('⚠️ GPS não disponível:', { gpsAtivo, ultimaLocalizacao });
                 return;
             }
 
             try {
                 const token = localStorage.getItem('token');
                 const deviceId = localStorage.getItem('device_id') || generateDeviceId();
+                
+                console.log('📍 Iniciando rota com GPS:', ultimaLocalizacao);
                 
                 const response = await fetch(`/api/os/${osId}/iniciar-rota`, {
                     method: 'PUT',
@@ -431,8 +470,19 @@
         }
 
         function registrarEvento(osId, evento) {
+            console.log('📝 Tentando registrar evento...', { evento, gpsAtivo, ultimaLocalizacao });
+            
             if (!gpsAtivo || !ultimaLocalizacao) {
-                alert('GPS não está ativo. Ative o GPS para registrar eventos.');
+                let mensagem = 'GPS não está ativo.';
+                
+                if (!navigator.geolocation) {
+                    mensagem = 'Seu navegador não suporta GPS.';
+                } else if (!ultimaLocalizacao) {
+                    mensagem = 'Aguardando primeira localização GPS. Por favor, aguarde alguns segundos e tente novamente.';
+                }
+                
+                alert(mensagem);
+                console.warn('⚠️ GPS não disponível para evento:', { evento, gpsAtivo, ultimaLocalizacao });
                 return;
             }
 

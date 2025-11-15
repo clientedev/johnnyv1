@@ -73,9 +73,11 @@
 - ⚠️ O GPS **DEVE** estar ativo para:
   - Iniciar rotas
   - Registrar eventos
-- Indicador de GPS:
-  - 🟢 **GPS Ativo:** Verde no canto inferior direito
-  - 🔴 **GPS Inativo:** Vermelho no canto inferior direito
+- Indicador de GPS (canto inferior direito):
+  - 🔵 **Aguardando GPS:** Ícone girando (aguardando primeira localização)
+  - 🟢 **GPS Ativo:** Ícone de check verde (pronto para uso)
+  - 🔴 **GPS Inativo:** Ícone de alerta vermelho (erro ou permissão negada)
+- ⏱️ **Importante:** Aguarde alguns segundos após abrir o app para o GPS obter a primeira localização antes de tentar iniciar rotas
 
 ### Atualização Automática
 - O app atualiza automaticamente a cada 30 segundos
@@ -91,12 +93,21 @@
 - **Causa:** Não está logado ou o token expirou
 - **Solução:** Faça login novamente em `/`
 
-### "GPS não está ativo"
-- **Causa:** Permissão de localização não concedida
+### "GPS não está ativo" ou "Aguardando primeira localização GPS"
+- **Causas possíveis:**
+  1. GPS ainda está obtendo a primeira localização (aguarde 5-10 segundos)
+  2. Permissão de localização não concedida
+  3. GPS do dispositivo está desligado
+  4. Navegador não suporta geolocalização
 - **Solução:**
-  1. Verifique as configurações do navegador
-  2. Conceda permissão de localização
-  3. Recarregue a página
+  1. Verifique se o indicador GPS mostra "GPS Ativo" (ícone verde com check)
+  2. Se mostrar "Aguardando GPS", aguarde alguns segundos
+  3. Se mostrar "GPS Inativo":
+     - Verifique as configurações do navegador
+     - Conceda permissão de localização
+     - Ative o GPS do dispositivo
+     - Recarregue a página
+  4. Abra o console do navegador (F12) para ver logs detalhados do GPS
 
 ### OSs não aparecem
 - **Causas possíveis:**
@@ -127,3 +138,17 @@ Todos os eventos são registrados com:
 - ✅ Timestamp
 - ✅ Observações (quando fornecidas)
 - ✅ IP e User Agent do navegador
+
+## Debug e Logs do Console
+
+Para ver informações detalhadas sobre o GPS e operações:
+1. Abra o console do navegador (F12 ou Ctrl+Shift+I)
+2. Vá para a aba "Console"
+3. Você verá logs como:
+   - 🌍 "Inicializando GPS..."
+   - ✅ "GPS ativo: {latitude, longitude, precisao}"
+   - 🚗 "Tentando iniciar rota..."
+   - 📍 "Iniciando rota com GPS: ..."
+   - ❌ Erros detalhados se houver problemas
+
+Isso ajuda a identificar problemas com GPS, autenticação ou conexão.
