@@ -124,9 +124,8 @@ def iniciar_conferencia(os_id):
         if oc.solicitacao and oc.solicitacao.itens:
             for item in oc.solicitacao.itens:
                 peso_kg = item.peso_kg or 0
-                quantidade = item.quantidade or 0
-                peso_total_previsto += peso_kg * quantidade
-                quantidade_total_prevista += quantidade
+                peso_total_previsto += peso_kg
+                quantidade_total_prevista += 1
         
         peso_fornecedor = data.get('peso_fornecedor') or peso_total_previsto
         

@@ -386,9 +386,8 @@ def registrar_evento(id):
                     if oc.solicitacao and oc.solicitacao.itens:
                         for item in oc.solicitacao.itens:
                             peso_kg = item.peso_kg or 0
-                            quantidade = item.quantidade or 0
-                            peso_previsto += peso_kg * quantidade
-                            quantidade_prevista += quantidade
+                            peso_previsto += peso_kg
+                            quantidade_prevista += 1
                     
                     conferencia = ConferenciaRecebimento(
                         os_id=os.id,
