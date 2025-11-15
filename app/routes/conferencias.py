@@ -4,6 +4,8 @@ from app.models import db, ConferenciaRecebimento, OrdemServico, OrdemCompra, Us
 from app.auth import admin_required
 from datetime import datetime
 import uuid
+import os
+from werkzeug.utils import secure_filename
 
 bp = Blueprint('conferencias', __name__, url_prefix='/api/conferencia')
 
@@ -379,3 +381,53 @@ def obter_estatisticas():
     
     except Exception as e:
         return jsonify({'erro': f'Erro ao obter estatísticas: {str(e)}'}), 500
+
+@bp.route('/<int:id>/upload-foto', methods=['POST'])
+@jwt_required()
+def upload_foto(id):
+    try:
+        usuario_id = get_jwt_identity()
+        conferencia = ConferenciaRecebimento.query.get(id)
+        
+        if not conferencia:
+            return jsonify({'erro': 'Conferência não encontrada'}), 404
+        
+        if 'foto' not in request.files:
+            return jsonify({'erro': 'Nenhuma foto enviada'}), 400
+        
+        foto = request.files['foto']
+        if foto.filename == '':
+            return jsonify({'erro': 'Nome de arquivo inválido'}), 400
+        
+        if foto:
+            pasta_evidencias = f'uploads/evidencias/conferencia/{id}'
+            os.makedirs(pasta_evidencias, exist_ok=True)
+            
+            filename = secure_filename(foto.filename)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            nome_arquivo = f'{timestamp}_{filename}'
+            caminho_arquivo = os.path.join(pasta_evidencias, nome_arquivo)
+            
+            foto.save(caminho_arquivo)
+            
+            if conferencia.fotos_pesagem is None:
+                conferencia.fotos_pesagem = []
+            
+            conferencia.fotos_pesagem.append(caminho_arquivo)
+            
+            registrar_auditoria_conferencia(conferencia, 'FOTO_ADICIONADA', usuario_id, {
+                'caminho_arquivo': caminho_arquivo,
+                'nome_original': foto.filename
+            })
+            
+            db.session.commit()
+            
+            return jsonify({
+                'mensagem': 'Foto enviada com sucesso',
+                'caminho': caminho_arquivo,
+                'conferencia': conferencia.to_dict()
+            }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao fazer upload da foto: {str(e)}'}), 500
