@@ -10,6 +10,9 @@ PERFIL_CONFIG = {
             '/api/solicitacoes',
             '/api/lotes',
             '/api/entradas',
+            '/api/estoque',
+            '/api/separacao',
+            '/api/conferencia',
             '/api/auditoria',
             '/api/relatorios',
             '/api/tipos-lote',
@@ -70,6 +73,8 @@ PERFIL_CONFIG = {
         'rotas_api_permitidas': [
             '/api/lotes',
             '/api/entradas',
+            '/api/estoque',
+            '/api/conferencia',
             '/api/solicitacoes'
         ],
         'paginas_permitidas': [
@@ -77,6 +82,8 @@ PERFIL_CONFIG = {
             '/lotes.html',
             '/lotes_aprovados.html',
             '/entradas.html',
+            '/estoque.html',
+            '/lotes-recebidos.html',
             '/validacao.html',
             '/notificacoes.html'
         ],
@@ -88,20 +95,24 @@ PERFIL_CONFIG = {
         ]
     },
     'Separação': {
-        'tela_inicial': '/lotes.html',
+        'tela_inicial': '/separacao-fila.html',
         'rotas_api_permitidas': [
             '/api/lotes',
-            '/api/entradas'
+            '/api/entradas',
+            '/api/separacao',
+            '/api/estoque'
         ],
         'paginas_permitidas': [
             '/dashboard.html',
             '/lotes.html',
             '/lotes_aprovados.html',
+            '/separacao-fila.html',
+            '/separacao-workflow.html',
             '/notificacoes.html'
         ],
         'menus': [
+            {'id': 'separacao-fila', 'nome': 'Fila Separação', 'url': '/separacao-fila.html', 'icone': 'format_list_bulleted'},
             {'id': 'lotes', 'nome': 'Lotes', 'url': '/lotes.html', 'icone': 'inventory_2'},
-            {'id': 'lotes_aprovados', 'nome': 'Aprovados', 'url': '/lotes_aprovados.html', 'icone': 'check_circle'},
             {'id': 'dashboard', 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'dashboard'}
         ]
     },

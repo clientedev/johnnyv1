@@ -302,43 +302,117 @@ def decisao_adm(id):
             os = OrdemServico.query.get(conferencia.os_id)
             oc = OrdemCompra.query.get(conferencia.oc_id)
             
-            if os and oc and oc.solicitacao:
-                solicitacao = oc.solicitacao
+            if os and oc:
+                from app.models import MovimentacaoEstoque, LoteSeparacao
                 
                 peso_final = conferencia.peso_real if conferencia.peso_real else conferencia.peso_fornecedor
-                valor_final = oc.valor_total
+                peso_liquido = peso_final
                 
                 if decisao == 'ACEITAR_COM_DESCONTO' and data.get('percentual_desconto'):
                     percentual_desc = data['percentual_desconto']
-                    valor_final = oc.valor_total * (1 - percentual_desc / 100)
+                    peso_liquido = peso_final * (1 - percentual_desc / 100)
                 
-                if solicitacao.itens:
-                    for item in solicitacao.itens:
-                        tipo_lote = item.tipo_lote
-                        if tipo_lote:
-                            lote_existente = Lote.query.filter_by(
-                                fornecedor_id=oc.fornecedor_id,
-                                tipo_lote_id=tipo_lote.id,
-                                status='aberto'
-                            ).first()
-                            
-                            if lote_existente:
-                                lote_existente.peso_total_kg += item.peso_kg
-                                lote_existente.valor_total += item.valor_calculado
-                                lote_existente.quantidade_itens += 1
-                            else:
-                                numero_lote = f"LOTE-{uuid.uuid4().hex[:8].upper()}"
-                                lote = Lote(
-                                    numero_lote=numero_lote,
-                                    fornecedor_id=oc.fornecedor_id,
-                                    tipo_lote_id=tipo_lote.id,
-                                    peso_total_kg=item.peso_kg,
-                                    valor_total=item.valor_calculado,
-                                    quantidade_itens=1,
-                                    status='aberto',
-                                    data_criacao=datetime.utcnow()
-                                )
-                                db.session.add(lote)
+                ano = datetime.now().year
+                numero_sequencial = Lote.query.filter(
+                    Lote.numero_lote.like(f"{ano}-%")
+                ).count() + 1
+                numero_lote = f"{ano}-{str(numero_sequencial).zfill(5)}"
+                
+                tipo_lote_id = None
+                if oc.solicitacao and oc.solicitacao.itens:
+                    primeiro_item = oc.solicitacao.itens[0]
+                    tipo_lote_id = primeiro_item.tipo_lote_id
+                
+                divergencias_registradas = []
+                if conferencia.divergencia:
+                    divergencias_registradas.append({
+                        'tipo': conferencia.tipo_divergencia,
+                        'percentual_diferenca': conferencia.percentual_diferenca,
+                        'peso_previsto': conferencia.peso_fornecedor,
+                        'peso_recebido': peso_final,
+                        'decisao_adm': decisao,
+                        'motivo': data.get('motivo', '')
+                    })
+                
+                lote = Lote(
+                    numero_lote=numero_lote,
+                    fornecedor_id=oc.fornecedor_id,
+                    tipo_lote_id=tipo_lote_id or 1,
+                    oc_id=oc.id,
+                    os_id=os.id,
+                    conferencia_id=conferencia.id,
+                    peso_bruto_recebido=peso_final,
+                    peso_liquido=peso_liquido,
+                    peso_total_kg=peso_liquido,
+                    qualidade_recebida=conferencia.qualidade,
+                    status='AGUARDANDO_SEPARACAO' if not conferencia.divergencia else 'APROVADO',
+                    conferente_id=conferencia.conferente_id,
+                    anexos=conferencia.fotos_pesagem or [],
+                    divergencias=divergencias_registradas,
+                    auditoria=[{
+                        'acao': 'LOTE_CRIADO_APOS_CONFERENCIA',
+                        'usuario_id': usuario_id,
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'ip': request.remote_addr,
+                        'device_id': conferencia.device_id_conferencia,
+                        'gps': conferencia.gps_conferencia,
+                        'detalhes': {
+                            'conferencia_id': conferencia.id,
+                            'os_id': os.id,
+                            'oc_id': oc.id,
+                            'decisao': decisao
+                        }
+                    }],
+                    data_criacao=datetime.utcnow()
+                )
+                db.session.add(lote)
+                db.session.flush()
+                
+                entrada_estoque = EntradaEstoque(
+                    lote_id=lote.id,
+                    status='recebido',
+                    admin_id=usuario_id,
+                    observacoes=f'Entrada automática após conferência aprovada. Decisão: {decisao}',
+                    data_entrada=datetime.utcnow()
+                )
+                db.session.add(entrada_estoque)
+                
+                movimentacao = MovimentacaoEstoque(
+                    lote_id=lote.id,
+                    tipo='ENTRADA_RECEBIMENTO',
+                    localizacao_origem='EXTERNO',
+                    localizacao_destino='PATIO_RECEBIMENTO',
+                    peso=peso_liquido,
+                    usuario_id=usuario_id,
+                    observacoes=f'Entrada inicial após conferência. OS: {os.numero_os}',
+                    dados_before={},
+                    dados_after={
+                        'lote_id': lote.id,
+                        'numero_lote': numero_lote,
+                        'localizacao': 'PATIO_RECEBIMENTO',
+                        'peso': peso_liquido
+                    },
+                    auditoria=[{
+                        'acao': 'MOVIMENTACAO_CRIADA',
+                        'usuario_id': usuario_id,
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'ip': request.remote_addr
+                    }],
+                    data_movimentacao=datetime.utcnow()
+                )
+                db.session.add(movimentacao)
+                
+                if not conferencia.divergencia:
+                    separacao = LoteSeparacao(
+                        lote_id=lote.id,
+                        status='AGUARDANDO_SEPARACAO',
+                        auditoria=[{
+                            'acao': 'SEPARACAO_CRIADA_AUTOMATICAMENTE',
+                            'usuario_id': usuario_id,
+                            'timestamp': datetime.utcnow().isoformat()
+                        }]
+                    )
+                    db.session.add(separacao)
         else:
             conferencia.conferencia_status = 'REJEITADA'
         

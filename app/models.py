@@ -572,28 +572,50 @@ class Lote(db.Model):  # type: ignore
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
     tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
     solicitacao_origem_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=True)
+    oc_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=True)
+    os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=True)
+    conferencia_id = db.Column(db.Integer, db.ForeignKey('conferencias_recebimento.id'), nullable=True)
     
+    peso_bruto_recebido = db.Column(db.Float, nullable=True)
+    peso_liquido = db.Column(db.Float, nullable=True)
     peso_total_kg = db.Column(db.Float, nullable=False, default=0.0)
     valor_total = db.Column(db.Float, nullable=False, default=0.0)
     quantidade_itens = db.Column(db.Integer, default=0)
     estrelas_media = db.Column(db.Float, nullable=True)
     classificacao_predominante = db.Column(db.String(10), nullable=True)
+    qualidade_recebida = db.Column(db.String(50), nullable=True)
     
-    status = db.Column(db.String(20), default='aberto', nullable=False)
+    status = db.Column(db.String(50), default='aberto', nullable=False)
     tipo_retirada = db.Column(db.String(20))
     
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_fechamento = db.Column(db.DateTime, nullable=True)
     data_aprovacao = db.Column(db.DateTime, nullable=True)
     
+    conferente_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    anexos = db.Column(db.JSON, default=lambda: [], nullable=True)
+    divergencias = db.Column(db.JSON, default=lambda: [], nullable=True)
     observacoes = db.Column(db.Text)
+    auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
+    
+    lote_pai_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=True)
     
     itens = db.relationship('ItemSolicitacao', backref='lote', lazy=True)
     solicitacao_origem = db.relationship('Solicitacao', backref='lotes_gerados', foreign_keys=[solicitacao_origem_id])
+    ordem_compra = db.relationship('OrdemCompra', backref='lotes', foreign_keys=[oc_id])
+    ordem_servico = db.relationship('OrdemServico', backref='lotes', foreign_keys=[os_id])
+    conferencia = db.relationship('ConferenciaRecebimento', backref='lotes', foreign_keys=[conferencia_id])
+    conferente = db.relationship('Usuario', foreign_keys=[conferente_id], backref='lotes_conferidos')
     entrada_estoque = db.relationship('EntradaEstoque', backref='lote', uselist=False, cascade='all, delete-orphan')
+    lote_pai = db.relationship('Lote', remote_side=[id], backref='sublotes', foreign_keys=[lote_pai_id])
+    movimentacoes = db.relationship('MovimentacaoEstoque', backref='lote', lazy=True, cascade='all, delete-orphan')
+    separacao = db.relationship('LoteSeparacao', backref='lote', uselist=False, cascade='all, delete-orphan')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        if not kwargs.get('numero_lote'):
+            ano = datetime.now().year
+            self.numero_lote = f"{ano}-{str(uuid.uuid4().hex[:5]).upper()}"
     
     def to_dict(self):
         return {
@@ -604,17 +626,29 @@ class Lote(db.Model):  # type: ignore
             'tipo_lote_id': self.tipo_lote_id,
             'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
             'solicitacao_origem_id': self.solicitacao_origem_id,
+            'oc_id': self.oc_id,
+            'os_id': self.os_id,
+            'conferencia_id': self.conferencia_id,
+            'peso_bruto_recebido': self.peso_bruto_recebido,
+            'peso_liquido': self.peso_liquido,
             'peso_total_kg': self.peso_total_kg,
             'valor_total': self.valor_total,
             'quantidade_itens': self.quantidade_itens,
             'estrelas_media': self.estrelas_media,
             'classificacao_predominante': self.classificacao_predominante,
+            'qualidade_recebida': self.qualidade_recebida,
             'status': self.status,
             'tipo_retirada': self.tipo_retirada,
             'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
             'data_fechamento': self.data_fechamento.isoformat() if self.data_fechamento else None,
             'data_aprovacao': self.data_aprovacao.isoformat() if self.data_aprovacao else None,
-            'observacoes': self.observacoes
+            'conferente_id': self.conferente_id,
+            'conferente_nome': self.conferente.nome if self.conferente else None,
+            'anexos': self.anexos,
+            'divergencias': self.divergencias,
+            'observacoes': self.observacoes,
+            'auditoria': self.auditoria,
+            'lote_pai_id': self.lote_pai_id
         }
 
 class EntradaEstoque(db.Model):  # type: ignore
@@ -1081,4 +1115,133 @@ class ConferenciaRecebimento(db.Model):  # type: ignore
             'decisao_adm_motivo': self.decisao_adm_motivo,
             'gps_conferencia': self.gps_conferencia,
             'device_id_conferencia': self.device_id_conferencia
+        }
+
+class MovimentacaoEstoque(db.Model):  # type: ignore
+    __tablename__ = 'movimentacoes_estoque'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False)
+    tipo = db.Column(db.String(50), nullable=False)
+    localizacao_origem = db.Column(db.String(100), nullable=True)
+    localizacao_destino = db.Column(db.String(100), nullable=True)
+    quantidade = db.Column(db.Float, nullable=True)
+    peso = db.Column(db.Float, nullable=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    data_movimentacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    observacoes = db.Column(db.Text, nullable=True)
+    dados_before = db.Column(db.JSON, nullable=True)
+    dados_after = db.Column(db.JSON, nullable=True)
+    auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
+    
+    usuario = db.relationship('Usuario', backref='movimentacoes_estoque')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'lote_id': self.lote_id,
+            'lote_numero': self.lote.numero_lote if self.lote else None,
+            'tipo': self.tipo,
+            'localizacao_origem': self.localizacao_origem,
+            'localizacao_destino': self.localizacao_destino,
+            'quantidade': self.quantidade,
+            'peso': self.peso,
+            'usuario_id': self.usuario_id,
+            'usuario_nome': self.usuario.nome if self.usuario else None,
+            'data_movimentacao': self.data_movimentacao.isoformat() if self.data_movimentacao else None,
+            'observacoes': self.observacoes,
+            'dados_before': self.dados_before,
+            'dados_after': self.dados_after,
+            'auditoria': self.auditoria
+        }
+
+class LoteSeparacao(db.Model):  # type: ignore
+    __tablename__ = 'lotes_separacao'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False, unique=True)
+    status = db.Column(db.String(50), default='AGUARDANDO_SEPARACAO', nullable=False)
+    operador_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    data_inicio = db.Column(db.DateTime, nullable=True)
+    data_finalizacao = db.Column(db.DateTime, nullable=True)
+    percentual_aproveitamento = db.Column(db.Float, nullable=True)
+    peso_total_sublotes = db.Column(db.Float, default=0.0, nullable=True)
+    peso_total_residuos = db.Column(db.Float, default=0.0, nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
+    gps_inicio = db.Column(db.JSON, nullable=True)
+    gps_fim = db.Column(db.JSON, nullable=True)
+    ip_inicio = db.Column(db.String(50), nullable=True)
+    device_id = db.Column(db.String(255), nullable=True)
+    
+    operador = db.relationship('Usuario', backref='separacoes_realizadas')
+    residuos = db.relationship('Residuo', backref='separacao', lazy=True, cascade='all, delete-orphan')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'lote_id': self.lote_id,
+            'lote_numero': self.lote.numero_lote if self.lote else None,
+            'status': self.status,
+            'operador_id': self.operador_id,
+            'operador_nome': self.operador.nome if self.operador else None,
+            'data_inicio': self.data_inicio.isoformat() if self.data_inicio else None,
+            'data_finalizacao': self.data_finalizacao.isoformat() if self.data_finalizacao else None,
+            'percentual_aproveitamento': self.percentual_aproveitamento,
+            'peso_total_sublotes': self.peso_total_sublotes,
+            'peso_total_residuos': self.peso_total_residuos,
+            'observacoes': self.observacoes,
+            'auditoria': self.auditoria,
+            'gps_inicio': self.gps_inicio,
+            'gps_fim': self.gps_fim,
+            'ip_inicio': self.ip_inicio,
+            'device_id': self.device_id
+        }
+
+class Residuo(db.Model):  # type: ignore
+    __tablename__ = 'residuos'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    separacao_id = db.Column(db.Integer, db.ForeignKey('lotes_separacao.id'), nullable=False)
+    material = db.Column(db.String(100), nullable=False)
+    peso = db.Column(db.Float, nullable=False)
+    quantidade = db.Column(db.Float, nullable=True)
+    classificacao = db.Column(db.String(50), nullable=True)
+    justificativa = db.Column(db.Text, nullable=False)
+    fotos = db.Column(db.JSON, default=lambda: [], nullable=True)
+    status = db.Column(db.String(50), default='AGUARDANDO_APROVACAO', nullable=False)
+    aprovado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    data_aprovacao = db.Column(db.DateTime, nullable=True)
+    motivo_decisao = db.Column(db.Text, nullable=True)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
+    
+    aprovador = db.relationship('Usuario', backref='residuos_aprovados')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'separacao_id': self.separacao_id,
+            'material': self.material,
+            'peso': self.peso,
+            'quantidade': self.quantidade,
+            'classificacao': self.classificacao,
+            'justificativa': self.justificativa,
+            'fotos': self.fotos,
+            'status': self.status,
+            'aprovado_por_id': self.aprovado_por_id,
+            'aprovado_por_nome': self.aprovador.nome if self.aprovador else None,
+            'data_aprovacao': self.data_aprovacao.isoformat() if self.data_aprovacao else None,
+            'motivo_decisao': self.motivo_decisao,
+            'criado_em': self.criado_em.isoformat() if self.criado_em else None,
+            'auditoria': self.auditoria
         }
