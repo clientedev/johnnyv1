@@ -378,23 +378,40 @@
         async function carregarEstatisticas() {
             try {
                 const token = localStorage.getItem('access_token');
+                if (!token) return;
+
                 const response = await fetch('/api/os/estatisticas', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
                 const data = await response.json();
+                console.log('Estatísticas:', data);
                 
-                document.getElementById('stat-total').textContent = data.total_os;
-                document.getElementById('stat-pendentes').textContent = data.pendentes;
-                document.getElementById('stat-em-rota').textContent = data.em_rota;
-                document.getElementById('stat-finalizadas').textContent = data.finalizadas;
+                document.getElementById('stat-total').textContent = data.total_os || 0;
+                document.getElementById('stat-pendentes').textContent = data.pendentes || 0;
+                document.getElementById('stat-em-rota').textContent = data.em_rota || 0;
+                document.getElementById('stat-finalizadas').textContent = data.finalizadas || 0;
             } catch (error) {
                 console.error('Erro ao carregar estatísticas:', error);
+                document.getElementById('stat-total').textContent = '0';
+                document.getElementById('stat-pendentes').textContent = '0';
+                document.getElementById('stat-em-rota').textContent = '0';
+                document.getElementById('stat-finalizadas').textContent = '0';
             }
         }
 
         async function carregarOS() {
             try {
                 const token = localStorage.getItem('access_token');
+                if (!token) {
+                    window.location.href = '/';
+                    return;
+                }
+
                 const status = document.getElementById('filtro-status').value;
                 const motorista = document.getElementById('filtro-motorista').value;
                 const dataInicio = document.getElementById('filtro-data-inicio').value;
@@ -409,24 +426,30 @@
                 const response = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
                 const os_list = await response.json();
+                console.log('OS carregadas:', os_list);
 
                 const tbody = document.getElementById('os-list');
                 tbody.innerHTML = '';
 
-                if (os_list.length === 0) {
+                if (!Array.isArray(os_list) || os_list.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Nenhuma OS encontrada</td></tr>';
                     return;
                 }
 
                 os_list.forEach(os => {
                     const tr = document.createElement('tr');
-                    const statusClass = `status-${os.status.toLowerCase().replace('_', '-')}`;
+                    const statusClass = `status-${os.status.toLowerCase().replace(/_/g, '-')}`;
                     
                     tr.innerHTML = `
                         <td><strong>${os.numero_os}</strong></td>
-                        <td>${os.fornecedor_snapshot.nome}</td>
-                        <td>${os.tipo}</td>
+                        <td>${os.fornecedor_snapshot?.nome || 'N/A'}</td>
+                        <td>${os.tipo || 'COLETA'}</td>
                         <td><span class="status-badge ${statusClass}">${os.status}</span></td>
                         <td>${os.motorista_nome || '-'}</td>
                         <td>${os.veiculo_placa || '-'}</td>
@@ -440,6 +463,8 @@
                 });
             } catch (error) {
                 console.error('Erro ao carregar OS:', error);
+                const tbody = document.getElementById('os-list');
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: red;">Erro ao carregar OS: ${error.message}</td></tr>`;
             }
         }
 
@@ -480,22 +505,39 @@
         async function carregarMotoristas() {
             try {
                 const token = localStorage.getItem('access_token');
+                if (!token) return;
+
                 const response = await fetch('/api/motoristas', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
                 const motoristas = await response.json();
+                console.log('Motoristas carregados:', motoristas);
 
                 const select = document.getElementById('motorista-select');
                 select.innerHTML = '<option value="">Selecione...</option>';
-                motoristas.forEach(m => {
-                    select.innerHTML += `<option value="${m.id}">${m.usuario_nome} - CNH: ${m.cnh}</option>`;
-                });
+                
+                if (Array.isArray(motoristas)) {
+                    motoristas.forEach(m => {
+                        const nome = m.usuario_nome || m.nome || 'Motorista';
+                        const cnh = m.cnh ? ` - CNH: ${m.cnh}` : '';
+                        select.innerHTML += `<option value="${m.id}">${nome}${cnh}</option>`;
+                    });
+                }
 
                 const filtroSelect = document.getElementById('filtro-motorista');
                 filtroSelect.innerHTML = '<option value="">Todos</option>';
-                motoristas.forEach(m => {
-                    filtroSelect.innerHTML += `<option value="${m.id}">${m.usuario_nome}</option>`;
-                });
+                
+                if (Array.isArray(motoristas)) {
+                    motoristas.forEach(m => {
+                        const nome = m.usuario_nome || m.nome || 'Motorista';
+                        filtroSelect.innerHTML += `<option value="${m.id}">${nome}</option>`;
+                    });
+                }
             } catch (error) {
                 console.error('Erro ao carregar motoristas:', error);
             }
