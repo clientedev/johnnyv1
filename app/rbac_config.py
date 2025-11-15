@@ -224,11 +224,7 @@ def get_menus_by_perfil(perfil_nome):
         'Comprador': [
             {'nome': 'Dashboard', 'icone': 'fa-home', 'url': '/dashboard.html'},
             {'nome': 'Solicitações', 'icone': 'fa-plus-circle', 'url': '/solicitacoes.html'},
-            {'nome': 'Fornecedores', 'icone': 'fa-building', 'url': '/fornecedores.html'}
-        ],
-        'Comprador (PJ)': [
-            {'nome': 'Solicitações', 'icone': 'fa-plus-circle', 'url': '/solicitacoes.html'},
-            {'nome': 'Fornecedores', 'icone': 'fa-building', 'url': '/fornecedores.html'}
+            {'nome': 'Compras', 'icone': 'fa-shopping-cart', 'url': '/compras.html'}
         ],
         'Aprovador': [
             {'nome': 'Dashboard', 'icone': 'fa-home', 'url': '/dashboard.html'},
@@ -308,10 +304,6 @@ def get_paginas_permitidas(perfil_nome):
         'Comprador': [
             '/dashboard.html', '/solicitacoes.html', '/fornecedores.html',
             '/tipos-lote.html', '/consulta.html', '/notificacoes.html'
-        ],
-        'Comprador (PJ)': [
-            '/solicitacoes.html', '/fornecedores.html', '/fornecedores-lista.html',
-            '/tipos-lote.html', '/notificacoes.html', '/compras.html'
         ],
         'Aprovador': [
             '/dashboard.html', '/aprovar_solicitacoes.html', '/consulta.html',

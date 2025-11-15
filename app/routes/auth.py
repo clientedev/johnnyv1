@@ -37,14 +37,14 @@ def login():
     registrar_login(usuario.id, sucesso=True)
     
     # Determinar o perfil do usuário
-    if usuario.tipo == 'admin':
-        perfil_nome = 'Administrador'
-    elif usuario.tipo == 'motorista':
+    if usuario.tipo == 'motorista':
         perfil_nome = 'Motorista'
     elif usuario.perfil:
         perfil_nome = usuario.perfil.nome
+    elif usuario.tipo == 'admin':
+        perfil_nome = 'Administrador'
     else:
-        perfil_nome = 'Sem perfil'
+        perfil_nome = usuario.perfil.nome if usuario.perfil else 'Sem perfil'
     
     permissoes = {}
     if usuario.tipo == 'motorista':
@@ -114,12 +114,12 @@ def get_current_user_endpoint():
     claims = get_jwt()
     
     # Determinar o perfil do usuário
-    if usuario.tipo == 'admin':
-        perfil_nome = 'Administrador'
-    elif usuario.tipo == 'motorista':
+    if usuario.tipo == 'motorista':
         perfil_nome = 'Motorista'
     elif usuario.perfil:
         perfil_nome = usuario.perfil.nome
+    elif usuario.tipo == 'admin':
+        perfil_nome = 'Administrador'
     else:
         perfil_nome = claims.get('perfil', 'Sem perfil')
     

@@ -75,13 +75,11 @@ function renderizarMenus(containerId = 'navMenu') {
     const container = document.getElementById(containerId);
     
     if (!container) {
-        console.warn('Container de menu não encontrado:', containerId);
         return;
     }
 
     if (!currentMenus || currentMenus.length === 0) {
-        console.warn('Nenhum menu disponível para renderizar. Perfil:', currentUserData?.perfil);
-        container.innerHTML = '';
+        console.warn('Nenhum menu disponível para renderizar');
         return;
     }
 
@@ -101,8 +99,6 @@ function renderizarMenus(containerId = 'navMenu') {
         li.appendChild(a);
         container.appendChild(li);
     });
-    
-    console.log(`✅ ${currentMenus.length} menu(s) renderizado(s) com sucesso`);
 }
 
 function renderizarMenusMobile(containerId = 'navMenuMobile') {
@@ -204,15 +200,8 @@ function verificarAcessoPagina() {
         return false;
     }
 
-    if (currentUserData.tipo === 'admin' || currentUserData.perfil === 'Administrador') {
+    if (currentUserData.tipo === 'admin') {
         return true;
-    }
-
-    if (!currentUserData.perfil || currentUserData.perfil === 'Sem perfil') {
-        console.error('ERRO: Usuário sem perfil definido:', currentUserData);
-        showAlert('Seu usuário não possui perfil configurado. Entre em contato com o administrador.');
-        window.location.href = '/acesso-negado.html';
-        return false;
     }
 
     if (!paginasPermitidas || paginasPermitidas.length === 0) {
