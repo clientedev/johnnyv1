@@ -1,17 +1,15 @@
-
-// CONFERENCIAS.JS - Versão 2.0 - Independente
-console.log('🔄 conferencias.js carregado - v2.0 -', new Date().toISOString());
+// CONFERENCIAS.JS - Versão NOVA - Completamente reconstruído
+console.log('🚀 CONFERENCIAS.JS CARREGADO - Versão NOVA');
 
 const CONFERENCIA_API_URL = '/api/conferencia';
 let conferencias = [];
 
 async function carregarEstatisticas() {
+    console.log('📊 Carregando estatísticas...');
     try {
         const token = localStorage.getItem('token');
         const response = await fetch(`${CONFERENCIA_API_URL}/estatisticas`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
         
         if (response.ok) {
@@ -20,95 +18,102 @@ async function carregarEstatisticas() {
             document.getElementById('stat-divergentes').textContent = stats.divergentes || 0;
             document.getElementById('stat-aguardando').textContent = stats.aguardando_adm || 0;
             document.getElementById('stat-aprovadas').textContent = stats.aprovadas || 0;
+            console.log('✅ Estatísticas carregadas:', stats);
         }
     } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error);
+        console.error('❌ Erro ao carregar estatísticas:', error);
     }
 }
 
 async function carregarConferencias(status = '') {
+    console.log('📦 Carregando conferências... Status filtro:', status);
     try {
         const token = localStorage.getItem('token');
         const url = status ? `${CONFERENCIA_API_URL}?status=${status}` : CONFERENCIA_API_URL;
         const response = await fetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
         
         if (response.ok) {
             conferencias = await response.json();
+            console.log('✅ Conferências recebidas da API:', conferencias.length, conferencias);
             renderizarTabela();
+        } else {
+            console.error('❌ Erro na resposta da API:', response.status, response.statusText);
         }
     } catch (error) {
-        console.error('Erro ao carregar conferências:', error);
+        console.error('❌ Erro ao carregar conferências:', error);
         alert('Erro ao carregar conferências');
     }
 }
 
 function renderizarTabela() {
+    console.log('🎨 RENDERIZANDO TABELA - Total de conferências:', conferencias.length);
+    
     const tbody = document.querySelector('#tabela-conferencias tbody');
+    if (!tbody) {
+        console.error('❌ ERRO: tbody não encontrado!');
+        return;
+    }
+    
     tbody.innerHTML = '';
     
-    console.log('📊 Renderizando conferências:', conferencias.length);
-    console.log('📋 Dados completos das conferências:', JSON.stringify(conferencias, null, 2));
-    
-    conferencias.forEach(conf => {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('Conferência ID:', conf.id);
+    conferencias.forEach((conf, index) => {
+        console.log(`\n━━━━━━ CONFERÊNCIA ${index + 1} ━━━━━━`);
+        console.log('ID:', conf.id);
         console.log('Status:', conf.conferencia_status);
-        console.log('Tipo do status:', typeof conf.conferencia_status);
-        console.log('Status === "DIVERGENTE"?', conf.conferencia_status === 'DIVERGENTE');
-        console.log('Status === "PENDENTE"?', conf.conferencia_status === 'PENDENTE');
-        console.log('Status === "AGUARDANDO_ADM"?', conf.conferencia_status === 'AGUARDANDO_ADM');
+        console.log('Divergente:', conf.divergencia);
         
         const tr = document.createElement('tr');
         
         const statusBadge = getStatusBadge(conf.conferencia_status);
         const divergenciaBadge = conf.divergencia ? 
-            `<span class="badge bg-danger">
-                <i class="bi bi-exclamation-triangle-fill"></i> ${conf.percentual_diferenca?.toFixed(1)}%
-            </span>` : 
+            `<span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> ${(conf.percentual_diferenca || 0).toFixed(1)}%</span>` : 
             '<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> OK</span>';
         
         const fornecedor = conf.ordem_servico?.fornecedor_snapshot?.nome || '-';
         
-        // Gerar botão de ação baseado no status
+        // LÓGICA DO BOTÃO DE AÇÃO
         let botaoAcao = '';
+        
         if (conf.conferencia_status === 'PENDENTE') {
-            console.log('→ Criando botão PROCESSAR');
+            console.log('  → Botão: PROCESSAR (status PENDENTE)');
             botaoAcao = `<a href="/conferencia-form/${conf.id}" class="btn btn-sm btn-primary">Processar</a>`;
-        } else if (conf.conferencia_status === 'DIVERGENTE') {
-            console.log('→ ✅ Criando botão ENVIAR P/ ADM');
+        } 
+        else if (conf.conferencia_status === 'DIVERGENTE') {
+            console.log('  → ✅✅✅ Botão: ENVIAR P/ ADM (status DIVERGENTE)');
             botaoAcao = `<button class="btn btn-sm btn-warning" onclick="enviarParaAdmDireto(${conf.id})">
                             <i class="bi bi-exclamation-triangle"></i> Enviar p/ ADM
                         </button>`;
-        } else if (conf.conferencia_status === 'AGUARDANDO_ADM') {
-            console.log('→ Criando botão DECIDIR');
+        } 
+        else if (conf.conferencia_status === 'AGUARDANDO_ADM') {
+            console.log('  → Botão: DECIDIR (status AGUARDANDO_ADM)');
             botaoAcao = `<a href="/conferencia-decisao-adm/${conf.id}" class="btn btn-sm btn-warning">Decidir</a>`;
-        } else {
-            console.log('→ Criando botão VER DETALHES (status:', conf.conferencia_status, ')');
+        } 
+        else {
+            console.log('  → Botão: VER DETALHES (status:', conf.conferencia_status, ')');
             botaoAcao = `<button class="btn btn-sm btn-secondary" onclick="verDetalhes(${conf.id})">Ver Detalhes</button>`;
         }
         
-        console.log('→ Botão HTML gerado:', botaoAcao);
+        console.log('  HTML do botão gerado:', botaoAcao.substring(0, 100));
         
         tr.innerHTML = `
             <td>${conf.id}</td>
-            <td>${conf.os_id}</td>
-            <td>${conf.oc_id}</td>
+            <td>${conf.os_id || '-'}</td>
+            <td>${conf.oc_id || '-'}</td>
             <td>${fornecedor}</td>
             <td>${conf.peso_fornecedor ? conf.peso_fornecedor.toFixed(2) + ' kg' : '-'}</td>
             <td>${conf.peso_real ? conf.peso_real.toFixed(2) + ' kg' : '-'}</td>
             <td>${divergenciaBadge}</td>
             <td>${statusBadge}</td>
-            <td>
-                ${botaoAcao}
-            </td>
+            <td>${botaoAcao}</td>
         `;
         
         tbody.appendChild(tr);
+        console.log('  ✅ Linha adicionada à tabela');
     });
+    
+    console.log('✅ TABELA RENDERIZADA COM SUCESSO!');
 }
 
 function getStatusBadge(status) {
@@ -119,7 +124,7 @@ function getStatusBadge(status) {
         'APROVADA': '<span class="badge bg-success">Aprovada</span>',
         'REJEITADA': '<span class="badge bg-danger">Rejeitada</span>'
     };
-    return badges[status] || status;
+    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;
 }
 
 function verDetalhes(id) {
@@ -127,9 +132,10 @@ function verDetalhes(id) {
 }
 
 async function enviarParaAdmDireto(conferenciaId) {
-    console.log('🚀 enviarParaAdmDireto chamada para conferência:', conferenciaId);
+    console.log('🚨 FUNÇÃO enviarParaAdmDireto CHAMADA! ID:', conferenciaId);
     
     if (!confirm('Confirma o envio desta divergência para análise administrativa?')) {
+        console.log('Usuário cancelou');
         return;
     }
     
@@ -137,45 +143,53 @@ async function enviarParaAdmDireto(conferenciaId) {
         const token = localStorage.getItem('token');
         const response = await fetch(`${CONFERENCIA_API_URL}/${conferenciaId}/enviar-para-adm`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
         
         if (response.ok) {
             const result = await response.json();
+            console.log('✅ Sucesso ao enviar para ADM:', result);
             alert('✅ Divergência enviada para análise administrativa com sucesso!');
+            
             // Recarregar a lista
             const filtro = document.getElementById('filtro-status').value;
             await carregarConferencias(filtro);
             await carregarEstatisticas();
         } else {
             const error = await response.json();
+            console.error('❌ Erro na resposta:', error);
             alert('❌ Erro: ' + (error.erro || 'Erro ao enviar para ADM'));
         }
     } catch (error) {
-        console.error('Erro ao enviar para ADM:', error);
+        console.error('❌ Erro ao enviar para ADM:', error);
         alert('❌ Erro ao enviar para análise administrativa');
     }
 }
 
-// Inicialização
+// INICIALIZAÇÃO
+console.log('🔧 Aguardando DOMContentLoaded...');
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ Iniciando carregamento de dados');
+    console.log('✅ DOM CARREGADO - Iniciando aplicação de conferências');
     
     const filtroStatus = document.getElementById('filtro-status');
     if (filtroStatus) {
         filtroStatus.addEventListener('change', (e) => {
+            console.log('Filtro mudou para:', e.target.value);
             carregarConferencias(e.target.value);
         });
     }
     
+    console.log('📡 Iniciando primeiro carregamento...');
     carregarEstatisticas();
     carregarConferencias();
     
+    // Auto-refresh a cada 30 segundos
     setInterval(() => {
+        console.log('🔄 Auto-refresh (30s)');
         carregarEstatisticas();
         const filtro = document.getElementById('filtro-status').value;
         carregarConferencias(filtro);
     }, 30000);
 });
+
+console.log('✅ FIM DO ARQUIVO conferencias.js');
