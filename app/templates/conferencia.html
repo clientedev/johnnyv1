@@ -327,7 +327,7 @@
 
         async function carregarEstatisticas() {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = localStorage.getItem('token');
                 const response = await fetch('/api/conferencia/estatisticas', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -351,7 +351,7 @@
 
         async function carregarConferencias() {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = localStorage.getItem('token');
                 const response = await fetch('/api/conferencia', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -416,7 +416,7 @@
 
         async function carregarInfoConferencia(confId) {
             try {
-                const token = localStorage.getItem('access_token');
+                const token = localStorage.getItem('token');
                 const response = await fetch(`/api/conferencia/${confId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -442,7 +442,7 @@
             e.preventDefault();
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = localStorage.getItem('token');
                 const payload = {
                     peso_real: parseFloat(document.getElementById('peso-real').value),
                     qualidade: document.getElementById('qualidade').value,
@@ -486,7 +486,7 @@
             e.preventDefault();
 
             try {
-                const token = localStorage.getItem('access_token');
+                const token = localStorage.getItem('token');
                 const payload = {
                     decisao: document.getElementById('decisao').value,
                     motivo: document.getElementById('motivo-decisao').value
