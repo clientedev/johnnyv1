@@ -242,8 +242,10 @@ async function enviarParaAdm() {
         const response = await fetch(`/api/conferencia/${conferencia_id}/enviar-para-adm`, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${token}`
-            }
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
         });
         
         if (response.ok) {

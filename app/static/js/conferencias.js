@@ -143,7 +143,11 @@ async function enviarParaAdmDireto(conferenciaId) {
         const token = localStorage.getItem('token');
         const response = await fetch(`${CONFERENCIA_API_URL}/${conferenciaId}/enviar-para-adm`, {
             method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
         });
         
         if (response.ok) {

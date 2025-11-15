@@ -438,7 +438,11 @@ def enviar_para_adm(id):
         
         conferencia.conferencia_status = 'AGUARDANDO_ADM'
         
-        data = request.get_json() or {}
+        # Get JSON data if present, but don't fail if not
+        data = {}
+        if request.is_json:
+            data = request.get_json() or {}
+        
         registrar_auditoria_conferencia(
             conferencia, 
             'ENVIADO_PARA_ADM', 
