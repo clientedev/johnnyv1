@@ -210,7 +210,6 @@ def atribuir_motorista(id):
             usuario_id=motorista.usuario_id,
             titulo='Nova Ordem de Serviço Atribuída',
             mensagem=f'Você foi atribuído à OS {os.numero_os}. Fornecedor: {os.fornecedor_snapshot.get("nome", "N/A")}',
-            tipo='os_atribuida',
             lida=False
         )
         db.session.add(notificacao)
@@ -260,7 +259,6 @@ def reagendar_os(id):
                 usuario_id=os.motorista.usuario_id,
                 titulo='OS Reagendada',
                 mensagem=f'A OS {os.numero_os} foi reagendada. Motivo: {data["motivo"]}',
-                tipo='os_reagendada',
                 lida=False
             )
             db.session.add(notificacao)
@@ -425,7 +423,6 @@ def cancelar_os(id):
                 usuario_id=os.motorista.usuario_id,
                 titulo='OS Cancelada',
                 mensagem=f'A OS {os.numero_os} foi cancelada. Motivo: {data["motivo"]}',
-                tipo='os_cancelada',
                 lida=False
             )
             db.session.add(notificacao)
