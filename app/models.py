@@ -565,6 +565,7 @@ class Lote(db.Model):  # type: ignore
     __table_args__ = (
         db.Index('idx_numero_lote', 'numero_lote'),
         db.Index('idx_fornecedor_tipo_status', 'fornecedor_id', 'tipo_lote_id', 'status'),
+        db.UniqueConstraint('conferencia_id', name='uq_lote_conferencia_id'),
     )
     
     id = db.Column(db.Integer, primary_key=True)
