@@ -183,7 +183,7 @@
         </div>
     </main>
 
-    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/app.js"></script>
     <script>
         let separacaoId = null;
         let separacao = null;
@@ -204,7 +204,7 @@
                 
                 const response = await fetch(`/api/separacao/fila?status=EM_SEPARACAO`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 
@@ -242,7 +242,7 @@
             try {
                 const response = await fetch('/api/tipos-lote', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 
@@ -276,7 +276,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     body: JSON.stringify({
                         tipo_lote_id: parseInt(document.getElementById('tipoLoteSublote').value),
@@ -322,7 +322,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     body: JSON.stringify({
                         material: document.getElementById('materialResiduo').value,
@@ -385,7 +385,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     body: JSON.stringify({
                         gps: gps,

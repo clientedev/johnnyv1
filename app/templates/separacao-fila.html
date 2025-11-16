@@ -70,7 +70,7 @@
         </div>
     </main>
 
-    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/app.js"></script>
     <script>
         let separacoes = [];
 
@@ -80,7 +80,7 @@
                 
                 const response = await fetch(`/api/separacao/fila?status=${status}`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 
@@ -204,7 +204,7 @@
             try {
                 const response = await fetch('/api/separacao/estatisticas', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 
@@ -229,7 +229,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     body: JSON.stringify({
                         gps: gps,
@@ -258,7 +258,7 @@
             try {
                 const response = await fetch(`/api/estoque/lotes/${loteId}`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 

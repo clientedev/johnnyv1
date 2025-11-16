@@ -29,6 +29,9 @@ def obter_fila_separacao():
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         perfil_nome = usuario.perfil.nome if usuario.perfil else None
         if perfil_nome not in ['Separação', 'Administrador'] and usuario.tipo != 'admin':
             return jsonify({'erro': 'Acesso negado. Apenas operadores de separação podem acessar a fila'}), 403
@@ -71,6 +74,9 @@ def iniciar_separacao(id):
     try:
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
         
         perfil_nome = usuario.perfil.nome if usuario.perfil else None
         if perfil_nome not in ['Separação', 'Administrador'] and usuario.tipo != 'admin':
@@ -123,6 +129,9 @@ def criar_sublote(id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         perfil_nome = usuario.perfil.nome if usuario.perfil else None
         if perfil_nome not in ['Separação', 'Administrador'] and usuario.tipo != 'admin':
             return jsonify({'erro': 'Acesso negado'}), 403
@@ -148,7 +157,7 @@ def criar_sublote(id):
         
         ano = datetime.now().year
         numero_sequencial = Lote.query.filter(
-            Lote.numero_lote.like(f"{ano}-%")
+            Lote.numero_lote.like(f"{ano}-%")  # type: ignore
         ).count() + 1
         numero_lote = f"{ano}-{str(numero_sequencial).zfill(5)}"
         
@@ -211,6 +220,9 @@ def criar_residuo(id):
     try:
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
         
         perfil_nome = usuario.perfil.nome if usuario.perfil else None
         if perfil_nome not in ['Separação', 'Administrador'] and usuario.tipo != 'admin':
@@ -297,6 +309,9 @@ def finalizar_separacao(id):
     try:
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
         
         perfil_nome = usuario.perfil.nome if usuario.perfil else None
         if perfil_nome not in ['Separação', 'Administrador'] and usuario.tipo != 'admin':

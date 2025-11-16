@@ -60,7 +60,7 @@ def criar_lote_apos_conferencia(conferencia, usuario_id, decisao='ACEITAR', perc
         # TODO: Migrar para sequence do PostgreSQL ou usar UUID para número de lote
         ano = datetime.now().year
         numero_sequencial = Lote.query.filter(
-            Lote.numero_lote.like(f"{ano}-%")
+            Lote.numero_lote.like(f"{ano}-%")  # type: ignore
         ).count() + 1
         numero_lote = f"{ano}-{str(numero_sequencial).zfill(5)}"
         
@@ -263,6 +263,9 @@ def iniciar_conferencia(os_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         perfil_nome = usuario.perfil.nome if usuario.perfil else None
         if perfil_nome not in ['Conferente / Estoque', 'Administrador'] and usuario.tipo != 'admin':
             return jsonify({'erro': 'Acesso negado. Apenas conferentes podem iniciar conferências'}), 403
@@ -334,6 +337,9 @@ def registrar_pesagem(id):
         
         if not data or not data.get('peso_real'):
             return jsonify({'erro': 'peso_real é obrigatório'}), 400
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
         
         perfil_nome = usuario.perfil.nome if usuario.perfil else None
         if perfil_nome not in ['Conferente / Estoque', 'Administrador'] and usuario.tipo != 'admin':
@@ -600,7 +606,7 @@ def upload_foto(id):
             return jsonify({'erro': 'Nenhuma foto enviada'}), 400
         
         foto = request.files['foto']
-        if foto.filename == '':
+        if not foto.filename or foto.filename == '':
             return jsonify({'erro': 'Nome de arquivo inválido'}), 400
         
         if foto:
