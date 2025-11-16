@@ -174,7 +174,7 @@
         }
 
         async function carregarFornecedores() {
-            const response = await fetchAPI('/empresas');
+            const response = await fetchAPI('/fornecedores');
             fornecedores = await response.json();
             
             const selectFornecedor = document.getElementById('fornecedorId');

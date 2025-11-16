@@ -1141,7 +1141,7 @@
 
         async function loadEmpresaOptions() {
             try {
-                const response = await fetchAPI('/empresas');
+                const response = await fetchAPI('/fornecedores');
                 const empresas = await response.json();
                 allEmpresas = empresas;
                 
@@ -1212,7 +1212,7 @@
 
         async function loadEmpresasBI() {
             try {
-                const response = await fetchAPI('/empresas');
+                const response = await fetchAPI('/fornecedores');
                 const empresas = await response.json();
                 
                 const ativas = empresas.filter(e => e.ativo !== false).length;
@@ -1489,7 +1489,7 @@
 
         async function loadFornecedoresBI() {
             try {
-                const response = await fetchAPI('/empresas'); // Usa empresas como fornecedores
+                const response = await fetchAPI('/fornecedores'); // Usa empresas como fornecedores
                 const fornecedores = await response.json();
                 
                 const ativos = fornecedores.filter(f => f.ativo !== false).length;

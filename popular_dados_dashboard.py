@@ -118,20 +118,26 @@ def popular_banco():
                 return
             
             hoje = datetime.now()
-            status_opcoes = ['aprovada', 'aprovada', 'aprovada', 'aprovada', 'pendente', 'rejeitada']
             
             total_solicitacoes = 0
             total_lotes = 0
+            total_aprovadas = 0
+            
+            # Pré-calcular quantidade de solicitações por mês para garantir mínimo de 30 aprovadas
+            # Distribuir 8 solicitações por mês (48 total), sendo ~5 aprovadas por mês (30 total garantido)
+            solicitacoes_por_mes = 8
+            aprovadas_por_mes = 5
             
             # Criar solicitações nos últimos 6 meses
             for mes_offset in range(5, -1, -1):
                 # Data base para este mês
                 data_mes = hoje - relativedelta(months=mes_offset)
                 
-                # Criar entre 5-10 solicitações por mês
-                num_solicitacoes = random.randint(5, 10)
+                # Criar lista de status para este mês (5 aprovadas, 2 pendentes, 1 rejeitada)
+                status_mes = ['aprovada'] * aprovadas_por_mes + ['pendente'] * 2 + ['rejeitada'] * 1
+                random.shuffle(status_mes)
                 
-                for _ in range(num_solicitacoes):
+                for i in range(solicitacoes_por_mes):
                     # Data aleatória dentro do mês
                     dia = random.randint(1, 28)
                     data_envio = datetime(data_mes.year, data_mes.month, dia, 
@@ -140,8 +146,8 @@ def popular_banco():
                     # Selecionar fornecedor aleatório
                     fornecedor = random.choice(fornecedores)
                     
-                    # Status (mais aprovadas do que outras)
-                    status = random.choice(status_opcoes)
+                    # Status determinístico para este mês
+                    status = status_mes[i]
                     
                     solicitacao = Solicitacao(
                         funcionario_id=usuario_comprador.id,
@@ -183,6 +189,8 @@ def popular_banco():
                         db.session.add(item)
                     
                     total_solicitacoes += 1
+                    if status == 'aprovada':
+                        total_aprovadas += 1
                     
                     # Se aprovada, criar lote
                     if status == 'aprovada':

@@ -173,7 +173,7 @@
         }
 
         async function carregarEmpresas() {
-            const response = await fetchAPI('/empresas');
+            const response = await fetchAPI('/fornecedores');
             const empresas = await response.json();
             
             const select = document.getElementById('filtroEmpresa');

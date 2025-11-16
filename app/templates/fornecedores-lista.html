@@ -75,7 +75,7 @@
             const userData = await getCurrentUser();
             document.getElementById('userName').textContent = userData.nome;
 
-            const response = await fetchAPI('/empresas');
+            const response = await fetchAPI('/fornecedores');
             const empresas = await response.json();
 
             const tbody = document.getElementById('tabelaEmpresas');
