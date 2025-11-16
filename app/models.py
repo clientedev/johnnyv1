@@ -589,6 +589,21 @@ class Lote(db.Model):  # type: ignore
     status = db.Column(db.String(50), default='aberto', nullable=False)
     tipo_retirada = db.Column(db.String(20))
     
+    localizacao_atual = db.Column(db.String(100), nullable=True)
+    reservado = db.Column(db.Boolean, default=False, nullable=False)
+    reservado_para = db.Column(db.String(200), nullable=True)
+    reservado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    reservado_em = db.Column(db.DateTime, nullable=True)
+    bloqueado = db.Column(db.Boolean, default=False, nullable=False)
+    tipo_bloqueio = db.Column(db.String(50), nullable=True)
+    bloqueado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    bloqueado_em = db.Column(db.DateTime, nullable=True)
+    motivo_bloqueio = db.Column(db.Text, nullable=True)
+    gps_inicio = db.Column(db.JSON, nullable=True)
+    gps_fim = db.Column(db.JSON, nullable=True)
+    ip_inicio = db.Column(db.String(50), nullable=True)
+    device_id = db.Column(db.String(255), nullable=True)
+    
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_fechamento = db.Column(db.DateTime, nullable=True)
     data_aprovacao = db.Column(db.DateTime, nullable=True)
@@ -611,6 +626,8 @@ class Lote(db.Model):  # type: ignore
     lote_pai = db.relationship('Lote', remote_side=[id], backref='sublotes', foreign_keys=[lote_pai_id])
     movimentacoes = db.relationship('MovimentacaoEstoque', backref='lote', lazy=True, cascade='all, delete-orphan')
     separacao = db.relationship('LoteSeparacao', backref='lote', uselist=False, cascade='all, delete-orphan')
+    reservado_por = db.relationship('Usuario', foreign_keys=[reservado_por_id], backref='lotes_reservados')
+    bloqueado_por = db.relationship('Usuario', foreign_keys=[bloqueado_por_id], backref='lotes_bloqueados')
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -640,6 +657,18 @@ class Lote(db.Model):  # type: ignore
             'qualidade_recebida': self.qualidade_recebida,
             'status': self.status,
             'tipo_retirada': self.tipo_retirada,
+            'localizacao_atual': self.localizacao_atual,
+            'reservado': self.reservado,
+            'reservado_para': self.reservado_para,
+            'reservado_por_id': self.reservado_por_id,
+            'reservado_por_nome': self.reservado_por.nome if self.reservado_por else None,
+            'reservado_em': self.reservado_em.isoformat() if self.reservado_em else None,
+            'bloqueado': self.bloqueado,
+            'tipo_bloqueio': self.tipo_bloqueio,
+            'bloqueado_por_id': self.bloqueado_por_id,
+            'bloqueado_por_nome': self.bloqueado_por.nome if self.bloqueado_por else None,
+            'bloqueado_em': self.bloqueado_em.isoformat() if self.bloqueado_em else None,
+            'motivo_bloqueio': self.motivo_bloqueio,
             'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
             'data_fechamento': self.data_fechamento.isoformat() if self.data_fechamento else None,
             'data_aprovacao': self.data_aprovacao.isoformat() if self.data_aprovacao else None,
@@ -649,7 +678,11 @@ class Lote(db.Model):  # type: ignore
             'divergencias': self.divergencias,
             'observacoes': self.observacoes,
             'auditoria': self.auditoria,
-            'lote_pai_id': self.lote_pai_id
+            'lote_pai_id': self.lote_pai_id,
+            'gps_inicio': self.gps_inicio,
+            'gps_fim': self.gps_fim,
+            'ip_inicio': self.ip_inicio,
+            'device_id': self.device_id
         }
 
 class EntradaEstoque(db.Model):  # type: ignore
@@ -1245,4 +1278,99 @@ class Residuo(db.Model):  # type: ignore
             'motivo_decisao': self.motivo_decisao,
             'criado_em': self.criado_em.isoformat() if self.criado_em else None,
             'auditoria': self.auditoria
+        }
+
+class Inventario(db.Model):  # type: ignore
+    __tablename__ = 'inventarios'
+    __table_args__ = (
+        db.Index('idx_status_data', 'status', 'data_inicio'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    numero_inventario = db.Column(db.String(50), unique=True, nullable=False)
+    tipo = db.Column(db.String(50), default='GERAL', nullable=False)
+    localizacao = db.Column(db.String(100), nullable=True)
+    status = db.Column(db.String(50), default='EM_ANDAMENTO', nullable=False)
+    data_inicio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_finalizacao = db.Column(db.DateTime, nullable=True)
+    criado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    finalizado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    divergencias_consolidadas = db.Column(db.JSON, default=lambda: [], nullable=True)
+    auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
+    
+    criador = db.relationship('Usuario', foreign_keys=[criado_por_id], backref='inventarios_criados')
+    finalizador = db.relationship('Usuario', foreign_keys=[finalizado_por_id], backref='inventarios_finalizados')
+    contagens = db.relationship('InventarioContagem', backref='inventario', lazy=True, cascade='all, delete-orphan')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        if not kwargs.get('numero_inventario'):
+            ano = datetime.now().year
+            self.numero_inventario = f"INV-{ano}-{str(uuid.uuid4().hex[:5]).upper()}"
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'numero_inventario': self.numero_inventario,
+            'tipo': self.tipo,
+            'localizacao': self.localizacao,
+            'status': self.status,
+            'data_inicio': self.data_inicio.isoformat() if self.data_inicio else None,
+            'data_finalizacao': self.data_finalizacao.isoformat() if self.data_finalizacao else None,
+            'criado_por_id': self.criado_por_id,
+            'criador_nome': self.criador.nome if self.criador else None,
+            'finalizado_por_id': self.finalizado_por_id,
+            'finalizador_nome': self.finalizador.nome if self.finalizador else None,
+            'observacoes': self.observacoes,
+            'divergencias_consolidadas': self.divergencias_consolidadas,
+            'auditoria': self.auditoria
+        }
+
+class InventarioContagem(db.Model):  # type: ignore
+    __tablename__ = 'inventario_contagens'
+    __table_args__ = (
+        db.Index('idx_inventario_lote', 'inventario_id', 'lote_id'),
+        db.UniqueConstraint('inventario_id', 'lote_id', 'numero_contagem', name='uq_inv_lote_contagem'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    inventario_id = db.Column(db.Integer, db.ForeignKey('inventarios.id'), nullable=False)
+    lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False)
+    numero_contagem = db.Column(db.Integer, nullable=False)
+    quantidade_contada = db.Column(db.Float, nullable=True)
+    peso_contado = db.Column(db.Float, nullable=True)
+    localizacao_encontrada = db.Column(db.String(100), nullable=True)
+    contador_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    data_contagem = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    observacoes = db.Column(db.Text, nullable=True)
+    fotos = db.Column(db.JSON, default=lambda: [], nullable=True)
+    gps = db.Column(db.JSON, nullable=True)
+    device_id = db.Column(db.String(255), nullable=True)
+    
+    lote = db.relationship('Lote', backref='contagens_inventario')
+    contador = db.relationship('Usuario', backref='contagens_realizadas')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        if 'numero_contagem' in kwargs and (kwargs['numero_contagem'] < 1 or kwargs['numero_contagem'] > 3):
+            raise ValueError('Número da contagem deve ser 1, 2 ou 3')
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'inventario_id': self.inventario_id,
+            'lote_id': self.lote_id,
+            'lote_numero': self.lote.numero_lote if self.lote else None,
+            'numero_contagem': self.numero_contagem,
+            'quantidade_contada': self.quantidade_contada,
+            'peso_contado': self.peso_contado,
+            'localizacao_encontrada': self.localizacao_encontrada,
+            'contador_id': self.contador_id,
+            'contador_nome': self.contador.nome if self.contador else None,
+            'data_contagem': self.data_contagem.isoformat() if self.data_contagem else None,
+            'observacoes': self.observacoes,
+            'fotos': self.fotos,
+            'gps': self.gps,
+            'device_id': self.device_id
         }

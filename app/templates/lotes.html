@@ -3,18 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lotes - MRX Systems</title>
+    <title>WMS - Gerenciamento de Estoque | MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--gray-200);
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--gray-600);
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .tab:hover {
+            color: var(--primary-color);
+        }
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .metric-label {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-em-estoque { background: #dcfce7; color: #16a34a; }
+        .status-bloqueado-qc { background: #fef3c7; color: #d97706; }
+        .status-bloqueado-inventario { background: #dbeafe; color: #2563eb; }
+        .status-aguardando-separacao { background: #e0e7ff; color: #6366f1; }
+        .status-em-separacao { background: #fce7f3; color: #db2777; }
+        .status-processado { background: #d1fae5; color: #059669; }
+        .status-divergente { background: #fee2e2; color: #dc2626; }
+        .status-encerrado { background: #e5e7eb; color: #6b7280; }
+        .indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        .indicator-bloqueado { background: #f59e0b; }
+        .indicator-reservado { background: #3b82f6; }
+        .indicator-divergente { background: #ef4444; }
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+        .timeline-item {
+            position: relative;
+            padding-bottom: 1.5rem;
+        }
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: -1.5rem;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px var(--primary-color);
+        }
+        .timeline-item:after {
+            content: '';
+            position: absolute;
+            left: -1.08rem;
+            top: 1.5rem;
+            width: 2px;
+            height: calc(100% - 1rem);
+            background: var(--gray-300);
+        }
+        .timeline-item:last-child:after {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <header>
         <div class="header-content" style="justify-content: space-between;">
             <div class="logo">
                 <img src="/static/images/mrx-logo.png" alt="MRX">
-                <span>Lotes</span>
+                <span>WMS - Warehouse Management System</span>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
@@ -26,363 +133,1083 @@
         </div>
     </header>
 
-    <!-- Bottom Navigation (Mobile) -->
-    <nav class="bottom-nav">
-        <a href="/administracao.html" class="bottom-nav-item">
-            <i class="fas fa-cog icon"></i>
-            <span>Admin</span>
-        </a>
-        <a href="/dashboard.html" class="bottom-nav-item">
-            <i class="fas fa-chart-line icon"></i>
-            <span>Dashboard</span>
-        </a>
-        <div class="fab-container">
-            <button class="fab-button" onclick="window.location.href='/solicitacoes.html'" aria-label="Nova Solicitação">
-                <i class="fas fa-plus icon"></i>
-            </button>
-        </div>
-        <a href="/lotes.html" class="bottom-nav-item active">
-            <i class="fas fa-boxes icon"></i>
-            <span>Lotes</span>
-        </a>
-        <a href="/fornecedores.html" class="bottom-nav-item">
-            <i class="fas fa-building icon"></i>
-            <span>Fornecedores</span>
-        </a>
-    </nav>
+    <nav class="bottom-nav" id="navMenuMobile"></nav>
 
     <main class="container mt-4">
-        <h1 style="font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: 1.5rem;">Gerenciar Lotes</h1>
+        <h1 style="font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: var(--spacing-lg);">
+            <i class="fas fa-warehouse"></i> WMS Full MRX
+        </h1>
 
-        <!-- Filtros -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Status</label>
-                    <select id="filtroStatus" onchange="carregarLotes()">
-                        <option value="">Todos</option>
-                        <option value="aberto">Aberto</option>
-                        <option value="aprovado">Aprovado</option>
-                        <option value="rejeitado">Rejeitado</option>
-                    </select>
+        <!-- TABs Navigation -->
+        <div class="tabs">
+            <button class="tab active" data-tab="visao-geral">
+                <i class="fas fa-chart-pie"></i> Visão Geral
+            </button>
+            <button class="tab" data-tab="lotes-ativos">
+                <i class="fas fa-boxes"></i> Lotes Ativos
+            </button>
+            <button class="tab" data-tab="movimentacoes">
+                <i class="fas fa-exchange-alt"></i> Movimentações
+            </button>
+            <button class="tab" data-tab="detalhes-lote">
+                <i class="fas fa-box-open"></i> Detalhes do Lote
+            </button>
+            <button class="tab" data-tab="inventario">
+                <i class="fas fa-clipboard-list"></i> Inventário
+            </button>
+        </div>
+
+        <!-- TAB 1: Visão Geral do Estoque -->
+        <div class="tab-content active" id="visao-geral">
+            <!-- Métricas Principais -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--primary-color);" id="metricTotalLotes">0</div>
+                    <div class="metric-label">Total de Lotes Ativos</div>
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Fornecedor</label>
-                    <select id="filtroFornecedor" onchange="carregarLotes()">
-                        <option value="">Todos</option>
-                    </select>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--success-color);" id="metricPesoTotal">0 kg</div>
+                    <div class="metric-label">Total em Estoque</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--warning-color);" id="metricBloqueados">0</div>
+                    <div class="metric-label">Lotes Bloqueados</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--danger-color);" id="metricDivergentes">0</div>
+                    <div class="metric-label">Lotes Divergentes</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #6366f1;" id="metricSeparacao">0</div>
+                    <div class="metric-label">Aguardando Separação</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #3b82f6;" id="metricReservados">0</div>
+                    <div class="metric-label">Lotes Reservados</div>
+                </div>
+            </div>
+
+            <!-- Filtros Avançados -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-filter"></i> Filtros Avançados</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>Material</label>
+                        <select id="filtroTipoLote" onchange="aplicarFiltros()">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Fornecedor</label>
+                        <select id="filtroFornecedor" onchange="aplicarFiltros()">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Status</label>
+                        <select id="filtroStatus" onchange="aplicarFiltros()">
+                            <option value="">Todos</option>
+                            <option value="EM_ESTOQUE">Em Estoque</option>
+                            <option value="BLOQUEADO_QC">Bloqueado QC</option>
+                            <option value="BLOQUEADO_INVENTARIO">Bloqueado Inventário</option>
+                            <option value="AGUARDANDO_SEPARACAO">Aguardando Separação</option>
+                            <option value="EM_SEPARACAO">Em Separação</option>
+                            <option value="PROCESSADO">Processado</option>
+                            <option value="DIVERGENTE_AGUARDANDO_ADM">Divergente</option>
+                            <option value="ENCERRADO">Encerrado</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Localização</label>
+                        <select id="filtroLocalizacao" onchange="aplicarFiltros()">
+                            <option value="">Todas</option>
+                            <option value="RECEBIMENTO">Recebimento</option>
+                            <option value="DOCK 1">Dock 1</option>
+                            <option value="DOCK 2">Dock 2</option>
+                            <option value="SEPARACAO">Separação</option>
+                            <option value="PICKING">Picking</option>
+                            <option value="BULK">Bulk</option>
+                            <option value="INVENTARIO">Inventário</option>
+                            <option value="QC">QC</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos e Timeline -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-pie"></i> Lotes por Status</h3>
+                    <div id="graficoStatus" style="min-height: 250px;"></div>
+                </div>
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-map-marker-alt"></i> Lotes por Localização</h3>
+                    <div id="graficoLocalizacao" style="min-height: 250px;"></div>
+                </div>
+            </div>
+
+            <!-- Últimas Movimentações -->
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-history"></i> Últimas 20 Movimentações</h3>
+                <div class="timeline" id="timelineMovimentacoes">
+                    <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p style="margin-top: 1rem;">Carregando movimentações...</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Estatísticas -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-            <div class="card" style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: var(--warning-color);" id="statAbertos">0</div>
-                <div style="color: var(--gray-600); font-size: 0.875rem;">Lotes Abertos</div>
-            </div>
-            <div class="card" style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: var(--success-color);" id="statAprovados">0</div>
-                <div style="color: var(--gray-600); font-size: 0.875rem;">Aprovados</div>
-            </div>
-            <div class="card" style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: var(--danger-color);" id="statRejeitados">0</div>
-                <div style="color: var(--gray-600); font-size: 0.875rem;">Rejeitados</div>
-            </div>
-            <div class="card" style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: var(--primary-color);" id="statTotal">R$ 0</div>
-                <div style="color: var(--gray-600); font-size: 0.875rem;">Valor Total Aprovado</div>
+        <!-- TAB 2: Lotes Ativos -->
+        <div class="tab-content" id="lotes-ativos">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3><i class="fas fa-boxes"></i> Lotes Ativos</h3>
+                    <button class="btn btn-primary" onclick="atualizarLotes()">
+                        <i class="fas fa-sync"></i> Atualizar
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nº Lote</th>
+                                <th>Material</th>
+                                <th>Peso (kg)</th>
+                                <th>Fornecedor</th>
+                                <th>Origem</th>
+                                <th>Status</th>
+                                <th>Localização</th>
+                                <th>Indicadores</th>
+                                <th>Data</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaLotesAtivos">
+                            <tr><td colspan="10" class="loading">Carregando lotes...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- Tabela de Lotes -->
-        <div class="card">
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Número do Lote</th>
-                            <th>Fornecedor</th>
-                            <th>Tipo de Lote</th>
-                            <th>Itens</th>
-                            <th>Peso (kg)</th>
-                            <th>Valor Total</th>
-                            <th>Estrelas Média</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelaLotes">
-                        <tr><td colspan="9" class="loading">Carregando...</td></tr>
-                    </tbody>
-                </table>
+        <!-- TAB 3: Movimentações WMS -->
+        <div class="tab-content" id="movimentacoes">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3><i class="fas fa-exchange-alt"></i> Movimentações de Estoque</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-primary" onclick="abrirModalMovimentacao()">
+                            <i class="fas fa-truck"></i> Nova Movimentação
+                        </button>
+                        <button class="btn btn-secondary" onclick="atualizarMovimentacoes()">
+                            <i class="fas fa-sync"></i> Atualizar
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Lote</th>
+                                <th>Tipo</th>
+                                <th>Origem</th>
+                                <th>Destino</th>
+                                <th>Peso</th>
+                                <th>Responsável</th>
+                                <th>Data/Hora</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaMovimentacoes">
+                            <tr><td colspan="9" class="loading">Carregando movimentações...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: Detalhes do Lote -->
+        <div class="tab-content" id="detalhes-lote">
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-search"></i> Buscar Lote</h3>
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                    <div class="form-group" style="flex: 1; margin: 0;">
+                        <label>Número do Lote</label>
+                        <input type="text" id="buscaLoteNumero" placeholder="Digite o número do lote...">
+                    </div>
+                    <button class="btn btn-primary" onclick="buscarLotePorNumero()" style="align-self: flex-end;">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                </div>
+
+                <div id="conteudoDetalhesLoteFull">
+                    <div style="text-align: center; padding: 3rem; color: var(--gray-500);">
+                        <i class="fas fa-box-open fa-4x" style="margin-bottom: 1rem;"></i>
+                        <p style="font-size: 1.1rem;">Digite um número de lote acima para visualizar os detalhes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: Inventário -->
+        <div class="tab-content" id="inventario">
+            <div style="margin-bottom: 1.5rem;">
+                <button class="btn btn-primary" onclick="abrirModalNovoInventario()">
+                    <i class="fas fa-plus"></i> Novo Inventário
+                </button>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-clipboard-list"></i> Inventários</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Tipo</th>
+                                <th>Localização</th>
+                                <th>Status</th>
+                                <th>Data Início</th>
+                                <th>Data Finalização</th>
+                                <th>Criado por</th>
+                                <th>Total Contagens</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaInventarios">
+                            <tr><td colspan="9" class="loading">Carregando inventários...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Modal Detalhes do Lote -->
-    <div class="modal" id="modalDetalhes">
-        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+    <!-- Modal: Detalhes do Lote -->
+    <div class="modal" id="modalDetalhesLote">
+        <div class="modal-content" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h2 id="tituloDetalhes">Detalhes do Lote</h2>
-                <span class="modal-close" onclick="fecharModal()">&times;</span>
+                <h2><i class="fas fa-box"></i> Detalhes do Lote <span id="detalhesLoteNumero"></span></h2>
+                <span class="modal-close" onclick="fecharModalDetalhes()">&times;</span>
             </div>
-            <div id="conteudoDetalhes" style="padding: 1rem 0;"></div>
-            <div id="acoesLote" style="margin-top: 1.5rem; display: flex; gap: 1rem;"></div>
+            <div id="conteudoDetalhesLote">
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p style="margin-top: 1rem;">Carregando detalhes...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Nova Movimentação -->
+    <div class="modal" id="modalMovimentacao">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-truck"></i> Nova Movimentação</h2>
+                <span class="modal-close" onclick="fecharModalMovimentacao()">&times;</span>
+            </div>
+            <form id="formMovimentacao">
+                <div class="form-group">
+                    <label>Lote *</label>
+                    <select id="movLoteId" required>
+                        <option value="">Selecione o lote...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Movimentação</label>
+                    <select id="movTipo">
+                        <option value="transferencia">Transferência</option>
+                        <option value="entrada">Entrada</option>
+                        <option value="saida">Saída</option>
+                        <option value="ajuste">Ajuste</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Localização Destino *</label>
+                    <select id="movLocalizacaoDestino" required>
+                        <option value="">Selecione...</option>
+                        <option value="RECEBIMENTO">Recebimento</option>
+                        <option value="DOCK 1">Dock 1</option>
+                        <option value="DOCK 2">Dock 2</option>
+                        <option value="SEPARACAO">Separação</option>
+                        <option value="PICKING">Picking</option>
+                        <option value="BULK">Bulk</option>
+                        <option value="INVENTARIO">Inventário</option>
+                        <option value="QC">QC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <textarea id="movObservacoes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">
+                    <i class="fas fa-check"></i> Registrar Movimentação
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Novo Inventário -->
+    <div class="modal" id="modalNovoInventario">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-clipboard-list"></i> Novo Inventário</h2>
+                <span class="modal-close" onclick="fecharModalNovoInventario()">&times;</span>
+            </div>
+            <form id="formNovoInventario">
+                <div class="form-group">
+                    <label>Tipo de Inventário</label>
+                    <select id="invTipo">
+                        <option value="GERAL">Geral (Todo o Estoque)</option>
+                        <option value="LOCAL">Por Localização</option>
+                    </select>
+                </div>
+                <div class="form-group" id="grupoLocalizacao" style="display: none;">
+                    <label>Localização</label>
+                    <select id="invLocalizacao">
+                        <option value="">Selecione...</option>
+                        <option value="RECEBIMENTO">Recebimento</option>
+                        <option value="DOCK 1">Dock 1</option>
+                        <option value="DOCK 2">Dock 2</option>
+                        <option value="SEPARACAO">Separação</option>
+                        <option value="PICKING">Picking</option>
+                        <option value="BULK">Bulk</option>
+                        <option value="QC">QC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <textarea id="invObservacoes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">
+                    <i class="fas fa-play"></i> Iniciar Inventário
+                </button>
+            </form>
         </div>
     </div>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/rbac.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
-        let loteAtual = null;
-        let todosFornecedores = [];
-        let usuarioAtual = null;
+        let lotesData = [];
+        let movimentacoesData = [];
+        let inventariosData = [];
 
+        // TAB Management
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.dataset.tab;
+                
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+                
+                if (tabId === 'lotes-ativos') carregarLotesAtivos();
+                else if (tabId === 'movimentacoes') carregarMovimentacoes();
+                else if (tabId === 'detalhes-lote') mostrarDetalhesTab();
+                else if (tabId === 'inventario') carregarInventarios();
+                else if (tabId === 'visao-geral') carregarVisaoGeral();
+            });
+        });
+
+        // Carregamento Inicial
         async function carregarPagina() {
             const user = await verificarAuth();
             if (!user) return;
             
-            usuarioAtual = user;
-            if (user.tipo !== 'admin') {
-                showAlert('Acesso restrito a administradores');
-                window.location.href = '/';
+            await carregarVisaoGeral();
+            await carregarFiltros();
+        }
+
+        async function carregarFiltros() {
+            try {
+                const [fornecedores, tiposLote] = await Promise.all([
+                    fetchAPI('/fornecedores').then(r => r.json()),
+                    fetchAPI('/tipos-lote').then(r => r.json())
+                ]);
+                
+                const selectFornecedor = document.getElementById('filtroFornecedor');
+                selectFornecedor.innerHTML = '<option value="">Todos</option>' + fornecedores.map(f => 
+                    `<option value="${f.id}">${f.nome}</option>`
+                ).join('');
+                
+                const selectTipoLote = document.getElementById('filtroTipoLote');
+                selectTipoLote.innerHTML = '<option value="">Todos</option>' + tiposLote.map(t => 
+                    `<option value="${t.id}">${t.nome}</option>`
+                ).join('');
+            } catch (error) {
+                console.error('Erro ao carregar filtros:', error);
+            }
+        }
+
+        async function carregarVisaoGeral() {
+            try {
+                const stats = await fetchAPI('/api/wms/estatisticas').then(r => r.json());
+                
+                document.getElementById('metricTotalLotes').textContent = stats.total_lotes || 0;
+                document.getElementById('metricPesoTotal').textContent = `${stats.peso_total_kg || 0} kg`;
+                document.getElementById('metricBloqueados').textContent = stats.lotes_bloqueados || 0;
+                document.getElementById('metricDivergentes').textContent = stats.lotes_divergentes || 0;
+                
+                const aguardandoSeparacao = stats.lotes_por_status.find(s => s.status === 'AGUARDANDO_SEPARACAO');
+                document.getElementById('metricSeparacao').textContent = aguardandoSeparacao ? aguardandoSeparacao.quantidade : 0;
+                document.getElementById('metricReservados').textContent = stats.lotes_reservados || 0;
+                
+                renderGraficos(stats);
+                renderTimeline(stats.movimentacoes_recentes || []);
+            } catch (error) {
+                console.error('Erro ao carregar visão geral:', error);
+                showAlert('Erro ao carregar estatísticas');
+            }
+        }
+
+        function renderGraficos(stats) {
+            const divStatus = document.getElementById('graficoStatus');
+            const divLoc = document.getElementById('graficoLocalizacao');
+            
+            let htmlStatus = '<div style="padding: 1rem;">';
+            (stats.lotes_por_status || []).forEach(item => {
+                const pct = stats.total_lotes > 0 ? Math.round((item.quantidade / stats.total_lotes) * 100) : 0;
+                htmlStatus += `
+                    <div style="margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span>${item.status}</span>
+                            <strong>${item.quantidade} (${pct}%)</strong>
+                        </div>
+                        <div style="background: var(--gray-200); height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="width: ${pct}%; background: var(--primary-color); height: 100%;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            htmlStatus += '</div>';
+            divStatus.innerHTML = htmlStatus;
+            
+            let htmlLoc = '<div style="padding: 1rem;">';
+            (stats.lotes_por_localizacao || []).forEach(item => {
+                htmlLoc += `
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-200);">
+                        <span><i class="fas fa-map-marker-alt" style="color: var(--primary-color); margin-right: 0.5rem;"></i>${item.localizacao}</span>
+                        <div style="text-align: right;">
+                            <div><strong>${item.quantidade}</strong> lotes</div>
+                            <div style="font-size: 0.875rem; color: var(--gray-600);">${item.peso_kg} kg</div>
+                        </div>
+                    </div>
+                `;
+            });
+            htmlLoc += '</div>';
+            divLoc.innerHTML = htmlLoc;
+        }
+
+        function renderTimeline(movimentacoes) {
+            const div = document.getElementById('timelineMovimentacoes');
+            
+            if (!movimentacoes || movimentacoes.length === 0) {
+                div.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--gray-500);">Nenhuma movimentação recente</div>';
                 return;
             }
-
-            await carregarFornecedores();
-            await carregarLotes();
-            await carregarEstatisticas();
-            await atualizarNotificacoes();
+            
+            div.innerHTML = movimentacoes.map(mov => `
+                <div class="timeline-item">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                        <strong>${mov.tipo}</strong>
+                        <span style="color: var(--gray-600); font-size: 0.875rem;">
+                            ${new Date(mov.data_movimentacao).toLocaleString('pt-BR')}
+                        </span>
+                    </div>
+                    <div style="color: var(--gray-700);">
+                        Lote <strong>${mov.lote_numero}</strong>: 
+                        ${mov.localizacao_origem || '—'} → ${mov.localizacao_destino || '—'}
+                    </div>
+                    <div style="color: var(--gray-600); font-size: 0.875rem; margin-top: 0.25rem;">
+                        ${mov.usuario_nome} | ${mov.peso ? mov.peso + ' kg' : ''}
+                    </div>
+                </div>
+            `).join('');
         }
 
-        async function carregarFornecedores() {
+        async function carregarLotesAtivos() {
+            const tbody = document.getElementById('tabelaLotesAtivos');
+            tbody.innerHTML = '<tr><td colspan="10" class="loading">Carregando...</td></tr>';
+            
             try {
-                const response = await fetchAPI('/fornecedores');
-                if (response && response.ok) {
-                    todosFornecedores = await response.json();
-                    const select = document.getElementById('filtroFornecedor');
-                    select.innerHTML = '<option value="">Todos</option>' +
-                        todosFornecedores.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+                const response = await fetchAPI('/api/wms/lotes');
+                lotesData = await response.json();
+                
+                if (lotesData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem; color: var(--gray-500);">Nenhum lote encontrado</td></tr>';
+                    return;
                 }
+                
+                tbody.innerHTML = lotesData.map(lote => {
+                    const origem = lote.solicitacao_origem_id ? `SC-${lote.solicitacao_origem_id}` : 
+                                   lote.oc_id ? `OC-${lote.oc_id}` : 
+                                   lote.os_id ? `OS-${lote.os_id}` : '—';
+                    
+                    const indicadores = [];
+                    if (lote.bloqueado) indicadores.push('<span class="indicator indicator-bloqueado" title="Bloqueado"></span>');
+                    if (lote.reservado) indicadores.push('<span class="indicator indicator-reservado" title="Reservado"></span>');
+                    if (lote.divergencias && lote.divergencias.length > 0) indicadores.push('<span class="indicator indicator-divergente" title="Divergência"></span>');
+                    
+                    return `
+                        <tr>
+                            <td><strong>${lote.numero_lote}</strong></td>
+                            <td>${lote.tipo_lote_nome || '—'}</td>
+                            <td>${lote.peso_total_kg.toFixed(2)}</td>
+                            <td>${lote.fornecedor_nome || '—'}</td>
+                            <td>${origem}</td>
+                            <td><span class="status-badge status-${(lote.status || 'aberto').toLowerCase().replace(/_/g, '-')}">${lote.status || 'Aberto'}</span></td>
+                            <td>${lote.localizacao_atual || '—'}</td>
+                            <td>${indicadores.join(' ')}</td>
+                            <td>${new Date(lote.data_criacao).toLocaleDateString('pt-BR')}</td>
+                            <td>
+                                <button class="btn btn-small btn-secondary" onclick="verDetalhesLote(${lote.id})" title="Ver Detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
             } catch (error) {
-                console.error('Erro ao carregar fornecedores:', error);
+                console.error('Erro ao carregar lotes:', error);
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem; color: var(--danger-color);">Erro ao carregar lotes</td></tr>';
             }
         }
 
-        async function carregarLotes() {
+        async function carregarMovimentacoes() {
+            const tbody = document.getElementById('tabelaMovimentacoes');
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">Carregando...</td></tr>';
+            
             try {
-                const status = document.getElementById('filtroStatus').value;
-                const fornecedorId = document.getElementById('filtroFornecedor').value;
+                const response = await fetchAPI('/api/wms/movimentacoes');
+                movimentacoesData = await response.json();
                 
-                let url = '/api/lotes?';
-                if (status) url += `status=${status}&`;
-                if (fornecedorId) url += `fornecedor_id=${fornecedorId}`;
-                
-                const response = await fetchAPI(url);
-                if (!response || !response.ok) return;
-                
-                const lotes = await response.json();
-                const tbody = document.getElementById('tabelaLotes');
-
-                if (lotes.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhum lote encontrado</td></tr>';
+                if (movimentacoesData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--gray-500);">Nenhuma movimentação encontrada</td></tr>';
                     return;
                 }
-
-                tbody.innerHTML = lotes.map(l => `
+                
+                tbody.innerHTML = movimentacoesData.map(mov => `
                     <tr>
-                        <td><strong>${l.numero_lote}</strong></td>
-                        <td>${l.fornecedor_nome || 'N/A'}</td>
-                        <td>${l.tipo_lote_nome || 'N/A'}</td>
-                        <td>${l.quantidade_itens || 0}</td>
-                        <td>${parseFloat(l.peso_total_kg || 0).toFixed(2)}</td>
-                        <td>R$ ${parseFloat(l.valor_total || 0).toFixed(2)}</td>
-                        <td>${l.estrelas_media ? ''.repeat(Math.round(l.estrelas_media)) : '-'}</td>
-                        <td><span class="badge badge-${l.status}">${l.status.toUpperCase()}</span></td>
+                        <td>#${mov.id}</td>
+                        <td><strong>${mov.lote_numero}</strong></td>
+                        <td>${mov.tipo}</td>
+                        <td>${mov.localizacao_origem || '—'}</td>
+                        <td>${mov.localizacao_destino || '—'}</td>
+                        <td>${mov.peso ? mov.peso.toFixed(2) + ' kg' : '—'}</td>
+                        <td>${mov.usuario_nome || '—'}</td>
+                        <td>${new Date(mov.data_movimentacao).toLocaleString('pt-BR')}</td>
                         <td>
-                            <button class="btn btn-secondary" onclick="verDetalhes(${l.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
-                                Ver
+                            <button class="btn btn-small btn-secondary" onclick="verBeforeAfter(${mov.id})" title="Ver Before/After">
+                                <i class="fas fa-exchange-alt"></i>
                             </button>
-                            ${l.status === 'aberto' ? `
-                                <button class="btn btn-success" onclick="aprovarLote(${l.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
-                                    
-                                </button>
-                                <button class="btn btn-danger" onclick="rejeitarLote(${l.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
-                                    
-                                </button>
-                            ` : ''}
                         </td>
                     </tr>
                 `).join('');
             } catch (error) {
-                console.error('Erro ao carregar lotes:', error);
-                const tbody = document.getElementById('tabelaLotes');
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Erro ao carregar lotes</td></tr>';
+                console.error('Erro ao carregar movimentações:', error);
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--danger-color);">Erro ao carregar movimentações</td></tr>';
             }
         }
 
-        async function carregarEstatisticas() {
+        async function carregarInventarios() {
+            const tbody = document.getElementById('tabelaInventarios');
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">Carregando...</td></tr>';
+            
             try {
-                const response = await fetchAPI('/lotes');
-                if (!response || !response.ok) return;
+                const response = await fetchAPI('/api/wms/inventarios');
+                inventariosData = await response.json();
                 
-                const lotes = await response.json();
-                
-                const abertos = lotes.filter(l => l.status === 'aberto').length;
-                const aprovados = lotes.filter(l => l.status === 'aprovado').length;
-                const rejeitados = lotes.filter(l => l.status === 'rejeitado').length;
-                const totalAprovado = lotes
-                    .filter(l => l.status === 'aprovado')
-                    .reduce((sum, l) => sum + (l.valor_total || 0), 0);
-
-                document.getElementById('statAbertos').textContent = abertos;
-                document.getElementById('statAprovados').textContent = aprovados;
-                document.getElementById('statRejeitados').textContent = rejeitados;
-                document.getElementById('statTotal').textContent = 'R$ ' + totalAprovado.toFixed(2);
-            } catch (error) {
-                console.error('Erro ao carregar estatísticas:', error);
-            }
-        }
-
-        async function verDetalhes(id) {
-            try {
-                const response = await fetchAPI(`/lotes/${id}`);
-                if (!response || !response.ok) {
-                    showAlert('Erro ao carregar detalhes do lote');
+                if (inventariosData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--gray-500);">Nenhum inventário encontrado</td></tr>';
                     return;
                 }
-                loteAtual = await response.json();
+                
+                tbody.innerHTML = inventariosData.map(inv => `
+                    <tr>
+                        <td><strong>${inv.numero_inventario}</strong></td>
+                        <td>${inv.tipo}</td>
+                        <td>${inv.localizacao || 'GERAL'}</td>
+                        <td><span class="status-badge status-${inv.status.toLowerCase().replace(/_/g, '-')}">${inv.status}</span></td>
+                        <td>${new Date(inv.data_inicio).toLocaleDateString('pt-BR')}</td>
+                        <td>${inv.data_finalizacao ? new Date(inv.data_finalizacao).toLocaleDateString('pt-BR') : '—'}</td>
+                        <td>${inv.criador_nome || '—'}</td>
+                        <td>${inv.total_contagens || 0}</td>
+                        <td>
+                            <button class="btn btn-small btn-secondary" onclick="verInventario(${inv.id})" title="Ver Detalhes">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar inventários:', error);
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--danger-color);">Erro ao carregar inventários</td></tr>';
+            }
+        }
 
+        async function verDetalhesLote(loteId) {
+            document.getElementById('modalDetalhesLote').style.display = 'flex';
+            const conteudo = document.getElementById('conteudoDetalhesLote');
+            conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Carregando...</p></div>';
+            
+            try {
+                const response = await fetchAPI(`/api/wms/lotes/${loteId}`);
+                const lote = await response.json();
+                
+                document.getElementById('detalhesLoteNumero').textContent = lote.numero_lote;
+                
                 let html = `
-                    <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                        <h3 style="margin: 0 0 1rem 0;">Informações do Lote</h3>
-                        <p><strong>Número do Lote:</strong> ${loteAtual.numero_lote}</p>
-                        <p><strong>Fornecedor:</strong> ${loteAtual.fornecedor_nome}</p>
-                        <p><strong>Tipo de Lote:</strong> ${loteAtual.tipo_lote_nome}</p>
-                        <p><strong>Solicitação Origem:</strong> #${loteAtual.solicitacao_origem_id || 'N/A'}</p>
-                        <p><strong>Status:</strong> <span class="badge badge-${loteAtual.status}">${loteAtual.status.toUpperCase()}</span></p>
-                        <p><strong>Tipo de Retirada:</strong> ${loteAtual.tipo_retirada === 'buscar' ? 'Buscar no fornecedor' : 'Fornecedor entrega'}</p>
-                        <p><strong>Data de Criação:</strong> ${formatDate(loteAtual.data_criacao)}</p>
-                        ${loteAtual.data_fechamento ? `<p><strong>Data de Fechamento:</strong> ${formatDate(loteAtual.data_fechamento)}</p>` : ''}
-                        ${loteAtual.data_aprovacao ? `<p><strong>Data de Aprovação:</strong> ${formatDate(loteAtual.data_aprovacao)}</p>` : ''}
-                    </div>
-                `;
-
-                html += `
-                    <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span><strong>Total de itens:</strong></span>
-                            <span>${loteAtual.quantidade_itens || 0}</span>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                        <div>
+                            <h4>Informações Básicas</h4>
+                            <p><strong>Material:</strong> ${lote.tipo_lote_nome}</p>
+                            <p><strong>Fornecedor:</strong> ${lote.fornecedor_nome}</p>
+                            <p><strong>Peso Total:</strong> ${lote.peso_total_kg} kg</p>
+                            <p><strong>Valor Total:</strong> R$ ${lote.valor_total}</p>
+                            <p><strong>Status:</strong> <span class="status-badge status-${(lote.status || '').toLowerCase().replace(/_/g, '-')}">${lote.status}</span></p>
+                            <p><strong>Localização:</strong> ${lote.localizacao_atual || 'Não definida'}</p>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span><strong>Peso total:</strong></span>
-                            <span>${loteAtual.peso_total_kg ? loteAtual.peso_total_kg.toFixed(2) : '0.00'} kg</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span><strong>Estrelas média:</strong></span>
-                            <span>${loteAtual.estrelas_media ? ''.repeat(Math.round(loteAtual.estrelas_media)) + ' (' + loteAtual.estrelas_media.toFixed(1) + ')' : '-'}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span><strong>Valor total:</strong></span>
-                            <span style="font-size: 1.2rem; color: var(--primary-color);">R$ ${loteAtual.valor_total ? loteAtual.valor_total.toFixed(2) : '0.00'}</span>
+                        <div>
+                            <h4>Controles WMS</h4>
+                            <p><strong>Bloqueado:</strong> ${lote.bloqueado ? 'Sim (' + lote.tipo_bloqueio + ')' : 'Não'}</p>
+                            ${lote.bloqueado ? `<p><strong>Motivo:</strong> ${lote.motivo_bloqueio}</p>` : ''}
+                            <p><strong>Reservado:</strong> ${lote.reservado ? 'Sim' : 'Não'}</p>
+                            ${lote.reservado ? `<p><strong>Reservado para:</strong> ${lote.reservado_para}</p>` : ''}
+                            <p><strong>Data Criação:</strong> ${new Date(lote.data_criacao).toLocaleString('pt-BR')}</p>
                         </div>
                     </div>
-                `;
-
-                if (loteAtual.observacoes) {
-                    html += `
-                        <div style="background: #fef3c7; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                            <h3 style="margin: 0 0 0.5rem 0;"> Observações</h3>
-                            <p style="margin: 0;">${loteAtual.observacoes}</p>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h4>Ações Disponíveis</h4>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn btn-primary" onclick="movimentarLote(${lote.id})"><i class="fas fa-truck"></i> Movimentar</button>
+                            ${!lote.reservado ? `<button class="btn btn-secondary" onclick="reservarLote(${lote.id})"><i class="fas fa-lock"></i> Reservar</button>` : `<button class="btn btn-secondary" onclick="liberarReserva(${lote.id})"><i class="fas fa-unlock"></i> Liberar Reserva</button>`}
+                            ${!lote.bloqueado ? `<button class="btn btn-warning" onclick="bloquearLote(${lote.id})"><i class="fas fa-ban"></i> Bloquear</button>` : `<button class="btn btn-warning" onclick="desbloquearLote(${lote.id})"><i class="fas fa-check"></i> Desbloquear</button>`}
                         </div>
-                    `;
-                }
-
-                if (loteAtual.itens && loteAtual.itens.length > 0) {
-                    html += `
-                        <h3 style="margin: 1.5rem 0 1rem 0;"> Itens do Lote (${loteAtual.itens.length})</h3>
-                        ${loteAtual.itens.map(item => `
-                            <div class="card" style="margin-bottom: 1rem;">
-                                <p><strong>Tipo:</strong> ${item.tipo_lote_nome}</p>
-                                <p><strong>Peso:</strong> ${item.peso_kg} kg</p>
-                                <p><strong>Estrelas:</strong> ${''.repeat(item.estrelas_final)}</p>
-                                <p><strong>Valor:</strong> R$ ${item.valor_calculado.toFixed(2)}</p>
-                                ${item.observacoes ? `<p><strong>Obs:</strong> ${item.observacoes}</p>` : ''}
-                            </div>
-                        `).join('')}
-                    `;
-                }
-
-                document.getElementById('conteudoDetalhes').innerHTML = html;
-
-                const acoesDiv = document.getElementById('acoesLote');
-                if (loteAtual.status === 'aberto') {
-                    acoesDiv.innerHTML = `
-                        <button class="btn btn-success" onclick="aprovarLote(${loteAtual.id})"> Aprovar Lote</button>
-                        <button class="btn btn-danger" onclick="rejeitarLote(${loteAtual.id})"> Rejeitar Lote</button>
-                    `;
-                } else {
-                    acoesDiv.innerHTML = '';
-                }
-
-                document.getElementById('modalDetalhes').classList.add('active');
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h4>Histórico de Movimentações</h4>
+                        ${lote.movimentacoes && lote.movimentacoes.length > 0 ? `
+                            <table style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Origem</th>
+                                        <th>Destino</th>
+                                        <th>Usuário</th>
+                                        <th>Data</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${lote.movimentacoes.map(m => `
+                                        <tr>
+                                            <td>${m.tipo}</td>
+                                            <td>${m.localizacao_origem || '—'}</td>
+                                            <td>${m.localizacao_destino || '—'}</td>
+                                            <td>${m.usuario_nome || '—'}</td>
+                                            <td>${new Date(m.data_movimentacao).toLocaleString('pt-BR')}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : '<p style="text-align: center; color: var(--gray-500); padding: 1rem;">Nenhuma movimentação registrada</p>'}
+                    </div>
+                    
+                    ${lote.sublotes && lote.sublotes.length > 0 ? `
+                        <div>
+                            <h4>Sublotes</h4>
+                            <ul>
+                                ${lote.sublotes.map(s => `<li>${s.numero_lote} - ${s.peso_total_kg} kg</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+                
+                conteudo.innerHTML = html;
             } catch (error) {
                 console.error('Erro ao carregar detalhes:', error);
-                showAlert('Erro ao carregar detalhes do lote', 'error');
+                conteudo.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger-color);">Erro ao carregar detalhes do lote</div>';
             }
         }
 
-        function fecharModal() {
-            document.getElementById('modalDetalhes').classList.remove('active');
+        function fecharModalDetalhes() {
+            document.getElementById('modalDetalhesLote').style.display = 'none';
         }
 
-        async function aprovarLote(id) {
-            if (!confirm('Aprovar este lote? Uma entrada de estoque será criada automaticamente.')) return;
+        function abrirModalMovimentacao() {
+            document.getElementById('modalMovimentacao').style.display = 'flex';
+            carregarLotesParaMovimentacao();
+        }
 
+        function fecharModalMovimentacao() {
+            document.getElementById('modalMovimentacao').style.display = 'none';
+            document.getElementById('formMovimentacao').reset();
+        }
+
+        async function carregarLotesParaMovimentacao() {
             try {
-                const response = await fetchAPI(`/lotes/${id}/aprovar`, {
-                    method: 'POST'
-                });
-
-                if (response && response.ok) {
-                    showAlert('Lote aprovado! Entrada de estoque criada automaticamente.', 'success');
-                    fecharModal();
-                    await carregarLotes();
-                    await carregarEstatisticas();
-                } else {
-                    const error = await response.json();
-                    showAlert(error.erro || 'Erro ao aprovar lote', 'error');
-                }
+                const response = await fetchAPI('/api/wms/lotes');
+                const lotes = await response.json();
+                
+                const select = document.getElementById('movLoteId');
+                select.innerHTML = '<option value="">Selecione...</option>' + lotes
+                    .filter(l => !l.bloqueado)
+                    .map(l => `<option value="${l.id}">${l.numero_lote} - ${l.tipo_lote_nome} (${l.localizacao_atual || 'Sem loc.'})</option>`)
+                    .join('');
             } catch (error) {
-                console.error('Erro ao aprovar lote:', error);
-                showAlert('Erro ao aprovar lote', 'error');
+                console.error('Erro ao carregar lotes:', error);
             }
         }
 
-        async function rejeitarLote(id) {
-            const motivo = prompt('Motivo da rejeição:');
-            if (!motivo) return;
-
+        document.getElementById('formMovimentacao').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const dados = {
+                tipo: document.getElementById('movTipo').value,
+                localizacao_destino: document.getElementById('movLocalizacaoDestino').value,
+                observacoes: document.getElementById('movObservacoes').value
+            };
+            
+            const loteId = document.getElementById('movLoteId').value;
+            
             try {
-                const response = await fetchAPI(`/lotes/${id}/rejeitar`, {
+                await fetchAPI(`/api/wms/lotes/${loteId}/movimentar`, {
                     method: 'POST',
-                    body: JSON.stringify({ observacoes: motivo })
+                    body: JSON.stringify(dados)
                 });
-
-                if (response && response.ok) {
-                    showAlert('Lote rejeitado', 'success');
-                    fecharModal();
-                    await carregarLotes();
-                    await carregarEstatisticas();
-                } else {
-                    const error = await response.json();
-                    showAlert(error.erro || 'Erro ao rejeitar lote', 'error');
-                }
+                
+                showAlert('Movimentação registrada com sucesso!');
+                fecharModalMovimentacao();
+                carregarMovimentacoes();
+                carregarVisaoGeral();
             } catch (error) {
-                console.error('Erro ao rejeitar lote:', error);
-                showAlert('Erro ao rejeitar lote', 'error');
+                showAlert('Erro ao registrar movimentação: ' + error.message);
             }
+        });
+
+        function abrirModalNovoInventario() {
+            document.getElementById('modalNovoInventario').style.display = 'flex';
+        }
+
+        function fecharModalNovoInventario() {
+            document.getElementById('modalNovoInventario').style.display = 'none';
+            document.getElementById('formNovoInventario').reset();
+        }
+
+        document.getElementById('invTipo').addEventListener('change', (e) => {
+            const grupo = document.getElementById('grupoLocalizacao');
+            grupo.style.display = e.target.value === 'LOCAL' ? 'block' : 'none';
+        });
+
+        document.getElementById('formNovoInventario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const tipo = document.getElementById('invTipo').value;
+            const dados = {
+                tipo: tipo,
+                localizacao: tipo === 'LOCAL' ? document.getElementById('invLocalizacao').value : null,
+                observacoes: document.getElementById('invObservacoes').value
+            };
+            
+            try {
+                await fetchAPI('/api/wms/inventarios', {
+                    method: 'POST',
+                    body: JSON.stringify(dados)
+                });
+                
+                showAlert('Inventário iniciado com sucesso!');
+                fecharModalNovoInventario();
+                carregarInventarios();
+            } catch (error) {
+                showAlert('Erro ao iniciar inventário: ' + error.message);
+            }
+        });
+
+        async function bloquearLote(loteId) {
+            const motivo = prompt('Motivo do bloqueio:');
+            if (!motivo) return;
+            
+            try {
+                await fetchAPI(`/api/wms/lotes/${loteId}/bloquear`, {
+                    method: 'POST',
+                    body: JSON.stringify({ tipo_bloqueio: 'QC', motivo })
+                });
+                
+                showAlert('Lote bloqueado com sucesso!');
+                fecharModalDetalhes();
+                carregarLotesAtivos();
+            } catch (error) {
+                showAlert('Erro ao bloquear lote: ' + error.message);
+            }
+        }
+
+        async function desbloquearLote(loteId) {
+            if (!confirm('Deseja desbloquear este lote?')) return;
+            
+            try {
+                await fetchAPI(`/api/wms/lotes/${loteId}/desbloquear`, { method: 'POST' });
+                showAlert('Lote desbloqueado com sucesso!');
+                fecharModalDetalhes();
+                carregarLotesAtivos();
+            } catch (error) {
+                showAlert('Erro ao desbloquear lote: ' + error.message);
+            }
+        }
+
+        async function reservarLote(loteId) {
+            const reservadoPara = prompt('Reservar para:');
+            if (!reservadoPara) return;
+            
+            try {
+                await fetchAPI(`/api/wms/lotes/${loteId}/reservar`, {
+                    method: 'POST',
+                    body: JSON.stringify({ reservado_para: reservadoPara })
+                });
+                
+                showAlert('Lote reservado com sucesso!');
+                fecharModalDetalhes();
+                carregarLotesAtivos();
+            } catch (error) {
+                showAlert('Erro ao reservar lote: ' + error.message);
+            }
+        }
+
+        async function liberarReserva(loteId) {
+            if (!confirm('Deseja liberar a reserva deste lote?')) return;
+            
+            try {
+                await fetchAPI(`/api/wms/lotes/${loteId}/liberar-reserva`, { method: 'POST' });
+                showAlert('Reserva liberada com sucesso!');
+                fecharModalDetalhes();
+                carregarLotesAtivos();
+            } catch (error) {
+                showAlert('Erro ao liberar reserva: ' + error.message);
+            }
+        }
+
+        function aplicarFiltros() {
+            carregarLotesAtivos();
+        }
+
+        function atualizarLotes() {
+            carregarLotesAtivos();
+        }
+
+        function atualizarMovimentacoes() {
+            carregarMovimentacoes();
+        }
+
+        function verBeforeAfter(movId) {
+            const mov = movimentacoesData.find(m => m.id === movId);
+            if (!mov) return;
+            
+            alert(`Before/After da Movimentação #${movId}\n\n` +
+                  `Before: ${JSON.stringify(mov.dados_before || {}, null, 2)}\n\n` +
+                  `After: ${JSON.stringify(mov.dados_after || {}, null, 2)}`);
+        }
+
+        function verInventario(invId) {
+            window.location.href = `/inventario-detalhes.html?id=${invId}`;
+        }
+
+        function mostrarDetalhesTab() {
+            document.getElementById('conteudoDetalhesLoteFull').innerHTML = `
+                <div style="text-align: center; padding: 3rem; color: var(--gray-500);">
+                    <i class="fas fa-box-open fa-4x" style="margin-bottom: 1rem;"></i>
+                    <p style="font-size: 1.1rem;">Digite um número de lote acima para visualizar os detalhes</p>
+                </div>
+            `;
+        }
+
+        async function buscarLotePorNumero() {
+            const numero = document.getElementById('buscaLoteNumero').value.trim();
+            if (!numero) {
+                showAlert('Digite um número de lote');
+                return;
+            }
+
+            const conteudo = document.getElementById('conteudoDetalhesLoteFull');
+            conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Buscando lote...</p></div>';
+
+            try {
+                const response = await fetchAPI('/api/wms/lotes');
+                const lotes = await response.json();
+                
+                const lote = lotes.find(l => l.numero_lote.toLowerCase() === numero.toLowerCase());
+                
+                if (!lote) {
+                    conteudo.innerHTML = `
+                        <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
+                            <i class="fas fa-exclamation-triangle fa-3x" style="margin-bottom: 1rem;"></i>
+                            <p style="font-size: 1.1rem;">Lote não encontrado</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const detalhesResponse = await fetchAPI(`/api/wms/lotes/${lote.id}`);
+                const loteDetalhado = await detalhesResponse.json();
+
+                renderDetalhesLote(loteDetalhado);
+            } catch (error) {
+                console.error('Erro ao buscar lote:', error);
+                conteudo.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
+                        <i class="fas fa-exclamation-triangle fa-3x" style="margin-bottom: 1rem;"></i>
+                        <p style="font-size: 1.1rem;">Erro ao buscar lote: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderDetalhesLote(lote) {
+            const conteudo = document.getElementById('conteudoDetalhesLoteFull');
+            
+            const origem = lote.solicitacao_origem_id ? `SC-${lote.solicitacao_origem_id}` : 
+                           lote.oc_id ? `OC-${lote.oc_id}` : 
+                           lote.os_id ? `OS-${lote.os_id}` : '—';
+            
+            let html = `
+                <div style="margin-bottom: 2rem;">
+                    <h2 style="margin-bottom: 0.5rem;">${lote.numero_lote}</h2>
+                    <p style="color: var(--gray-600);">Detalhes Completos do Lote</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                    <div class="card">
+                        <h4 style="margin-bottom: 1rem;"><i class="fas fa-info-circle"></i> Informações Básicas</h4>
+                        <p><strong>Material:</strong> ${lote.tipo_lote_nome || '—'}</p>
+                        <p><strong>Fornecedor:</strong> ${lote.fornecedor_nome || '—'}</p>
+                        <p><strong>Origem:</strong> ${origem}</p>
+                        <p><strong>Peso Total:</strong> ${lote.peso_total_kg} kg</p>
+                        <p><strong>Valor Total:</strong> R$ ${lote.valor_total || '0.00'}</p>
+                        <p><strong>Status:</strong> <span class="status-badge status-${(lote.status || '').toLowerCase().replace(/_/g, '-')}">${lote.status || 'Aberto'}</span></p>
+                        <p><strong>Data Criação:</strong> ${new Date(lote.data_criacao).toLocaleString('pt-BR')}</p>
+                    </div>
+                    
+                    <div class="card">
+                        <h4 style="margin-bottom: 1rem;"><i class="fas fa-warehouse"></i> Controles WMS</h4>
+                        <p><strong>Localização Atual:</strong> ${lote.localizacao_atual || 'Não definida'}</p>
+                        <p><strong>Bloqueado:</strong> ${lote.bloqueado ? 'Sim (' + lote.tipo_bloqueio + ')' : 'Não'}</p>
+                        ${lote.bloqueado ? `<p><strong>Motivo:</strong> ${lote.motivo_bloqueio}</p>` : ''}
+                        ${lote.bloqueado ? `<p><strong>Bloqueado em:</strong> ${new Date(lote.bloqueado_em).toLocaleString('pt-BR')}</p>` : ''}
+                        <p><strong>Reservado:</strong> ${lote.reservado ? 'Sim' : 'Não'}</p>
+                        ${lote.reservado ? `<p><strong>Reservado para:</strong> ${lote.reservado_para}</p>` : ''}
+                        ${lote.reservado ? `<p><strong>Reservado em:</strong> ${new Date(lote.reservado_em).toLocaleString('pt-BR')}</p>` : ''}
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-tools"></i> Ações Disponíveis</h4>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="movimentarLote(${lote.id})"><i class="fas fa-truck"></i> Movimentar</button>
+                        ${!lote.reservado ? `<button class="btn btn-secondary" onclick="reservarLote(${lote.id})"><i class="fas fa-lock"></i> Reservar</button>` : `<button class="btn btn-secondary" onclick="liberarReserva(${lote.id})"><i class="fas fa-unlock"></i> Liberar Reserva</button>`}
+                        ${!lote.bloqueado ? `<button class="btn btn-warning" onclick="bloquearLote(${lote.id})"><i class="fas fa-ban"></i> Bloquear</button>` : `<button class="btn btn-warning" onclick="desbloquearLote(${lote.id})"><i class="fas fa-check"></i> Desbloquear</button>`}
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h4 style="margin-bottom: 1rem;"><i class="fas fa-history"></i> Histórico de Movimentações</h4>
+                    ${lote.movimentacoes && lote.movimentacoes.length > 0 ? `
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Origem</th>
+                                        <th>Destino</th>
+                                        <th>Peso</th>
+                                        <th>Usuário</th>
+                                        <th>Data</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${lote.movimentacoes.map(m => `
+                                        <tr>
+                                            <td>${m.tipo}</td>
+                                            <td>${m.localizacao_origem || '—'}</td>
+                                            <td>${m.localizacao_destino || '—'}</td>
+                                            <td>${m.peso ? m.peso + ' kg' : '—'}</td>
+                                            <td>${m.usuario_nome || '—'}</td>
+                                            <td>${new Date(m.data_movimentacao).toLocaleString('pt-BR')}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : '<p style="text-align: center; color: var(--gray-500); padding: 1rem;">Nenhuma movimentação registrada</p>'}
+                </div>
+                
+                ${lote.sublotes && lote.sublotes.length > 0 ? `
+                    <div class="card" style="margin-bottom: 2rem;">
+                        <h4 style="margin-bottom: 1rem;"><i class="fas fa-boxes"></i> Sublotes (${lote.sublotes.length})</h4>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Número</th>
+                                        <th>Peso</th>
+                                        <th>Status</th>
+                                        <th>Localização</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${lote.sublotes.map(s => `
+                                        <tr>
+                                            <td><strong>${s.numero_lote}</strong></td>
+                                            <td>${s.peso_total_kg} kg</td>
+                                            <td><span class="status-badge status-${(s.status || '').toLowerCase().replace(/_/g, '-')}">${s.status || 'Aberto'}</span></td>
+                                            <td>${s.localizacao_atual || '—'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${lote.itens && lote.itens.length > 0 ? `
+                    <div class="card">
+                        <h4 style="margin-bottom: 1rem;"><i class="fas fa-list"></i> Itens do Lote (${lote.itens.length})</h4>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Quantidade</th>
+                                        <th>Peso Un. (kg)</th>
+                                        <th>Peso Total (kg)</th>
+                                        <th>Valor Un. (R$)</th>
+                                        <th>Valor Total (R$)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${lote.itens.map(item => `
+                                        <tr>
+                                            <td>${item.descricao || '—'}</td>
+                                            <td>${item.quantidade || 0}</td>
+                                            <td>${item.peso_unitario_kg || 0}</td>
+                                            <td>${item.peso_total_kg || 0}</td>
+                                            <td>${item.valor_unitario || '0.00'}</td>
+                                            <td>${item.valor_total || '0.00'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+            
+            conteudo.innerHTML = html;
         }
 
         carregarPagina();
