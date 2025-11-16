@@ -18,14 +18,14 @@
             margin: 0 auto;
         }
 
-        /* Período Selector */
+        /* Período Selector - Mobile Optimized */
         .period-selector {
             display: flex;
             gap: 8px;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            padding: 16px 0;
-            margin-bottom: 24px;
+            padding: 16px 16px;
+            margin: 0 -16px 24px -16px;
             scrollbar-width: none;
         }
 
@@ -35,17 +35,17 @@
 
         .period-btn {
             flex-shrink: 0;
-            padding: 10px 20px;
+            padding: 10px 16px;
             border: 2px solid var(--gray-300);
             background: white;
             border-radius: 24px;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--gray-700);
             cursor: pointer;
             transition: all 0.3s ease;
             -webkit-tap-highlight-color: transparent;
-            min-width: 80px;
+            white-space: nowrap;
             text-align: center;
         }
 
@@ -346,6 +346,18 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Mobile Extra Small - Garantir botões visíveis */
+        @media (max-width: 375px) {
+            .period-btn {
+                padding: 10px 14px;
+                font-size: 12px;
+            }
+            
+            .period-btn i {
+                font-size: 12px;
+            }
+        }
+
         /* Responsive */
         @media (min-width: 768px) {
             .dashboard-container {
@@ -358,6 +370,11 @@
 
             .chart-container {
                 height: 400px;
+            }
+            
+            .period-selector {
+                margin: 0 0 24px 0;
+                padding: 16px 0;
             }
         }
 
