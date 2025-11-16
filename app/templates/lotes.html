@@ -530,8 +530,8 @@
         async function carregarFiltros() {
             try {
                 const [fornecedores, tiposLote] = await Promise.all([
-                    fetchAPI('/api/fornecedores').then(r => r.json()),
-                    fetchAPI('/api/tipos-lote').then(r => r.json())
+                    fetchAPI('/fornecedores').then(r => r.json()),
+                    fetchAPI('/tipos-lote').then(r => r.json())
                 ]);
                 
                 const selectFornecedor = document.getElementById('filtroFornecedor');
@@ -550,7 +550,7 @@
 
         async function carregarVisaoGeral() {
             try {
-                const stats = await fetchAPI('/api/wms/estatisticas').then(r => r.json());
+                const stats = await fetchAPI('/wms/estatisticas').then(r => r.json());
                 
                 document.getElementById('metricTotalLotes').textContent = stats.total_lotes || 0;
                 document.getElementById('metricPesoTotal').textContent = `${stats.peso_total_kg || 0} kg`;
@@ -639,7 +639,7 @@
             tbody.innerHTML = '<tr><td colspan="10" class="loading">Carregando...</td></tr>';
             
             try {
-                const response = await fetchAPI('/api/wms/lotes');
+                const response = await fetchAPI('/wms/lotes');
                 lotesData = await response.json();
                 
                 if (lotesData.length === 0) {
@@ -687,7 +687,7 @@
             tbody.innerHTML = '<tr><td colspan="9" class="loading">Carregando...</td></tr>';
             
             try {
-                const response = await fetchAPI('/api/wms/movimentacoes');
+                const response = await fetchAPI('/wms/movimentacoes');
                 movimentacoesData = await response.json();
                 
                 if (movimentacoesData.length === 0) {
@@ -723,7 +723,7 @@
             tbody.innerHTML = '<tr><td colspan="9" class="loading">Carregando...</td></tr>';
             
             try {
-                const response = await fetchAPI('/api/wms/inventarios');
+                const response = await fetchAPI('/wms/inventarios');
                 inventariosData = await response.json();
                 
                 if (inventariosData.length === 0) {
@@ -856,7 +856,7 @@
 
         async function carregarLotesParaMovimentacao() {
             try {
-                const response = await fetchAPI('/api/wms/lotes');
+                const response = await fetchAPI('/wms/lotes');
                 const lotes = await response.json();
                 
                 const select = document.getElementById('movLoteId');
@@ -920,7 +920,7 @@
             };
             
             try {
-                await fetchAPI('/api/wms/inventarios', {
+                await fetchAPI('/wms/inventarios', {
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
@@ -1040,7 +1040,7 @@
             conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Buscando lote...</p></div>';
 
             try {
-                const response = await fetchAPI('/api/wms/lotes');
+                const response = await fetchAPI('/wms/lotes');
                 const lotes = await response.json();
                 
                 const lote = lotes.find(l => l.numero_lote.toLowerCase() === numero.toLowerCase());
