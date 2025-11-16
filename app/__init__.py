@@ -68,7 +68,7 @@ def create_app():
                                 fornecedores, tipos_lote, dashboard, solicitacao_lotes,
                                 fornecedor_tipo_lote_classificacoes, fornecedor_tipo_lote_precos,
                                 perfis, veiculos, motoristas, auditoria, ordens_compra,
-                                ordens_servico, conferencias, estoque, separacao, wms)
+                                ordens_servico, conferencias, estoque, separacao, wms, pages)
         from app.routes import solicitacoes_new as solicitacoes
         from app.routes import lotes_new as lotes
         from app.routes import entradas_new as entradas
@@ -96,6 +96,7 @@ def create_app():
         app.register_blueprint(estoque.bp)
         app.register_blueprint(separacao.bp)
         app.register_blueprint(wms.bp)
+        app.register_blueprint(pages.bp)
         
         db.create_all()
         
