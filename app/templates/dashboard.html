@@ -1368,13 +1368,28 @@
                 });
             }
 
-            // Ranking
-            const rankingHTML = dashboardData.ranking_empresas.map((empresa, index) => {
-                let badge = index < 3 ? ['🥇', '🥈', '🥉'][index] : `${index + 1}`;
-                return `<li class="ranking-item"><div class="ranking-position ${['gold', 'silver', 'bronze', 'regular'][Math.min(index, 3)]}">${badge}</div><div class="ranking-info"><div class="ranking-name">${fornecedor.nome}</div></div><div class="ranking-count">${empresa.total}</div></li>`;
+            // Ranking - Top 5 Fornecedores
+            const rankingHTML = dashboardData.ranking_empresas.slice(0, 5).map((empresa, index) => {
+                let positionClass = 'regular';
+                if (index === 0) positionClass = 'gold';
+                else if (index === 1) positionClass = 'silver';
+                else if (index === 2) positionClass = 'bronze';
+                
+                return `
+                    <li class="ranking-item">
+                        <div class="ranking-position ${positionClass}">${index + 1}</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">${empresa.nome}</div>
+                            <div class="ranking-value">Total de solicitações aprovadas</div>
+                        </div>
+                        <div class="ranking-count">${empresa.total}</div>
+                    </li>
+                `;
             }).join('');
             const rankingEl = document.getElementById('ranking');
-            if (rankingEl) rankingEl.innerHTML = rankingHTML;
+            if (rankingEl) {
+                rankingEl.innerHTML = rankingHTML || '<li class="ranking-item"><div class="ranking-info"><div class="ranking-name">Nenhum fornecedor com solicitações aprovadas</div></div></li>';
+            }
         }
 
         async function loadTiposLoteBI() {
