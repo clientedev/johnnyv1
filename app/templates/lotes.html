@@ -530,8 +530,8 @@
         async function carregarFiltros() {
             try {
                 const [fornecedores, tiposLote] = await Promise.all([
-                    fetchAPI('/fornecedores').then(r => r.json()),
-                    fetchAPI('/tipos-lote').then(r => r.json())
+                    fetchAPI('/api/fornecedores').then(r => r.json()),
+                    fetchAPI('/api/tipos-lote').then(r => r.json())
                 ]);
                 
                 const selectFornecedor = document.getElementById('filtroFornecedor');
