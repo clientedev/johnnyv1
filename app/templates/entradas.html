@@ -145,7 +145,7 @@
             try {
                 const status = document.getElementById('filtroStatus').value;
                 
-                let url = '/api/entradas';
+                let url = '/entradas';
                 if (status) url += `?status=${status}`;
                 
                 const response = await fetchAPI(url);
@@ -193,7 +193,7 @@
 
         async function carregarEstatisticas() {
             try {
-                const response = await fetchAPI('/api/entradas');
+                const response = await fetchAPI('/entradas');
                 if (!response || !response.ok) return;
                 
                 const entradas = await response.json();
@@ -212,7 +212,7 @@
 
         async function verDetalhes(id) {
             try {
-                const response = await fetchAPI(`/api/entradas/${id}`);
+                const response = await fetchAPI(`/entradas/${id}`);
                 if (!response || !response.ok) {
                     showAlert('Erro ao carregar detalhes da entrada');
                     return;
@@ -301,7 +301,7 @@
             if (!confirm('Processar esta entrada de estoque? O material será registrado no estoque.')) return;
 
             try {
-                const response = await fetchAPI(`/api/entradas/${id}/processar`, {
+                const response = await fetchAPI(`/entradas/${id}/processar`, {
                     method: 'POST'
                 });
 
