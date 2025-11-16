@@ -567,8 +567,19 @@
 
         async function loadGeralBI() {
             try {
+                console.log('🔄 Carregando dashboard...');
+                
                 const statsResponse = await fetchAPI('/dashboard/stats');
+                console.log('📊 Stats response:', statsResponse);
+                
+                if (!statsResponse || !statsResponse.ok) {
+                    console.error('❌ Erro na resposta:', statsResponse);
+                    showAlert('Erro ao carregar estatísticas do dashboard', 'error');
+                    return;
+                }
+                
                 dashboardData = await statsResponse.json();
+                console.log('✅ Dados carregados:', dashboardData);
 
                 updateKPILabels('geral');
                 updateKPIs({
@@ -597,7 +608,15 @@
 
                 // Gráfico 2 - Movimentação
                 const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
+                if (!graficoResponse || !graficoResponse.ok) {
+                    console.error('❌ Erro ao carregar gráfico mensal');
+                    showAlert('Erro ao carregar gráfico de movimentação', 'error');
+                    return;
+                }
+                
                 const graficoData = await graficoResponse.json();
+                console.log('📈 Dados do gráfico mensal:', graficoData);
+                
                 const ctx2 = document.getElementById('chart2')?.getContext('2d');
                 if (ctx2) {
                     activeCharts['chart2'] = new Chart(ctx2, {
@@ -620,13 +639,14 @@
                 // Ranking
                 const rankingHTML = dashboardData.ranking_empresas.map((empresa, index) => {
                     let badge = index < 3 ? ['🥇', '🥈', '🥉'][index] : `${index + 1}`;
-                    return `<li class="ranking-item"><div class="ranking-position ${['gold', 'silver', 'bronze', 'regular'][Math.min(index, 3)]}">${badge}</div><div class="ranking-info"><div class="ranking-name">${fornecedor.nome}</div></div><div class="ranking-count">${empresa.total}</div></li>`;
+                    return `<li class="ranking-item"><div class="ranking-position ${['gold', 'silver', 'bronze', 'regular'][Math.min(index, 3)]}">${badge}</div><div class="ranking-info"><div class="ranking-name">${empresa.nome}</div></div><div class="ranking-count">${empresa.total}</div></li>`;
                 }).join('');
                 const rankingEl = document.getElementById('ranking');
                 if (rankingEl) rankingEl.innerHTML = rankingHTML;
 
             } catch (error) {
-                console.error('Erro ao carregar dashboard:', error);
+                console.error('❌ Erro fatal ao carregar dashboard:', error);
+                showAlert('Erro ao carregar dashboard. Por favor, recarregue a página.', 'error');
             }
         }
 
@@ -769,7 +789,7 @@
                     <li class="ranking-item">
                         <div class="ranking-position ${positionClass}">${index + 1}</div>
                         <div class="ranking-info">
-                            <div class="ranking-name">${fornecedor.nome}</div>
+                            <div class="ranking-name">${empresa.nome}</div>
                             <div class="ranking-value">Total de solicitações aprovadas</div>
                         </div>
                         <div class="ranking-count">${empresa.total}</div>
@@ -777,7 +797,7 @@
                 `;
             }).join('');
 
-            document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<li class="ranking-item"><div class="ranking-info"><div class="ranking-name">Nenhumo fornecedor com solicitações aprovadas</div></div></li>';
+            document.getElementById('rankingEmpresas').innerHTML = rankingHTML || '<li class="ranking-item"><div class="ranking-info"><div class="ranking-name">Nenhum fornecedor com solicitações aprovadas</div></div></li>';
         }
 
         async function changeModule(module) {

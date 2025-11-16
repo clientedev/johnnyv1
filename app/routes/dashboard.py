@@ -1,52 +1,123 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import db, Fornecedor, Solicitacao, Lote, EntradaEstoque, FornecedorTipoLotePreco, ItemSolicitacao
+from app.models import db, Fornecedor, Solicitacao, Lote, EntradaEstoque, FornecedorTipoLotePreco, ItemSolicitacao, TipoLote
 from app.auth import admin_required
-from sqlalchemy import func
-from datetime import datetime
+from sqlalchemy import func, extract
+from datetime import datetime, timedelta
 
 bp = Blueprint('dashboard', __name__, url_prefix='/api/dashboard')
 
 @bp.route('/stats', methods=['GET'])
 @admin_required
 def obter_estatisticas():
+    """Retorna estatísticas gerais do sistema"""
+    # Estatísticas de Solicitações/Relatórios
     total_pendentes = Solicitacao.query.filter_by(status='pendente').count()
     total_aprovados = Solicitacao.query.filter_by(status='aprovada').count()
-    total_rejeitados = Solicitacao.query.filter_by(status='rejeitada').count()
+    total_reprovados = Solicitacao.query.filter_by(status='rejeitada').count()
     
-    total_lotes = Lote.query.count()
-    lotes_abertos = Lote.query.filter_by(status='aberto').count()
-    lotes_aprovados = Lote.query.filter_by(status='aprovado').count()
+    # Valor total de lotes aprovados
+    valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
+        Lote.status == 'aprovado'
+    ).scalar() or 0
     
-    peso_total = db.session.query(func.sum(Lote.peso_total_kg)).scalar() or 0
-    valor_total = db.session.query(func.sum(Lote.valor_total)).scalar() or 0
+    # Quilos por tipo de lote
+    quilos_leve = db.session.query(func.sum(Lote.peso_total_kg)).join(
+        TipoLote, Lote.tipo_lote_id == TipoLote.id
+    ).filter(
+        TipoLote.classificacao == 'leve'
+    ).scalar() or 0
     
-    ranking_fornecedores = db.session.query(
+    quilos_media = db.session.query(func.sum(Lote.peso_total_kg)).join(
+        TipoLote, Lote.tipo_lote_id == TipoLote.id
+    ).filter(
+        TipoLote.classificacao == 'media'
+    ).scalar() or 0
+    
+    quilos_pesada = db.session.query(func.sum(Lote.peso_total_kg)).join(
+        TipoLote, Lote.tipo_lote_id == TipoLote.id
+    ).filter(
+        TipoLote.classificacao == 'pesada'
+    ).scalar() or 0
+    
+    # Ranking de fornecedores (top 10)
+    ranking = db.session.query(
+        Fornecedor.id,
         Fornecedor.nome,
-        func.count(Lote.id).label('total_lotes'),
-        func.sum(Lote.valor_total).label('valor_total')
-    ).join(Lote).group_by(
+        func.count(Solicitacao.id).label('total')
+    ).join(
+        Solicitacao, Solicitacao.fornecedor_id == Fornecedor.id
+    ).filter(
+        Solicitacao.status == 'aprovada'
+    ).group_by(
         Fornecedor.id, Fornecedor.nome
-    ).order_by(func.sum(Lote.valor_total).desc()).limit(5).all()
+    ).order_by(
+        func.count(Solicitacao.id).desc()
+    ).limit(10).all()
     
-    ranking = [{
-        'nome': nome, 
-        'total_lotes': int(total), 
-        'valor_total': round(float(valor) if valor else 0, 2)
-    } for nome, total, valor in ranking_fornecedores]
+    ranking_empresas = [
+        {
+            'id': r.id,
+            'nome': r.nome,
+            'total': r.total
+        } for r in ranking
+    ]
     
     return jsonify({
-        'solicitacoes': {
+        'relatorios': {
             'pendentes': total_pendentes,
-            'aprovadas': total_aprovados,
-            'rejeitadas': total_rejeitados
+            'aprovados': total_aprovados,
+            'reprovados': total_reprovados
         },
-        'lotes': {
-            'total': total_lotes,
-            'abertos': lotes_abertos,
-            'aprovados': lotes_aprovados
+        'valor_total': float(valor_total),
+        'quilos_por_tipo': {
+            'leve': float(quilos_leve),
+            'media': float(quilos_media),
+            'pesada': float(quilos_pesada)
         },
-        'peso_total_kg': round(float(peso_total), 2),
-        'valor_total': round(float(valor_total), 2),
-        'ranking_fornecedores': ranking
+        'ranking_empresas': ranking_empresas
+    }), 200
+
+@bp.route('/grafico-mensal', methods=['GET'])
+@admin_required
+def obter_grafico_mensal():
+    """Retorna dados de movimentação mensal para gráficos"""
+    from dateutil.relativedelta import relativedelta
+    
+    # Últimos 6 meses
+    hoje = datetime.now()
+    meses = []
+    dados = []
+    
+    # Nome do mês em português
+    nomes_meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    
+    for i in range(5, -1, -1):
+        # Calcular o mês corretamente usando relativedelta
+        mes_data = hoje - relativedelta(months=i)
+        mes_num = mes_data.month
+        ano = mes_data.year
+        
+        meses.append(nomes_meses[mes_num])
+        
+        # Calcular início e fim do mês para filtro correto
+        inicio_mes = datetime(ano, mes_num, 1)
+        if mes_num == 12:
+            fim_mes = datetime(ano + 1, 1, 1)
+        else:
+            fim_mes = datetime(ano, mes_num + 1, 1)
+        
+        # Contar solicitações aprovadas no mês usando range de datas
+        count = Solicitacao.query.filter(
+            Solicitacao.data_envio >= inicio_mes,
+            Solicitacao.data_envio < fim_mes,
+            Solicitacao.status == 'aprovada'
+        ).count()
+        
+        dados.append(count)
+    
+    return jsonify({
+        'labels': meses,
+        'data': dados
     }), 200
