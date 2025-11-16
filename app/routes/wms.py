@@ -756,7 +756,10 @@ def obter_estatisticas():
         total_lotes = Lote.query.count()
         lotes_bloqueados = Lote.query.filter_by(bloqueado=True).count()
         lotes_reservados = Lote.query.filter_by(reservado=True).count()
-        lotes_divergentes = Lote.query.filter(Lote.divergencias != None, Lote.divergencias != '[]').count()
+        lotes_divergentes = Lote.query.filter(
+            Lote.divergencias.isnot(None),
+            db.cast(Lote.divergencias, db.String) != '[]'
+        ).count()
         
         peso_total = db.session.query(db.func.sum(Lote.peso_total_kg)).scalar() or 0
         
