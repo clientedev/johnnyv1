@@ -266,6 +266,82 @@
                 
                 const lote = await response.json();
                 
+                // Buscar sublotes se o lote foi processado
+                let sublotesHTML = '';
+                if (lote.status === 'PROCESSADO' || lote.status === 'EM_SEPARACAO') {
+                    try {
+                        const sublotesResponse = await fetch(`/api/estoque/lotes?lote_pai_id=${loteId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+                        const sublotes = await sublotesResponse.json();
+                        
+                        if (sublotes && sublotes.length > 0) {
+                            sublotesHTML = `
+                                <div>
+                                    <h3>Sublotes Gerados na Separação (${sublotes.length})</h3>
+                                    <table class="table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Número</th>
+                                                <th>Tipo</th>
+                                                <th>Peso (kg)</th>
+                                                <th>Qualidade</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${sublotes.map(sub => `
+                                                <tr>
+                                                    <td><strong>${sub.numero_lote}</strong></td>
+                                                    <td>${sub.tipo_lote_nome || '-'}</td>
+                                                    <td>${sub.peso_total_kg?.toFixed(2) || 0}</td>
+                                                    <td>${sub.qualidade_recebida || '-'}</td>
+                                                    <td><span class="status ${getStatusClass(sub.status)}">${formatarStatus(sub.status)}</span></td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }
+                    } catch (error) {
+                        console.error('Erro ao buscar sublotes:', error);
+                    }
+                }
+                
+                // Buscar informações de separação se existir
+                let separacaoHTML = '';
+                if (lote.status === 'PROCESSADO' || lote.status === 'EM_SEPARACAO') {
+                    try {
+                        const separacaoResponse = await fetch(`/api/separacao/fila?status=FINALIZADA`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+                        const separacoes = await separacaoResponse.json();
+                        const separacao = separacoes.find(sep => sep.lote_id === loteId);
+                        
+                        if (separacao) {
+                            separacaoHTML = `
+                                <div>
+                                    <h3>Informações de Separação</h3>
+                                    <p><strong>Operador:</strong> ${separacao.operador_nome || '-'}</p>
+                                    <p><strong>Data Início:</strong> ${formatarData(separacao.data_inicio)}</p>
+                                    <p><strong>Data Finalização:</strong> ${formatarData(separacao.data_finalizacao)}</p>
+                                    <p><strong>Peso Total Sublotes:</strong> ${separacao.peso_total_sublotes?.toFixed(2) || 0} kg</p>
+                                    <p><strong>Peso Total Resíduos:</strong> ${separacao.peso_total_residuos?.toFixed(2) || 0} kg</p>
+                                    <p><strong>Percentual de Aproveitamento:</strong> <span style="font-size: 1.5rem; color: ${separacao.percentual_aproveitamento >= 80 ? 'var(--success-color)' : separacao.percentual_aproveitamento >= 60 ? 'var(--warning-color)' : 'var(--danger-color)'}; font-weight: bold;">${separacao.percentual_aproveitamento?.toFixed(2) || 0}%</span></p>
+                                    ${separacao.observacoes ? `<p><strong>Observações:</strong> ${separacao.observacoes}</p>` : ''}
+                                </div>
+                            `;
+                        }
+                    } catch (error) {
+                        console.error('Erro ao buscar separação:', error);
+                    }
+                }
+                
                 const anexosHTML = lote.anexos && lote.anexos.length > 0 
                     ? lote.anexos.map(anexo => `<img src="/${anexo}" style="max-width: 200px; margin: 0.5rem;">`).join('')
                     : '<p>Sem anexos</p>';
@@ -321,6 +397,10 @@
                             <p><strong>Data Criação:</strong> ${formatarData(lote.data_criacao)}</p>
                         </div>
                         
+                        ${separacaoHTML}
+                        
+                        ${sublotesHTML}
+                        
                         <div>
                             <h3>Divergências</h3>
                             ${divergenciasHTML}
@@ -343,6 +423,18 @@
                 console.error('Erro:', error);
                 alert('Erro ao carregar detalhes do lote');
             }
+        }
+
+        function getStatusClass(status) {
+            const statusClasses = {
+                'AGUARDANDO_SEPARACAO': 'status-pendente',
+                'EM_SEPARACAO': 'status-em-andamento',
+                'PROCESSADO': 'status-aprovado',
+                'APROVADO': 'status-aprovado',
+                'CRIADO_SEPARACAO': 'status-em-andamento',
+                'BLOQUEADO': 'status-rejeitado'
+            };
+            return statusClasses[status] || '';
         }
 
         function fecharModal() {
