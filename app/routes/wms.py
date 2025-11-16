@@ -37,7 +37,10 @@ def listar_lotes_wms():
             query = query.filter_by(reservado=reservado.lower() == 'true')
         if divergente is not None:
             if divergente.lower() == 'true':
-                query = query.filter(Lote.divergencias != None, Lote.divergencias != '[]')
+                query = query.filter(
+                    Lote.divergencias.isnot(None),
+                    db.cast(Lote.divergencias, db.String) != '[]'
+                )
         
         lotes = query.order_by(Lote.data_criacao.desc()).all()
         
