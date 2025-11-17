@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conferência - MRX Systems</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/app.js"></script>
     <style>
         .conferencia-container {
             padding: 20px;
@@ -201,8 +205,26 @@
     </style>
 </head>
 <body>
-    {% include 'includes/_rbac_header.html' %}
-    {% include 'includes/_rbac_nav.html' %}
+    <header>
+        <div class="header-content" style="justify-content: space-between;">
+            <div class="logo">
+                <img src="/static/images/mrx-logo.png" alt="MRX">
+                <span>Conferência</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count" id="headerNotificationCount" style="display: none;">0</span>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Sair</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav" id="navMenuMobile">
+        <!-- Menus serão renderizados dinamicamente pelo RBAC -->
+    </nav>
 
     <div class="conferencia-container">
         <div class="conferencia-header">
@@ -568,5 +590,6 @@
         carregarEstatisticas();
         carregarConferencias();
     </script>
+    <script src="/static/js/rbac.js"></script>
 </body>
 </html>
