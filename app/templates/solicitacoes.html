@@ -46,26 +46,10 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Data</th>
-                            <th>Funcionário</th>
-                            <th>Fornecedor</th>
-                            <th>Itens</th>
-                            <th>Peso Total</th>
-                            <th>Valor Total</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelaSolicitacoes">
-                        <tr><td colspan="9" class="loading">Carregando...</td></tr>
-                    </tbody>
-                </table>
+        <div id="listaSolicitacoes" class="solicitacoes-grid">
+            <div class="loading-card">
+                <div class="spinner-border"></div>
+                <p>Carregando solicitações...</p>
             </div>
         </div>
 
@@ -82,27 +66,293 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nº OC</th>
-                            <th>Nº SC</th>
-                            <th>Fornecedor</th>
-                            <th>Valor Total</th>
-                            <th>Status</th>
-                            <th>Aprovador</th>
-                            <th>Data Criação</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelaOCs">
-                        <tr><td colspan="8" class="loading">Carregando...</td></tr>
-                    </tbody>
-                </table>
+        <div id="listaOCs" class="ocs-grid">
+            <div class="loading-card">
+                <div class="spinner-border"></div>
+                <p>Carregando ordens de compra...</p>
             </div>
         </div>
+        
+        <style>
+            /* Grid responsivo para Solicitações */
+            .solicitacoes-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+            
+            @media (min-width: 768px) {
+                .solicitacoes-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+            
+            @media (min-width: 1200px) {
+                .solicitacoes-grid {
+                    grid-template-columns: repeat(3, 1fr);
+                }
+            }
+            
+            /* Grid responsivo para Ordens de Compra */
+            .ocs-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+            
+            @media (min-width: 768px) {
+                .ocs-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+            
+            @media (min-width: 1200px) {
+                .ocs-grid {
+                    grid-template-columns: repeat(3, 1fr);
+                }
+            }
+            
+            /* Card de Solicitação */
+            .solicitacao-card {
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                border: 1px solid #e5e7eb;
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .solicitacao-card:hover {
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+                transform: translateY(-2px);
+            }
+            
+            .solicitacao-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 4px;
+                background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            }
+            
+            /* Card de Ordem de Compra */
+            .oc-card {
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                border: 1px solid #e5e7eb;
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .oc-card:hover {
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+                transform: translateY(-2px);
+            }
+            
+            .oc-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 4px;
+                background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+            }
+            
+            /* Header do Card */
+            .card-header-section {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+            
+            .card-icon {
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+            
+            .solicitacao-icon {
+                background: linear-gradient(135deg, #3b82f6, #60a5fa);
+            }
+            
+            .oc-icon {
+                background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            }
+            
+            .card-icon i {
+                color: white;
+                font-size: 24px;
+            }
+            
+            .card-title-section {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .card-id {
+                font-size: 20px;
+                font-weight: 700;
+                color: #111827;
+                margin: 0 0 4px 0;
+            }
+            
+            .card-date {
+                font-size: 13px;
+                color: #6b7280;
+            }
+            
+            /* Informações do Card */
+            .card-info-grid {
+                display: grid;
+                gap: 10px;
+                margin-bottom: 16px;
+            }
+            
+            .info-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+                color: #374151;
+            }
+            
+            .info-row i {
+                color: #3b82f6;
+                width: 18px;
+                font-size: 14px;
+                flex-shrink: 0;
+            }
+            
+            .info-label {
+                font-weight: 600;
+                color: #6b7280;
+                min-width: 90px;
+            }
+            
+            .info-value {
+                color: #111827;
+                word-break: break-word;
+            }
+            
+            /* Status Badge */
+            .status-section {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px;
+                background: #f9fafb;
+                border-radius: 8px;
+                margin-bottom: 16px;
+            }
+            
+            .status-badge {
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .badge-pendente {
+                background: #fef3c7;
+                color: #92400e;
+            }
+            
+            .badge-aprovada {
+                background: #d1fae5;
+                color: #065f46;
+            }
+            
+            .badge-rejeitada {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+            
+            /* Valor em destaque */
+            .valor-destaque {
+                font-size: 18px;
+                font-weight: 700;
+                color: #059669;
+            }
+            
+            /* Ações do Card */
+            .card-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding-top: 16px;
+                border-top: 1px solid #f3f4f6;
+            }
+            
+            .card-actions .btn {
+                flex: 1;
+                min-width: fit-content;
+                font-size: 13px;
+                padding: 8px 12px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+            }
+            
+            /* Loading e Empty States */
+            .loading-card {
+                grid-column: 1 / -1;
+                text-align: center;
+                padding: 40px;
+                color: #6b7280;
+            }
+            
+            .spinner-border {
+                border: 3px solid #f3f4f6;
+                border-top: 3px solid #3b82f6;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 16px;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            .empty-state {
+                grid-column: 1 / -1;
+                text-align: center;
+                padding: 60px 20px;
+                color: #6b7280;
+            }
+            
+            .empty-state i {
+                font-size: 48px;
+                color: #d1d5db;
+                margin-bottom: 16px;
+            }
+            
+            .empty-state h3 {
+                font-size: 18px;
+                color: #374151;
+                margin-bottom: 8px;
+            }
+        </style>
     </main>
 
     <!-- Modal Nova Solicitação -->
@@ -360,44 +610,101 @@
                 if (status) url += `?status=${status}`;
                 
                 const response = await fetchAPI(url);
+                const container = document.getElementById('listaSolicitacoes');
+                
                 if (!response) {
-                    const tbody = document.getElementById('tabelaSolicitacoes');
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Erro de conexão com o servidor</td></tr>';
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+                            <h3 style="color: #ef4444;">Erro de conexão com o servidor</h3>
+                            <p>Verifique sua conexão e tente novamente</p>
+                        </div>
+                    `;
                     return;
                 }
                 if (!response.ok) {
-                    const tbody = document.getElementById('tabelaSolicitacoes');
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Erro ao carregar solicitações</td></tr>';
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+                            <h3 style="color: #ef4444;">Erro ao carregar solicitações</h3>
+                            <p>Tente recarregar a página</p>
+                        </div>
+                    `;
                     return;
                 }
                 const solicitacoes = await response.json();
 
-                const tbody = document.getElementById('tabelaSolicitacoes');
-
                 if (solicitacoes.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhuma solicitação encontrada</td></tr>';
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>Nenhuma solicitação encontrada</h3>
+                            <p>As solicitações criadas aparecerão aqui</p>
+                        </div>
+                    `;
                     return;
                 }
 
-                tbody.innerHTML = solicitacoes.map(s => `
-                    <tr>
-                        <td><strong>#${s.id}</strong></td>
-                        <td>${formatDate(s.data_envio)}</td>
-                        <td>${s.funcionario_nome}</td>
-                        <td>${s.fornecedor_nome}</td>
-                        <td>${s.total_itens || 0}</td>
-                        <td>${s.total_peso_kg ? s.total_peso_kg.toFixed(2) : '0.00'} kg</td>
-                        <td>R$ ${s.total_valor ? s.total_valor.toFixed(2) : '0.00'}</td>
-                        <td><span class="badge badge-${s.status}">${s.status.toUpperCase()}</span></td>
-                        <td>
-                            <button class="btn btn-secondary" onclick="verDetalhes(${s.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Ver</button>
-                        </td>
-                    </tr>
-                `).join('');
+                container.innerHTML = solicitacoes.map(s => {
+                    const statusClass = s.status === 'aprovada' ? 'badge-aprovada' : 
+                                       s.status === 'rejeitada' ? 'badge-rejeitada' : 
+                                       'badge-pendente';
+                    const statusLabel = s.status.toUpperCase();
+                    
+                    return `
+                        <div class="solicitacao-card">
+                            <div class="card-header-section">
+                                <div class="card-icon solicitacao-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h3 class="card-id">Solicitação #${s.id}</h3>
+                                    <div class="card-date">${formatDate(s.data_envio)}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card-info-grid">
+                                <div class="info-row">
+                                    <i class="fas fa-user"></i>
+                                    <span class="info-value">${s.funcionario_nome}</span>
+                                </div>
+                                <div class="info-row">
+                                    <i class="fas fa-building"></i>
+                                    <span class="info-value">${s.fornecedor_nome}</span>
+                                </div>
+                                <div class="info-row">
+                                    <i class="fas fa-boxes"></i>
+                                    <span class="info-value">${s.total_itens || 0} ${s.total_itens === 1 ? 'item' : 'itens'}</span>
+                                </div>
+                                <div class="info-row">
+                                    <i class="fas fa-weight"></i>
+                                    <span class="info-value">${s.total_peso_kg ? s.total_peso_kg.toFixed(2) : '0.00'} kg</span>
+                                </div>
+                            </div>
+                            
+                            <div class="status-section">
+                                <span class="status-badge ${statusClass}">${statusLabel}</span>
+                                <span class="valor-destaque">R$ ${s.total_valor ? s.total_valor.toFixed(2) : '0.00'}</span>
+                            </div>
+                            
+                            <div class="card-actions">
+                                <button class="btn btn-primary" onclick="verDetalhes(${s.id})">
+                                    <i class="fas fa-eye"></i> Ver Detalhes
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             } catch (error) {
                 console.error('Erro ao carregar solicitações:', error);
-                const tbody = document.getElementById('tabelaSolicitacoes');
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Erro ao carregar solicitações</td></tr>';
+                const container = document.getElementById('listaSolicitacoes');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+                        <h3 style="color: #ef4444;">Erro ao carregar solicitações</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
             }
         }
 
@@ -949,32 +1256,47 @@
                 if (status) url += `?status=${status}`;
                 
                 const response = await fetchAPI(url);
+                const container = document.getElementById('listaOCs');
                 
                 if (!response) {
                     console.error(' Sem resposta do servidor');
-                    const tbody = document.getElementById('tabelaOCs');
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro de conexão com o servidor</td></tr>';
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+                            <h3 style="color: #ef4444;">Erro de conexão com o servidor</h3>
+                            <p>Verifique sua conexão e tente novamente</p>
+                        </div>
+                    `;
                     return;
                 }
                 
                 if (!response.ok) {
                     console.error(' Erro HTTP:', response.status);
-                    const tbody = document.getElementById('tabelaOCs');
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro ao carregar ordens de compra</td></tr>';
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+                            <h3 style="color: #ef4444;">Erro ao carregar ordens de compra</h3>
+                            <p>Tente recarregar a página</p>
+                        </div>
+                    `;
                     return;
                 }
                 
                 const ocs = await response.json();
                 console.log(` ${ocs.length} OC(s) carregada(s)`);
-                
-                const tbody = document.getElementById('tabelaOCs');
 
                 if (ocs.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Nenhuma ordem de compra encontrada</td></tr>';
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3>Nenhuma ordem de compra encontrada</h3>
+                            <p>As ordens de compra aparecerão aqui</p>
+                        </div>
+                    `;
                     return;
                 }
 
-                tbody.innerHTML = ocs.map(oc => {
+                container.innerHTML = ocs.map(oc => {
                     const statusClass = oc.status === 'aprovada' ? 'badge-aprovada' : 
                                        oc.status === 'rejeitada' ? 'badge-rejeitada' : 
                                        oc.status === 'em_analise' ? 'badge-pendente' : 'badge-pendente';
@@ -987,27 +1309,58 @@
                         (usuarioAtual.perfil && (usuarioAtual.perfil.nome === 'Administrador' || usuarioAtual.perfil.nome === 'Financeiro')));
                     
                     return `
-                        <tr>
-                            <td><strong>#${oc.id}</strong></td>
-                            <td><strong>#${oc.solicitacao_id}</strong></td>
-                            <td>${oc.fornecedor_nome}</td>
-                            <td>R$ ${oc.valor_total.toFixed(2)}</td>
-                            <td><span class="badge ${statusClass}">${statusLabel}</span></td>
-                            <td>${oc.aprovador_nome || '-'}</td>
-                            <td>${formatDate(oc.criado_em)}</td>
-                            <td>
+                        <div class="oc-card">
+                            <div class="card-header-section">
+                                <div class="card-icon oc-icon">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h3 class="card-id">OC #${oc.id}</h3>
+                                    <div class="card-date">SC #${oc.solicitacao_id} • ${formatDate(oc.criado_em)}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card-info-grid">
+                                <div class="info-row">
+                                    <i class="fas fa-building"></i>
+                                    <span class="info-value">${oc.fornecedor_nome}</span>
+                                </div>
+                                ${oc.aprovador_nome ? `
+                                    <div class="info-row">
+                                        <i class="fas fa-user-check"></i>
+                                        <span class="info-value">${oc.aprovador_nome}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="status-section">
+                                <span class="status-badge ${statusClass}">${statusLabel}</span>
+                                <span class="valor-destaque">R$ ${oc.valor_total.toFixed(2)}</span>
+                            </div>
+                            
+                            <div class="card-actions">
                                 ${podeAprovar && oc.status === 'em_analise' ? 
-                                    `<button class="btn btn-primary" onclick="abrirModalAprovarOC(${oc.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Aprovar/Reprovar</button>` :
-                                    `<button class="btn btn-secondary" onclick="verDetalhesOC(${oc.id})" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Ver Detalhes</button>`
+                                    `<button class="btn btn-success" onclick="abrirModalAprovarOC(${oc.id})">
+                                        <i class="fas fa-check-circle"></i> Aprovar/Reprovar
+                                    </button>` :
+                                    `<button class="btn btn-secondary" onclick="verDetalhesOC(${oc.id})">
+                                        <i class="fas fa-eye"></i> Ver Detalhes
+                                    </button>`
                                 }
-                            </td>
-                        </tr>
+                            </div>
+                        </div>
                     `;
                 }).join('');
             } catch (error) {
                 console.error('Erro ao carregar OCs:', error);
-                const tbody = document.getElementById('tabelaOCs');
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro ao carregar ordens de compra</td></tr>';
+                const container = document.getElementById('listaOCs');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+                        <h3 style="color: #ef4444;">Erro ao carregar ordens de compra</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
             }
         }
 
