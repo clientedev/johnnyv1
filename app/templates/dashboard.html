@@ -21,20 +21,44 @@
         /* Período Selector - Mobile Optimized */
         .period-selector {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             overflow-x: auto;
+            overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
-            padding: 16px 16px;
+            padding: 16px;
             margin: 0 -16px 24px -16px;
-            scrollbar-width: none;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(5, 150, 105, 0.3) transparent;
+            position: relative;
+        }
+        
+        /* Indicador de scroll - gradiente nas bordas */
+        .period-selector::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 40px;
+            background: linear-gradient(to left, rgba(249, 250, 251, 0.9), transparent);
+            pointer-events: none;
         }
 
         .period-selector::-webkit-scrollbar {
-            display: none;
+            height: 4px;
+        }
+
+        .period-selector::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .period-selector::-webkit-scrollbar-thumb {
+            background: rgba(5, 150, 105, 0.3);
+            border-radius: 2px;
         }
 
         .period-btn {
-            flex-shrink: 0;
+            flex: 0 0 auto;
             padding: 10px 16px;
             border: 2px solid var(--gray-300);
             background: white;
@@ -47,6 +71,7 @@
             -webkit-tap-highlight-color: transparent;
             white-space: nowrap;
             text-align: center;
+            min-width: fit-content;
         }
 
         .period-btn:active {
