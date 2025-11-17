@@ -119,6 +119,22 @@ function renderizarMenusMobile(containerId = 'navMenuMobile') {
 
     container.innerHTML = '';
 
+    // Mapeamento de ícones Material Icons para Font Awesome
+    const iconMap = {
+        'settings': 'fas fa-cog',
+        'dashboard': 'fas fa-chart-pie',
+        'request_quote': 'fas fa-file-invoice',
+        'business': 'fas fa-building',
+        'input': 'fas fa-sign-in-alt',
+        'fact_check': 'fas fa-check-double',
+        'inventory_2': 'fas fa-warehouse',
+        'format_list_bulleted': 'fas fa-list',
+        'local_shipping': 'fas fa-truck',
+        'notifications': 'fas fa-bell',
+        'receipt_long': 'fas fa-receipt',
+        'verified': 'fas fa-shield-alt'
+    };
+
     currentMenus.forEach((menu, index) => {
         const a = document.createElement('a');
         a.href = menu.url || '#';
@@ -128,9 +144,10 @@ function renderizarMenusMobile(containerId = 'navMenuMobile') {
             a.classList.add('active');
         }
 
-        const icon = document.createElement('span');
-        icon.className = 'material-icons icon';
-        icon.textContent = menu.icone || 'circle';
+        // Usar Font Awesome ao invés de Material Icons
+        const icon = document.createElement('i');
+        const iconClass = iconMap[menu.icone] || 'fas fa-circle';
+        icon.className = iconClass + ' icon';
 
         const span = document.createElement('span');
         span.textContent = menu.nome || 'Menu';
