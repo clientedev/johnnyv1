@@ -128,9 +128,9 @@ function renderizarMenusMobile(containerId = 'navMenuMobile') {
             a.classList.add('active');
         }
 
-        // Usar Font Awesome ao invés de Material Icons
-        const icon = document.createElement('i');
-        icon.className = (menu.icone || 'fas fa-circle') + ' icon';
+        const icon = document.createElement('span');
+        icon.className = 'material-icons icon';
+        icon.textContent = menu.icone || 'circle';
 
         const span = document.createElement('span');
         span.textContent = menu.nome || 'Menu';
