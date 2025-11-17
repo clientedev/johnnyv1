@@ -185,6 +185,36 @@ PERFIL_CONFIG = {
     }
 }
 
+MENUS_POR_PERFIL = {
+    'Administrador': [
+        {'id': 1, 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'fas fa-chart-line'},
+        {'id': 2, 'nome': 'Solicitações', 'url': '/solicitacoes.html', 'icone': 'fas fa-file-alt'},
+        {'id': 3, 'nome': 'Conferência', 'url': '/conferencias.html', 'icone': 'fas fa-clipboard-check'},
+        {'id': 4, 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'fas fa-building'},
+        {'id': 5, 'nome': 'Lotes', 'url': '/lotes.html', 'icone': 'fas fa-warehouse'},
+        {'id': 6, 'nome': 'Compras', 'url': '/compras.html', 'icone': 'fas fa-shopping-cart'},
+        {'id': 7, 'nome': 'Administração', 'url': '/administracao.html', 'icone': 'fas fa-cog'},
+    ],
+    'Comprador': [
+        {'id': 1, 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'fas fa-chart-line'},
+        {'id': 2, 'nome': 'Solicitações', 'url': '/solicitacoes.html', 'icone': 'fas fa-file-alt'},
+        {'id': 4, 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'fas fa-building'},
+    ],
+    'Financeiro': [
+        {'id': 1, 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'fas fa-chart-line'},
+        {'id': 6, 'nome': 'Compras', 'url': '/compras.html', 'icone': 'fas fa-shopping-cart'},
+    ],
+    'Estoquista': [
+        {'id': 1, 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'fas fa-chart-line'},
+        {'id': 3, 'nome': 'Conferência', 'url': '/conferencias.html', 'icone': 'fas fa-clipboard-check'},
+        {'id': 5, 'nome': 'Lotes', 'url': '/lotes.html', 'icone': 'fas fa-warehouse'},
+    ],
+    'Logística': [
+        {'id': 1, 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'fas fa-chart-line'},
+        {'id': 8, 'nome': 'Logística', 'url': '/logistica.html', 'icone': 'fas fa-truck'},
+    ]
+}
+
 TIPOS_USUARIO = {
     'admin': {
         'nome': 'Administrador',
