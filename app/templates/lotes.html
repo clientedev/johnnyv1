@@ -9,6 +9,32 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--gray-200);
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--gray-600);
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .tab:hover {
+            color: var(--primary-color);
+        }
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
         .tab-content {
             display: none;
         }
@@ -107,33 +133,30 @@
         </div>
     </header>
 
-    <nav class="bottom-nav" id="navMenuMobile">
-        <!-- Menus serão renderizados dinamicamente pelo RBAC -->
-    </nav>
+    <nav class="bottom-nav" id="navMenuMobile"></nav>
 
     <main class="container mt-4">
         <h1 style="font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: var(--spacing-lg);">
-            <i class="fas fa-warehouse"></i> WMS - Gerenciamento de Estoque
+            <i class="fas fa-warehouse"></i> WMS Full MRX
         </h1>
 
-        <!-- Filtros e Ações -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="changeView('visao-geral')">
-                        <i class="fas fa-chart-pie"></i> Visão Geral
-                    </button>
-                    <button class="btn btn-secondary" onclick="changeView('lotes-ativos')">
-                        <i class="fas fa-boxes"></i> Lotes Ativos
-                    </button>
-                    <button class="btn btn-secondary" onclick="changeView('movimentacoes')">
-                        <i class="fas fa-exchange-alt"></i> Movimentações
-                    </button>
-                    <button class="btn btn-secondary" onclick="changeView('inventario')">
-                        <i class="fas fa-clipboard-list"></i> Inventário
-                    </button>
-                </div>
-            </div>
+        <!-- TABs Navigation -->
+        <div class="tabs">
+            <button class="tab active" data-tab="visao-geral">
+                <i class="fas fa-chart-pie"></i> Visão Geral
+            </button>
+            <button class="tab" data-tab="lotes-ativos">
+                <i class="fas fa-boxes"></i> Lotes Ativos
+            </button>
+            <button class="tab" data-tab="movimentacoes">
+                <i class="fas fa-exchange-alt"></i> Movimentações
+            </button>
+            <button class="tab" data-tab="detalhes-lote">
+                <i class="fas fa-box-open"></i> Detalhes do Lote
+            </button>
+            <button class="tab" data-tab="inventario">
+                <i class="fas fa-clipboard-list"></i> Inventário
+            </button>
         </div>
 
         <!-- TAB 1: Visão Geral do Estoque -->
@@ -476,44 +499,29 @@
         let movimentacoesData = [];
         let inventariosData = [];
 
-        // View Management
-        function changeView(viewId) {
-            // Atualizar botões ativos
-            document.querySelectorAll('.btn').forEach(btn => {
-                if (btn.onclick && btn.onclick.toString().includes(viewId)) {
-                    btn.className = 'btn btn-primary';
-                } else if (btn.onclick && btn.onclick.toString().includes('changeView')) {
-                    btn.className = 'btn btn-secondary';
-                }
+        // TAB Management
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.dataset.tab;
+                
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+                
+                if (tabId === 'lotes-ativos') carregarLotesAtivos();
+                else if (tabId === 'movimentacoes') carregarMovimentacoes();
+                else if (tabId === 'detalhes-lote') mostrarDetalhesTab();
+                else if (tabId === 'inventario') carregarInventarios();
+                else if (tabId === 'visao-geral') carregarVisaoGeral();
             });
-            
-            // Mostrar/ocultar conteúdos
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            const targetContent = document.getElementById(viewId);
-            if (targetContent) {
-                targetContent.classList.add('active');
-            }
-            
-            // Carregar dados específicos da view
-            if (viewId === 'lotes-ativos') carregarLotesAtivos();
-            else if (viewId === 'movimentacoes') carregarMovimentacoes();
-            else if (viewId === 'detalhes-lote') mostrarDetalhesTab();
-            else if (viewId === 'inventario') carregarInventarios();
-            else if (viewId === 'visao-geral') carregarVisaoGeral();
-        }
-        
-        // Tornar função global
-        window.changeView = changeView;
+        });
 
         // Carregamento Inicial
         async function carregarPagina() {
             const user = await verificarAuth();
             if (!user) return;
-            
-            // Renderizar menu RBAC
-            if (typeof renderizarMenusRBAC === 'function') {
-                await renderizarMenusRBAC();
-            }
             
             await carregarVisaoGeral();
             await carregarFiltros();
