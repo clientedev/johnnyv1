@@ -923,7 +923,7 @@ textarea:focus-visible {
     align-items: center;
     height: 70px;
     z-index: 999;
-    padding: 0 var(--spacing-sm);
+    padding: 0 4px;
 }
 
 .bottom-nav-item {
@@ -934,11 +934,15 @@ textarea:focus-visible {
     flex: 1;
     text-decoration: none;
     color: var(--gray-600);
-    font-size: 0.75rem;
-    padding: var(--spacing-xs);
+    font-size: 0.65rem;
+    padding: 4px 2px;
     transition: color 0.3s ease;
     min-height: var(--touch-target);
     gap: 0.25rem;
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .bottom-nav-item:active {
@@ -950,7 +954,7 @@ textarea:focus-visible {
 }
 
 .bottom-nav-item .icon {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     transition: transform 0.3s ease;
 }
 
@@ -958,16 +962,25 @@ textarea:focus-visible {
     transform: scale(1.1);
 }
 
+.bottom-nav-item span:not(.icon) {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+}
+
 /* FAB Button (Central Scanner) */
 .fab-container {
     position: relative;
     flex: 0 0 auto;
-    margin: 0 var(--spacing-sm);
+    margin: 0 2px;
 }
 
 .fab-button {
-    width: 56px;
-    height: 56px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background: var(--primary-color);
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
@@ -979,7 +992,7 @@ textarea:focus-visible {
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
-    bottom: 15px;
+    bottom: 12px;
 }
 
 .fab-button:active {
@@ -988,7 +1001,7 @@ textarea:focus-visible {
 }
 
 .fab-button .icon {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     color: white;
 }
 
