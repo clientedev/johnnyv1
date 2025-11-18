@@ -451,17 +451,45 @@ def aprovar_solicitacao(id):
         print(f"   Valor: R$ {oc.valor_total:.2f}")
         
         print(f"\n ETAPA 3: Criando lotes...")
-        lotes_por_tipo = {}
-        for item in solicitacao.itens:
-            chave = (item.tipo_lote_id, item.estrelas_final)
-            if chave not in lotes_por_tipo:
-                lotes_por_tipo[chave] = []
-            lotes_por_tipo[chave].append(item)
         
-        for (tipo_lote_id, estrelas), itens in lotes_por_tipo.items():
+        # NOVO: Agrupar por material_id (sistema atualizado) ou tipo_lote_id (retrocompatibilidade)
+        lotes_agrupados = {}
+        
+        for item in solicitacao.itens:
+            # Usar material_id se disponível, senão usar tipo_lote_id (retrocompatibilidade)
+            if item.material_id:
+                chave = ('material', item.material_id, item.estrelas_final)
+            elif item.tipo_lote_id:
+                chave = ('tipo_lote', item.tipo_lote_id, item.estrelas_final)
+            else:
+                print(f"    ⚠️ Item {item.id} sem material_id nem tipo_lote_id - pulando")
+                continue
+            
+            if chave not in lotes_agrupados:
+                lotes_agrupados[chave] = []
+            lotes_agrupados[chave].append(item)
+        
+        for chave, itens in lotes_agrupados.items():
+            tipo_chave, id_referencia, estrelas = chave
+            
             peso_total = sum(item.peso_kg for item in itens)
             valor_total = sum((item.valor_calculado or 0.0) for item in itens)
             estrelas_media = sum((item.estrelas_final or 3) for item in itens) / len(itens)
+            
+            # Determinar classificação predominante
+            classificacoes = [item.classificacao for item in itens if item.classificacao]
+            classificacao_predominante = max(set(classificacoes), key=classificacoes.count) if classificacoes else None
+            
+            # Para lotes baseados em material, precisamos criar um tipo_lote genérico ou usar um existente
+            # Por ora, vamos usar tipo_lote_id = 1 como fallback (você pode ajustar conforme necessário)
+            if tipo_chave == 'material':
+                # Buscar material para pegar informações
+                material = MaterialBase.query.get(id_referencia)
+                tipo_lote_id = 1  # Tipo genérico - ajuste conforme seu modelo de negócio
+                print(f"    Criando lote para material: {material.nome if material else id_referencia}")
+            else:
+                tipo_lote_id = id_referencia
+                print(f"    Criando lote para tipo_lote_id: {tipo_lote_id}")
             
             lote = Lote(
                 fornecedor_id=solicitacao.fornecedor_id,
@@ -471,13 +499,14 @@ def aprovar_solicitacao(id):
                 valor_total=valor_total,
                 quantidade_itens=len(itens),
                 estrelas_media=estrelas_media,
+                classificacao_predominante=classificacao_predominante,
                 tipo_retirada=solicitacao.tipo_retirada,
                 status='aberto'
             )
             db.session.add(lote)
             db.session.flush()
             
-            print(f"    Lote criado: {lote.numero_lote} (Tipo: {tipo_lote_id}, Estrelas: {estrelas})")
+            print(f"    Lote criado: {lote.numero_lote} (Estrelas: {estrelas}, Itens: {len(itens)})")
             lotes_criados.append(lote.numero_lote)
             
             for item in itens:
