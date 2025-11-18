@@ -104,6 +104,26 @@ def create_app():
         
         db.create_all()
         
+        # Inicializar tabelas de preço
+        from app.models import TabelaPreco, Perfil
+        tabelas_existentes = TabelaPreco.query.all()
+        if len(tabelas_existentes) < 3:
+            niveis_necessarios = {1, 2, 3}
+            niveis_existentes = {t.nivel_estrelas for t in tabelas_existentes}
+            niveis_faltantes = niveis_necessarios - niveis_existentes
+            
+            for nivel in sorted(niveis_faltantes):
+                nome_estrelas = "Estrela" if nivel == 1 else "Estrelas"
+                tabela = TabelaPreco(
+                    nome=f'{nivel} {nome_estrelas}',
+                    nivel_estrelas=nivel,
+                    ativo=True
+                )
+                db.session.add(tabela)
+            
+            db.session.commit()
+            print(f"✓ Inicializadas {len(niveis_faltantes)} tabela(s) de preço")
+        
         from app.auth import criar_admin_padrao
         criar_admin_padrao()
     

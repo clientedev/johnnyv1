@@ -8,6 +8,30 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from io import BytesIO
 from datetime import datetime
 
+def garantir_tabelas_preco():
+    """Garante que as 3 tabelas de preço necessárias existam no banco de dados"""
+    tabelas_existentes = TabelaPreco.query.all()
+    
+    if len(tabelas_existentes) >= 3:
+        return tabelas_existentes
+    
+    # Criar as tabelas faltantes
+    niveis_necessarios = {1, 2, 3}
+    niveis_existentes = {t.nivel_estrelas for t in tabelas_existentes}
+    niveis_faltantes = niveis_necessarios - niveis_existentes
+    
+    for nivel in niveis_faltantes:
+        nome_estrelas = "Estrela" if nivel == 1 else "Estrelas"
+        tabela = TabelaPreco(
+            nome=f'{nivel} {nome_estrelas}',
+            nivel_estrelas=nivel,
+            ativo=True
+        )
+        db.session.add(tabela)
+    
+    db.session.flush()
+    return TabelaPreco.query.all()
+
 bp = Blueprint('materiais_base', __name__, url_prefix='/api/materiais-base')
 
 def gerar_codigo_automatico():
@@ -109,25 +133,40 @@ def criar_material():
         db.session.add(material)
         db.session.flush()
         
-        tabelas_preco = TabelaPreco.query.all()
+        tabelas_preco = garantir_tabelas_preco()
         precos = data.get('precos', {})
         
+        if not precos:
+            return jsonify({'erro': 'É necessário fornecer os preços para todas as estrelas'}), 400
+        
+        # Validar que TODOS os 3 preços estão presentes e são válidos
+        precos_validados = {}
         for tabela in tabelas_preco:
             preco_key = f'preco_{tabela.nivel_estrelas}_estrela'
             preco_valor_raw = precos.get(preco_key)
             
-            try:
-                if preco_valor_raw is None or preco_valor_raw == '':
-                    preco_valor = 0.00
-                else:
-                    preco_valor = float(preco_valor_raw)
-            except (ValueError, TypeError):
-                preco_valor = 0.00
+            # Rejeitar se o preço não foi fornecido
+            if preco_valor_raw is None or preco_valor_raw == '':
+                return jsonify({'erro': f'Preço para {tabela.nivel_estrelas} estrela(s) é obrigatório'}), 400
             
+            # Tentar converter para float
+            try:
+                preco_valor = float(preco_valor_raw)
+            except (ValueError, TypeError):
+                return jsonify({'erro': f'Preço para {tabela.nivel_estrelas} estrela(s) deve ser um número válido'}), 400
+            
+            # Validar que o preço é positivo
+            if preco_valor <= 0:
+                return jsonify({'erro': f'Preço para {tabela.nivel_estrelas} estrela(s) deve ser maior que zero'}), 400
+            
+            precos_validados[tabela.id] = preco_valor
+        
+        # Agora criar os itens de preço com valores validados
+        for tabela in tabelas_preco:
             preco_item = TabelaPrecoItem(
                 tabela_preco_id=tabela.id,
                 material_id=material.id,
-                preco_por_kg=preco_valor,
+                preco_por_kg=precos_validados[tabela.id],
                 ativo=True
             )
             db.session.add(preco_item)
@@ -178,7 +217,21 @@ def atualizar_material(id):
                 if tabela:
                     preco_key = f'preco_{tabela.nivel_estrelas}_estrela'
                     if preco_key in precos:
-                        preco_item.preco_por_kg = float(precos[preco_key])
+                        preco_valor_raw = precos[preco_key]
+                        
+                        # Rejeitar valores inválidos
+                        if preco_valor_raw is None or preco_valor_raw == '':
+                            return jsonify({'erro': f'Preço para {tabela.nivel_estrelas} estrela(s) não pode estar vazio'}), 400
+                        
+                        try:
+                            preco_valor = float(preco_valor_raw)
+                        except (ValueError, TypeError):
+                            return jsonify({'erro': f'Preço para {tabela.nivel_estrelas} estrela(s) deve ser um número válido'}), 400
+                        
+                        if preco_valor <= 0:
+                            return jsonify({'erro': f'Preço para {tabela.nivel_estrelas} estrela(s) deve ser maior que zero'}), 400
+                        
+                        preco_item.preco_por_kg = preco_valor
         
         material.data_atualizacao = datetime.utcnow()
         db.session.commit()
