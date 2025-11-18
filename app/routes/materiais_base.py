@@ -119,7 +119,18 @@ def criar_material():
         print(f"Tabelas de preço encontradas: {len(tabelas_preco)}")
         for tabela in tabelas_preco:
             preco_key = f'preco_{tabela.nivel_estrelas}_estrela'
-            preco_valor = float(precos.get(preco_key, 0.00))
+            preco_valor_raw = precos.get(preco_key)
+            
+            try:
+                if preco_valor_raw is None or preco_valor_raw == '':
+                    print(f"AVISO: Preço não fornecido para {preco_key}, usando 0.00")
+                    preco_valor = 0.00
+                else:
+                    preco_valor = float(preco_valor_raw)
+            except (ValueError, TypeError) as e:
+                print(f"ERRO ao converter preço para {preco_key}: {e}, usando 0.00")
+                preco_valor = 0.00
+                
             print(f"Tabela {tabela.nivel_estrelas} estrelas - Buscando chave '{preco_key}' - Valor encontrado: {preco_valor}")
             
             preco_item = TabelaPrecoItem(

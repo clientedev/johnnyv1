@@ -565,9 +565,19 @@
             e.preventDefault();
 
             const materialId = document.getElementById('materialId').value;
-            const preco1 = parseFloat(document.getElementById('preco1Estrela').value);
-            const preco2 = parseFloat(document.getElementById('preco2Estrela').value);
-            const preco3 = parseFloat(document.getElementById('preco3Estrela').value);
+            const preco1 = parseFloat(document.getElementById('preco1Estrela').value) || 0;
+            const preco2 = parseFloat(document.getElementById('preco2Estrela').value) || 0;
+            const preco3 = parseFloat(document.getElementById('preco3Estrela').value) || 0;
+
+            if (isNaN(preco1) || isNaN(preco2) || isNaN(preco3)) {
+                mostrarMensagem('Por favor, preencha todos os preços com valores válidos', 'error');
+                return;
+            }
+
+            if (preco1 <= 0 || preco2 <= 0 || preco3 <= 0) {
+                mostrarMensagem('Todos os preços devem ser maiores que zero', 'error');
+                return;
+            }
 
             if (preco1 >= preco2 || preco2 >= preco3) {
                 mostrarMensagem('Os preços devem ser progressivos: 1★ < 2★ < 3★', 'error');
