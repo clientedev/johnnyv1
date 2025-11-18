@@ -595,6 +595,18 @@
                 }
             };
 
+            console.log('========== DEBUG FRONTEND ==========');
+            console.log('Dados que serão enviados:', JSON.stringify(dados, null, 2));
+            console.log('Valores dos preços:', {
+                preco1: preco1,
+                preco2: preco2,
+                preco3: preco3,
+                tipo_preco1: typeof preco1,
+                tipo_preco2: typeof preco2,
+                tipo_preco3: typeof preco3
+            });
+            console.log('====================================');
+
             try {
                 const url = materialId ? `/api/materiais-base/${materialId}` : '/api/materiais-base';
                 const method = materialId ? 'PUT' : 'POST';
