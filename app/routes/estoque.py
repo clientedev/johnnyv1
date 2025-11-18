@@ -61,6 +61,7 @@ def listar_lotes_estoque():
                 # Incluir informações dos materiais/itens do lote
                 itens_info = []
                 for item in lote.itens:
+                    # Priorizar dados do material se existir
                     item_info = {
                         'id': item.id,
                         'peso_kg': item.peso_kg,
@@ -70,7 +71,7 @@ def listar_lotes_estoque():
                         'tipo_lote_id': item.tipo_lote_id,
                         'tipo_lote_nome': item.tipo_lote.nome if item.tipo_lote else None,
                         'estrelas_final': item.estrelas_final,
-                        'classificacao': item.classificacao
+                        'classificacao': item.classificacao if item.classificacao else (item.material.classificacao if item.material else None)
                     }
                     itens_info.append(item_info)
 
@@ -110,7 +111,7 @@ def obter_lote_estoque(id):
 
         lote_dict = lote.to_dict()
 
-        # Incluir informações dos materiais/itens do lote
+        # Incluir informações dos materiais/itens do lote (priorizar material sobre tipo_lote)
         itens_info = []
         for item in lote.itens:
             item_info = {
@@ -122,7 +123,7 @@ def obter_lote_estoque(id):
                 'tipo_lote_id': item.tipo_lote_id,
                 'tipo_lote_nome': item.tipo_lote.nome if item.tipo_lote else None,
                 'estrelas_final': item.estrelas_final,
-                'classificacao': item.classificacao
+                'classificacao': item.classificacao if item.classificacao else (item.material.classificacao if item.material else None)
             }
             itens_info.append(item_info)
         lote_dict['itens_info'] = itens_info

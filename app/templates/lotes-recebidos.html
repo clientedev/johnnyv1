@@ -212,9 +212,11 @@
                 // Buscar materiais dos itens do lote
                 let materiaisTexto = '-';
                 if (lote.itens_info && lote.itens_info.length > 0) {
-                    const materiais = lote.itens_info.map(item => 
-                        `${item.material_nome || item.tipo_lote_nome} (${item.peso_kg}kg)`
-                    ).join(', ');
+                    const materiais = lote.itens_info.map(item => {
+                        // Priorizar material_nome sobre tipo_lote_nome
+                        const nome = item.material_nome || item.tipo_lote_nome || 'Material não identificado';
+                        return `${nome} (${item.peso_kg}kg)`;
+                    }).join(', ');
                     materiaisTexto = materiais.length > 50 ? materiais.substring(0, 50) + '...' : materiais;
                 } else if (lote.tipo_lote_nome) {
                     materiaisTexto = lote.tipo_lote_nome;
@@ -393,7 +395,7 @@
                     </table>`
                     : '<p>Sem movimentações</p>';
                 
-                // Montar tabela de materiais
+                // Montar tabela de materiais - priorizar material_nome
                 const materiaisHTML = lote.itens_info && lote.itens_info.length > 0
                     ? `<table class="table-sm">
                         <thead>
@@ -406,15 +408,22 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${lote.itens_info.map(item => `
-                                <tr>
-                                    <td><strong>${item.material_nome || item.tipo_lote_nome || '-'}</strong></td>
-                                    <td>${item.material_codigo || '-'}</td>
-                                    <td>${item.peso_kg?.toFixed(2) || 0} kg</td>
-                                    <td>${item.classificacao || '-'}</td>
-                                    <td>${'⭐'.repeat(item.estrelas_final || 0)}</td>
-                                </tr>
-                            `).join('')}
+                            ${lote.itens_info.map(item => {
+                                // Priorizar informações do material sobre tipo de lote
+                                const nome = item.material_nome || item.tipo_lote_nome || 'Material não identificado';
+                                const codigo = item.material_codigo || '-';
+                                const classificacao = item.classificacao || (item.material_nome ? 'A definir' : '-');
+                                
+                                return `
+                                    <tr>
+                                        <td><strong>${nome}</strong></td>
+                                        <td>${codigo}</td>
+                                        <td>${item.peso_kg?.toFixed(2) || 0} kg</td>
+                                        <td>${classificacao}</td>
+                                        <td>${'⭐'.repeat(item.estrelas_final || 0)}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
                         </tbody>
                     </table>`
                     : '<p>Sem materiais cadastrados</p>';
