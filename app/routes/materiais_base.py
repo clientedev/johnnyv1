@@ -78,16 +78,6 @@ def criar_material():
     try:
         data = request.get_json()
         
-        print("=" * 80)
-        print("DEBUG: CRIAR MATERIAL")
-        print(f"Dados completos recebidos: {data}")
-        print(f"Tipo de 'precos': {type(data.get('precos'))}")
-        print(f"Conteúdo de 'precos': {data.get('precos')}")
-        if data.get('precos'):
-            for key, value in data.get('precos').items():
-                print(f"  Chave: {key}, Valor: {value}, Tipo: {type(value)}")
-        print("=" * 80)
-        
         required_fields = ['nome', 'classificacao']
         for field in required_fields:
             if field not in data:
@@ -122,27 +112,17 @@ def criar_material():
         tabelas_preco = TabelaPreco.query.all()
         precos = data.get('precos', {})
         
-        print(f"DEBUG: Número de tabelas encontradas: {len(tabelas_preco)}")
         for tabela in tabelas_preco:
-            print(f"DEBUG: Processando tabela ID={tabela.id}, nivel_estrelas={tabela.nivel_estrelas}")
             preco_key = f'preco_{tabela.nivel_estrelas}_estrela'
             preco_valor_raw = precos.get(preco_key)
-            
-            print(f"DEBUG: Buscando chave '{preco_key}' nos precos")
-            print(f"DEBUG: Valor raw encontrado: {preco_valor_raw} (tipo: {type(preco_valor_raw)})")
             
             try:
                 if preco_valor_raw is None or preco_valor_raw == '':
                     preco_valor = 0.00
-                    print(f"DEBUG: Valor vazio/None, usando 0.00")
                 else:
                     preco_valor = float(preco_valor_raw)
-                    print(f"DEBUG: Convertido para float: {preco_valor}")
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 preco_valor = 0.00
-                print(f"DEBUG: Erro na conversão ({e}), usando 0.00")
-            
-            print(f"DEBUG: Salvando preco_por_kg={preco_valor} para tabela {tabela.nivel_estrelas} estrelas")
             
             preco_item = TabelaPrecoItem(
                 tabela_preco_id=tabela.id,
