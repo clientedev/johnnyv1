@@ -362,20 +362,6 @@
                         </small>
                     </div>
                 </div>
-
-                <!-- Seleção de Tipos de Lote (Apenas Administrador) -->
-                <div data-perfil="Administrador" style="background: #eff6ff; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid #3b82f6;">
-                    <h4 style="margin: 0 0 1rem 0; color: #1e40af; display: flex; align-items: center; gap: 0.5rem;">
-                         Tipos de Lote que o Fornecedor Aceita
-                    </h4>
-                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280;">
-                        Selecione quais tipos de lote este fornecedor compra e quantas estrelas de qualidade ele aceita para cada tipo.
-                    </p>
-                    
-                    <div id="selecionarTiposLote" style="max-height: 300px; overflow-y: auto; background: white; border-radius: 6px; padding: 0.75rem;">
-                        <p style="text-align: center; color: #666;">Carregando tipos de lote...</p>
-                    </div>
-                </div>
                 
                 <button type="submit" class="btn btn-primary w-full"> Salvar Fornecedor</button>
             </form>
@@ -512,110 +498,10 @@
                 document.getElementById(id).removeAttribute('readonly');
             });
             
-            await carregarTiposLoteNoFormulario();
-            
             document.getElementById('modalFornecedor').classList.add('active');
         }
 
-        async function carregarTiposLoteNoFormulario(tiposJaSelecionados = {}) {
-            try {
-                console.log('🔍 Iniciando carregamento de tipos de lote...');
-                const response = await fetchAPI('/tipos-lote');
-                console.log('📥 Resposta recebida:', response);
-                
-                if (!response || !response.ok) {
-                    console.error('❌ Erro na resposta:', response ? response.status : 'null');
-                    document.getElementById('selecionarTiposLote').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar tipos de lote.</p>';
-                    return;
-                }
-                
-                const tiposLote = await response.json();
-                console.log('📦 Tipos de lote carregados:', tiposLote.length);
-                
-                if (tiposLote.length === 0) {
-                    document.getElementById('selecionarTiposLote').innerHTML = '<p style="text-align: center; color: #666;">Nenhum tipo de lote cadastrado. <a href="/tipos-lote.html">Cadastre aqui</a></p>';
-                    return;
-                }
-                
-                const container = document.getElementById('selecionarTiposLote');
-                container.innerHTML = tiposLote.map(tipo => {
-                    const isSelected = tiposJaSelecionados[tipo.id] !== undefined;
-                    const config = tiposJaSelecionados[tipo.id] || { leve: 1, medio: 3, pesado: 5 };
-                    
-                    return `
-                        <div style="padding: 0.75rem; border: 2px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}; border-radius: 6px; margin-bottom: 0.5rem; background: ${isSelected ? '#eff6ff' : 'white'};">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" 
-                                       id="tipo_${tipo.id}" 
-                                       value="${tipo.id}" 
-                                       ${isSelected ? 'checked' : ''}
-                                       onchange="toggleTipoLote(${tipo.id})"
-                                       style="margin-right: 0.5rem;">
-                                <div style="flex: 1;">
-                                    <strong> ${tipo.nome}</strong>
-                                    ${tipo.codigo ? `<span style="margin-left: 0.5rem; font-size: 0.85rem; color: #6b7280;">(${tipo.codigo})</span>` : ''}
-                                </div>
-                            </label>
-                            <div id="estrelas_${tipo.id}" style="margin-left: 1.5rem; margin-top: 0.75rem; display: ${isSelected ? 'block' : 'none'}; background: #f9fafb; padding: 0.75rem; border-radius: 4px;">
-                                <p style="font-size: 0.9rem; color: #374151; margin-bottom: 0.75rem; font-weight: 500;">Configure as estrelas para cada classificação:</p>
-                                <div style="display: grid; gap: 0.5rem;">
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <label style="min-width: 60px; font-size: 0.85rem; color: #6b7280;">Leve:</label>
-                                        <select id="estrelas_leve_${tipo.id}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; flex: 1;">
-                                            <option value="1" ${config.leve == 1 ? 'selected' : ''}> 1</option>
-                                            <option value="2" ${config.leve == 2 ? 'selected' : ''}> 2</option>
-                                            <option value="3" ${config.leve == 3 ? 'selected' : ''}> 3</option>
-                                            <option value="4" ${config.leve == 4 ? 'selected' : ''}> 4</option>
-                                            <option value="5" ${config.leve == 5 ? 'selected' : ''}> 5</option>
-                                        </select>
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <label style="min-width: 60px; font-size: 0.85rem; color: #6b7280;"> Médio:</label>
-                                        <select id="estrelas_medio_${tipo.id}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; flex: 1;">
-                                            <option value="1" ${config.medio == 1 ? 'selected' : ''}> 1</option>
-                                            <option value="2" ${config.medio == 2 ? 'selected' : ''}> 2</option>
-                                            <option value="3" ${config.medio == 3 ? 'selected' : ''}> 3</option>
-                                            <option value="4" ${config.medio == 4 ? 'selected' : ''}> 4</option>
-                                            <option value="5" ${config.medio == 5 ? 'selected' : ''}> 5</option>
-                                        </select>
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <label style="min-width: 60px; font-size: 0.85rem; color: #6b7280;"> Pesado:</label>
-                                        <select id="estrelas_pesado_${tipo.id}" style="padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; flex: 1;">
-                                            <option value="1" ${config.pesado == 1 ? 'selected' : ''}> 1</option>
-                                            <option value="2" ${config.pesado == 2 ? 'selected' : ''}> 2</option>
-                                            <option value="3" ${config.pesado == 3 ? 'selected' : ''}> 3</option>
-                                            <option value="4" ${config.pesado == 4 ? 'selected' : ''}> 4</option>
-                                            <option value="5" ${config.pesado == 5 ? 'selected' : ''}> 5</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                
-            } catch (error) {
-                console.error('Erro ao carregar tipos de lote:', error);
-                document.getElementById('selecionarTiposLote').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar tipos de lote.</p>';
-            }
-        }
-
-        function toggleTipoLote(tipoId) {
-            const checkbox = document.getElementById(`tipo_${tipoId}`);
-            const estrelasDiv = document.getElementById(`estrelas_${tipoId}`);
-            const parent = checkbox.closest('div[style*="padding"]');
-            
-            if (checkbox.checked) {
-                estrelasDiv.style.display = 'block';
-                parent.style.borderColor = '#3b82f6';
-                parent.style.background = '#eff6ff';
-            } else {
-                estrelasDiv.style.display = 'none';
-                parent.style.borderColor = '#e5e7eb';
-                parent.style.background = 'white';
-            }
-        }
+        
 
         function toggleEnderecoVisita() {
             const checkbox = document.getElementById('temOutroEndereco');
@@ -682,22 +568,6 @@
 
             const id = document.getElementById('fornecedorId').value;
             
-            // Coletar tipos de lote selecionados com as 3 classificações
-            const tiposSelecionados = [];
-            document.querySelectorAll('#selecionarTiposLote input[type="checkbox"]:checked').forEach(checkbox => {
-                const tipoId = parseInt(checkbox.value);
-                const leveSelect = document.getElementById(`estrelas_leve_${tipoId}`);
-                const medioSelect = document.getElementById(`estrelas_medio_${tipoId}`);
-                const pesadoSelect = document.getElementById(`estrelas_pesado_${tipoId}`);
-                
-                tiposSelecionados.push({
-                    tipo_lote_id: tipoId,
-                    leve_estrelas: leveSelect ? parseInt(leveSelect.value) : 1,
-                    medio_estrelas: medioSelect ? parseInt(medioSelect.value) : 3,
-                    pesado_estrelas: pesadoSelect ? parseInt(pesadoSelect.value) : 5
-                });
-            });
-            
             const data = {
                 nome: document.getElementById('nome').value,
                 cnpj: document.getElementById('cnpj').value || null,
@@ -717,8 +587,7 @@
                 outro_estado: document.getElementById('outroEstado').value || null,
                 outro_cep: document.getElementById('outroCep').value || null,
                 outro_bairro: document.getElementById('outroBairro').value || null,
-                outro_complemento: document.getElementById('outroComplemento').value || null,
-                tipos_lote: tiposSelecionados
+                outro_complemento: document.getElementById('outroComplemento').value || null
             };
 
             // Apenas admin pode definir/alterar a tabela de preços
@@ -803,30 +672,6 @@
                     document.getElementById('camposEnderecoVisita').style.display = 'none';
                 }
                 
-                // Carregar tipos de lote já selecionados com as 3 classificações
-                const tiposSelecionados = {};
-                if (fornecedorAtual.classificacoes && Array.isArray(fornecedorAtual.classificacoes)) {
-                    fornecedorAtual.classificacoes.forEach(classif => {
-                        tiposSelecionados[classif.tipo_lote_id] = {
-                            leve: classif.leve_estrelas || 1,
-                            medio: classif.medio_estrelas || 3,
-                            pesado: classif.pesado_estrelas || 5
-                        };
-                    });
-                } else if (fornecedorAtual.precos && Array.isArray(fornecedorAtual.precos)) {
-                    // Fallback para formato antigo (compatibilidade)
-                    fornecedorAtual.precos.forEach(preco => {
-                        tiposSelecionados[preco.tipo_lote_id] = {
-                            leve: 1,
-                            medio: preco.estrelas || 3,
-                            pesado: 5
-                        };
-                    });
-                }
-                
-                // Não carregar tipos de lote ao editar (apenas ao criar novo)
-                // await carregarTiposLoteNoFormulario(tiposSelecionados);
-
                 document.getElementById('dadosCNPJ').style.display = 'block';
                 document.getElementById('modalFornecedor').classList.add('active');
             } catch (error) {
