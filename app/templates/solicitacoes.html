@@ -550,55 +550,57 @@
             }
 
             try {
-                const url = `/fornecedores/${fornecedorId}/tipos-lote`;
+                const url = `/solicitacoes/fornecedor/${fornecedorId}/materiais`;
                 console.log('📡 Fazendo chamada para:', url);
                 
-                // Buscar tipos de lote do fornecedor com preços por classificação
                 const response = await fetchAPI(url);
                 
                 console.log('📥 Resposta recebida:', response);
                 
                 if (response && response.ok) {
-                    todosTiposLote = await response.json();
+                    const dados = await response.json();
                     
-                    console.log('✅ Tipos de lote recebidos:', todosTiposLote);
-                    console.log('📊 Total de tipos:', todosTiposLote.length);
+                    console.log('✅ Dados recebidos:', dados);
+                    console.log('📊 Total de materiais:', dados.materiais?.length || 0);
                     
-                    // Montar estrutura de preços para cálculo rápido
+                    if (!dados.materiais || dados.materiais.length === 0) {
+                        showAlert('Este fornecedor não tem preços configurados', 'warning');
+                        precosFornecedorSelecionado = {};
+                        todosTiposLote = [];
+                        return;
+                    }
+                    
                     precosFornecedorSelecionado = {};
-                    todosTiposLote.forEach(tipo => {
-                        console.log(`  Processando tipo: ${tipo.nome} (ID: ${tipo.id})`);
-                        console.log(`  Preços disponíveis:`, tipo.precos_por_classificacao);
+                    todosTiposLote = dados.materiais;
+                    
+                    dados.materiais.forEach(material => {
+                        console.log(`  Processando material: ${material.nome} (ID: ${material.id})`);
+                        console.log(`  Preço: R$ ${material.preco_unitario}/kg (${material.nivel_estrelas} estrelas)`);
                         
-                        if (tipo.precos_por_classificacao) {
-                            Object.keys(tipo.precos_por_classificacao).forEach(classificacao => {
-                                const preco = tipo.precos_por_classificacao[classificacao];
-                                const key = `${tipo.id}_${classificacao}`;
-                                precosFornecedorSelecionado[key] = {
-                                    preco_por_kg: preco.preco_por_kg,
-                                    estrelas: preco.estrelas
-                                };
-                                console.log(`    ✓ ${key} -> R$ ${preco.preco_por_kg}/kg (${preco.estrelas} estrelas)`);
-                            });
-                        } else {
-                            console.log(`    ⚠️ Sem preços por classificação`);
-                        }
+                        precosFornecedorSelecionado[material.id] = {
+                            preco_por_kg: material.preco_unitario,
+                            estrelas: material.nivel_estrelas,
+                            codigo: material.codigo,
+                            nome: material.nome
+                        };
                     });
                     
                     console.log('💰 Estrutura final de preços:', precosFornecedorSelecionado);
-                    console.log('📦 Total de combinações de preços:', Object.keys(precosFornecedorSelecionado).length);
+                    console.log('📦 Total de materiais com preço:', Object.keys(precosFornecedorSelecionado).length);
                 } else {
                     console.error('❌ Resposta não OK:', response ? response.status : 'null');
                     if (response) {
-                        const errorText = await response.text();
-                        console.error('Erro do servidor:', errorText);
+                        const errorData = await response.json();
+                        console.error('Erro do servidor:', errorData);
+                        showAlert(errorData.erro || 'Erro ao carregar materiais do fornecedor', 'error');
                     }
                     precosFornecedorSelecionado = {};
                     todosTiposLote = [];
                 }
             } catch (error) {
-                console.error('❌ Erro ao carregar tipos de lote:', error);
+                console.error('❌ Erro ao carregar materiais:', error);
                 console.error('Stack trace:', error.stack);
+                showAlert('Erro ao carregar materiais do fornecedor', 'error');
                 precosFornecedorSelecionado = {};
                 todosTiposLote = [];
             }
@@ -742,16 +744,14 @@
             const itemId = ++itemIdCounter;
             const item = {
                 id: itemId,
-                tipo_lote_id: null,
-                classificacao: 'medio',
-                classificacao_ia: null,
-                justificativa_ia: '',
+                material_id: null,
                 peso_kg: 0,
                 imagem_url: null,
                 imagem_file: null,
                 analisando: false,
                 observacoes: '',
-                valor_calculado: 0
+                valor_calculado: 0,
+                estrelas_final: 3
             };
 
             itensSolicitacao.push(item);
@@ -810,14 +810,18 @@
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>Tipo de Lote *</label>
-                            <select onchange="atualizarItemCampo(${item.id}, 'tipo_lote_id', this.value)" required>
+                            <label>Material *</label>
+                            <select onchange="atualizarItemCampo(${item.id}, 'material_id', parseInt(this.value))" required>
                                 <option value="">Selecione...</option>
-                                ${todosTiposLote.map(t => `
-                                    <option value="${t.id}" ${item.tipo_lote_id == t.id ? 'selected' : ''}>
-                                        ${t.nome} ${t.codigo ? '(' + t.codigo + ')' : ''}
-                                    </option>
-                                `).join('')}
+                                ${todosTiposLote.map(m => {
+                                    const precoInfo = precosFornecedorSelecionado[m.id];
+                                    const preco = precoInfo ? precoInfo.preco_por_kg : 0;
+                                    return `
+                                        <option value="${m.id}" ${item.material_id == m.id ? 'selected' : ''}>
+                                            ${m.codigo} - ${m.nome} (R$ ${preco.toFixed(2)}/kg)
+                                        </option>
+                                    `;
+                                }).join('')}
                             </select>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
@@ -825,16 +829,6 @@
                             <input type="number" step="0.01" value="${item.peso_kg}" 
                                 onchange="atualizarItemCampo(${item.id}, 'peso_kg', parseFloat(this.value))" required>
                         </div>
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 0.75rem;">
-                        <label>Classificação *</label>
-                        <select onchange="atualizarItemCampo(${item.id}, 'classificacao', this.value)" required>
-                            <option value="leve" ${item.classificacao === 'leve' ? 'selected' : ''}>Leve</option>
-                            <option value="medio" ${item.classificacao === 'medio' ? 'selected' : ''}>Médio</option>
-                            <option value="pesado" ${item.classificacao === 'pesado' ? 'selected' : ''}>Pesado</option>
-                        </select>
-                        <small style="color: #666;">Você pode ajustar a classificação sugerida pela IA</small>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0.75rem;">
@@ -885,7 +879,6 @@
                     if (resultado.sucesso || resultado.classificacao) {
                         item.classificacao_ia = resultado.classificacao;
                         item.justificativa_ia = resultado.justificativa;
-                        item.classificacao = resultado.classificacao; // Aplicar automaticamente
                         
                         showAlert('Imagem analisada com sucesso pela IA!', 'success');
                     } else {
@@ -911,7 +904,7 @@
 
             item[campo] = valor;
             
-            if (campo === 'tipo_lote_id' || campo === 'peso_kg' || campo === 'classificacao') {
+            if (campo === 'material_id' || campo === 'peso_kg') {
                 calcularValorItem(item);
             }
             
@@ -920,14 +913,13 @@
         }
 
         function calcularValorItem(item) {
-            if (!item.tipo_lote_id || !item.peso_kg || item.peso_kg <= 0 || !item.classificacao) {
+            if (!item.material_id || !item.peso_kg || item.peso_kg <= 0) {
                 item.valor_calculado = 0;
                 item.estrelas_final = 3;
                 return;
             }
 
-            const key = `${item.tipo_lote_id}_${item.classificacao}`;
-            const precoInfo = precosFornecedorSelecionado[key];
+            const precoInfo = precosFornecedorSelecionado[item.material_id];
             
             if (precoInfo && precoInfo.preco_por_kg) {
                 item.valor_calculado = item.peso_kg * precoInfo.preco_por_kg;
@@ -935,7 +927,7 @@
             } else {
                 item.valor_calculado = 0;
                 item.estrelas_final = 3;
-                console.warn(`Preço não encontrado para tipo ${item.tipo_lote_id} e classificação ${item.classificacao}`);
+                console.warn(`Preço não encontrado para material ID ${item.material_id}`);
             }
         }
 
@@ -1041,20 +1033,17 @@
                 return;
             }
 
-            const itensValidos = itensSolicitacao.filter(i => i.tipo_lote_id && i.peso_kg > 0);
+            const itensValidos = itensSolicitacao.filter(i => i.material_id && i.peso_kg > 0);
             if (itensValidos.length === 0) {
-                showAlert('Preencha os dados de todos os itens', 'error');
+                showAlert('Preencha os dados de todos os itens (material e peso)', 'error');
                 return;
             }
 
             const gpsInfo = document.getElementById('gpsInfo');
             
-            // Preparar itens para envio
             const itensParaEnvio = itensValidos.map(item => ({
-                tipo_lote_id: parseInt(item.tipo_lote_id),
+                material_id: parseInt(item.material_id),
                 peso_kg: parseFloat(item.peso_kg),
-                classificacao: item.classificacao || 'medio',
-                estrelas_final: item.estrelas_final || 3,
                 observacoes: item.observacoes || ''
             }));
             

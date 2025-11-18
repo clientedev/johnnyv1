@@ -43,10 +43,10 @@ def listar_materiais_fornecedor(fornecedor_id):
                 'nome': item.material.nome,
                 'classificacao': item.material.classificacao,
                 'descricao': item.material.descricao,
-                'preco_por_kg': float(item.preco_por_kg),
+                'preco_unitario': float(item.preco_por_kg),
                 'tabela_preco_id': tabela_preco.id,
                 'tabela_preco_nome': tabela_preco.nome,
-                'tabela_estrelas': tabela_preco.nivel_estrelas
+                'nivel_estrelas': tabela_preco.nivel_estrelas
             }
             materiais.append(material_dict)
         

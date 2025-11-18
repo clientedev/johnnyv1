@@ -1,345 +1,49 @@
 # MRX System - Gestão de Compras de Sucata Eletrônica
 
-## Visão Geral
-Sistema completo para gestão de compras de sucata eletrônica com sistema de preços por estrelas (1★, 2★, 3★), autorizações de preço e geolocalização de fornecedores.
+### Overview
+The MRX System is a comprehensive platform for managing electronic scrap purchases. Its core functionalities include a star-based pricing system (1★, 2★, 3★), price authorization workflows for negotiations exceeding standard rates, and geolocation tracking for suppliers. The system aims to streamline the procurement process for electronic scrap, enhance pricing control, and improve supplier management.
 
-## Arquitetura do Sistema
+### User Preferences
+I want iterative development.
+I prefer detailed explanations.
+Ask before making major changes.
+Do not make changes to the folder `Z`.
+Do not make changes to the file `Y`.
 
-### Backend (Flask + SQLAlchemy + PostgreSQL)
-- Python 3.12
-- Flask 3.0.0
-- PostgreSQL (Neon-backed)
-- Socket.IO para notificações em tempo real
-- JWT para autenticação
+### System Architecture
 
-### Frontend
-- Vanilla JavaScript
-- Tailwind CSS
-- Service Workers para PWA
+#### UI/UX Decisions
+The frontend utilizes Vanilla JavaScript and Tailwind CSS for a modern and responsive user interface, with Service Workers enabling PWA capabilities. The design emphasizes clarity and efficiency for managing materials, prices, and authorizations.
 
-## Módulo Comprador - Sistema MRX (IMPLEMENTADO)
+#### Technical Implementations
+The system is built with a Flask backend (Python 3.12) using SQLAlchemy for ORM and PostgreSQL (Neon-backed) as the database. Real-time notifications are handled via Socket.IO, and authentication is managed using JWT.
 
-### Funcionalidades Principais
-1. **Gestão de Materiais Base** (50+ tipos de sucata eletrônica)
-2. **Sistema de Preços por Estrelas** (3 tabelas: 1★, 2★, 3★)
-3. **Autorização de Preços** quando negociação excede tabela
-4. **Geolocalização de Fornecedores** (latitude/longitude)
-5. **Importação/Exportação Excel** de materiais e preços
+#### Feature Specifications
+-   **Material Management**: Supports over 50 types of electronic scrap, including detailed classification and descriptions.
+-   **Star-Based Pricing**: Three fixed price tables (1★, 2★, 3★) correspond to supplier quality/reliability. Each material has a specific price per table (R$/kg).
+-   **Price Authorization Workflow**: Automatically triggers a request when a negotiated price exceeds the supplier's star-level price table. This workflow includes status tracking (pending, approved, rejected), percentage difference calculation, and the ability to promote suppliers to higher star levels upon approval.
+-   **Supplier Geolocalization**: Stores latitude/longitude for suppliers, with new suppliers defaulting to 1★.
+-   **Excel Import/Export**: Functionality for mass import and export of materials and price tables.
+-   **Purchase Wizard**: A multi-step wizard for new purchases, handling supplier selection/registration, collection/delivery details, item scanning, value input, and final confirmation. It integrates with material and pricing data and triggers authorization requests when necessary.
 
-### Modelos de Banco de Dados
+#### System Design Choices
+-   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, and an extended `Fornecedor` model to link suppliers to price tables, responsible buyers, and geolocation.
+-   **API Endpoints**: Structured RESTful APIs for managing materials (`/api/materiais-base`), price tables (`/api/tabelas-preco`), and price authorizations (`/api/autorizacoes-preco`), including support for CRUD operations, bulk updates, and Excel integrations. A dedicated endpoint for purchase creation (`/api/compras`) handles complex transaction logic.
+-   **Security**: Implements JWT for authentication (`@jwt_required`), role-based authorization (`@admin_required`), robust input validation (e.g., non-negative prices, positive weights, negotiated price vs. table price), and database integrity checks (UNIQUE constraints, foreign keys).
+-   **Seed Data**: An idempotent seed script (`seed_modulo_comprador.py`) initializes essential data like price tables, base materials, and initial pricing.
 
-#### MaterialBase
-- Catálogo de 50+ tipos de sucata eletrônica
-- Campos: código, nome, classificação (leve/medio/pesado), descrição
-- Relacionamento com TabelaPrecoItem (preços em cada tabela)
+### External Dependencies
 
-#### TabelaPreco
-- 3 tabelas fixas: 1 Estrela, 2 Estrelas, 3 Estrelas
-- Nível de estrelas define a qualidade/confiabilidade do fornecedor
-- Constraint UNIQUE em nivel_estrelas
+#### Backend
+-   Flask 3.0.0
+-   Flask-SQLAlchemy
+-   Flask-JWT-Extended
+-   Flask-SocketIO
+-   psycopg2-binary (for PostgreSQL connectivity)
+-   pandas (for data manipulation, likely in Excel operations)
+-   openpyxl (for Excel file handling)
 
-#### TabelaPrecoItem
-- Preço específico de cada material em cada tabela
-- Constraint UNIQUE (tabela_preco_id, material_id) - evita duplicatas
-- Preço em R$/kg (Numeric 10,2)
-
-#### SolicitacaoAutorizacaoPreco
-- Solicitação gerada quando comprador negocia preço acima da tabela
-- Status: pendente, aprovada, rejeitada
-- Calcula diferença percentual automaticamente
-- Permite promoção de fornecedor para tabela superior
-- Validação contra solicitações duplicadas pendentes
-
-#### Fornecedor (Campos Adicionados)
-- tabela_preco_id: vincula fornecedor a uma das 3 tabelas
-- comprador_responsavel_id: comprador que atende este fornecedor
-- latitude/longitude: captura geolocalização em campo
-- Novos fornecedores iniciam com Tabela 1★
-
-### APIs Backend
-
-#### `/api/materiais-base`
-- GET: listar materiais (com filtros: busca, classificação, apenas_ativos)
-- GET /:id: obter material específico
-- POST: criar material (admin) + vincular preços 0.00 em todas as tabelas
-- PUT /:id: atualizar material e preços
-- DELETE /:id: desativar material
-- POST /importar-excel: importação em massa
-- GET /exportar-excel: exportação completa com 3 colunas de preços
-- GET /modelo-importacao: baixar template Excel
-
-#### `/api/tabelas-preco`
-- GET: listar 3 tabelas
-- GET /:id: obter tabela específica
-- GET /:id/precos: listar todos os preços da tabela
-- PUT /:id/precos/:material_id: atualizar preço individual
-- PUT /:id/precos: atualização em massa
-- POST /:id/importar-excel: importação por tabela
-- GET /:id/exportar-excel: exportação por tabela
-
-#### `/api/autorizacoes-preco`
-- GET: listar autorizações (filtros: status, fornecedor, comprador)
-- GET /:id: obter autorização específica
-- POST: criar solicitação de autorização
-  - Valida preço negociado > preço tabela
-  - Calcula diferença percentual
-  - Bloqueia duplicatas pendentes
-  - Envia notificação WebSocket para admins
-- POST /:id/aprovar: aprovar autorização (admin)
-  - Permite promover fornecedor para tabela superior
-  - Registra em auditoria
-- POST /:id/rejeitar: rejeitar autorização (admin)
-  - Motivo obrigatório
-- GET /estatisticas: dashboard de autorizações
-
-### Scripts de Seed
-
-**seed_modulo_comprador.py**
-- Cria 3 tabelas de preço (1★, 2★, 3★)
-- Cadastra 50 materiais base
-- Gera 150 itens de preço (3 por material, inicial R$ 0.00)
-- Vincula fornecedores existentes à Tabela 1★
-- **IDEMPOTENTE**: pode rodar múltiplas vezes sem duplicar dados
-
-### Estrutura de Arquivos
-```
-app/
-├── models.py (4 novos modelos + alteração em Fornecedor)
-├── routes/
-│   ├── materiais_base.py (CRUD + Excel)
-│   ├── tabelas_preco.py (gestão de preços)
-│   └── autorizacoes_preco.py (workflow de aprovação)
-└── __init__.py (registra novos blueprints)
-
-seed_modulo_comprador.py (população inicial)
-```
-
-### Fluxo de Trabalho - Autorização de Preço
-
-1. **Comprador em campo**:
-   - Negocia com fornecedor
-   - Preço negociado > preço da tabela do fornecedor
-   - Sistema automaticamente cria SolicitacaoAutorizacaoPreco
-
-2. **Notificação**:
-   - WebSocket notifica admins em tempo real
-   - Dashboard mostra solicitação pendente
-
-3. **Administrador analisa**:
-   - Visualiza diferença percentual
-   - Justificativa do comprador
-   - Histórico do fornecedor
-
-4. **Decisão**:
-   - **Aprovar**: pode promover fornecedor para tabela superior
-   - **Rejeitar**: motivo obrigatório
-   - Notificação enviada ao comprador
-
-### Migrações de Banco
-
-Executadas via execute_sql_tool:
-```sql
-ALTER TABLE fornecedores ADD COLUMN tabela_preco_id INTEGER REFERENCES tabelas_preco(id);
-ALTER TABLE fornecedores ADD COLUMN comprador_responsavel_id INTEGER REFERENCES usuarios(id);
-ALTER TABLE fornecedores ADD COLUMN latitude DECIMAL(10, 8);
-ALTER TABLE fornecedores ADD COLUMN longitude DECIMAL(11, 8);
-```
-
-### Validações de Segurança
-
-1. **Autenticação**: @jwt_required em todos os endpoints
-2. **Autorização**: @admin_required para operações sensíveis
-3. **Validação de Input**:
-   - Preços não podem ser negativos
-   - Peso deve ser > 0
-   - Preço negociado deve ser > preço tabela
-   - Validação contra NaN/None em campos numéricos
-4. **Integridade**:
-   - Constraint UNIQUE evita duplicatas
-   - Foreign keys com CASCADE
-   - Validação de status (pendente/aprovada/rejeitada)
-5. **Auditoria**: logs de promoção de fornecedores
-
-### Próximos Passos (PENDENTES)
-
-1. **Frontend**:
-   - [ ] /materiais-base.html (gestão de materiais + 3 colunas de preços)
-   - [ ] /tabelas-preco.html (abas 1★, 2★, 3★) - ADM apenas
-   - [ ] /autorizacoes-preco.html (aprovar/rejeitar) - ADM apenas
-
-2. **Integração**:
-   - [ ] Modificar wizard de compra para validar preços
-   - [ ] Auto-gerar autorizações no fluxo de compra
-
-3. **Menu**:
-   - [ ] Adicionar links para novas telas
-   - [ ] Badge de notificações pendentes
-
-## Usuários do Sistema
-
-### Perfis e Credenciais
-```
-Admin: admin / senha123
-Comprador: comprador / senha123
-Almoxarife: almoxarife / senha123
-Motorista: motorista / senha123
-Financeiro: financeiro / senha123
-Auditoria: auditoria / senha123
-```
-
-## Tecnologias e Dependências
-
-### Backend
-- Flask 3.0.0
-- Flask-SQLAlchemy
-- Flask-JWT-Extended
-- Flask-SocketIO
-- psycopg2-binary
-- pandas
-- openpyxl
-
-### Frontend
-- Tailwind CSS
-- Chart.js
-- Socket.IO Client
-
-### Wizard de Nova Compra (IMPLEMENTADO PARCIALMENTE)
-
-#### Arquivos
-- `app/templates/wizard-compra.html` - Interface do wizard de 5 passos
-- `app/routes/compras.py` - API de criação de compras
-
-#### Funcionalidades Implementadas
-✅ **Passo 1: Selecionar/Cadastrar Fornecedor**
-- Busca de fornecedor por nome/CPF/CNPJ
-- Cadastro rápido de fornecedor com geolocalização automática
-- Vinculação automática fornecedor → comprador (criado_por_id)
-- Exibição da tabela de preço do fornecedor (1★, 2★, 3★)
-
-✅ **Passo 2: Dados de Coleta/Entrega**
-- Opção de usar endereço padrão do fornecedor
-- Cadastro de novo endereço para essa compra específica
-- Seleção de tipo: Coleta (MRX busca) ou Entrega (Fornecedor entrega)
-
-✅ **Passo 3: Scanner de Peças**
-- Campo para escanear/digitar código de barras
-- Adição de múltiplas leituras com peso
-- Exibição de resumo: quantidade de itens e peso total parcial
-
-✅ **Passo 4: Valores**
-- Exibição da tabela vigente do fornecedor
-- Input de preço negociado por kg para cada material
-- Cálculo automático de valores totais
-
-✅ **Passo 5: Resumo e Confirmação**
-- Resumo completo: fornecedor, coleta/entrega, materiais, totais
-- Botão de finalização que chama API POST /api/compras
-
-✅ **API POST /api/compras**
-- Cria Solicitação + Lote + ItemSolicitacao
-- Gera código de lote no formato `AAAAMMDD-SEQ` (ex: 20251117-001)
-- Usa `db.session.flush()` para obter IDs antes do commit final
-- Validações robustas com tratamento de erros
-- Inicialização automática de TipoLote padrão se não existir
-
-#### Limitações Identificadas (PRÓXIMAS ETAPAS)
-
-⚠️ **1. Integração com MaterialBase**
-- **Problema**: Wizard não busca MaterialBase ao escanear código
-- **Atual**: Classificação é gerada aleatoriamente (mock)
-- **Esperado**: 
-  - Buscar MaterialBase pelo código escaneado
-  - Exibir nome e classificação (leve/médio/pesado) automaticamente
-  - Se código não existe → permitir cadastro rápido
-
-⚠️ **2. Validação de Preços contra Tabela**
-- **Problema**: Wizard não busca preços de TabelaPrecoItem
-- **Atual**: Comprador informa preço livremente sem validação
-- **Esperado**:
-  - Buscar preço da tabela: `TabelaPrecoItem.query.filter_by(material_id=X, tabela_preco_id=fornecedor.tabela_preco_id)`
-  - Comparar valor negociado vs valor da tabela
-  - Se `valor_negociado > preco_tabela`: bloquear e criar SolicitacaoAutorizacaoPreco
-  - Fluxo de aprovação ADM antes de finalizar compra
-
-⚠️ **3. Mapeamento TipoLote correto**
-- **Problema**: Todos os itens usam o mesmo TipoLote (primeiro da tabela)
-- **Esperado**: Cada material deve ser vinculado ao seu TipoLote correto baseado no MaterialBase
-
-⚠️ **4. Sistema de Autorização de Preço**
-- Status: Backend existe (SolicitacaoAutorizacaoPreco model + API)
-- Pendente: Integração com wizard de compra
-- Pendente: Tela de aprovação para ADM
-- Pendente: Notificação em tempo real (Socket.IO já configurado)
-
-## Variáveis de Ambiente
-- DATABASE_URL: PostgreSQL connection string
-- SESSION_SECRET: chave para sessões
-- JWT_SECRET_KEY: chave para tokens JWT
-
-## Comandos Úteis
-
-### Executar Seed
-```bash
-python seed_modulo_comprador.py
-```
-
-### Iniciar Servidor
-```bash
-python app.py
-```
-
-### Verificar Banco
-```bash
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM materiais_base;"
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM tabelas_preco;"
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM tabela_preco_itens;"
-```
-
-## Estrutura do Projeto
-```
-workspace/
-├── app/
-│   ├── __init__.py
-│   ├── models.py
-│   ├── auth.py
-│   ├── routes/
-│   │   ├── auth.py
-│   │   ├── materiais_base.py (NOVO)
-│   │   ├── tabelas_preco.py (NOVO)
-│   │   ├── autorizacoes_preco.py (NOVO)
-│   │   └── ...
-│   ├── static/
-│   └── templates/
-├── seed_modulo_comprador.py (NOVO)
-├── app.py
-└── requirements.txt
-```
-
-## Changelog
-
-### 2025-11-18 (Tarde) - Wizard de Nova Compra (Estrutura Base)
-- ✅ Criado wizard-compra.html com 5 passos completos
-- ✅ JavaScript funcional: navegação, busca fornecedor, cadastro rápido, scanner, cálculos
-- ✅ API POST /api/compras com geração de lote AAAAMMDD-SEQ
-- ✅ Correção crítica: uso de flush() para persistência correta de IDs
-- ✅ Inicialização automática de TipoLote padrão
-- ✅ Tratamento robusto de erros e validações
-- ⚠️ Pendente: Integração com MaterialBase (busca por código escaneado)
-- ⚠️ Pendente: Validação de preços contra TabelaPrecoItem
-- ⚠️ Pendente: Mapeamento correto de TipoLote por material
-- ⚠️ Pendente: Fluxo de autorização ADM quando preço > tabela
-
-### 2025-11-18 - Implementação Módulo Comprador (Backend)
-- ✅ Criados 4 novos modelos de banco de dados
-- ✅ Adicionadas 4 colunas na tabela fornecedores
-- ✅ Implementadas 3 APIs completas (materiais, tabelas, autorizações)
-- ✅ Criado script de seed idempotente
-- ✅ Implementado sistema de Excel import/export
-- ✅ Adicionadas validações de segurança e integridade
-- ✅ Seed executado: 3 tabelas, 50 materiais, 150 preços
-- ⏳ Frontend pendente (3 telas)
-
----
-
-**Última atualização**: 18 de novembro de 2025
-**Status**: Wizard base criado | Integrações pendentes
+#### Frontend
+-   Tailwind CSS
+-   Chart.js (for data visualization, likely in dashboards)
+-   Socket.IO Client (for real-time communication)
