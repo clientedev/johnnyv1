@@ -203,6 +203,74 @@ Auditoria: auditoria / senha123
 - Chart.js
 - Socket.IO Client
 
+### Wizard de Nova Compra (IMPLEMENTADO PARCIALMENTE)
+
+#### Arquivos
+- `app/templates/wizard-compra.html` - Interface do wizard de 5 passos
+- `app/routes/compras.py` - API de criação de compras
+
+#### Funcionalidades Implementadas
+✅ **Passo 1: Selecionar/Cadastrar Fornecedor**
+- Busca de fornecedor por nome/CPF/CNPJ
+- Cadastro rápido de fornecedor com geolocalização automática
+- Vinculação automática fornecedor → comprador (criado_por_id)
+- Exibição da tabela de preço do fornecedor (1★, 2★, 3★)
+
+✅ **Passo 2: Dados de Coleta/Entrega**
+- Opção de usar endereço padrão do fornecedor
+- Cadastro de novo endereço para essa compra específica
+- Seleção de tipo: Coleta (MRX busca) ou Entrega (Fornecedor entrega)
+
+✅ **Passo 3: Scanner de Peças**
+- Campo para escanear/digitar código de barras
+- Adição de múltiplas leituras com peso
+- Exibição de resumo: quantidade de itens e peso total parcial
+
+✅ **Passo 4: Valores**
+- Exibição da tabela vigente do fornecedor
+- Input de preço negociado por kg para cada material
+- Cálculo automático de valores totais
+
+✅ **Passo 5: Resumo e Confirmação**
+- Resumo completo: fornecedor, coleta/entrega, materiais, totais
+- Botão de finalização que chama API POST /api/compras
+
+✅ **API POST /api/compras**
+- Cria Solicitação + Lote + ItemSolicitacao
+- Gera código de lote no formato `AAAAMMDD-SEQ` (ex: 20251117-001)
+- Usa `db.session.flush()` para obter IDs antes do commit final
+- Validações robustas com tratamento de erros
+- Inicialização automática de TipoLote padrão se não existir
+
+#### Limitações Identificadas (PRÓXIMAS ETAPAS)
+
+⚠️ **1. Integração com MaterialBase**
+- **Problema**: Wizard não busca MaterialBase ao escanear código
+- **Atual**: Classificação é gerada aleatoriamente (mock)
+- **Esperado**: 
+  - Buscar MaterialBase pelo código escaneado
+  - Exibir nome e classificação (leve/médio/pesado) automaticamente
+  - Se código não existe → permitir cadastro rápido
+
+⚠️ **2. Validação de Preços contra Tabela**
+- **Problema**: Wizard não busca preços de TabelaPrecoItem
+- **Atual**: Comprador informa preço livremente sem validação
+- **Esperado**:
+  - Buscar preço da tabela: `TabelaPrecoItem.query.filter_by(material_id=X, tabela_preco_id=fornecedor.tabela_preco_id)`
+  - Comparar valor negociado vs valor da tabela
+  - Se `valor_negociado > preco_tabela`: bloquear e criar SolicitacaoAutorizacaoPreco
+  - Fluxo de aprovação ADM antes de finalizar compra
+
+⚠️ **3. Mapeamento TipoLote correto**
+- **Problema**: Todos os itens usam o mesmo TipoLote (primeiro da tabela)
+- **Esperado**: Cada material deve ser vinculado ao seu TipoLote correto baseado no MaterialBase
+
+⚠️ **4. Sistema de Autorização de Preço**
+- Status: Backend existe (SolicitacaoAutorizacaoPreco model + API)
+- Pendente: Integração com wizard de compra
+- Pendente: Tela de aprovação para ADM
+- Pendente: Notificação em tempo real (Socket.IO já configurado)
+
 ## Variáveis de Ambiente
 - DATABASE_URL: PostgreSQL connection string
 - SESSION_SECRET: chave para sessões
@@ -249,6 +317,18 @@ workspace/
 
 ## Changelog
 
+### 2025-11-18 (Tarde) - Wizard de Nova Compra (Estrutura Base)
+- ✅ Criado wizard-compra.html com 5 passos completos
+- ✅ JavaScript funcional: navegação, busca fornecedor, cadastro rápido, scanner, cálculos
+- ✅ API POST /api/compras com geração de lote AAAAMMDD-SEQ
+- ✅ Correção crítica: uso de flush() para persistência correta de IDs
+- ✅ Inicialização automática de TipoLote padrão
+- ✅ Tratamento robusto de erros e validações
+- ⚠️ Pendente: Integração com MaterialBase (busca por código escaneado)
+- ⚠️ Pendente: Validação de preços contra TabelaPrecoItem
+- ⚠️ Pendente: Mapeamento correto de TipoLote por material
+- ⚠️ Pendente: Fluxo de autorização ADM quando preço > tabela
+
 ### 2025-11-18 - Implementação Módulo Comprador (Backend)
 - ✅ Criados 4 novos modelos de banco de dados
 - ✅ Adicionadas 4 colunas na tabela fornecedores
@@ -262,4 +342,4 @@ workspace/
 ---
 
 **Última atualização**: 18 de novembro de 2025
-**Status**: Backend completo | Frontend pendente
+**Status**: Wizard base criado | Integrações pendentes
