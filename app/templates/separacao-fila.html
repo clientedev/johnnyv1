@@ -119,6 +119,17 @@
                 const podeIniciar = sep.status === 'AGUARDANDO_SEPARACAO';
                 const podeContinuar = sep.status === 'EM_SEPARACAO';
                 
+                // Buscar materiais dos itens do lote
+                let materiaisTexto = lote.tipo_lote_nome || 'Material não identificado';
+                if (lote.itens_info && lote.itens_info.length > 0) {
+                    const materiais = lote.itens_info.map(item => {
+                        // Priorizar material_nome sobre tipo_lote_nome
+                        const nome = item.material_nome || item.tipo_lote_nome || 'Material não identificado';
+                        return `${nome} (${item.peso_kg}kg)`;
+                    }).join(', ');
+                    materiaisTexto = materiais.length > 50 ? materiais.substring(0, 50) + '...' : materiais;
+                }
+                
                 return `
                     <div class="card" style="border-left: 4px solid var(--primary-color);">
                         <div style="display: grid; gap: 1rem;">
@@ -126,7 +137,7 @@
                                 <div>
                                     <h3 style="margin: 0; font-size: 1.25rem;">${lote.numero_lote}</h3>
                                     <p style="color: var(--gray-600); margin: 0.5rem 0 0 0;">
-                                        ${lote.fornecedor_nome} - ${lote.tipo_lote_nome}
+                                        ${lote.fornecedor_nome} - ${materiaisTexto}
                                     </p>
                                 </div>
                                 <span class="status ${statusClass}">${formatarStatus(sep.status)}</span>

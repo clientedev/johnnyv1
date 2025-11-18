@@ -47,6 +47,22 @@ def obter_fila_separacao():
             separacao_dict = separacao.to_dict()
 
             if separacao.lote:
+                # Incluir informações dos materiais/itens do lote
+                itens_info = []
+                for item in separacao.lote.itens:
+                    item_info = {
+                        'id': item.id,
+                        'peso_kg': item.peso_kg,
+                        'material_id': item.material_id,
+                        'material_nome': item.material.nome if item.material else None,
+                        'material_codigo': item.material.codigo if item.material else None,
+                        'tipo_lote_id': item.tipo_lote_id,
+                        'tipo_lote_nome': item.tipo_lote.nome if item.tipo_lote else None,
+                        'estrelas_final': item.estrelas_final,
+                        'classificacao': item.classificacao if item.classificacao else (item.material.classificacao if item.material else None)
+                    }
+                    itens_info.append(item_info)
+                
                 separacao_dict['lote_detalhes'] = {
                     'id': separacao.lote.id,
                     'numero_lote': separacao.lote.numero_lote,
@@ -58,7 +74,8 @@ def obter_fila_separacao():
                     'tipo_lote_nome': separacao.lote.tipo_lote.nome if separacao.lote.tipo_lote else None,
                     'conferente_nome': separacao.lote.conferente.nome if separacao.lote.conferente else None,
                     'data_criacao': separacao.lote.data_criacao.isoformat() if separacao.lote.data_criacao else None,
-                    'anexos': separacao.lote.anexos
+                    'anexos': separacao.lote.anexos,
+                    'itens_info': itens_info
                 }
 
             resultado.append(separacao_dict)
