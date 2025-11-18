@@ -270,6 +270,11 @@ class Fornecedor(db.Model):  # type: ignore
     vendedor_id = db.Column(db.Integer, db.ForeignKey('vendedores.id'), nullable=True)
     criado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     
+    tabela_preco_id = db.Column(db.Integer, db.ForeignKey('tabelas_preco.id'), nullable=True, default=1)
+    comprador_responsavel_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+    
     conta_bancaria = db.Column(db.String(50))
     agencia = db.Column(db.String(20))
     chave_pix = db.Column(db.String(100))
@@ -289,6 +294,9 @@ class Fornecedor(db.Model):  # type: ignore
     tipos_lote = db.relationship('FornecedorTipoLote', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     classificacao_estrelas = db.relationship('FornecedorClassificacaoEstrela', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     criado_por = db.relationship('Usuario', foreign_keys=[criado_por_id], backref='fornecedores_criados')
+    tabela_preco = db.relationship('TabelaPreco', foreign_keys=[tabela_preco_id], backref='fornecedores')
+    comprador_responsavel = db.relationship('Usuario', foreign_keys=[comprador_responsavel_id], backref='fornecedores_sob_responsabilidade')
+    autorizacoes_preco = db.relationship('SolicitacaoAutorizacaoPreco', backref='fornecedor', lazy=True)
     
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -328,6 +336,13 @@ class Fornecedor(db.Model):  # type: ignore
             'observacoes': self.observacoes,
             'criado_por_id': self.criado_por_id,
             'criado_por_nome': self.criado_por.nome if self.criado_por else None,
+            'tabela_preco_id': self.tabela_preco_id,
+            'tabela_preco_nome': self.tabela_preco.nome if self.tabela_preco else None,
+            'tabela_preco_estrelas': self.tabela_preco.nivel_estrelas if self.tabela_preco else None,
+            'comprador_responsavel_id': self.comprador_responsavel_id,
+            'comprador_responsavel_nome': self.comprador_responsavel.nome if self.comprador_responsavel else None,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
             'ativo': self.ativo
         }
@@ -1373,4 +1388,190 @@ class InventarioContagem(db.Model):  # type: ignore
             'fotos': self.fotos,
             'gps': self.gps,
             'device_id': self.device_id
+        }
+
+class MaterialBase(db.Model):  # type: ignore
+    """Tabela unificada de materiais base (sucata eletrônica)"""
+    __tablename__ = 'materiais_base'
+    __table_args__ = (
+        db.Index('idx_materiais_base_nome', 'nome'),
+        db.Index('idx_materiais_base_classificacao', 'classificacao'),
+        db.Index('idx_materiais_base_codigo', 'codigo'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.String(20), unique=True, nullable=False)
+    nome = db.Column(db.String(200), unique=True, nullable=False)
+    classificacao = db.Column(db.String(10), nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    precos = db.relationship('TabelaPrecoItem', backref='material', lazy=True, cascade='all, delete-orphan')
+    autorizacoes = db.relationship('SolicitacaoAutorizacaoPreco', backref='material', lazy=True)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        if 'classificacao' in kwargs and kwargs['classificacao'] not in ['leve', 'medio', 'pesado']:
+            raise ValueError('Classificação deve ser: leve, medio ou pesado')
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        precos_dict = {}
+        if self.precos:
+            for preco_item in self.precos:
+                if preco_item.tabela_preco:
+                    estrelas = preco_item.tabela_preco.nivel_estrelas
+                    precos_dict[f'preco_{estrelas}_estrela'] = preco_item.preco_por_kg
+        
+        return {
+            'id': self.id,
+            'codigo': self.codigo,
+            'nome': self.nome,
+            'classificacao': self.classificacao,
+            'descricao': self.descricao,
+            'ativo': self.ativo,
+            'precos': precos_dict,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
+class TabelaPreco(db.Model):  # type: ignore
+    """Tabela mestre de preços por estrelas (3 registros fixos: 1★, 2★, 3★)"""
+    __tablename__ = 'tabelas_preco'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(50), unique=True, nullable=False)
+    nivel_estrelas = db.Column(db.Integer, unique=True, nullable=False)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    itens = db.relationship('TabelaPrecoItem', backref='tabela_preco', lazy=True, cascade='all, delete-orphan')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        if 'nivel_estrelas' in kwargs and kwargs['nivel_estrelas'] not in [1, 2, 3]:
+            raise ValueError('Nível de estrelas deve ser 1, 2 ou 3')
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'nivel_estrelas': self.nivel_estrelas,
+            'ativo': self.ativo,
+            'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
+            'total_itens': len(self.itens) if self.itens else 0
+        }
+
+class TabelaPrecoItem(db.Model):  # type: ignore
+    """Preços específicos: material × tabela"""
+    __tablename__ = 'tabela_preco_itens'
+    __table_args__ = (
+        db.UniqueConstraint('tabela_preco_id', 'material_id', name='uq_tabela_material'),
+        db.Index('idx_tabela_preco_itens_tabela', 'tabela_preco_id'),
+        db.Index('idx_tabela_preco_itens_material', 'material_id'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tabela_preco_id = db.Column(db.Integer, db.ForeignKey('tabelas_preco.id', ondelete='CASCADE'), nullable=False)
+    material_id = db.Column(db.Integer, db.ForeignKey('materiais_base.id', ondelete='CASCADE'), nullable=False)
+    preco_por_kg = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __init__(self, **kwargs: Any) -> None:
+        if 'preco_por_kg' in kwargs and kwargs['preco_por_kg'] < 0:
+            raise ValueError('Preço por kg deve ser maior ou igual a zero')
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tabela_preco_id': self.tabela_preco_id,
+            'tabela_nome': self.tabela_preco.nome if self.tabela_preco else None,
+            'tabela_estrelas': self.tabela_preco.nivel_estrelas if self.tabela_preco else None,
+            'material_id': self.material_id,
+            'material_nome': self.material.nome if self.material else None,
+            'material_codigo': self.material.codigo if self.material else None,
+            'material_classificacao': self.material.classificacao if self.material else None,
+            'preco_por_kg': float(self.preco_por_kg) if self.preco_por_kg else 0.00,
+            'ativo': self.ativo,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
+class SolicitacaoAutorizacaoPreco(db.Model):  # type: ignore
+    """Sistema de autorização de preço quando comprador negocia acima da tabela"""
+    __tablename__ = 'solicitacoes_autorizacao_preco'
+    __table_args__ = (
+        db.Index('idx_autorizacao_status', 'status'),
+        db.Index('idx_autorizacao_comprador', 'comprador_id'),
+        db.Index('idx_autorizacao_fornecedor', 'fornecedor_id'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    ordem_compra_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    comprador_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    material_id = db.Column(db.Integer, db.ForeignKey('materiais_base.id'), nullable=False)
+    peso_kg = db.Column(db.Numeric(10, 2), nullable=False)
+    
+    tabela_atual_id = db.Column(db.Integer, db.ForeignKey('tabelas_preco.id'), nullable=False)
+    preco_tabela = db.Column(db.Numeric(10, 2), nullable=False)
+    preco_negociado = db.Column(db.Numeric(10, 2), nullable=False)
+    diferenca_percentual = db.Column(db.Numeric(5, 2), nullable=True)
+    
+    justificativa = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default='pendente', nullable=False)
+    
+    decisao_adm_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    nova_tabela_atribuida_id = db.Column(db.Integer, db.ForeignKey('tabelas_preco.id'), nullable=True)
+    motivo_decisao = db.Column(db.Text, nullable=True)
+    
+    data_solicitacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_decisao = db.Column(db.DateTime, nullable=True)
+    
+    comprador = db.relationship('Usuario', foreign_keys=[comprador_id], backref='solicitacoes_preco')
+    tabela_atual = db.relationship('TabelaPreco', foreign_keys=[tabela_atual_id], backref='solicitacoes_autorizacao')
+    decisao_adm = db.relationship('Usuario', foreign_keys=[decisao_adm_id], backref='decisoes_autorizacao_preco')
+    nova_tabela_atribuida = db.relationship('TabelaPreco', foreign_keys=[nova_tabela_atribuida_id], backref='atribuicoes_autorizacao')
+    
+    def __init__(self, **kwargs: Any) -> None:
+        if 'status' in kwargs and kwargs['status'] not in ['pendente', 'aprovada', 'rejeitada']:
+            raise ValueError('Status deve ser: pendente, aprovada ou rejeitada')
+        if 'peso_kg' in kwargs and kwargs['peso_kg'] <= 0:
+            raise ValueError('Peso deve ser maior que zero')
+        if 'preco_negociado' in kwargs and 'preco_tabela' in kwargs:
+            if kwargs['preco_negociado'] <= kwargs['preco_tabela']:
+                raise ValueError('Preço negociado deve ser maior que o preço da tabela')
+            kwargs['diferenca_percentual'] = ((kwargs['preco_negociado'] - kwargs['preco_tabela']) / kwargs['preco_tabela']) * 100
+        super().__init__(**kwargs)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'ordem_compra_id': self.ordem_compra_id,
+            'fornecedor_id': self.fornecedor_id,
+            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
+            'comprador_id': self.comprador_id,
+            'comprador_nome': self.comprador.nome if self.comprador else None,
+            'material_id': self.material_id,
+            'material_nome': self.material.nome if self.material else None,
+            'material_codigo': self.material.codigo if self.material else None,
+            'peso_kg': float(self.peso_kg) if self.peso_kg else 0.00,
+            'tabela_atual_id': self.tabela_atual_id,
+            'tabela_atual_nome': self.tabela_atual.nome if self.tabela_atual else None,
+            'tabela_atual_estrelas': self.tabela_atual.nivel_estrelas if self.tabela_atual else None,
+            'preco_tabela': float(self.preco_tabela) if self.preco_tabela else 0.00,
+            'preco_negociado': float(self.preco_negociado) if self.preco_negociado else 0.00,
+            'diferenca_percentual': float(self.diferenca_percentual) if self.diferenca_percentual else 0.00,
+            'justificativa': self.justificativa,
+            'status': self.status,
+            'decisao_adm_id': self.decisao_adm_id,
+            'decisao_adm_nome': self.decisao_adm.nome if self.decisao_adm else None,
+            'nova_tabela_atribuida_id': self.nova_tabela_atribuida_id,
+            'nova_tabela_atribuida_nome': self.nova_tabela_atribuida.nome if self.nova_tabela_atribuida else None,
+            'nova_tabela_atribuida_estrelas': self.nova_tabela_atribuida.nivel_estrelas if self.nova_tabela_atribuida else None,
+            'motivo_decisao': self.motivo_decisao,
+            'data_solicitacao': self.data_solicitacao.isoformat() if self.data_solicitacao else None,
+            'data_decisao': self.data_decisao.isoformat() if self.data_decisao else None
         }

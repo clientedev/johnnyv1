@@ -1,54 +1,265 @@
-# Sistema MRX - Gestão de Compra de Placas Eletrônicas
+# MRX System - Gestão de Compras de Sucata Eletrônica
 
-## Overview
-The MRX System is a comprehensive solution for managing the procurement of electronic circuit boards, from purchase request to inventory receipt. It features lot-based tracking, quality classification, and supplier management. Key capabilities include AI-powered classification, geolocalized data capture, dynamic pricing, and a robust Role-Based Access Control (RBAC) system. The project aims to streamline procurement, enhance traceability, and provide detailed analytics for improved decision-making in the electronic board market.
+## Visão Geral
+Sistema completo para gestão de compras de sucata eletrônica com sistema de preços por estrelas (1★, 2★, 3★), autorizações de preço e geolocalização de fornecedores.
 
-## User Preferences
-No specific user preferences were provided in the original document.
+## Arquitetura do Sistema
 
-## System Architecture
+### Backend (Flask + SQLAlchemy + PostgreSQL)
+- Python 3.12
+- Flask 3.0.0
+- PostgreSQL (Neon-backed)
+- Socket.IO para notificações em tempo real
+- JWT para autenticação
 
-### Stack Tecnológica
-- **Backend:** Flask 3.0.0, SQLAlchemy
-- **Banco de Dados:** PostgreSQL (Replit Database)
-- **Autenticação:** JWT (Flask-JWT-Extended)
-- **IA:** Google Gemini for automatic board classification
-- **WebSocket:** Socket.IO for real-time notifications
-- **Frontend:** HTML/CSS/JavaScript
+### Frontend
+- Vanilla JavaScript
+- Tailwind CSS
+- Service Workers para PWA
 
-### UI/UX Decisions
-The system features a modernized frontend with a gradient design for intuitive user interaction. It includes native camera integration for board photo capture, visual star selection for quality classification, and real-time price calculation. Dashboards offer quick access cards and statistics.
+## Módulo Comprador - Sistema MRX (IMPLEMENTADO)
 
-### Technical Implementations
-- **AI Integration:** Google Gemini classifies boards (1-5 stars) with textual justifications based on image analysis, allowing user acceptance or override.
-- **Geolocation:** Captures GPS coordinates and supports manual address input.
-- **Dynamic Pricing:** Configures prices per supplier, lot type, and star rating, with unique pricing per kg for each combination.
-- **Excel Integration:** Provides import/export for lot types and prices, including auto-generation for 15 price points.
-- **Automated Lot Type Codes:** Generates read-only codes (e.g., TL001) for lot types.
-- **Workflow Automation:** Manages the full lifecycle from request creation, administrative approval, lot creation, to final inventory entry, with automatic generation of Service Orders (OS) upon Purchase Order (OC) approval.
-- **Robust Validation:** Backend enforces validation rules, such as blocking zero values and mandatory configuration.
-- **RBAC System:** Implements comprehensive Role-Based Access Control with 7 standard profiles.
-- **Advanced JWT Authentication:** Uses access tokens (24-hour validity) and refresh tokens (30-day validity).
-- **Auditing System:** Automatically logs all critical actions (creation, updates, deletions, login attempts) with IP, user agent, and detailed JSON data.
-- **Purchase Order (OC) Module:** Manages the full workflow for generating purchase orders from approved requests with a strict 1:1 relationship, RBAC controls, and comprehensive audit trails including GPS/IP/device metadata.
-- **Conference/Receipt Inspection Module:** Automated conference system that opens when drivers finalize service orders (OS). Features include weighing validation (with 10% divergence threshold), quality checks, photo evidence upload, automatic divergence detection, ADM approval workflow for divergences, and automatic lot creation upon approval. The system calculates expected weight as sum(peso_kg × quantidade) for all request items.
-- **Three-Stage Workflow System (Lot Created → Stock Entry → Separation):** Complete pipeline for processing received lots:
-  - **Stage 1 - Lot Creation:** Automatic lot generation after conference approval with sequential numbering (YYYY-XXXXX format), automatic status management (PENDING_ADM for divergences >10%), and complete audit trail with GPS/IP/device_id.
-  - **Stage 2 - Stock Entry:** Automatic creation of stock entry (EntradaEstoque) and movement tracking (MovimentacaoEstoque) when lot is created, with location tracking (from EXTERNO to PATIO_RECEBIMENTO), and full history of movements.
-  - **Stage 3 - Separation Process:** Interactive workflow for operators to separate lots into sublots and residues, including queue management for separation tasks, creation of sublots with their own lot numbers, waste/residue registration with admin approval, progress tracking (weight processed, utilization percentage), and automatic status updates throughout the process.
-- **Waste Management (Residuos):** Administrative approval system for waste disposal, classification (Recyclable, Non-recyclable, Hazardous), photo evidence for disposal justification, and complete tracking from registration to final disposal.
-- **Data Models:** Key models include `TipoLote` (board types), `FornecedorTipoLotePreco` (price matrix), `Solicitacao` (purchase requests), `ItemSolicitacao` (request items), `OrdemCompra` (purchase orders), `AuditoriaOC` (OC audit trail), `ConferenciaRecebimento` (receipt inspections), `Lote` (item grouping), `EntradaEstoque` (inventory entries), `MovimentacaoEstoque` (stock movements), `LoteSeparacao` (separation processes), `Residuo` (waste/residue), `Perfil` (roles), `Veiculo`, `Motorista`, and `AuditoriaLog`.
-- **Enhanced Audit System:** All critical operations now log GPS coordinates, device_id, IP address, and user_agent for complete traceability across the entire workflow (Conference → Lot → Stock → Separation).
-- **API URL Handling:** `fetchAPI()` helper automatically prefixes endpoints with `/api`, requiring calls to pass endpoints without this prefix.
+### Funcionalidades Principais
+1. **Gestão de Materiais Base** (50+ tipos de sucata eletrônica)
+2. **Sistema de Preços por Estrelas** (3 tabelas: 1★, 2★, 3★)
+3. **Autorização de Preços** quando negociação excede tabela
+4. **Geolocalização de Fornecedores** (latitude/longitude)
+5. **Importação/Exportação Excel** de materiais e preços
 
-### Feature Specifications
-- **Multi-item Requests:** Supports requests with multiple items, each with individual classification and details.
-- **Configurable Star Ratings:** Administrative interface for configuring 1-5 star ratings per supplier and lot type.
-- **Supplier Management:** Cadastro and editing of suppliers, with automatic data retrieval from sources like Receita Federal.
-- **Vehicle and Driver Management:** Dedicated modules for managing vehicles and drivers.
+### Modelos de Banco de Dados
 
-## External Dependencies
-- **Google Gemini API:** Used for AI-powered image analysis and classification.
-- **Replit Database:** PostgreSQL database service.
-- **Flask-JWT-Extended:** Library for JWT authentication.
-- **Socket.IO:** Used for real-time notifications.
+#### MaterialBase
+- Catálogo de 50+ tipos de sucata eletrônica
+- Campos: código, nome, classificação (leve/medio/pesado), descrição
+- Relacionamento com TabelaPrecoItem (preços em cada tabela)
+
+#### TabelaPreco
+- 3 tabelas fixas: 1 Estrela, 2 Estrelas, 3 Estrelas
+- Nível de estrelas define a qualidade/confiabilidade do fornecedor
+- Constraint UNIQUE em nivel_estrelas
+
+#### TabelaPrecoItem
+- Preço específico de cada material em cada tabela
+- Constraint UNIQUE (tabela_preco_id, material_id) - evita duplicatas
+- Preço em R$/kg (Numeric 10,2)
+
+#### SolicitacaoAutorizacaoPreco
+- Solicitação gerada quando comprador negocia preço acima da tabela
+- Status: pendente, aprovada, rejeitada
+- Calcula diferença percentual automaticamente
+- Permite promoção de fornecedor para tabela superior
+- Validação contra solicitações duplicadas pendentes
+
+#### Fornecedor (Campos Adicionados)
+- tabela_preco_id: vincula fornecedor a uma das 3 tabelas
+- comprador_responsavel_id: comprador que atende este fornecedor
+- latitude/longitude: captura geolocalização em campo
+- Novos fornecedores iniciam com Tabela 1★
+
+### APIs Backend
+
+#### `/api/materiais-base`
+- GET: listar materiais (com filtros: busca, classificação, apenas_ativos)
+- GET /:id: obter material específico
+- POST: criar material (admin) + vincular preços 0.00 em todas as tabelas
+- PUT /:id: atualizar material e preços
+- DELETE /:id: desativar material
+- POST /importar-excel: importação em massa
+- GET /exportar-excel: exportação completa com 3 colunas de preços
+- GET /modelo-importacao: baixar template Excel
+
+#### `/api/tabelas-preco`
+- GET: listar 3 tabelas
+- GET /:id: obter tabela específica
+- GET /:id/precos: listar todos os preços da tabela
+- PUT /:id/precos/:material_id: atualizar preço individual
+- PUT /:id/precos: atualização em massa
+- POST /:id/importar-excel: importação por tabela
+- GET /:id/exportar-excel: exportação por tabela
+
+#### `/api/autorizacoes-preco`
+- GET: listar autorizações (filtros: status, fornecedor, comprador)
+- GET /:id: obter autorização específica
+- POST: criar solicitação de autorização
+  - Valida preço negociado > preço tabela
+  - Calcula diferença percentual
+  - Bloqueia duplicatas pendentes
+  - Envia notificação WebSocket para admins
+- POST /:id/aprovar: aprovar autorização (admin)
+  - Permite promover fornecedor para tabela superior
+  - Registra em auditoria
+- POST /:id/rejeitar: rejeitar autorização (admin)
+  - Motivo obrigatório
+- GET /estatisticas: dashboard de autorizações
+
+### Scripts de Seed
+
+**seed_modulo_comprador.py**
+- Cria 3 tabelas de preço (1★, 2★, 3★)
+- Cadastra 50 materiais base
+- Gera 150 itens de preço (3 por material, inicial R$ 0.00)
+- Vincula fornecedores existentes à Tabela 1★
+- **IDEMPOTENTE**: pode rodar múltiplas vezes sem duplicar dados
+
+### Estrutura de Arquivos
+```
+app/
+├── models.py (4 novos modelos + alteração em Fornecedor)
+├── routes/
+│   ├── materiais_base.py (CRUD + Excel)
+│   ├── tabelas_preco.py (gestão de preços)
+│   └── autorizacoes_preco.py (workflow de aprovação)
+└── __init__.py (registra novos blueprints)
+
+seed_modulo_comprador.py (população inicial)
+```
+
+### Fluxo de Trabalho - Autorização de Preço
+
+1. **Comprador em campo**:
+   - Negocia com fornecedor
+   - Preço negociado > preço da tabela do fornecedor
+   - Sistema automaticamente cria SolicitacaoAutorizacaoPreco
+
+2. **Notificação**:
+   - WebSocket notifica admins em tempo real
+   - Dashboard mostra solicitação pendente
+
+3. **Administrador analisa**:
+   - Visualiza diferença percentual
+   - Justificativa do comprador
+   - Histórico do fornecedor
+
+4. **Decisão**:
+   - **Aprovar**: pode promover fornecedor para tabela superior
+   - **Rejeitar**: motivo obrigatório
+   - Notificação enviada ao comprador
+
+### Migrações de Banco
+
+Executadas via execute_sql_tool:
+```sql
+ALTER TABLE fornecedores ADD COLUMN tabela_preco_id INTEGER REFERENCES tabelas_preco(id);
+ALTER TABLE fornecedores ADD COLUMN comprador_responsavel_id INTEGER REFERENCES usuarios(id);
+ALTER TABLE fornecedores ADD COLUMN latitude DECIMAL(10, 8);
+ALTER TABLE fornecedores ADD COLUMN longitude DECIMAL(11, 8);
+```
+
+### Validações de Segurança
+
+1. **Autenticação**: @jwt_required em todos os endpoints
+2. **Autorização**: @admin_required para operações sensíveis
+3. **Validação de Input**:
+   - Preços não podem ser negativos
+   - Peso deve ser > 0
+   - Preço negociado deve ser > preço tabela
+   - Validação contra NaN/None em campos numéricos
+4. **Integridade**:
+   - Constraint UNIQUE evita duplicatas
+   - Foreign keys com CASCADE
+   - Validação de status (pendente/aprovada/rejeitada)
+5. **Auditoria**: logs de promoção de fornecedores
+
+### Próximos Passos (PENDENTES)
+
+1. **Frontend**:
+   - [ ] /materiais-base.html (gestão de materiais + 3 colunas de preços)
+   - [ ] /tabelas-preco.html (abas 1★, 2★, 3★) - ADM apenas
+   - [ ] /autorizacoes-preco.html (aprovar/rejeitar) - ADM apenas
+
+2. **Integração**:
+   - [ ] Modificar wizard de compra para validar preços
+   - [ ] Auto-gerar autorizações no fluxo de compra
+
+3. **Menu**:
+   - [ ] Adicionar links para novas telas
+   - [ ] Badge de notificações pendentes
+
+## Usuários do Sistema
+
+### Perfis e Credenciais
+```
+Admin: admin / senha123
+Comprador: comprador / senha123
+Almoxarife: almoxarife / senha123
+Motorista: motorista / senha123
+Financeiro: financeiro / senha123
+Auditoria: auditoria / senha123
+```
+
+## Tecnologias e Dependências
+
+### Backend
+- Flask 3.0.0
+- Flask-SQLAlchemy
+- Flask-JWT-Extended
+- Flask-SocketIO
+- psycopg2-binary
+- pandas
+- openpyxl
+
+### Frontend
+- Tailwind CSS
+- Chart.js
+- Socket.IO Client
+
+## Variáveis de Ambiente
+- DATABASE_URL: PostgreSQL connection string
+- SESSION_SECRET: chave para sessões
+- JWT_SECRET_KEY: chave para tokens JWT
+
+## Comandos Úteis
+
+### Executar Seed
+```bash
+python seed_modulo_comprador.py
+```
+
+### Iniciar Servidor
+```bash
+python app.py
+```
+
+### Verificar Banco
+```bash
+psql $DATABASE_URL -c "SELECT COUNT(*) FROM materiais_base;"
+psql $DATABASE_URL -c "SELECT COUNT(*) FROM tabelas_preco;"
+psql $DATABASE_URL -c "SELECT COUNT(*) FROM tabela_preco_itens;"
+```
+
+## Estrutura do Projeto
+```
+workspace/
+├── app/
+│   ├── __init__.py
+│   ├── models.py
+│   ├── auth.py
+│   ├── routes/
+│   │   ├── auth.py
+│   │   ├── materiais_base.py (NOVO)
+│   │   ├── tabelas_preco.py (NOVO)
+│   │   ├── autorizacoes_preco.py (NOVO)
+│   │   └── ...
+│   ├── static/
+│   └── templates/
+├── seed_modulo_comprador.py (NOVO)
+├── app.py
+└── requirements.txt
+```
+
+## Changelog
+
+### 2025-11-18 - Implementação Módulo Comprador (Backend)
+- ✅ Criados 4 novos modelos de banco de dados
+- ✅ Adicionadas 4 colunas na tabela fornecedores
+- ✅ Implementadas 3 APIs completas (materiais, tabelas, autorizações)
+- ✅ Criado script de seed idempotente
+- ✅ Implementado sistema de Excel import/export
+- ✅ Adicionadas validações de segurança e integridade
+- ✅ Seed executado: 3 tabelas, 50 materiais, 150 preços
+- ⏳ Frontend pendente (3 telas)
+
+---
+
+**Última atualização**: 18 de novembro de 2025
+**Status**: Backend completo | Frontend pendente
