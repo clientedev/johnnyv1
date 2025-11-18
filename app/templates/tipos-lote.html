@@ -15,7 +15,7 @@
             gap: 1rem;
             margin-top: 1.5rem;
         }
-
+        
         .material-card {
             background: white;
             border-radius: 12px;
@@ -24,42 +24,42 @@
             transition: all 0.3s ease;
             border-left: 4px solid #059669;
         }
-
+        
         .material-card:hover {
             box-shadow: 0 4px 16px rgba(0,0,0,0.12);
             transform: translateY(-2px);
         }
-
+        
         .material-card.leve {
             border-left-color: #10b981;
         }
-
+        
         .material-card.medio {
             border-left-color: #f59e0b;
         }
-
+        
         .material-card.pesado {
             border-left-color: #ef4444;
         }
-
+        
         .material-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 0.75rem;
         }
-
+        
         .material-title {
             flex: 1;
         }
-
+        
         .material-codigo {
             font-size: 0.875rem;
             font-weight: 600;
             color: #059669;
             margin-bottom: 0.25rem;
         }
-
+        
         .material-nome {
             font-size: 1.125rem;
             font-weight: 600;
@@ -67,7 +67,7 @@
             margin: 0;
             line-height: 1.4;
         }
-
+        
         .material-classificacao {
             display: inline-block;
             padding: 0.375rem 0.75rem;
@@ -77,74 +77,74 @@
             text-transform: uppercase;
             margin-top: 0.5rem;
         }
-
+        
         .material-classificacao.leve {
             background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
             color: #065f46;
             box-shadow: 0 2px 4px rgba(5, 150, 105, 0.15);
         }
-
+        
         .material-classificacao.medio {
             background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
             color: #78350f;
             box-shadow: 0 2px 4px rgba(245, 158, 11, 0.25);
         }
-
+        
         .material-classificacao.pesado {
             background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
             color: #fef2f2;
             box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
         }
-
+        
         .material-precos {
             margin-top: 1rem;
             padding-top: 1rem;
             border-top: 1px solid #e5e7eb;
         }
-
+        
         .precos-label {
             font-size: 0.875rem;
             font-weight: 600;
             color: #6b7280;
             margin-bottom: 0.5rem;
         }
-
+        
         .precos-grid {
             display: flex;
             gap: 0.75rem;
             flex-wrap: wrap;
         }
-
+        
         .preco-item {
             flex: 1;
             min-width: 80px;
             text-align: center;
         }
-
+        
         .preco-estrelas {
             font-size: 0.75rem;
             color: #6b7280;
             margin-bottom: 0.25rem;
         }
-
+        
         .preco-valor {
             font-size: 1rem;
             font-weight: 700;
             color: #059669;
         }
-
+        
         .preco-item.destaque-1 .preco-valor {
             color: #10b981;
         }
-
+        
         .preco-item.destaque-2 .preco-valor {
             color: #f59e0b;
         }
-
+        
         .preco-item.destaque-3 .preco-valor {
             color: #dc2626;
         }
-
+        
         .material-actions {
             display: flex;
             gap: 0.5rem;
@@ -152,19 +152,19 @@
             padding-top: 1rem;
             border-top: 1px solid #e5e7eb;
         }
-
+        
         .filters-row {
             display: flex;
             gap: 1rem;
             flex-wrap: wrap;
             margin-bottom: 1rem;
         }
-
+        
         .filter-group {
             flex: 1;
             min-width: 200px;
         }
-
+        
         .filter-group label {
             display: block;
             font-size: 0.875rem;
@@ -172,7 +172,7 @@
             color: #374151;
             margin-bottom: 0.5rem;
         }
-
+        
         .filter-group input,
         .filter-group select {
             width: 100%;
@@ -181,66 +181,32 @@
             border-radius: 6px;
             font-size: 0.875rem;
         }
-
-        /* Stats Bar - Updated Styles */
+        
         .stats-bar {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
         }
-
+        
         .stat-card {
+            flex: 1;
+            min-width: 150px;
             background: linear-gradient(135deg, #059669 0%, #10b981 100%);
             color: white;
-            padding: 1.5rem 1rem;
-            border-radius: 12px;
+            padding: 1rem;
+            border-radius: 8px;
             text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        }
-
-        .stat-card.total {
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); /* Blue gradient */
-        }
-
-        .stat-card.leve {
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%); /* Green gradient */
-        }
-
-        .stat-card.medio {
-            background: linear-gradient(135deg, #f59e0b 0%, #fbbd24 100%); /* Yellow gradient */
-        }
-
-        .stat-card.pesado {
-            background: linear-gradient(135deg, #dc2626 0%, #f87171 100%); /* Red gradient */
-        }
-
-        .stat-icon {
-            font-size: 2.5rem;
-            margin-bottom: 0.75rem;
-            opacity: 0.9;
-        }
-
+        
         .stat-value {
-            font-size: 2.2rem;
+            font-size: 2rem;
             font-weight: 700;
-            line-height: 1;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
         }
-
+        
         .stat-label {
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: 0.875rem;
             opacity: 0.9;
         }
     </style>
@@ -304,29 +270,24 @@
             </div>
         </div>
 
-        <!-- Stats Bar -->
-            <div class="stats-grid">
-                <div class="stat-card total">
-                    <i class="fas fa-layer-group stat-icon"></i>
-                    <div class="stat-value" id="total-materiais">0</div>
-                    <div class="stat-label">Materiais Cadastrados</div>
-                </div>
-                <div class="stat-card leve">
-                    <i class="fas fa-feather stat-icon"></i>
-                    <div class="stat-value" id="total-leve">0</div>
-                    <div class="stat-label">Leve</div>
-                </div>
-                <div class="stat-card medio">
-                    <i class="fas fa-balance-scale stat-icon"></i>
-                    <div class="stat-value" id="total-medio">0</div>
-                    <div class="stat-label">Médio</div>
-                </div>
-                <div class="stat-card pesado">
-                    <i class="fas fa-weight-hanging stat-icon"></i>
-                    <div class="stat-value" id="total-pesado">0</div>
-                    <div class="stat-label">Pesado</div>
-                </div>
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-value" id="totalMateriais">0</div>
+                <div class="stat-label">Materiais Cadastrados</div>
             </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                <div class="stat-value" id="totalLeve">0</div>
+                <div class="stat-label">Leve</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
+                <div class="stat-value" id="totalMedio">0</div>
+                <div class="stat-label">Médio</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+                <div class="stat-value" id="totalPesado">0</div>
+                <div class="stat-label">Pesado</div>
+            </div>
+        </div>
 
         <div class="card">
             <div class="filters-row">
@@ -363,7 +324,7 @@
             </div>
             <form id="formMaterial">
                 <input type="hidden" id="materialId">
-
+                
                 <div class="form-group">
                     <label>Nome do Material <span style="color: red;">*</span></label>
                     <input type="text" id="nomeMaterial" required placeholder="Ex: SUCATA PROCESSADOR CERÂMICO A">
@@ -396,7 +357,7 @@
                     <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #6b7280;">
                         Configure os preços para as 3 tabelas de estrelas
                     </p>
-
+                    
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
                         <div>
                             <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #10b981;">
@@ -488,7 +449,7 @@
                 const matchBusca = !busca || 
                     material.nome.toLowerCase().includes(busca) || 
                     (material.codigo && material.codigo.toLowerCase().includes(busca));
-
+                
                 const matchClassificacao = !classificacao || material.classificacao === classificacao;
 
                 return matchBusca && matchClassificacao;
@@ -499,7 +460,7 @@
 
         function renderizarMateriais() {
             const container = document.getElementById('materiaisContainer');
-
+            
             if (materiaisFiltrados.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 3rem; color: #6b7280;">
@@ -516,7 +477,7 @@
 
         function criarCardMaterial(material) {
             const precos = material.precos || {};
-
+            
             return `
                 <div class="material-card ${material.classificacao}">
                     <div class="material-header">
@@ -526,9 +487,9 @@
                             <span class="material-classificacao ${material.classificacao}">${material.classificacao}</span>
                         </div>
                     </div>
-
+                    
                     ${material.descricao ? `<p style="font-size: 0.875rem; color: #6b7280; margin: 0.75rem 0;">${material.descricao}</p>` : ''}
-
+                    
                     <div class="material-precos">
                         <div class="precos-label"><i class="fas fa-coins"></i> Preços (R$/kg)</div>
                         <div class="precos-grid">
@@ -546,7 +507,7 @@
                             </div>
                         </div>
                     </div>
-
+                    
                     <div class="material-actions">
                         <button class="btn btn-sm btn-secondary" onclick="editarMaterial(${material.id})" style="flex: 1;">
                             <i class="fas fa-edit"></i> Editar
@@ -587,12 +548,12 @@
             document.getElementById('codigoMaterial').value = material.codigo || '';
             document.getElementById('classificacaoMaterial').value = material.classificacao;
             document.getElementById('descricaoMaterial').value = material.descricao || '';
-
+            
             const precos = material.precos || {};
             document.getElementById('preco1Estrela').value = precos['preco_1_estrela'] || '';
             document.getElementById('preco2Estrela').value = precos['preco_2_estrela'] || '';
             document.getElementById('preco3Estrela').value = precos['preco_3_estrela'] || '';
-
+            
             document.getElementById('modalMaterial').style.display = 'flex';
         }
 
@@ -622,7 +583,7 @@
                 mostrarMensagem('Os preços devem ser progressivos: 1★ < 2★ < 3★', 'error');
                 return;
             }
-
+            
             const dados = {
                 nome: document.getElementById('nomeMaterial').value,
                 classificacao: document.getElementById('classificacaoMaterial').value,
@@ -680,7 +641,7 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-
+                
                 mostrarMensagem('Modelo baixado com sucesso!');
             } catch (error) {
                 console.error('Erro:', error);
@@ -702,7 +663,7 @@
 
             try {
                 mostrarMensagem('Importando dados... Por favor aguarde.', 'info');
-
+                
                 const response = await fetch('/api/materiais-base/importar-excel', {
                     method: 'POST',
                     headers: {
@@ -721,7 +682,7 @@
                 mensagem += `Materiais criados: ${resultado.materiais_criados}\n`;
                 mensagem += `Materiais atualizados: ${resultado.materiais_atualizados}\n`;
                 mensagem += `Preços criados: ${resultado.precos_criados || 0}`;
-
+                
                 if (resultado.erros && resultado.erros.length > 0) {
                     mensagem += `\n\nErros encontrados:\n${resultado.erros.slice(0, 5).join('\n')}`;
                     if (resultado.erros.length > 5) {
@@ -758,7 +719,7 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-
+                
                 mostrarMensagem('Dados exportados com sucesso!');
             } catch (error) {
                 console.error('Erro:', error);
