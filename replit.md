@@ -23,14 +23,17 @@ The system is built with a Flask backend (Python 3.12) using SQLAlchemy for ORM 
 -   **Star-Based Pricing**: Three fixed price tables (1★, 2★, 3★) correspond to supplier quality/reliability. Each material has a specific price per table (R$/kg).
 -   **Price Authorization Workflow**: Automatically triggers a request when a negotiated price exceeds the supplier's star-level price table. This workflow includes status tracking (pending, approved, rejected), percentage difference calculation, and the ability to promote suppliers to higher star levels upon approval.
 -   **Supplier Geolocalization**: Stores latitude/longitude for suppliers, with new suppliers defaulting to 1★.
+-   **Supplier Tax ID Flexibility**: Suppliers can be registered with either CPF (individual) or CNPJ (business) tax IDs. The system includes radio button selection in the registration form, backend validation to ensure the correct document type is provided, and proper storage of the document type alongside the tax ID value. (Implemented November 18, 2025)
+-   **Freight Modality**: Purchase requests now include a freight modality field (FOB or CIF) to specify shipping responsibility and cost allocation. The field is required during purchase creation and displayed in request details. (Implemented November 18, 2025)
 -   **Excel Import/Export**: Functionality for mass import and export of materials and price tables.
 -   **Purchase Wizard**: A multi-step wizard for new purchases, handling supplier selection/registration, collection/delivery details, item scanning, value input, and final confirmation. It integrates with material and pricing data and triggers authorization requests when necessary.
 
 #### System Design Choices
--   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, and an extended `Fornecedor` model to link suppliers to price tables, responsible buyers, and geolocation.
--   **API Endpoints**: Structured RESTful APIs for managing materials (`/api/materiais-base`), price tables (`/api/tabelas-preco`), and price authorizations (`/api/autorizacoes-preco`), including support for CRUD operations, bulk updates, and Excel integrations. A dedicated endpoint for purchase creation (`/api/compras`) handles complex transaction logic.
--   **Security**: Implements JWT for authentication (`@jwt_required`), role-based authorization (`@admin_required`), robust input validation (e.g., non-negative prices, positive weights, negotiated price vs. table price), and database integrity checks (UNIQUE constraints, foreign keys).
+-   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, and an extended `Fornecedor` model (with `tipo_documento`, `cpf`, and `cnpj` fields) to link suppliers to price tables, responsible buyers, and geolocation. The `Solicitacao` model includes `modalidade_frete` to track shipping terms.
+-   **API Endpoints**: Structured RESTful APIs for managing materials (`/api/materiais-base`), price tables (`/api/tabelas-preco`), price authorizations (`/api/autorizacoes-preco`), and suppliers (`/api/fornecedores`) including support for CRUD operations, bulk updates, and Excel integrations. A dedicated endpoint for purchase creation (`/api/compras`) handles complex transaction logic.
+-   **Security**: Implements JWT for authentication (`@jwt_required`), role-based authorization (`@admin_required`), robust input validation (e.g., non-negative prices, positive weights, negotiated price vs. table price, CPF/CNPJ format and uniqueness validation), and database integrity checks (UNIQUE constraints, foreign keys).
 -   **Seed Data**: An idempotent seed script (`seed_modulo_comprador.py`) initializes essential data like price tables, base materials, and initial pricing.
+-   **Database Migrations**: Migration scripts handle schema changes safely, including `add_tipo_documento_fornecedor.py` (adds CPF/CNPJ support) and `add_modalidade_frete.py` (adds freight modality tracking).
 
 ### External Dependencies
 
