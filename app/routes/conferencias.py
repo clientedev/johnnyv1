@@ -64,13 +64,15 @@ def criar_lote_apos_conferencia(conferencia, usuario_id, decisao='ACEITAR', perc
         ).count() + 1
         numero_lote = f"{ano}-{str(numero_sequencial).zfill(5)}"
         
-        tipo_lote_id = None
-        if oc.solicitacao and oc.solicitacao.itens:
-            primeiro_item = oc.solicitacao.itens[0]
-            tipo_lote_id = primeiro_item.tipo_lote_id
+        # Sistema migrado para materiais - usar tipo_lote genérico (ID 1)
+        # Tipo de lote genérico criado na migração 017
+        tipo_lote_id = 1  # Material Eletrônico (genérico)
         
-        if not tipo_lote_id:
-            raise ValueError('Tipo de lote não encontrado. A solicitação deve ter itens com tipo_lote_id válido.')
+        # Verificar se o tipo genérico existe
+        from app.models import TipoLote
+        tipo_generico = TipoLote.query.get(tipo_lote_id)
+        if not tipo_generico:
+            raise ValueError('Tipo de lote genérico não encontrado. Execute a migração 017: python executar_migracao_017.py')
         
         divergencias_registradas = []
         if conferencia.divergencia:
