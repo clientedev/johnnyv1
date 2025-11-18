@@ -524,7 +524,8 @@ class ItemSolicitacao(db.Model):  # type: ignore
     
     id = db.Column(db.Integer, primary_key=True)
     solicitacao_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=False)
-    tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
+    tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=True)
+    material_id = db.Column(db.Integer, db.ForeignKey('materiais_base.id'), nullable=True)
     peso_kg = db.Column(db.Float, nullable=False)
     estrelas_sugeridas_ia = db.Column(db.Integer, nullable=True)
     estrelas_final = db.Column(db.Integer, nullable=False, default=3)
@@ -538,6 +539,8 @@ class ItemSolicitacao(db.Model):  # type: ignore
     observacoes = db.Column(db.Text)
     data_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=True)
+    
+    material = db.relationship('MaterialBase', backref='itens_solicitacao')
     
     def __init__(self, **kwargs: Any) -> None:
         if 'estrelas_final' in kwargs and (kwargs['estrelas_final'] < 1 or kwargs['estrelas_final'] > 5):
@@ -559,6 +562,10 @@ class ItemSolicitacao(db.Model):  # type: ignore
             'solicitacao_id': self.solicitacao_id,
             'tipo_lote_id': self.tipo_lote_id,
             'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
+            'material_id': self.material_id,
+            'material_nome': self.material.nome if self.material else None,
+            'material_codigo': self.material.codigo if self.material else None,
+            'material_classificacao': self.material.classificacao if self.material else None,
             'peso_kg': self.peso_kg,
             'estrelas_sugeridas_ia': self.estrelas_sugeridas_ia,
             'estrelas_final': self.estrelas_final,

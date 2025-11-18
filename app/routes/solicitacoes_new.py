@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Solicitacao, ItemSolicitacao, Fornecedor, TipoLote, FornecedorTipoLotePreco, FornecedorTipoLoteClassificacao, db, Usuario, Lote, OrdemCompra, Notificacao, Perfil
+from app.models import Solicitacao, ItemSolicitacao, Fornecedor, TipoLote, FornecedorTipoLotePreco, FornecedorTipoLoteClassificacao, db, Usuario, Lote, OrdemCompra, Notificacao, Perfil, MaterialBase, TabelaPreco, TabelaPrecoItem
 from app.auth import admin_required
 from app.utils.auditoria import registrar_auditoria_oc
 from app import socketio
@@ -8,6 +8,98 @@ from datetime import datetime
 import os
 
 bp = Blueprint('solicitacoes', __name__, url_prefix='/api/solicitacoes')
+
+@bp.route('/fornecedor/<int:fornecedor_id>/materiais', methods=['GET'])
+@jwt_required()
+def listar_materiais_fornecedor(fornecedor_id):
+    """
+    Retorna todos os materiais disponíveis com preços da tabela vinculada ao fornecedor.
+    Alinhado com o Fluxo_comprador.md - busca todos os produtos da tabela que o fornecedor está relacionado.
+    """
+    try:
+        fornecedor = Fornecedor.query.get(fornecedor_id)
+        
+        if not fornecedor:
+            return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        if not fornecedor.tabela_preco_id:
+            return jsonify({'erro': 'Fornecedor não possui tabela de preço vinculada'}), 400
+        
+        tabela_preco = TabelaPreco.query.get(fornecedor.tabela_preco_id)
+        
+        if not tabela_preco:
+            return jsonify({'erro': 'Tabela de preço não encontrada'}), 404
+        
+        itens_preco = TabelaPrecoItem.query.filter_by(
+            tabela_preco_id=tabela_preco.id,
+            ativo=True
+        ).join(MaterialBase).filter(MaterialBase.ativo == True).all()
+        
+        materiais = []
+        for item in itens_preco:
+            material_dict = {
+                'id': item.material_id,
+                'codigo': item.material.codigo,
+                'nome': item.material.nome,
+                'classificacao': item.material.classificacao,
+                'descricao': item.material.descricao,
+                'preco_por_kg': float(item.preco_por_kg),
+                'tabela_preco_id': tabela_preco.id,
+                'tabela_preco_nome': tabela_preco.nome,
+                'tabela_estrelas': tabela_preco.nivel_estrelas
+            }
+            materiais.append(material_dict)
+        
+        return jsonify({
+            'fornecedor_id': fornecedor.id,
+            'fornecedor_nome': fornecedor.nome,
+            'tabela_preco': {
+                'id': tabela_preco.id,
+                'nome': tabela_preco.nome,
+                'nivel_estrelas': tabela_preco.nivel_estrelas
+            },
+            'materiais': materiais,
+            'total': len(materiais)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao buscar materiais: {str(e)}'}), 500
+
+def calcular_valor_item_novo(fornecedor_id, material_id, peso_kg):
+    """
+    Nova função de cálculo simplificada: busca o preço do material na tabela vinculada ao fornecedor.
+    Alinhado com Fluxo_comprador.md - sem classificação, apenas material e tabela do fornecedor.
+    
+    Args:
+        fornecedor_id: ID do fornecedor
+        material_id: ID do material
+        peso_kg: Peso em kg
+        
+    Returns:
+        tuple: (valor_calculado, preco_por_kg, tabela_estrelas)
+    """
+    fornecedor = Fornecedor.query.get(fornecedor_id)
+    
+    if not fornecedor or not fornecedor.tabela_preco_id:
+        print(f"       Fornecedor sem tabela de preço vinculada")
+        return (0.0, 0.0, 0)
+    
+    item_preco = TabelaPrecoItem.query.filter_by(
+        tabela_preco_id=fornecedor.tabela_preco_id,
+        material_id=material_id,
+        ativo=True
+    ).first()
+    
+    if not item_preco:
+        print(f"       Preço não encontrado para material {material_id} na tabela {fornecedor.tabela_preco_id}")
+        return (0.0, 0.0, 0)
+    
+    valor = float(item_preco.preco_por_kg) * float(peso_kg)
+    tabela_estrelas = item_preco.tabela_preco.nivel_estrelas if item_preco.tabela_preco else 0
+    
+    print(f"       Preço encontrado: R$ {item_preco.preco_por_kg}/kg × {peso_kg}kg = R$ {valor:.2f} (Tabela: {tabela_estrelas}★)")
+    
+    return (valor, float(item_preco.preco_por_kg), tabela_estrelas)
 
 def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, estrelas_from_frontend, peso_kg):
     """Calcula o valor de um item baseado no preço configurado
@@ -169,54 +261,100 @@ def criar_solicitacao():
             print(f"\n Item recebido do frontend:")
             print(f"   {item_data}")
 
-            if not item_data.get('tipo_lote_id') or not item_data.get('peso_kg'):
-                print(f"    Item inválido - pulando")
+            if not item_data.get('peso_kg'):
+                print(f"    Item sem peso - pulando")
                 continue
 
-            tipo_lote = TipoLote.query.get(item_data['tipo_lote_id'])
-            if not tipo_lote:
-                print(f"    Tipo de lote não encontrado")
+            # NOVO FORMATO: usando material_id (alinhado com Fluxo_comprador.md)
+            if item_data.get('material_id'):
+                print(f"    Usando NOVO formato (material_id)")
+                
+                material_id = item_data['material_id']
+                material = MaterialBase.query.get(material_id)
+                
+                if not material:
+                    print(f"    Material não encontrado - pulando")
+                    continue
+                
+                print(f"    Material: {material.nome} (Classificação: {material.classificacao})")
+                print(f"    Calculando valor usando tabela do fornecedor...")
+                
+                valor, preco_por_kg, tabela_estrelas = calcular_valor_item_novo(
+                    data['fornecedor_id'],
+                    material_id,
+                    item_data['peso_kg']
+                )
+                
+                print(f"    Valor final: R$ {valor:.2f} (Tabela: {tabela_estrelas}★)")
+                
+                item = ItemSolicitacao(
+                    solicitacao_id=solicitacao.id,
+                    material_id=material_id,
+                    peso_kg=float(item_data['peso_kg']),
+                    classificacao=material.classificacao,
+                    estrelas_sugeridas_ia=item_data.get('estrelas_sugeridas_ia'),
+                    estrelas_final=tabela_estrelas,
+                    valor_calculado=valor,
+                    preco_por_kg_snapshot=preco_por_kg,
+                    estrelas_snapshot=tabela_estrelas,
+                    imagem_url=item_data.get('imagem_url', ''),
+                    observacoes=item_data.get('observacoes', '')
+                )
+                
+                print(f"    Item salvo: Material={material.nome}, Valor=R$ {item.valor_calculado:.2f}, Tabela={tabela_estrelas}★")
+                db.session.add(item)
+            
+            # FORMATO ANTIGO: usando tipo_lote_id + classificacao (retrocompatibilidade)
+            elif item_data.get('tipo_lote_id'):
+                print(f"    Usando formato ANTIGO (tipo_lote_id + classificacao)")
+                
+                tipo_lote = TipoLote.query.get(item_data['tipo_lote_id'])
+                if not tipo_lote:
+                    print(f"    Tipo de lote não encontrado - pulando")
+                    continue
+
+                print(f"    Tipo de lote: {tipo_lote.nome}")
+
+                classificacao = item_data.get('classificacao', 'medio')
+                estrelas_final = item_data.get('estrelas_final', 3)
+                if estrelas_final is None or not (1 <= estrelas_final <= 5):
+                    estrelas_final = 3
+
+                print(f"    Classificação: {classificacao}")
+                print(f"    Estrelas (frontend): {estrelas_final}")
+                print(f"    Calculando valor...")
+
+                valor, preco_por_kg, estrelas_usadas = calcular_valor_item(
+                    data['fornecedor_id'],
+                    item_data['tipo_lote_id'],
+                    classificacao,
+                    estrelas_final,
+                    item_data['peso_kg']
+                )
+
+                print(f"    Valor final: R$ {valor:.2f}")
+                print(f"    Estrelas usadas: {estrelas_usadas}")
+
+                item = ItemSolicitacao(
+                    solicitacao_id=solicitacao.id,
+                    tipo_lote_id=item_data['tipo_lote_id'],
+                    peso_kg=float(item_data['peso_kg']),
+                    classificacao=classificacao,
+                    estrelas_sugeridas_ia=item_data.get('estrelas_sugeridas_ia'),
+                    estrelas_final=estrelas_usadas,
+                    valor_calculado=valor,
+                    preco_por_kg_snapshot=preco_por_kg,
+                    estrelas_snapshot=estrelas_usadas,
+                    imagem_url=item_data.get('imagem_url', ''),
+                    observacoes=item_data.get('observacoes', '')
+                )
+
+                print(f"    Item salvo: Valor=R$ {item.valor_calculado:.2f}, Classificação={item.classificacao}, Estrelas={item.estrelas_final}")
+                db.session.add(item)
+            
+            else:
+                print(f"    Item inválido - sem material_id nem tipo_lote_id - pulando")
                 continue
-
-            print(f"    Tipo de lote: {tipo_lote.nome}")
-
-            classificacao = item_data.get('classificacao', 'medio')
-            estrelas_final = item_data.get('estrelas_final', 3)
-            if estrelas_final is None or not (1 <= estrelas_final <= 5):
-                estrelas_final = 3
-
-            print(f"    Classificação: {classificacao}")
-            print(f"    Estrelas (frontend): {estrelas_final}")
-            print(f"    Calculando valor...")
-
-            valor, preco_por_kg, estrelas_usadas = calcular_valor_item(
-                data['fornecedor_id'],
-                item_data['tipo_lote_id'],
-                classificacao,
-                estrelas_final,
-                item_data['peso_kg']
-            )
-
-            print(f"    Valor final: R$ {valor:.2f}")
-            print(f"    Estrelas usadas: {estrelas_usadas}")
-
-            item = ItemSolicitacao(
-                solicitacao_id=solicitacao.id,
-                tipo_lote_id=item_data['tipo_lote_id'],
-                peso_kg=float(item_data['peso_kg']),
-                classificacao=classificacao,
-                estrelas_sugeridas_ia=item_data.get('estrelas_sugeridas_ia'),
-                estrelas_final=estrelas_usadas,
-                valor_calculado=valor,
-                preco_por_kg_snapshot=preco_por_kg,
-                estrelas_snapshot=estrelas_usadas,
-                imagem_url=item_data.get('imagem_url', ''),
-                observacoes=item_data.get('observacoes', '')
-            )
-
-            print(f"    Item salvo: Valor=R$ {item.valor_calculado:.2f}, Classificação={item.classificacao}, Estrelas={item.estrelas_final}")
-
-            db.session.add(item)
 
         db.session.commit()
 
