@@ -226,14 +226,25 @@
                 <input type="hidden" id="fornecedorId">
                 
                 <div class="form-group">
-                    <label>CNPJ</label>
+                    <label style="margin-bottom: 0.5rem; display: block;">Tipo de Documento</label>
+                    <div style="display: flex; gap: 1.5rem; margin-bottom: 0.5rem;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="tipoDocumento" value="cnpj" checked onchange="alterarTipoDocumento()" style="margin-right: 0.5rem;">
+                            CNPJ
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="tipoDocumento" value="cpf" onchange="alterarTipoDocumento()" style="margin-right: 0.5rem;">
+                            CPF
+                        </label>
+                    </div>
+                    <label id="labelDocumento">CNPJ</label>
                     <div style="display: flex; gap: 0.5rem;">
                         <input type="text" id="cnpj" placeholder="00.000.000/0000-00" style="flex: 1;">
                         <button type="button" class="btn btn-secondary" onclick="buscarCNPJ()" id="btnBuscarCNPJ">
                              Buscar
                         </button>
                     </div>
-                    <small style="color: #666;">Digite o CNPJ e clique em Buscar para preencher automaticamente</small>
+                    <small style="color: #666;" id="textoAjuda">Digite o CNPJ e clique em Buscar para preencher automaticamente</small>
                 </div>
 
                 <div id="dadosCNPJ" style="display: none; background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
@@ -507,6 +518,30 @@
             const checkbox = document.getElementById('temOutroEndereco');
             const campos = document.getElementById('camposEnderecoVisita');
             campos.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        function alterarTipoDocumento() {
+            const tipoSelecionado = document.querySelector('input[name="tipoDocumento"]:checked').value;
+            const input = document.getElementById('cnpj');
+            const label = document.getElementById('labelDocumento');
+            const btnBuscar = document.getElementById('btnBuscarCNPJ');
+            const textoAjuda = document.getElementById('textoAjuda');
+            
+            if (tipoSelecionado === 'cpf') {
+                label.textContent = 'CPF';
+                input.placeholder = '000.000.000-00';
+                input.maxLength = 14;
+                btnBuscar.style.display = 'none';
+                textoAjuda.textContent = 'Digite o CPF do fornecedor';
+            } else {
+                label.textContent = 'CNPJ';
+                input.placeholder = '00.000.000/0000-00';
+                input.maxLength = 18;
+                btnBuscar.style.display = 'inline-block';
+                textoAjuda.textContent = 'Digite o CNPJ e clique em Buscar para preencher automaticamente';
+            }
+            
+            input.value = '';
         }
 
         async function buscarCNPJ() {

@@ -470,6 +470,7 @@ class Solicitacao(db.Model):  # type: ignore
     funcionario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
     tipo_retirada = db.Column(db.String(20), default='buscar', nullable=False)
+    modalidade_frete = db.Column(db.String(10), default='FOB', nullable=True)
     status = db.Column(db.String(20), default='pendente', nullable=False)
     observacoes = db.Column(db.Text)
     data_envio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -502,6 +503,7 @@ class Solicitacao(db.Model):  # type: ignore
             'fornecedor_id': self.fornecedor_id,
             'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
             'tipo_retirada': self.tipo_retirada,
+            'modalidade_frete': self.modalidade_frete,
             'status': self.status,
             'observacoes': self.observacoes,
             'rua': self.rua,

@@ -378,6 +378,15 @@
                     </select>
                 </div>
 
+                <div class="form-group">
+                    <label>Modalidade de Frete</label>
+                    <select id="modalidadeFrete">
+                        <option value="FOB">FOB (Free On Board - Comprador paga o frete)</option>
+                        <option value="CIF">CIF (Cost, Insurance and Freight - Vendedor paga o frete)</option>
+                    </select>
+                    <small style="color: #666; display: block; margin-top: 0.25rem;">FOB: cliente busca | CIF: fornecedor entrega</small>
+                </div>
+
                 <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                     <h4 style="margin: 0 0 0.75rem 0; color: #0369a1;"> Localização</h4>
                     
@@ -1053,6 +1062,7 @@
             const data = {
                 fornecedor_id: parseInt(document.getElementById('fornecedorSolicitacao').value),
                 tipo_retirada: document.getElementById('tipoRetirada').value,
+                modalidade_frete: document.getElementById('modalidadeFrete').value,
                 observacoes: document.getElementById('observacoes').value || '',
                 rua: document.getElementById('rua').value || '',
                 numero: document.getElementById('numero').value || '',
@@ -1111,6 +1121,7 @@
                         <p><strong>Funcionário:</strong> ${solicitacaoAtual.funcionario_nome}</p>
                         <p><strong>Fornecedor:</strong> ${solicitacaoAtual.fornecedor_nome}</p>
                         <p><strong>Tipo de Retirada:</strong> ${solicitacaoAtual.tipo_retirada === 'buscar' ? 'Buscar no fornecedor' : 'Fornecedor entrega'}</p>
+                        <p><strong>Modalidade de Frete:</strong> ${solicitacaoAtual.modalidade_frete || 'FOB'} ${solicitacaoAtual.modalidade_frete === 'FOB' ? '(Comprador paga o frete)' : '(Vendedor paga o frete)'}</p>
                         <p><strong>Status:</strong> <span class="badge badge-${solicitacaoAtual.status}">${solicitacaoAtual.status.toUpperCase()}</span></p>
                         <p><strong>Data de Envio:</strong> ${formatDate(solicitacaoAtual.data_envio)}</p>
                         ${solicitacaoAtual.data_confirmacao ? `<p><strong>Data de Confirmação:</strong> ${formatDate(solicitacaoAtual.data_confirmacao)}</p>` : ''}
