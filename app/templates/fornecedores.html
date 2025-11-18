@@ -602,10 +602,14 @@
             e.preventDefault();
 
             const id = document.getElementById('fornecedorId').value;
+            const tipoDocumento = document.querySelector('input[name="tipoDocumento"]:checked').value;
+            const documentoValor = document.getElementById('cnpj').value || null;
             
             const data = {
                 nome: document.getElementById('nome').value,
-                cnpj: document.getElementById('cnpj').value || null,
+                tipo_documento: tipoDocumento,
+                cnpj: tipoDocumento === 'cnpj' ? documentoValor : null,
+                cpf: tipoDocumento === 'cpf' ? documentoValor : null,
                 rua: document.getElementById('rua').value || null,
                 numero: document.getElementById('numero').value || null,
                 cidade: document.getElementById('cidade').value || null,
@@ -674,7 +678,16 @@
                 document.getElementById('tituloModal').textContent = 'Editar Fornecedor';
                 document.getElementById('fornecedorId').value = fornecedorAtual.id;
                 document.getElementById('nome').value = fornecedorAtual.nome || '';
-                document.getElementById('cnpj').value = fornecedorAtual.cnpj || '';
+                
+                // Restaurar tipo de documento e valor correto
+                const tipoDoc = fornecedorAtual.tipo_documento || (fornecedorAtual.cpf ? 'cpf' : 'cnpj');
+                const radioTipo = document.querySelector(`input[name="tipoDocumento"][value="${tipoDoc}"]`);
+                if (radioTipo) {
+                    radioTipo.checked = true;
+                    alterarTipoDocumento(); // Atualizar UI
+                }
+                document.getElementById('cnpj').value = fornecedorAtual.cpf || fornecedorAtual.cnpj || '';
+                
                 document.getElementById('rua').value = fornecedorAtual.rua || '';
                 document.getElementById('numero').value = fornecedorAtual.numero || '';
                 document.getElementById('cidade').value = fornecedorAtual.cidade || '';

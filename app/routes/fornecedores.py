@@ -201,9 +201,23 @@ def criar_fornecedor():
             if tabela_id_req in [1, 2, 3]:
                 tabela_preco_id = tabela_id_req
         
+        # Determinar tipo de documento e validar
+        tipo_doc = data.get('tipo_documento', 'cnpj' if cnpj_normalizado else 'cpf')
+        
+        # Validar se o documento do tipo selecionado está presente
+        if tipo_doc == 'cpf':
+            if not cpf_normalizado:
+                return jsonify({'erro': 'CPF é obrigatório quando tipo de documento for CPF'}), 400
+            cnpj_normalizado = None
+        else:
+            if not cnpj_normalizado:
+                return jsonify({'erro': 'CNPJ é obrigatório quando tipo de documento for CNPJ'}), 400
+            cpf_normalizado = None
+        
         fornecedor = Fornecedor(
             nome=data['nome'],
             nome_social=data.get('nome_social', ''),
+            tipo_documento=tipo_doc,
             cnpj=cnpj_normalizado,
             cpf=cpf_normalizado,
             tabela_preco_id=tabela_preco_id,
@@ -320,25 +334,62 @@ def atualizar_fornecedor(id):
         if 'nome_social' in data:
             fornecedor.nome_social = data['nome_social']
         
-        if 'cnpj' in data and data['cnpj']:
-            cnpj_normalizado = normalizar_cnpj(data['cnpj'])
-            if not validar_cnpj(cnpj_normalizado):
-                return jsonify({'erro': 'CNPJ inválido'}), 400
-            if cnpj_normalizado != fornecedor.cnpj:
-                existente = Fornecedor.query.filter_by(cnpj=cnpj_normalizado).first()
-                if existente:
-                    return jsonify({'erro': 'CNPJ já cadastrado para outro fornecedor'}), 400
-                fornecedor.cnpj = cnpj_normalizado
-        
-        if 'cpf' in data and data['cpf']:
-            cpf_normalizado = normalizar_cpf(data['cpf'])
-            if not validar_cpf(cpf_normalizado):
-                return jsonify({'erro': 'CPF inválido'}), 400
-            if cpf_normalizado != fornecedor.cpf:
-                existente = Fornecedor.query.filter_by(cpf=cpf_normalizado).first()
-                if existente:
-                    return jsonify({'erro': 'CPF já cadastrado para outro fornecedor'}), 400
-                fornecedor.cpf = cpf_normalizado
+        # Atualizar tipo de documento e campos relacionados
+        if 'tipo_documento' in data:
+            tipo_doc = data['tipo_documento']
+            
+            # Processar CNPJ se for o tipo selecionado
+            if tipo_doc == 'cnpj':
+                if not ('cnpj' in data and data['cnpj']):
+                    return jsonify({'erro': 'CNPJ é obrigatório quando tipo de documento for CNPJ'}), 400
+                
+                cnpj_normalizado = normalizar_cnpj(data['cnpj'])
+                if not validar_cnpj(cnpj_normalizado):
+                    return jsonify({'erro': 'CNPJ inválido'}), 400
+                if cnpj_normalizado != fornecedor.cnpj:
+                    existente = Fornecedor.query.filter_by(cnpj=cnpj_normalizado).first()
+                    if existente:
+                        return jsonify({'erro': 'CNPJ já cadastrado para outro fornecedor'}), 400
+                    fornecedor.cnpj = cnpj_normalizado
+                fornecedor.tipo_documento = 'cnpj'
+                fornecedor.cpf = None  # Limpar CPF
+            
+            # Processar CPF se for o tipo selecionado
+            elif tipo_doc == 'cpf':
+                if not ('cpf' in data and data['cpf']):
+                    return jsonify({'erro': 'CPF é obrigatório quando tipo de documento for CPF'}), 400
+                
+                cpf_normalizado = normalizar_cpf(data['cpf'])
+                if not validar_cpf(cpf_normalizado):
+                    return jsonify({'erro': 'CPF inválido'}), 400
+                if cpf_normalizado != fornecedor.cpf:
+                    existente = Fornecedor.query.filter_by(cpf=cpf_normalizado).first()
+                    if existente:
+                        return jsonify({'erro': 'CPF já cadastrado para outro fornecedor'}), 400
+                    fornecedor.cpf = cpf_normalizado
+                fornecedor.tipo_documento = 'cpf'
+                fornecedor.cnpj = None  # Limpar CNPJ
+        else:
+            # Manter compatibilidade com lógica antiga
+            if 'cnpj' in data and data['cnpj']:
+                cnpj_normalizado = normalizar_cnpj(data['cnpj'])
+                if not validar_cnpj(cnpj_normalizado):
+                    return jsonify({'erro': 'CNPJ inválido'}), 400
+                if cnpj_normalizado != fornecedor.cnpj:
+                    existente = Fornecedor.query.filter_by(cnpj=cnpj_normalizado).first()
+                    if existente:
+                        return jsonify({'erro': 'CNPJ já cadastrado para outro fornecedor'}), 400
+                    fornecedor.cnpj = cnpj_normalizado
+            
+            if 'cpf' in data and data['cpf']:
+                cpf_normalizado = normalizar_cpf(data['cpf'])
+                if not validar_cpf(cpf_normalizado):
+                    return jsonify({'erro': 'CPF inválido'}), 400
+                if cpf_normalizado != fornecedor.cpf:
+                    existente = Fornecedor.query.filter_by(cpf=cpf_normalizado).first()
+                    if existente:
+                        return jsonify({'erro': 'CPF já cadastrado para outro fornecedor'}), 400
+                    fornecedor.cpf = cpf_normalizado
         
         if 'email' in data and data['email']:
             if data['email'] != fornecedor.email:

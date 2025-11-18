@@ -244,6 +244,7 @@ class Fornecedor(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(200), nullable=False)
     nome_social = db.Column(db.String(200))
+    tipo_documento = db.Column(db.String(10), default='cnpj', nullable=True)
     cnpj = db.Column(db.String(18), unique=True)
     cpf = db.Column(db.String(14), unique=True)
     
@@ -306,6 +307,7 @@ class Fornecedor(db.Model):  # type: ignore
             'id': self.id,
             'nome': self.nome,
             'nome_social': self.nome_social,
+            'tipo_documento': self.tipo_documento,
             'cnpj': self.cnpj,
             'cpf': self.cpf,
             'rua': self.rua,
