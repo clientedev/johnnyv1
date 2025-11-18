@@ -341,6 +341,28 @@
                     <textarea id="observacoes" rows="2"></textarea>
                 </div>
 
+                <!-- Tabela de Preços do Fornecedor (Apenas Administrador) -->
+                <div data-perfil="Administrador" style="background: #fef3c7; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid #f59e0b;">
+                    <h4 style="margin: 0 0 1rem 0; color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-star"></i> Tabela de Preços do Fornecedor
+                    </h4>
+                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #78350f;">
+                        Define qual tabela de preços será usada para este fornecedor. Novos fornecedores iniciam com 1★.
+                    </p>
+                    
+                    <div class="form-group">
+                        <label><strong>Tabela de Preços</strong></label>
+                        <select id="tabelaPrecoId" style="padding: 0.75rem; border: 2px solid #d97706; border-radius: 8px; font-size: 1rem;">
+                            <option value="1">⭐ 1 Estrela (Padrão)</option>
+                            <option value="2">⭐⭐ 2 Estrelas</option>
+                            <option value="3">⭐⭐⭐ 3 Estrelas</option>
+                        </select>
+                        <small style="color: #92400e; display: block; margin-top: 0.5rem;">
+                            <i class="fas fa-info-circle"></i> Apenas administradores podem promover ou despromover fornecedores entre tabelas.
+                        </small>
+                    </div>
+                </div>
+
                 <!-- Seleção de Tipos de Lote (Apenas Administrador) -->
                 <div data-perfil="Administrador" style="background: #eff6ff; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid #3b82f6;">
                     <h4 style="margin: 0 0 1rem 0; color: #1e40af; display: flex; align-items: center; gap: 0.5rem;">
@@ -478,6 +500,12 @@
             document.getElementById('dadosCNPJ').style.display = 'block';
             document.getElementById('camposEnderecoVisita').style.display = 'none';
             document.getElementById('temOutroEndereco').checked = false;
+            
+            // Definir tabela padrão como 1 estrela para novos fornecedores
+            const tabelaSelect = document.getElementById('tabelaPrecoId');
+            if (tabelaSelect) {
+                tabelaSelect.value = '1';
+            }
             
             // Remover readonly dos campos
             ['nome', 'rua', 'numero', 'cidade', 'estado', 'cep', 'bairro'].forEach(id => {
@@ -693,6 +721,15 @@
                 tipos_lote: tiposSelecionados
             };
 
+            // Apenas admin pode definir/alterar a tabela de preços
+            const isAdmin = currentUserData && (currentUserData.tipo === 'admin' || currentUserData.perfil === 'Administrador');
+            if (isAdmin) {
+                const tabelaSelect = document.getElementById('tabelaPrecoId');
+                if (tabelaSelect) {
+                    data.tabela_preco_id = parseInt(tabelaSelect.value);
+                }
+            }
+
             try {
                 let response;
                 if (id) {
@@ -743,6 +780,12 @@
                 document.getElementById('telefone').value = fornecedorAtual.telefone || '';
                 document.getElementById('email').value = fornecedorAtual.email || '';
                 document.getElementById('observacoes').value = fornecedorAtual.observacoes || '';
+                
+                // Carregar tabela de preços (apenas admin vê e pode editar)
+                const tabelaSelect = document.getElementById('tabelaPrecoId');
+                if (tabelaSelect && fornecedorAtual.tabela_preco_id) {
+                    tabelaSelect.value = fornecedorAtual.tabela_preco_id.toString();
+                }
                 
                 // Carregar endereço alternativo se existir
                 if (fornecedorAtual.tem_outro_endereco) {

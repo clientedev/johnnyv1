@@ -192,11 +192,21 @@ def criar_fornecedor():
         if not usuario:
             return jsonify({'erro': 'Usuário não encontrado'}), 404
         
+        # Definir tabela de preços (padrão: 1 estrela)
+        tabela_preco_id = 1  # Padrão para novos fornecedores
+        
+        # Apenas admin pode definir uma tabela diferente
+        if usuario.tipo == 'admin' and 'tabela_preco_id' in data:
+            tabela_id_req = data['tabela_preco_id']
+            if tabela_id_req in [1, 2, 3]:
+                tabela_preco_id = tabela_id_req
+        
         fornecedor = Fornecedor(
             nome=data['nome'],
             nome_social=data.get('nome_social', ''),
             cnpj=cnpj_normalizado,
             cpf=cpf_normalizado,
+            tabela_preco_id=tabela_preco_id,
             rua=data.get('rua', ''),
             numero=data.get('numero', ''),
             cidade=data.get('cidade', ''),
@@ -386,6 +396,12 @@ def atualizar_fornecedor(id):
             fornecedor.forma_pagamento = data['forma_pagamento']
         if 'observacoes' in data:
             fornecedor.observacoes = data['observacoes']
+        
+        # Apenas admin pode alterar a tabela de preços (promover/despromover)
+        if usuario.tipo == 'admin' and 'tabela_preco_id' in data:
+            tabela_id_req = data['tabela_preco_id']
+            if tabela_id_req in [1, 2, 3]:
+                fornecedor.tabela_preco_id = tabela_id_req
         
         # Atualizar tipos de lote selecionados com classificações (leve/médio/pesado)
         # Funcionários não podem modificar estrelas
