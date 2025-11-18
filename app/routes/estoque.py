@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Lote, MovimentacaoEstoque, EntradaEstoque, Usuario
+from app.models import db, Lote, MovimentacaoEstoque, Usuario
 from app.auth import admin_required
 from datetime import datetime
 
@@ -55,6 +55,26 @@ def listar_lotes_estoque():
         for lote in lotes:
             try:
                 lote_dict = lote.to_dict()
+                lote_dict['itens_count'] = len(lote.itens)
+                lote_dict['sublotes_count'] = len(lote.sublotes)
+
+                # Incluir informações dos materiais/itens do lote
+                itens_info = []
+                for item in lote.itens:
+                    item_info = {
+                        'id': item.id,
+                        'peso_kg': item.peso_kg,
+                        'material_id': item.material_id,
+                        'material_nome': item.material.nome if item.material else None,
+                        'material_codigo': item.material.codigo if item.material else None,
+                        'tipo_lote_id': item.tipo_lote_id,
+                        'tipo_lote_nome': item.tipo_lote.nome if item.tipo_lote else None,
+                        'estrelas_final': item.estrelas_final,
+                        'classificacao': item.classificacao
+                    }
+                    itens_info.append(item_info)
+
+                lote_dict['itens_info'] = itens_info
 
                 if lote.movimentacoes:
                     ultima_movimentacao = sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)[0]
@@ -89,6 +109,23 @@ def obter_lote_estoque(id):
             return jsonify({'erro': 'Lote não encontrado'}), 404
 
         lote_dict = lote.to_dict()
+
+        # Incluir informações dos materiais/itens do lote
+        itens_info = []
+        for item in lote.itens:
+            item_info = {
+                'id': item.id,
+                'peso_kg': item.peso_kg,
+                'material_id': item.material_id,
+                'material_nome': item.material.nome if item.material else None,
+                'material_codigo': item.material.codigo if item.material else None,
+                'tipo_lote_id': item.tipo_lote_id,
+                'tipo_lote_nome': item.tipo_lote.nome if item.tipo_lote else None,
+                'estrelas_final': item.estrelas_final,
+                'classificacao': item.classificacao
+            }
+            itens_info.append(item_info)
+        lote_dict['itens_info'] = itens_info
 
         if lote.movimentacoes:
             lote_dict['movimentacoes'] = [m.to_dict() for m in sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)]
