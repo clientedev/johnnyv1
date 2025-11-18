@@ -69,7 +69,7 @@ def create_app():
                                 fornecedor_tipo_lote_classificacoes, fornecedor_tipo_lote_precos,
                                 perfis, veiculos, motoristas, auditoria, ordens_compra,
                                 ordens_servico, conferencias, estoque, separacao, wms, pages,
-                                materiais_base, tabelas_preco, autorizacoes_preco)
+                                materiais_base, tabelas_preco, autorizacoes_preco, compras)
         from app.routes import solicitacoes_new as solicitacoes
         from app.routes import lotes_new as lotes
         from app.routes import entradas_new as entradas
@@ -100,12 +100,13 @@ def create_app():
         app.register_blueprint(materiais_base.bp)
         app.register_blueprint(tabelas_preco.bp)
         app.register_blueprint(autorizacoes_preco.bp)
+        app.register_blueprint(compras.bp)
         app.register_blueprint(pages.bp)
         
         db.create_all()
         
         # Inicializar tabelas de preço
-        from app.models import TabelaPreco, Perfil
+        from app.models import TabelaPreco, Perfil, TipoLote
         tabelas_existentes = TabelaPreco.query.all()
         if len(tabelas_existentes) < 3:
             niveis_necessarios = {1, 2, 3}
@@ -123,6 +124,17 @@ def create_app():
             
             db.session.commit()
             print(f"✓ Inicializadas {len(niveis_faltantes)} tabela(s) de preço")
+        
+        # Inicializar tipo de lote padrão
+        tipo_lote_padrao = TipoLote.query.first()
+        if not tipo_lote_padrao:
+            tipo_lote_padrao = TipoLote(
+                nome='Material Eletrônico',
+                descricao='Tipo de lote padrão para materiais eletrônicos'
+            )
+            db.session.add(tipo_lote_padrao)
+            db.session.commit()
+            print("✓ Inicializado tipo de lote padrão")
         
         from app.auth import criar_admin_padrao
         criar_admin_padrao()
