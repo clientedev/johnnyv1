@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         .logistica-container {
             padding: 20px;
             max-width: 1400px;
@@ -21,19 +25,55 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .logistica-header h1 {
             color: #2c7a3e;
             margin: 0;
+            font-size: 1.75rem;
         }
 
         .filtros {
             background: white;
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 12px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .filtros-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .filtros-header h3 {
+            margin: 0;
+            color: #2c7a3e;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filtros-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #2c7a3e;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            transition: transform 0.3s ease;
+        }
+
+        .filtros-toggle.active {
+            transform: rotate(180deg);
         }
 
         .filtros-grid {
@@ -51,47 +91,66 @@
             font-weight: 600;
             margin-bottom: 5px;
             color: #333;
+            font-size: 0.875rem;
         }
 
         .filtro-group select,
         .filtro-group input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .filtro-group select:focus,
+        .filtro-group input:focus {
+            outline: none;
+            border-color: #2c7a3e;
+            box-shadow: 0 0 0 3px rgba(44, 122, 62, 0.1);
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
             margin-bottom: 30px;
         }
 
         .stat-card {
-            background: white;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            border-color: #2c7a3e;
         }
 
         .stat-card h3 {
-            margin: 0 0 10px 0;
-            font-size: 32px;
+            margin: 0 0 8px 0;
+            font-size: 2rem;
             color: #2c7a3e;
+            font-weight: 700;
         }
 
         .stat-card p {
             margin: 0;
             color: #666;
-            font-size: 14px;
+            font-size: 0.875rem;
+            font-weight: 500;
         }
 
         .os-table {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
         }
 
@@ -101,53 +160,143 @@
         }
 
         .os-table th {
-            background: #2c7a3e;
+            background: linear-gradient(135deg, #2c7a3e 0%, #235d31 100%);
             color: white;
-            padding: 15px;
+            padding: 16px;
             text-align: left;
             font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .os-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
+            padding: 14px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.9rem;
         }
 
         .os-table tr:hover {
-            background: #f8f9fa;
+            background: #f8faf9;
+        }
+
+        .os-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .os-cards-mobile {
+            display: none;
+        }
+
+        .os-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid #2c7a3e;
+            transition: all 0.3s ease;
+        }
+
+        .os-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+
+        .os-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .os-card-number {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2c7a3e;
+        }
+
+        .os-card-body {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .os-card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+        }
+
+        .os-card-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.875rem;
+            min-width: 100px;
+        }
+
+        .os-card-value {
+            color: #333;
+            font-size: 0.875rem;
+            text-align: right;
+            flex: 1;
+        }
+
+        .os-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding-top: 12px;
+            border-top: 2px solid #f0f0f0;
         }
 
         .status-badge {
-            padding: 5px 12px;
+            padding: 6px 14px;
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 0.75rem;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .status-pendente { background: #ffc107; color: #000; }
         .status-agendada { background: #17a2b8; color: #fff; }
         .status-em_rota { background: #007bff; color: #fff; }
+        .status-em-rota { background: #007bff; color: #fff; }
         .status-finalizada { background: #28a745; color: #fff; }
         .status-cancelada { background: #dc3545; color: #fff; }
 
         .btn {
             padding: 10px 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 0.875rem;
             font-weight: 600;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
         }
 
         .btn-primary {
-            background: #2c7a3e;
+            background: linear-gradient(135deg, #2c7a3e 0%, #235d31 100%);
             color: white;
         }
 
         .btn-primary:hover {
-            background: #235d31;
+            background: linear-gradient(135deg, #235d31 0%, #1a4623 100%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
         .btn-secondary {
@@ -156,10 +305,25 @@
             margin-left: 10px;
         }
 
+        .btn-secondary:hover {
+            background: #5a6268;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
         .btn-danger {
             background: #dc3545;
             color: white;
             margin-left: 10px;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.8rem;
         }
 
         .modal {
@@ -170,30 +334,53 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-content {
             background: white;
             margin: 5% auto;
             padding: 30px;
-            border-radius: 8px;
+            border-radius: 16px;
             width: 90%;
             max-width: 600px;
             max-height: 80vh;
             overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
         }
 
         .modal-header h2 {
             margin: 0;
             color: #2c7a3e;
+            font-size: 1.5rem;
         }
 
         .close {
@@ -201,10 +388,18 @@
             font-weight: bold;
             cursor: pointer;
             color: #999;
+            transition: all 0.3s ease;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
         }
 
         .close:hover {
-            color: #000;
+            color: #dc3545;
+            background: #f8f9fa;
         }
 
         .form-group {
@@ -213,19 +408,29 @@
 
         .form-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-weight: 600;
             color: #333;
+            font-size: 0.9rem;
         }
 
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2c7a3e;
+            box-shadow: 0 0 0 3px rgba(44, 122, 62, 0.1);
         }
 
         .form-group textarea {
@@ -236,20 +441,205 @@
         .actions {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         .kanban-link {
-            background: #17a2b8;
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
             color: white;
             padding: 10px 20px;
-            border-radius: 4px;
+            border-radius: 8px;
             text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.875rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .kanban-link:hover {
-            background: #138496;
+            background: linear-gradient(135deg, #138496 0%, #0f6674 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        @media (max-width: 768px) {
+            .logistica-container {
+                padding: 12px;
+                padding-bottom: 80px;
+            }
+
+            .logistica-header {
+                flex-direction: column;
+                align-items: flex-start;
+                margin-bottom: 20px;
+            }
+
+            .logistica-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .filtros {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .filtros-toggle {
+                display: block;
+            }
+
+            .filtros-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+            }
+
+            .filtros-grid.active {
+                max-height: 500px;
+                margin-top: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .stat-card h3 {
+                font-size: 1.75rem;
+            }
+
+            .stat-card p {
+                font-size: 0.8rem;
+            }
+
+            .os-table table {
+                display: none;
+            }
+
+            .os-cards-mobile {
+                display: block;
+            }
+
+            .os-card {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+
+            .os-card-header {
+                margin-bottom: 12px;
+                padding-bottom: 10px;
+            }
+
+            .os-card-number {
+                font-size: 1.1rem;
+            }
+
+            .os-card-body {
+                gap: 10px;
+            }
+
+            .os-card-label {
+                font-size: 0.8rem;
+                min-width: 90px;
+            }
+
+            .os-card-value {
+                font-size: 0.8rem;
+            }
+
+            .os-card-actions {
+                gap: 6px;
+                padding-top: 10px;
+            }
+
+            .os-card-actions .btn {
+                flex: 1;
+                justify-content: center;
+                padding: 10px 12px;
+                font-size: 0.8rem;
+            }
+
+            .os-card-actions .btn-secondary {
+                margin-left: 0;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.85rem;
+            }
+
+            .actions {
+                width: 100%;
+            }
+
+            .kanban-link {
+                width: 100%;
+                justify-content: center;
+                padding: 12px 20px;
+            }
+
+            .modal-content {
+                margin: 10% auto;
+                padding: 20px;
+                width: 95%;
+                max-height: 85vh;
+                border-radius: 12px;
+            }
+
+            .modal-header h2 {
+                font-size: 1.25rem;
+            }
+
+            .form-group {
+                margin-bottom: 16px;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logistica-container {
+                padding: 8px;
+            }
+
+            .logistica-header h1 {
+                font-size: 1.25rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .stat-card h3 {
+                font-size: 1.5rem;
+            }
+
+            .os-card {
+                padding: 12px;
+            }
+
+            .os-card-number {
+                font-size: 1rem;
+            }
+
+            .status-badge {
+                font-size: 0.7rem;
+                padding: 5px 12px;
+            }
         }
     </style>
 </head>
@@ -279,7 +669,10 @@
         <div class="logistica-header">
             <h1>Logística - Ordens de Serviço</h1>
             <div class="actions">
-                <a href="/kanban" class="kanban-link">Ver Kanban</a>
+                <a href="/kanban" class="kanban-link">
+                    <i class="fas fa-tasks"></i>
+                    Ver Kanban
+                </a>
             </div>
         </div>
 
@@ -303,7 +696,16 @@
         </div>
 
         <div class="filtros">
-            <div class="filtros-grid">
+            <div class="filtros-header" onclick="toggleFiltros()">
+                <h3>
+                    <i class="fas fa-filter"></i>
+                    Filtros
+                </h3>
+                <button class="filtros-toggle" id="filtros-toggle">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="filtros-grid" id="filtros-grid">
                 <div class="filtro-group">
                     <label>Status</label>
                     <select id="filtro-status">
@@ -355,6 +757,12 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="os-cards-mobile" id="os-cards-mobile">
+            <div style="text-align: center; padding: 40px; color: #666;">
+                Carregando...
+            </div>
+        </div>
     </div>
 
     <div id="detalhes-modal" class="modal">
@@ -398,6 +806,19 @@
     <script>
         let osAtual = null;
 
+        function toggleFiltros() {
+            const filtrosGrid = document.getElementById('filtros-grid');
+            const filtrosToggle = document.getElementById('filtros-toggle');
+            
+            if (filtrosGrid.classList.contains('active')) {
+                filtrosGrid.classList.remove('active');
+                filtrosToggle.classList.remove('active');
+            } else {
+                filtrosGrid.classList.add('active');
+                filtrosToggle.classList.add('active');
+            }
+        }
+
         async function carregarEstatisticas() {
             try {
                 const token = getToken();
@@ -435,17 +856,20 @@
                 const os_list = await response.json();
 
                 const tbody = document.getElementById('os-list');
+                const cardsContainer = document.getElementById('os-cards-mobile');
                 tbody.innerHTML = '';
+                cardsContainer.innerHTML = '';
 
                 if (os_list.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Nenhuma OS encontrada</td></tr>';
+                    cardsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Nenhuma OS encontrada</div>';
                     return;
                 }
 
                 os_list.forEach(os => {
-                    const tr = document.createElement('tr');
                     const statusClass = `status-${os.status.toLowerCase().replace('_', '-')}`;
                     
+                    const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><strong>${os.numero_os}</strong></td>
                         <td>${os.fornecedor_snapshot.nome}</td>
@@ -455,11 +879,62 @@
                         <td>${os.veiculo_placa || '-'}</td>
                         <td>${os.janela_coleta_inicio ? new Date(os.janela_coleta_inicio).toLocaleString('pt-BR') : '-'}</td>
                         <td>
-                            <button class="btn btn-primary" onclick="verDetalhes(${os.id})">Ver</button>
-                            ${os.status === 'PENDENTE' ? `<button class="btn btn-secondary" onclick="abrirAtribuir(${os.id})">Atribuir</button>` : ''}
+                            <button class="btn btn-primary btn-sm" onclick="verDetalhes(${os.id})">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
+                            ${os.status === 'PENDENTE' ? `<button class="btn btn-secondary btn-sm" onclick="abrirAtribuir(${os.id})">
+                                <i class="fas fa-user-plus"></i> Atribuir
+                            </button>` : ''}
                         </td>
                     `;
                     tbody.appendChild(tr);
+
+                    const card = document.createElement('div');
+                    card.className = 'os-card';
+                    card.innerHTML = `
+                        <div class="os-card-header">
+                            <div class="os-card-number">${os.numero_os}</div>
+                            <span class="status-badge ${statusClass}">${os.status}</span>
+                        </div>
+                        <div class="os-card-body">
+                            <div class="os-card-row">
+                                <div class="os-card-label">Fornecedor:</div>
+                                <div class="os-card-value">${os.fornecedor_snapshot.nome}</div>
+                            </div>
+                            <div class="os-card-row">
+                                <div class="os-card-label">Tipo:</div>
+                                <div class="os-card-value">${os.tipo}</div>
+                            </div>
+                            <div class="os-card-row">
+                                <div class="os-card-label">Motorista:</div>
+                                <div class="os-card-value">${os.motorista_nome || '-'}</div>
+                            </div>
+                            <div class="os-card-row">
+                                <div class="os-card-label">Veículo:</div>
+                                <div class="os-card-value">${os.veiculo_placa || '-'}</div>
+                            </div>
+                            <div class="os-card-row">
+                                <div class="os-card-label">Janela Coleta:</div>
+                                <div class="os-card-value">${os.janela_coleta_inicio ? new Date(os.janela_coleta_inicio).toLocaleString('pt-BR', { 
+                                    day: '2-digit', 
+                                    month: '2-digit', 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                }) : '-'}</div>
+                            </div>
+                        </div>
+                        <div class="os-card-actions">
+                            <button class="btn btn-primary btn-sm" onclick="verDetalhes(${os.id})">
+                                <i class="fas fa-eye"></i> Ver Detalhes
+                            </button>
+                            ${os.status === 'PENDENTE' ? `
+                                <button class="btn btn-secondary btn-sm" onclick="abrirAtribuir(${os.id})">
+                                    <i class="fas fa-user-plus"></i> Atribuir
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                    cardsContainer.appendChild(card);
                 });
             } catch (error) {
                 console.error('Erro ao carregar OS:', error);
