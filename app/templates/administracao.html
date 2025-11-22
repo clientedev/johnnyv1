@@ -264,6 +264,21 @@
         </div>
     </div>
 
+    <style>
+        /* Padding específico para mobile e desktop na página de administração */
+        @media (max-width: 767px) {
+            main.container {
+                padding-top: 60px !important;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            main.container {
+                padding-top: 50px !important;
+            }
+        }
+    </style>
+
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="/static/js/utils.js"></script>
     <script src="/static/js/rbac.js"></script>
