@@ -24,7 +24,7 @@
         </div>
     </header>
 
-    <main class="container mt-4">
+    <main class="container mt-4" style="padding-top: 80px;">
         <div id="loadingIndicator" class="card" style="text-align: center; padding: 2rem;">
             <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i>
             <p style="margin-top: 1rem; color: var(--gray-600);">Carregando separação...</p>
@@ -447,6 +447,23 @@
     </script>
 
     <style>
+        /* Ajustes de espaçamento para header fixo */
+        body {
+            padding-bottom: 80px;
+        }
+
+        main.container {
+            padding-top: 80px !important;
+            padding-bottom: 20px;
+        }
+
+        /* Ajustes específicos para desktop */
+        @media (min-width: 1024px) {
+            main.container {
+                padding-top: 100px !important;
+            }
+        }
+
         .tab-button {
             background: transparent;
             border: none;
