@@ -467,8 +467,17 @@ def listar_residuos():
     try:
         status = request.args.get('status', 'AGUARDANDO_APROVACAO')
 
-        query = Residuo.query.filter_by(status=status)
+        print(f'\n🔍 API /residuos - status={status}')
+        
+        # Se status='all', buscar todos os resíduos, caso contrário filtrar por status
+        if status and status.lower() == 'all':
+            query = Residuo.query
+        else:
+            query = Residuo.query.filter_by(status=status)
+            
         residuos = query.order_by(Residuo.criado_em.desc()).all()
+        
+        print(f'   Total de resíduos encontrados: {len(residuos)}')
 
         resultado = []
         for residuo in residuos:
@@ -479,6 +488,8 @@ def listar_residuos():
                 residuo_dict['operador_nome'] = residuo.separacao.operador.nome if residuo.separacao.operador else None
 
             resultado.append(residuo_dict)
+        
+        print(f'   Retornando {len(resultado)} resíduos')
 
         return jsonify(resultado), 200
 

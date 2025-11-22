@@ -81,10 +81,19 @@ def obter_lote_detalhado(lote_id):
         if not lote:
             return jsonify({'erro': 'Lote não encontrado'}), 404
         
+        print(f'\n🔍 API /lotes/{lote_id}')
+        print(f'   Lote: {lote.numero_lote}')
+        print(f'   Sublotes carregados: {lote.sublotes}')
+        print(f'   Quantidade de sublotes: {len(lote.sublotes) if lote.sublotes else 0}')
+        
         lote_dict = lote.to_dict()
         lote_dict['itens'] = [item.to_dict() for item in lote.itens] if lote.itens else []
         lote_dict['sublotes'] = [sublote.to_dict() for sublote in lote.sublotes] if lote.sublotes else []
         lote_dict['movimentacoes'] = [mov.to_dict() for mov in lote.movimentacoes] if lote.movimentacoes else []
+        
+        print(f'   Sublotes no dict: {len(lote_dict["sublotes"])} sublotes')
+        if lote_dict['sublotes']:
+            print(f'   Primeiro sublote: {lote_dict["sublotes"][0]["numero_lote"]}')
         
         if lote.solicitacao_origem:
             lote_dict['solicitacao_origem'] = lote.solicitacao_origem.to_dict()
