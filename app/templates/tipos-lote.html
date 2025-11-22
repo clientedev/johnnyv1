@@ -9,6 +9,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
+        /* Ajustes de espaçamento para header fixo e bottom nav */
+        body {
+            padding-bottom: 80px; /* Espaço para bottom nav em mobile */
+        }
+
+        main.container {
+            padding-top: 80px; /* Espaço para header fixo */
+            padding-bottom: 100px; /* Espaço para bottom nav */
+        }
+
+        /* Ajustes específicos para desktop */
+        @media (min-width: 1024px) {
+            main.container {
+                padding-top: 90px; /* Header um pouco maior no desktop */
+                padding-bottom: 100px; /* Mantém espaço para bottom nav */
+            }
+        }
+
+        /* Garantir que modais não sejam cortados */
+        .modal {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
         .materials-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -252,8 +275,8 @@
         </a>
     </nav>
 
-    <main class="container mt-4">
-        <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
+    <main class="container mt-4" style="padding-top: 80px; padding-bottom: 100px;">
+        <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md); margin-top: var(--spacing-md);">
             <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gestão de Materiais e Preços</h1>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                 <button class="btn btn-success" onclick="baixarModelo()" title="Baixar modelo de planilha">
@@ -393,6 +416,9 @@
             </form>
         </div>
     </div>
+
+    <!-- Bottom Navigation (Mobile) -->
+    {% include 'includes/_bottom_nav.html' %}
 
     <script src="/static/js/auth.js"></script>
     <script>
