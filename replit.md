@@ -27,6 +27,7 @@ The system is built with a Flask backend (Python 3.12) using SQLAlchemy for ORM 
 -   **Freight Modality**: Purchase requests now include a freight modality field (FOB or CIF) to specify shipping responsibility and cost allocation. The field is required during purchase creation and displayed in request details. (Implemented November 18, 2025)
 -   **Excel Import/Export**: Functionality for mass import and export of materials and price tables.
 -   **Purchase Wizard**: A multi-step wizard for new purchases, handling supplier selection/registration, collection/delivery details, item scanning, value input, and final confirmation. It integrates with material and pricing data and triggers authorization requests when necessary.
+-   **WMS (Warehouse Management System)**: Comprehensive inventory lot management with optimized performance. Features include lot details viewing with eager loading to prevent N+1 queries, direct lot number search with indexed lookup, null-safe user validations across all operations (blocking, reserving, moving inventory), and real-time status tracking. (Performance optimizations implemented November 22, 2025)
 
 #### System Design Choices
 -   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, and an extended `Fornecedor` model (with `tipo_documento`, `cpf`, and `cnpj` fields) to link suppliers to price tables, responsible buyers, and geolocation. The `Solicitacao` model includes `modalidade_frete` to track shipping terms.
