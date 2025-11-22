@@ -712,6 +712,7 @@ class Lote(db.Model):  # type: ignore
                 'id': self.tipo_lote.id,
                 'nome': self.tipo_lote.nome
             }
+            data['tipo_lote_nome'] = self.tipo_lote.nome
 
         if hasattr(self, 'fornecedor') and self.fornecedor:
             data['fornecedor'] = {
@@ -719,6 +720,7 @@ class Lote(db.Model):  # type: ignore
                 'nome': self.fornecedor.nome,
                 'cnpj': self.fornecedor.cnpj
             }
+            data['fornecedor_nome'] = self.fornecedor.nome
         
         if hasattr(self, 'solicitacao_origem') and self.solicitacao_origem:
             data['solicitacao_origem'] = {
