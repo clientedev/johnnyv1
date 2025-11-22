@@ -24,10 +24,10 @@
     --gray-700: #374151;
     --gray-800: #1f2937;
     --gray-900: #111827;
-    
+
     /* Touch target size */
     --touch-target: 44px;
-    
+
     /* Responsive spacing */
     --spacing-xs: 0.5rem;
     --spacing-sm: 0.75rem;
@@ -743,23 +743,23 @@ table th {
     .container {
         max-width: 720px;
     }
-    
+
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .card {
         padding: var(--spacing-lg);
     }
-    
+
     #map {
         height: 400px;
     }
-    
+
     .modal.active {
         align-items: center;
     }
-    
+
     .pwa-install-banner {
         left: 50%;
         right: auto;
@@ -777,12 +777,12 @@ table th {
         max-width: 1200px;
         padding: 0 var(--spacing-xl);
     }
-    
+
     /* Hide mobile menu toggle */
     .menu-toggle {
         display: none;
     }
-    
+
     /* Desktop navigation */
     nav {
         position: static;
@@ -792,21 +792,21 @@ table th {
         padding-top: 0;
         overflow: visible;
     }
-    
+
     nav ul {
         flex-direction: row;
         gap: var(--spacing-lg);
         padding: 0;
     }
-    
+
     nav li {
         margin-bottom: 0;
     }
-    
+
     nav a {
         padding: var(--spacing-sm) var(--spacing-md);
     }
-    
+
     .user-info {
         flex-direction: row;
         border-top: none;
@@ -815,41 +815,41 @@ table th {
         align-items: center;
         gap: var(--spacing-md);
     }
-    
+
     .user-info span {
         padding: 0;
     }
-    
+
     .nav-overlay {
         display: none !important;
     }
-    
+
     .stats-grid {
         grid-template-columns: repeat(4, 1fr);
     }
-    
+
     .stat-card:hover {
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
         transform: translateY(-2px);
     }
-    
+
     .btn:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
-    
+
     .btn-primary:hover {
         box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
     }
-    
+
     .card:hover {
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     }
-    
+
     #map {
         height: 500px;
     }
-    
+
     .logo img {
         height: 40px;
         width: 40px;
@@ -896,7 +896,7 @@ textarea:focus-visible {
     .btn {
         border: 2px solid currentColor;
     }
-    
+
     .card {
         border-width: 2px;
     }
@@ -908,7 +908,7 @@ textarea:focus-visible {
 }
 
 /* ==========================================
-   BOTTOM NAVIGATION (MOBILE)
+   BOTTOMNAVIGATION (MOBILE)
    ========================================== */
 
 .bottom-nav {
@@ -1007,8 +1007,14 @@ textarea:focus-visible {
 
 /* Main content adjustment */
 main {
-    padding-top: 80px; /* Header height + extra space for mobile */
     min-height: calc(100vh - 150px);
+}
+
+/* Padding-top SOMENTE em mobile */
+@media (max-width: 767px) {
+    main {
+        padding-top: 60px;
+    }
 }
 
 main.container > *:first-child {
@@ -1024,26 +1030,17 @@ main.container > *:first-child {
         gap: var(--spacing-md);
         padding: 0 var(--spacing-xl);
     }
-    
+
     .bottom-nav-item {
         max-width: 120px;
     }
-    
+
     body {
         padding-bottom: 80px; /* Mantém espaço para barra */
     }
-    
+
     main {
-        padding-top: 100px; /* Padding maior em desktop */
-    }
-    
-    main.container > *:first-child {
-        margin-top: 0;
-        padding-top: 0;
-    }
-    
-    header {
-        position: sticky;
+        padding-top: 0; /* Remove padding-top em desktop */
     }
 }
 
