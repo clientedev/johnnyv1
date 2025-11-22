@@ -74,7 +74,75 @@
         .conf-table table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 800px;
+        }
+
+        /* Cards Mobile - inicialmente escondidos */
+        .conf-cards-mobile {
+            display: none;
+        }
+
+        .conf-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .conf-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+
+        .conf-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .conf-card-number {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .conf-card-body {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .conf-card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+        }
+
+        .conf-card-label {
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            min-width: 120px;
+        }
+
+        .conf-card-value {
+            color: var(--gray-900);
+            font-size: 0.875rem;
+            text-align: right;
+            flex: 1;
+        }
+
+        .conf-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding-top: 12px;
+            border-top: 2px solid var(--gray-200);
         }
 
         .conf-table th {
@@ -247,14 +315,55 @@
 
         /* Mobile-specific styles */
         @media (max-width: 768px) {
+            .conferencia-container {
+                padding-top: calc(70px + var(--spacing-sm));
+                padding-bottom: calc(80px + var(--spacing-sm));
+            }
+
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
 
+            /* Esconde a tabela em mobile */
             .conf-table {
-                margin: 0 calc(-1 * var(--spacing-md));
-                border-radius: 0;
-                width: calc(100% + 2 * var(--spacing-md));
+                display: none;
+            }
+
+            /* Mostra os cards em mobile */
+            .conf-cards-mobile {
+                display: block;
+            }
+
+            .conf-card {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+
+            .conf-card-header {
+                margin-bottom: 12px;
+                padding-bottom: 10px;
+            }
+
+            .conf-card-number {
+                font-size: 1.1rem;
+            }
+
+            .conf-card-body {
+                gap: 10px;
+            }
+
+            .conf-card-label {
+                font-size: 0.8rem;
+                min-width: 100px;
+            }
+
+            .conf-card-value {
+                font-size: 0.8rem;
+            }
+
+            .conf-card-actions .btn {
+                flex: 1;
+                justify-content: center;
             }
 
             .conferencia-header {
@@ -274,14 +383,21 @@
                 grid-template-columns: 1fr;
             }
 
-            .conf-table td,
-            .conf-table th {
-                padding: 0.5rem;
+            .conf-card-label {
+                font-size: 0.75rem;
+                min-width: 90px;
             }
 
-            .conf-table .btn {
-                padding: 0.5rem;
+            .conf-card-value {
                 font-size: 0.75rem;
+            }
+
+            .conf-card-actions {
+                flex-direction: column;
+            }
+
+            .conf-card-actions .btn {
+                width: 100%;
             }
         }
     </style>
@@ -336,6 +452,7 @@
             </div>
         </div>
 
+        <!-- Tabela Desktop -->
         <div class="conf-table">
             <table>
                 <thead>
@@ -358,6 +475,13 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Cards Mobile -->
+        <div class="conf-cards-mobile" id="conf-cards-mobile">
+            <div style="text-align: center; padding: 40px; color: var(--gray-600);">
+                Carregando...
+            </div>
         </div>
     </div>
 
@@ -463,35 +587,45 @@
                 if (!response.ok) {
                     console.error('Erro na resposta da API:', response.status);
                     const tbody = document.getElementById('conf-list');
+                    const cardsContainer = document.getElementById('conf-cards-mobile');
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: red;">Erro ao carregar conferências. Verifique sua autenticação.</td></tr>';
+                    cardsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: red;">Erro ao carregar conferências. Verifique sua autenticação.</div>';
                     return;
                 }
                 
                 const conferencias = await response.json();
 
                 const tbody = document.getElementById('conf-list');
+                const cardsContainer = document.getElementById('conf-cards-mobile');
                 tbody.innerHTML = '';
+                cardsContainer.innerHTML = '';
 
                 if (!Array.isArray(conferencias) || conferencias.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Nenhuma conferência encontrada</td></tr>';
+                    cardsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--gray-600);">Nenhuma conferência encontrada</div>';
                     return;
                 }
 
                 conferencias.forEach(conf => {
-                    const tr = document.createElement('tr');
                     const statusClass = `status-${conf.conferencia_status.toLowerCase().replace('_', '-')}`;
                     const diferenca = conf.peso_fornecedor && conf.peso_real ? 
                         ((conf.peso_real - conf.peso_fornecedor) / conf.peso_fornecedor * 100).toFixed(2) : '-';
                     
                     let acoes = '';
+                    let acoesCard = '';
                     if (conf.conferencia_status === 'PENDENTE') {
                         acoes = `<button class="btn btn-primary" onclick="abrirPesagem(${conf.id})">Registrar Pesagem</button>`;
+                        acoesCard = `<button class="btn btn-primary btn-sm" onclick="abrirPesagem(${conf.id})"><i class="fas fa-weight"></i> Registrar Pesagem</button>`;
                     } else if (conf.conferencia_status === 'DIVERGENTE') {
                         acoes = `<button class="btn btn-warning" onclick="enviarParaAdmDireto(${conf.id})">⚠️ Enviar p/ ADM</button>`;
+                        acoesCard = `<button class="btn btn-warning btn-sm" onclick="enviarParaAdmDireto(${conf.id})"><i class="fas fa-exclamation-triangle"></i> Enviar p/ ADM</button>`;
                     } else if (conf.conferencia_status === 'AGUARDANDO_ADM') {
                         acoes = `<button class="btn btn-warning" onclick="abrirDecisao(${conf.id})">Decidir</button>`;
+                        acoesCard = `<button class="btn btn-warning btn-sm" onclick="abrirDecisao(${conf.id})"><i class="fas fa-gavel"></i> Decidir</button>`;
                     }
                     
+                    // Adiciona linha na tabela (desktop)
+                    const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><strong>#${conf.id}</strong></td>
                         <td>${conf.ordem_servico ? conf.ordem_servico.numero_os : '-'}</td>
@@ -503,6 +637,40 @@
                         <td>${acoes}</td>
                     `;
                     tbody.appendChild(tr);
+
+                    // Adiciona card mobile
+                    const card = document.createElement('div');
+                    card.className = 'conf-card';
+                    card.innerHTML = `
+                        <div class="conf-card-header">
+                            <div class="conf-card-number">#${conf.id}</div>
+                            <span class="status-badge ${statusClass}">${conf.conferencia_status}</span>
+                        </div>
+                        <div class="conf-card-body">
+                            <div class="conf-card-row">
+                                <div class="conf-card-label">OS:</div>
+                                <div class="conf-card-value">${conf.ordem_servico ? conf.ordem_servico.numero_os : '-'}</div>
+                            </div>
+                            <div class="conf-card-row">
+                                <div class="conf-card-label">Fornecedor:</div>
+                                <div class="conf-card-value">${conf.ordem_servico ? conf.ordem_servico.fornecedor_snapshot.nome : '-'}</div>
+                            </div>
+                            <div class="conf-card-row">
+                                <div class="conf-card-label">Peso Previsto:</div>
+                                <div class="conf-card-value">${conf.peso_fornecedor ? conf.peso_fornecedor.toFixed(2) + ' kg' : '-'}</div>
+                            </div>
+                            <div class="conf-card-row">
+                                <div class="conf-card-label">Peso Real:</div>
+                                <div class="conf-card-value">${conf.peso_real ? conf.peso_real.toFixed(2) + ' kg' : '-'}</div>
+                            </div>
+                            <div class="conf-card-row">
+                                <div class="conf-card-label">Diferença:</div>
+                                <div class="conf-card-value">${diferenca !== '-' ? diferenca + '%' : '-'}</div>
+                            </div>
+                        </div>
+                        ${acoesCard ? `<div class="conf-card-actions">${acoesCard}</div>` : ''}
+                    `;
+                    cardsContainer.appendChild(card);
                 });
             } catch (error) {
                 console.error('Erro ao carregar conferências:', error);
