@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import db, Lote, TipoLote, Fornecedor, OrdemCompra, OrdemServico, ConferenciaRecebimento
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime
 
 bp = Blueprint('lotes', __name__, url_prefix='/api/lotes')
@@ -32,22 +32,28 @@ def listar_lotes():
 @jwt_required()
 def obter_lote(id):
     try:
+        from sqlalchemy.orm import selectinload, joinedload
+        
         lote = Lote.query.options(
             joinedload(Lote.tipo_lote),
             joinedload(Lote.fornecedor),
             joinedload(Lote.ordem_compra),
             joinedload(Lote.ordem_servico),
             joinedload(Lote.conferencia),
-            joinedload(Lote.itens),
             joinedload(Lote.entrada_estoque),
             joinedload(Lote.separacao),
-            joinedload(Lote.solicitacao_origem)
+            joinedload(Lote.solicitacao_origem),
+            joinedload(Lote.reservado_por),
+            joinedload(Lote.bloqueado_por),
+            selectinload(Lote.itens),
+            selectinload(Lote.sublotes),
+            selectinload(Lote.movimentacoes)
         ).filter_by(id=id).first()
 
         if not lote:
             return jsonify({'erro': 'Lote não encontrado'}), 404
 
-        # Preparar dados completos do lote usando o método to_dict() que já existe
+        # Preparar dados completos do lote
         lote_data = lote.to_dict()
 
         # Adicionar informações dos itens
@@ -56,46 +62,41 @@ def obter_lote(id):
         else:
             lote_data['itens'] = []
 
+        # Adicionar sublotes
+        if lote.sublotes:
+            lote_data['sublotes'] = [sublote.to_dict() for sublote in lote.sublotes]
+        else:
+            lote_data['sublotes'] = []
+
+        # Adicionar movimentações
+        if lote.movimentacoes:
+            lote_data['movimentacoes'] = [mov.to_dict() for mov in sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)]
+        else:
+            lote_data['movimentacoes'] = []
+
         # Adicionar entrada de estoque se existir
         if lote.entrada_estoque:
-            lote_data['entrada_estoque'] = {
-                'id': lote.entrada_estoque.id,
-                'status': lote.entrada_estoque.status,
-                'data_entrada': lote.entrada_estoque.data_entrada.isoformat() if lote.entrada_estoque.data_entrada else None
-            }
+            lote_data['entrada_estoque'] = lote.entrada_estoque.to_dict()
 
         # Adicionar separação se existir
         if lote.separacao:
-            lote_data['separacao'] = {
-                'id': lote.separacao.id,
-                'status': lote.separacao.status,
-                'percentual_aproveitamento': lote.separacao.percentual_aproveitamento
-            }
+            lote_data['separacao'] = lote.separacao.to_dict()
 
         # Adicionar conferência se existir
         if lote.conferencia:
-            lote_data['conferencia'] = {
-                'id': lote.conferencia.id,
-                'conferencia_status': lote.conferencia.conferencia_status,
-                'peso_real': lote.conferencia.peso_real,
-                'qualidade': lote.conferencia.qualidade
-            }
+            lote_data['conferencia'] = lote.conferencia.to_dict()
 
         # Adicionar ordem de compra se existir
         if lote.ordem_compra:
-            lote_data['ordem_compra'] = {
-                'id': lote.ordem_compra.id,
-                'status': lote.ordem_compra.status,
-                'valor_total': lote.ordem_compra.valor_total
-            }
+            lote_data['ordem_compra'] = lote.ordem_compra.to_dict()
 
         # Adicionar ordem de serviço se existir
         if lote.ordem_servico:
-            lote_data['ordem_servico'] = {
-                'id': lote.ordem_servico.id,
-                'numero_os': lote.ordem_servico.numero_os,
-                'status': lote.ordem_servico.status
-            }
+            lote_data['ordem_servico'] = lote.ordem_servico.to_dict()
+
+        # Adicionar solicitação origem se existir
+        if lote.solicitacao_origem:
+            lote_data['solicitacao_origem'] = lote.solicitacao_origem.to_dict()
 
         return jsonify(lote_data), 200
 
