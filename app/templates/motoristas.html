@@ -218,8 +218,8 @@
                             <button class="btn btn-small btn-secondary" onclick="editarMotorista(${m.id})">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-small btn-danger" onclick="excluirMotorista(${m.id}, '${m.nome}')">
-                                <i class="fas fa-trash"></i>
+                            <button class="btn btn-small ${m.ativo ? 'btn-danger' : 'btn-success'}" onclick="toggleMotorista(${m.id}, '${m.nome}', ${m.ativo})">
+                                <i class="fas fa-${m.ativo ? 'ban' : 'check'}"></i> ${m.ativo ? 'Desativar' : 'Ativar'}
                             </button>
                         </td>
                     </tr>
@@ -342,17 +342,26 @@
             }
         });
 
-        async function excluirMotorista(id, nome) {
-            if (!confirm(`Tem certeza que deseja excluir o motorista ${nome}?`)) {
+        async function toggleMotorista(id, nome, ativo) {
+            const acao = ativo ? 'desativar' : 'ativar';
+            if (!confirm(`Tem certeza que deseja ${acao} o motorista ${nome}?`)) {
                 return;
             }
 
             try {
-                await fetchAPI(`/motoristas/${id}`, { method: 'DELETE' });
-                alert('Motorista excluído com sucesso!');
+                if (ativo) {
+                    await fetchAPI(`/motoristas/${id}`, { method: 'DELETE' });
+                    alert('Motorista desativado com sucesso!');
+                } else {
+                    await fetchAPI(`/motoristas/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ ativo: true })
+                    });
+                    alert('Motorista ativado com sucesso!');
+                }
                 await carregarMotoristas();
             } catch (error) {
-                alert('Erro ao excluir motorista: ' + error.message);
+                alert(`Erro ao ${acao} motorista: ` + error.message);
             }
         }
 

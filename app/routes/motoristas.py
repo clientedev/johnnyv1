@@ -170,12 +170,13 @@ def deletar_motorista(motorista_id):
     
     try:
         usuario_id = int(get_jwt_identity())
-        registrar_exclusao(usuario_id, 'motorista', motorista.id, {'nome': motorista.nome, 'cpf': motorista.cpf})
         
-        db.session.delete(motorista)
+        motorista.ativo = False
         db.session.commit()
         
-        return jsonify({'mensagem': 'Motorista deletado com sucesso'}), 200
+        registrar_atualizacao(usuario_id, 'motorista', motorista.id, {'ativo': False, 'acao': 'desativado'})
+        
+        return jsonify({'mensagem': 'Motorista desativado com sucesso'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': str(e)}), 400

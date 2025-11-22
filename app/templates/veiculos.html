@@ -189,8 +189,8 @@
                             <button class="btn btn-small btn-secondary" onclick="editarVeiculo(${v.id})">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
-                            <button class="btn btn-small btn-danger" onclick="excluirVeiculo(${v.id}, '${v.placa}')">
-                                <i class="fas fa-trash"></i> Excluir
+                            <button class="btn btn-small ${v.ativo ? 'btn-danger' : 'btn-success'}" onclick="toggleVeiculo(${v.id}, '${v.placa}', ${v.ativo})">
+                                <i class="fas fa-${v.ativo ? 'ban' : 'check'}"></i> ${v.ativo ? 'Desativar' : 'Ativar'}
                             </button>
                         </td>
                     </tr>
@@ -292,20 +292,26 @@
             }
         });
 
-        async function excluirVeiculo(id, placa) {
-            if (!confirm(`Tem certeza que deseja excluir o veículo ${placa}?`)) {
+        async function toggleVeiculo(id, placa, ativo) {
+            const acao = ativo ? 'desativar' : 'ativar';
+            if (!confirm(`Tem certeza que deseja ${acao} o veículo ${placa}?`)) {
                 return;
             }
             
             try {
-                await fetchAPI(`/veiculos/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                showAlert('Veículo excluído com sucesso!');
+                if (ativo) {
+                    await fetchAPI(`/veiculos/${id}`, { method: 'DELETE' });
+                    showAlert('Veículo desativado com sucesso!');
+                } else {
+                    await fetchAPI(`/veiculos/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ ativo: true })
+                    });
+                    showAlert('Veículo ativado com sucesso!');
+                }
                 await carregarVeiculos();
             } catch (error) {
-                showAlert('Erro ao excluir veículo: ' + error.message);
+                showAlert(`Erro ao ${acao} veículo: ` + error.message);
             }
         }
 

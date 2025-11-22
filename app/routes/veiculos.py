@@ -129,17 +129,15 @@ def deletar_veiculo(veiculo_id):
     if not veiculo:
         return jsonify({'erro': 'Veículo não encontrado'}), 404
     
-    if veiculo.motoristas:
-        return jsonify({'erro': 'Não é possível deletar veículo com motoristas associados'}), 400
-    
     try:
         usuario_id = int(get_jwt_identity())
-        registrar_exclusao(usuario_id, 'veiculo', veiculo.id, {'placa': veiculo.placa})
         
-        db.session.delete(veiculo)
+        veiculo.ativo = False
         db.session.commit()
         
-        return jsonify({'mensagem': 'Veículo deletado com sucesso'}), 200
+        registrar_atualizacao(usuario_id, 'veiculo', veiculo.id, {'ativo': False, 'acao': 'desativado'})
+        
+        return jsonify({'mensagem': 'Veículo desativado com sucesso'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': str(e)}), 400
