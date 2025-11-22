@@ -124,11 +124,15 @@ def obter_sublotes_lote(lote_id):
         if not lote:
             return jsonify({'erro': 'Lote não encontrado'}), 404
 
-        # Buscar apenas sublotes deste lote (lote_pai_id = lote_id)
+        # Buscar os sublotes que foram criados A PARTIR deste lote
+        # Os sublotes têm lote_pai_id apontando para este lote
         sublotes = Lote.query.filter_by(lote_pai_id=lote_id).all()
         
         print(f'\n🔍 API /lotes/{lote_id}/sublotes')
+        print(f'   Lote pai: {lote.numero_lote} (ID: {lote_id})')
         print(f'   Total de sublotes encontrados: {len(sublotes)}')
+        if sublotes:
+            print(f'   Sublotes: {[s.numero_lote for s in sublotes]}')
 
         resultado = []
         for sublote in sublotes:

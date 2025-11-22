@@ -243,7 +243,7 @@
 
         async function carregarSublotes() {
             try {
-                console.log('🔍 Carregando sublotes do lote:', lote.id);
+                console.log('🔍 Carregando sublotes do lote PAI:', lote.numero_lote, '(ID:', lote.id, ')');
 
                 // Usar endpoint específico para buscar sublotes do lote
                 const response = await fetch(`/api/wms/lotes/${lote.id}/sublotes`, {
@@ -254,14 +254,21 @@
 
                 if (!response.ok) {
                     console.error('❌ Erro na resposta da API de sublotes:', response.status, response.statusText);
+                    const errorText = await response.text();
+                    console.error('❌ Erro detalhado:', errorText);
                     sublotes = [];
                     renderizarSublotes();
                     return;
                 }
 
                 sublotes = await response.json();
-                console.log('✅ Sublotes carregados para o lote', lote.id, ':', sublotes.length);
-                console.log('📊 Sublotes encontrados:', sublotes);
+                console.log('✅ Total de sublotes encontrados:', sublotes.length);
+                if (sublotes.length > 0) {
+                    console.log('📦 Números dos sublotes:', sublotes.map(s => s.numero_lote).join(', '));
+                    console.log('📊 Dados completos dos sublotes:', sublotes);
+                } else {
+                    console.log('⚠️ Nenhum sublote encontrado para o lote', lote.numero_lote);
+                }
 
                 renderizarSublotes();
             } catch (error) {

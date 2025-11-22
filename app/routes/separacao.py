@@ -187,7 +187,7 @@ def criar_sublote(id):
             peso_total_kg=data['peso'],
             qualidade_recebida=data.get('qualidade'),
             status='CRIADO_SEPARACAO',
-            lote_pai_id=lote_pai.id,
+            lote_pai_id=lote_pai.id,  # Vincula ao lote pai
             quantidade_itens=data.get('quantidade', 1),
             observacoes=data.get('observacoes', ''),
             anexos=data.get('fotos', []),
@@ -200,12 +200,18 @@ def criar_sublote(id):
                 'gps': data.get('gps'),
                 'device_id': data.get('device_id') or separacao.device_id,
                 'separacao_id': separacao.id,
-                'lote_pai_id': lote_pai.id
+                'lote_pai_id': lote_pai.id,
+                'lote_pai_numero': lote_pai.numero_lote
             }],
             data_criacao=datetime.utcnow()
         )
 
         db.session.add(sublote)
+        db.session.flush()  # Garantir que o sublote seja criado antes de continuar
+        
+        print(f'\n✅ Sublote criado: {sublote.numero_lote} (ID: {sublote.id})')
+        print(f'   Lote pai: {lote_pai.numero_lote} (ID: {lote_pai.id})')
+        print(f'   Campo lote_pai_id: {sublote.lote_pai_id}')
 
         separacao.peso_total_sublotes = (separacao.peso_total_sublotes or 0) + data['peso']
 
