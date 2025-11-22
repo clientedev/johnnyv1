@@ -706,21 +706,32 @@ class Lote(db.Model):  # type: ignore
             'solicitacao_origem_id': self.solicitacao_origem_id
         }
 
-        # Adicionar informações dos relacionamentos se estiverem carregados
-        if hasattr(self, 'tipo_lote') and self.tipo_lote:
-            data['tipo_lote'] = {
-                'id': self.tipo_lote.id,
-                'nome': self.tipo_lote.nome
-            }
-            data['tipo_lote_nome'] = self.tipo_lote.nome
+        # Adicionar informações dos relacionamentos
+        # Usar try/except para garantir que funciona mesmo se os relationships não estiverem carregados
+        try:
+            if self.tipo_lote:
+                data['tipo_lote'] = {
+                    'id': self.tipo_lote.id,
+                    'nome': self.tipo_lote.nome
+                }
+                data['tipo_lote_nome'] = self.tipo_lote.nome
+            else:
+                data['tipo_lote_nome'] = None
+        except Exception:
+            data['tipo_lote_nome'] = None
 
-        if hasattr(self, 'fornecedor') and self.fornecedor:
-            data['fornecedor'] = {
-                'id': self.fornecedor.id,
-                'nome': self.fornecedor.nome,
-                'cnpj': self.fornecedor.cnpj
-            }
-            data['fornecedor_nome'] = self.fornecedor.nome
+        try:
+            if self.fornecedor:
+                data['fornecedor'] = {
+                    'id': self.fornecedor.id,
+                    'nome': self.fornecedor.nome,
+                    'cnpj': self.fornecedor.cnpj
+                }
+                data['fornecedor_nome'] = self.fornecedor.nome
+            else:
+                data['fornecedor_nome'] = None
+        except Exception:
+            data['fornecedor_nome'] = None
         
         if hasattr(self, 'solicitacao_origem') and self.solicitacao_origem:
             data['solicitacao_origem'] = {
