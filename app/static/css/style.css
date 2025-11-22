@@ -1007,7 +1007,7 @@ textarea:focus-visible {
 
 /* Main content adjustment */
 main {
-    padding-top: 60px; /* Header height + extra space for mobile */
+    padding-top: 80px; /* Header height + extra space for mobile */
     min-height: calc(100vh - 150px);
 }
 
@@ -1034,12 +1034,12 @@ main.container > *:first-child {
     }
     
     main {
-        padding-top: 0; /* Remove padding-top em desktop */
+        padding-top: 100px; /* Padding maior em desktop */
     }
     
     main.container > *:first-child {
-        margin-top: var(--spacing-xl);
-        padding-top: var(--spacing-lg);
+        margin-top: 0;
+        padding-top: 0;
     }
     
     header {
