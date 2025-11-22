@@ -164,6 +164,61 @@ def rejeitar_lote(id):
 
     return jsonify(lote.to_dict()), 200
 
+@bp.route('/numero/<string:numero_lote>', methods=['GET'])
+@jwt_required()
+def obter_lote_por_numero(numero_lote):
+    """Buscar lote por número"""
+    try:
+        from sqlalchemy.orm import selectinload, joinedload
+        
+        lote = Lote.query.options(
+            joinedload(Lote.tipo_lote),
+            joinedload(Lote.fornecedor),
+            joinedload(Lote.ordem_compra),
+            joinedload(Lote.ordem_servico),
+            joinedload(Lote.conferencia),
+            joinedload(Lote.entrada_estoque),
+            joinedload(Lote.separacao),
+            joinedload(Lote.solicitacao_origem),
+            joinedload(Lote.reservado_por),
+            joinedload(Lote.bloqueado_por),
+            selectinload(Lote.itens),
+            selectinload(Lote.sublotes),
+            selectinload(Lote.movimentacoes)
+        ).filter_by(numero_lote=numero_lote).first()
+
+        if not lote:
+            return jsonify({'erro': 'Lote não encontrado'}), 404
+
+        # Preparar dados completos do lote
+        lote_data = lote.to_dict()
+
+        # Adicionar informações dos itens
+        if lote.itens:
+            lote_data['itens'] = [item.to_dict() for item in lote.itens]
+        else:
+            lote_data['itens'] = []
+
+        # Adicionar sublotes
+        if lote.sublotes:
+            lote_data['sublotes'] = [sublote.to_dict() for sublote in lote.sublotes]
+        else:
+            lote_data['sublotes'] = []
+
+        # Adicionar movimentações
+        if lote.movimentacoes:
+            lote_data['movimentacoes'] = [mov.to_dict() for mov in sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)]
+        else:
+            lote_data['movimentacoes'] = []
+
+        return jsonify(lote_data), 200
+
+    except Exception as e:
+        print(f"❌ Erro ao obter lote por número {numero_lote}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': f'Erro ao carregar detalhes do lote: {str(e)}'}), 500
+
 @bp.route('/estatisticas', methods=['GET'])
 @jwt_required()
 def obter_estatisticas():

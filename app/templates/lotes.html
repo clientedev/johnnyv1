@@ -1050,20 +1050,22 @@
             conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Buscando lote...</p></div>';
 
             try {
-                // Usar endpoint otimizado de busca por número
-                const detalhesResponse = await fetchAPI(`/api/lotes/numero/${encodeURIComponent(numero)}`);
+                const response = await fetchAPI(`/api/lotes/numero/${encodeURIComponent(numero)}`);
                 
-                if (!detalhesResponse || !detalhesResponse.ok) {
-                    throw new Error('Lote não encontrado');
+                if (!response || !response.ok) {
+                    if (response && response.status === 404) {
+                        throw new Error('Lote não encontrado');
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.erro || 'Erro ao buscar lote');
                 }
                 
-                const loteDetalhado = await detalhesResponse.json();
-
+                const loteDetalhado = await response.json();
                 renderDetalhesLote(loteDetalhado);
             } catch (error) {
                 console.error('Erro ao buscar lote:', error);
 
-                if (error.message.includes('404') || error.message.includes('não encontrado')) {
+                if (error.message.includes('não encontrado')) {
                     conteudo.innerHTML = `
                         <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
                             <i class="fas fa-exclamation-triangle fa-3x" style="margin-bottom: 1rem;"></i>
