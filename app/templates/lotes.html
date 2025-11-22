@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, device-width, initial-scale=1.0">
     <title>WMS - Gerenciamento de Estoque | MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
@@ -503,13 +503,13 @@
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabId = tab.dataset.tab;
-                
+
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
+
                 tab.classList.add('active');
                 document.getElementById(tabId).classList.add('active');
-                
+
                 if (tabId === 'lotes-ativos') carregarLotesAtivos();
                 else if (tabId === 'movimentacoes') carregarMovimentacoes();
                 else if (tabId === 'detalhes-lote') mostrarDetalhesTab();
@@ -522,7 +522,7 @@
         async function carregarPagina() {
             const user = await verificarAuth();
             if (!user) return;
-            
+
             await carregarVisaoGeral();
             await carregarFiltros();
         }
@@ -533,12 +533,12 @@
                     fetchAPI('/fornecedores').then(r => r.json()),
                     fetchAPI('/tipos-lote').then(r => r.json())
                 ]);
-                
+
                 const selectFornecedor = document.getElementById('filtroFornecedor');
                 selectFornecedor.innerHTML = '<option value="">Todos</option>' + fornecedores.map(f => 
                     `<option value="${f.id}">${f.nome}</option>`
                 ).join('');
-                
+
                 const selectTipoLote = document.getElementById('filtroTipoLote');
                 selectTipoLote.innerHTML = '<option value="">Todos</option>' + tiposLote.map(t => 
                     `<option value="${t.id}">${t.nome}</option>`
@@ -551,16 +551,16 @@
         async function carregarVisaoGeral() {
             try {
                 const stats = await fetchAPI('/wms/estatisticas').then(r => r.json());
-                
+
                 document.getElementById('metricTotalLotes').textContent = stats.total_lotes || 0;
                 document.getElementById('metricPesoTotal').textContent = `${stats.peso_total_kg || 0} kg`;
                 document.getElementById('metricBloqueados').textContent = stats.lotes_bloqueados || 0;
                 document.getElementById('metricDivergentes').textContent = stats.lotes_divergentes || 0;
-                
+
                 const aguardandoSeparacao = stats.lotes_por_status.find(s => s.status === 'AGUARDANDO_SEPARACAO');
                 document.getElementById('metricSeparacao').textContent = aguardandoSeparacao ? aguardandoSeparacao.quantidade : 0;
                 document.getElementById('metricReservados').textContent = stats.lotes_reservados || 0;
-                
+
                 renderGraficos(stats);
                 renderTimeline(stats.movimentacoes_recentes || []);
             } catch (error) {
@@ -572,7 +572,7 @@
         function renderGraficos(stats) {
             const divStatus = document.getElementById('graficoStatus');
             const divLoc = document.getElementById('graficoLocalizacao');
-            
+
             let htmlStatus = '<div style="padding: 1rem;">';
             (stats.lotes_por_status || []).forEach(item => {
                 const pct = stats.total_lotes > 0 ? Math.round((item.quantidade / stats.total_lotes) * 100) : 0;
@@ -590,7 +590,7 @@
             });
             htmlStatus += '</div>';
             divStatus.innerHTML = htmlStatus;
-            
+
             let htmlLoc = '<div style="padding: 1rem;">';
             (stats.lotes_por_localizacao || []).forEach(item => {
                 htmlLoc += `
@@ -609,12 +609,12 @@
 
         function renderTimeline(movimentacoes) {
             const div = document.getElementById('timelineMovimentacoes');
-            
+
             if (!movimentacoes || movimentacoes.length === 0) {
                 div.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--gray-500);">Nenhuma movimentação recente</div>';
                 return;
             }
-            
+
             div.innerHTML = movimentacoes.map(mov => `
                 <div class="timeline-item">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
@@ -637,26 +637,26 @@
         async function carregarLotesAtivos() {
             const tbody = document.getElementById('tabelaLotesAtivos');
             tbody.innerHTML = '<tr><td colspan="10" class="loading">Carregando...</td></tr>';
-            
+
             try {
                 const response = await fetchAPI('/wms/lotes');
                 lotesData = await response.json();
-                
+
                 if (lotesData.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem; color: var(--gray-500);">Nenhum lote encontrado</td></tr>';
                     return;
                 }
-                
+
                 tbody.innerHTML = lotesData.map(lote => {
                     const origem = lote.solicitacao_origem_id ? `SC-${lote.solicitacao_origem_id}` : 
                                    lote.oc_id ? `OC-${lote.oc_id}` : 
                                    lote.os_id ? `OS-${lote.os_id}` : '—';
-                    
+
                     const indicadores = [];
                     if (lote.bloqueado) indicadores.push('<span class="indicator indicator-bloqueado" title="Bloqueado"></span>');
                     if (lote.reservado) indicadores.push('<span class="indicator indicator-reservado" title="Reservado"></span>');
                     if (lote.divergencias && lote.divergencias.length > 0) indicadores.push('<span class="indicator indicator-divergente" title="Divergência"></span>');
-                    
+
                     return `
                         <tr>
                             <td><strong>${lote.numero_lote}</strong></td>
@@ -685,16 +685,16 @@
         async function carregarMovimentacoes() {
             const tbody = document.getElementById('tabelaMovimentacoes');
             tbody.innerHTML = '<tr><td colspan="9" class="loading">Carregando...</td></tr>';
-            
+
             try {
                 const response = await fetchAPI('/wms/movimentacoes');
                 movimentacoesData = await response.json();
-                
+
                 if (movimentacoesData.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--gray-500);">Nenhuma movimentação encontrada</td></tr>';
                     return;
                 }
-                
+
                 tbody.innerHTML = movimentacoesData.map(mov => `
                     <tr>
                         <td>#${mov.id}</td>
@@ -721,16 +721,16 @@
         async function carregarInventarios() {
             const tbody = document.getElementById('tabelaInventarios');
             tbody.innerHTML = '<tr><td colspan="9" class="loading">Carregando...</td></tr>';
-            
+
             try {
                 const response = await fetchAPI('/wms/inventarios');
                 inventariosData = await response.json();
-                
+
                 if (inventariosData.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--gray-500);">Nenhum inventário encontrado</td></tr>';
                     return;
                 }
-                
+
                 tbody.innerHTML = inventariosData.map(inv => `
                     <tr>
                         <td><strong>${inv.numero_inventario}</strong></td>
@@ -756,15 +756,15 @@
 
         async function verDetalhesLote(loteId) {
             document.getElementById('modalDetalhesLote').style.display = 'flex';
-            const conteudo = document.getElementById('conteudoDetalhesLote');
-            conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Carregando...</p></div>';
-            
+            const modalBody = document.getElementById('conteudoDetalhesLote');
+            modalBody.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Carregando...</p></div>';
+
             try {
                 const response = await fetchAPI(`/api/wms/lotes/${loteId}`);
                 const lote = await response.json();
-                
+
                 document.getElementById('detalhesLoteNumero').textContent = lote.numero_lote;
-                
+
                 let html = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
                         <div>
@@ -785,7 +785,7 @@
                             <p><strong>Data Criação:</strong> ${new Date(lote.data_criacao).toLocaleString('pt-BR')}</p>
                         </div>
                     </div>
-                    
+
                     <div style="margin-bottom: 2rem;">
                         <h4>Ações Disponíveis</h4>
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -794,7 +794,7 @@
                             ${!lote.bloqueado ? `<button class="btn btn-warning" onclick="bloquearLote(${lote.id})"><i class="fas fa-ban"></i> Bloquear</button>` : `<button class="btn btn-warning" onclick="desbloquearLote(${lote.id})"><i class="fas fa-check"></i> Desbloquear</button>`}
                         </div>
                     </div>
-                    
+
                     <div style="margin-bottom: 2rem;">
                         <h4>Histórico de Movimentações</h4>
                         ${lote.movimentacoes && lote.movimentacoes.length > 0 ? `
@@ -822,7 +822,7 @@
                             </table>
                         ` : '<p style="text-align: center; color: var(--gray-500); padding: 1rem;">Nenhuma movimentação registrada</p>'}
                     </div>
-                    
+
                     ${lote.sublotes && lote.sublotes.length > 0 ? `
                         <div>
                             <h4>Sublotes</h4>
@@ -832,11 +832,16 @@
                         </div>
                     ` : ''}
                 `;
-                
-                conteudo.innerHTML = html;
+
+                modalBody.innerHTML = html;
             } catch (error) {
                 console.error('Erro ao carregar detalhes:', error);
-                conteudo.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger-color);">Erro ao carregar detalhes do lote</div>';
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Erro ao carregar detalhes do lote: ${error.message || 'Erro desconhecido'}
+                    </div>
+                `;
             }
         }
 
@@ -858,7 +863,7 @@
             try {
                 const response = await fetchAPI('/wms/lotes');
                 const lotes = await response.json();
-                
+
                 const select = document.getElementById('movLoteId');
                 select.innerHTML = '<option value="">Selecione...</option>' + lotes
                     .filter(l => !l.bloqueado)
@@ -871,21 +876,21 @@
 
         document.getElementById('formMovimentacao').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const dados = {
                 tipo: document.getElementById('movTipo').value,
                 localizacao_destino: document.getElementById('movLocalizacaoDestino').value,
                 observacoes: document.getElementById('movObservacoes').value
             };
-            
+
             const loteId = document.getElementById('movLoteId').value;
-            
+
             try {
                 await fetchAPI(`/api/wms/lotes/${loteId}/movimentar`, {
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
-                
+
                 showAlert('Movimentação registrada com sucesso!');
                 fecharModalMovimentacao();
                 carregarMovimentacoes();
@@ -911,20 +916,20 @@
 
         document.getElementById('formNovoInventario').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const tipo = document.getElementById('invTipo').value;
             const dados = {
                 tipo: tipo,
                 localizacao: tipo === 'LOCAL' ? document.getElementById('invLocalizacao').value : null,
                 observacoes: document.getElementById('invObservacoes').value
             };
-            
+
             try {
                 await fetchAPI('/wms/inventarios', {
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
-                
+
                 showAlert('Inventário iniciado com sucesso!');
                 fecharModalNovoInventario();
                 carregarInventarios();
@@ -936,13 +941,13 @@
         async function bloquearLote(loteId) {
             const motivo = prompt('Motivo do bloqueio:');
             if (!motivo) return;
-            
+
             try {
                 await fetchAPI(`/api/wms/lotes/${loteId}/bloquear`, {
                     method: 'POST',
                     body: JSON.stringify({ tipo_bloqueio: 'QC', motivo })
                 });
-                
+
                 showAlert('Lote bloqueado com sucesso!');
                 fecharModalDetalhes();
                 carregarLotesAtivos();
@@ -953,7 +958,7 @@
 
         async function desbloquearLote(loteId) {
             if (!confirm('Deseja desbloquear este lote?')) return;
-            
+
             try {
                 await fetchAPI(`/api/wms/lotes/${loteId}/desbloquear`, { method: 'POST' });
                 showAlert('Lote desbloqueado com sucesso!');
@@ -967,13 +972,13 @@
         async function reservarLote(loteId) {
             const reservadoPara = prompt('Reservar para:');
             if (!reservadoPara) return;
-            
+
             try {
                 await fetchAPI(`/api/wms/lotes/${loteId}/reservar`, {
                     method: 'POST',
                     body: JSON.stringify({ reservado_para: reservadoPara })
                 });
-                
+
                 showAlert('Lote reservado com sucesso!');
                 fecharModalDetalhes();
                 carregarLotesAtivos();
@@ -984,7 +989,7 @@
 
         async function liberarReserva(loteId) {
             if (!confirm('Deseja liberar a reserva deste lote?')) return;
-            
+
             try {
                 await fetchAPI(`/api/wms/lotes/${loteId}/liberar-reserva`, { method: 'POST' });
                 showAlert('Reserva liberada com sucesso!');
@@ -1010,7 +1015,7 @@
         function verBeforeAfter(movId) {
             const mov = movimentacoesData.find(m => m.id === movId);
             if (!mov) return;
-            
+
             alert(`Before/After da Movimentação #${movId}\n\n` +
                   `Before: ${JSON.stringify(mov.dados_before || {}, null, 2)}\n\n` +
                   `After: ${JSON.stringify(mov.dados_after || {}, null, 2)}`);
@@ -1047,7 +1052,7 @@
                 renderDetalhesLote(loteDetalhado);
             } catch (error) {
                 console.error('Erro ao buscar lote:', error);
-                
+
                 if (error.message.includes('404') || error.message.includes('não encontrado')) {
                     conteudo.innerHTML = `
                         <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
@@ -1070,11 +1075,11 @@
 
         function renderDetalhesLote(lote) {
             const conteudo = document.getElementById('conteudoDetalhesLoteFull');
-            
+
             const origem = lote.solicitacao_origem_id ? `SC-${lote.solicitacao_origem_id}` : 
                            lote.oc_id ? `OC-${lote.oc_id}` : 
                            lote.os_id ? `OS-${lote.os_id}` : '—';
-            
+
             let html = `
                 <div style="margin-bottom: 2rem;">
                     <h2 style="margin-bottom: 0.5rem;">${lote.numero_lote}</h2>
@@ -1092,7 +1097,7 @@
                         <p><strong>Status:</strong> <span class="status-badge status-${(lote.status || '').toLowerCase().replace(/_/g, '-')}">${lote.status || 'Aberto'}</span></p>
                         <p><strong>Data Criação:</strong> ${new Date(lote.data_criacao).toLocaleString('pt-BR')}</p>
                     </div>
-                    
+
                     <div class="card">
                         <h4 style="margin-bottom: 1rem;"><i class="fas fa-warehouse"></i> Controles WMS</h4>
                         <p><strong>Localização Atual:</strong> ${lote.localizacao_atual || 'Não definida'}</p>
@@ -1104,7 +1109,7 @@
                         ${lote.reservado ? `<p><strong>Reservado em:</strong> ${new Date(lote.reservado_em).toLocaleString('pt-BR')}</p>` : ''}
                     </div>
                 </div>
-                
+
                 <div class="card" style="margin-bottom: 2rem;">
                     <h4 style="margin-bottom: 1rem;"><i class="fas fa-tools"></i> Ações Disponíveis</h4>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -1113,7 +1118,7 @@
                         ${!lote.bloqueado ? `<button class="btn btn-warning" onclick="bloquearLote(${lote.id})"><i class="fas fa-ban"></i> Bloquear</button>` : `<button class="btn btn-warning" onclick="desbloquearLote(${lote.id})"><i class="fas fa-check"></i> Desbloquear</button>`}
                     </div>
                 </div>
-                
+
                 <div class="card" style="margin-bottom: 2rem;">
                     <h4 style="margin-bottom: 1rem;"><i class="fas fa-history"></i> Histórico de Movimentações</h4>
                     ${lote.movimentacoes && lote.movimentacoes.length > 0 ? `
@@ -1145,7 +1150,7 @@
                         </div>
                     ` : '<p style="text-align: center; color: var(--gray-500); padding: 1rem;">Nenhuma movimentação registrada</p>'}
                 </div>
-                
+
                 ${lote.sublotes && lote.sublotes.length > 0 ? `
                     <div class="card" style="margin-bottom: 2rem;">
                         <h4 style="margin-bottom: 1rem;"><i class="fas fa-boxes"></i> Sublotes (${lote.sublotes.length})</h4>
@@ -1173,7 +1178,7 @@
                         </div>
                     </div>
                 ` : ''}
-                
+
                 ${lote.itens && lote.itens.length > 0 ? `
                     <div class="card">
                         <h4 style="margin-bottom: 1rem;"><i class="fas fa-list"></i> Itens do Lote (${lote.itens.length})</h4>
@@ -1206,7 +1211,7 @@
                     </div>
                 ` : ''}
             `;
-            
+
             conteudo.innerHTML = html;
         }
 

@@ -37,40 +37,73 @@ def obter_lote(id):
             joinedload(Lote.fornecedor),
             joinedload(Lote.ordem_compra),
             joinedload(Lote.ordem_servico),
-            joinedload(Lote.conferencia)
-        ).get(id)
+            joinedload(Lote.conferencia),
+            joinedload(Lote.itens),
+            joinedload(Lote.entrada_estoque),
+            joinedload(Lote.separacao),
+            joinedload(Lote.solicitacao_origem)
+        ).filter_by(id=id).first()
 
         if not lote:
             return jsonify({'erro': 'Lote não encontrado'}), 404
 
-        # Preparar dados completos do lote
+        # Preparar dados completos do lote usando o método to_dict() que já existe
         lote_data = lote.to_dict()
 
-        # Adicionar informações extras
-        if lote.tipo_lote:
-            lote_data['tipo_lote_nome'] = lote.tipo_lote.nome
+        # Adicionar informações dos itens
+        if lote.itens:
+            lote_data['itens'] = [item.to_dict() for item in lote.itens]
+        else:
+            lote_data['itens'] = []
 
-        if lote.fornecedor:
-            lote_data['fornecedor_nome'] = lote.fornecedor.nome
-            lote_data['fornecedor_cnpj'] = lote.fornecedor.cnpj
+        # Adicionar entrada de estoque se existir
+        if lote.entrada_estoque:
+            lote_data['entrada_estoque'] = {
+                'id': lote.entrada_estoque.id,
+                'status': lote.entrada_estoque.status,
+                'data_entrada': lote.entrada_estoque.data_entrada.isoformat() if lote.entrada_estoque.data_entrada else None
+            }
 
-        if lote.ordem_compra:
-            lote_data['oc_numero'] = lote.ordem_compra.numero_oc
-            lote_data['oc_status'] = lote.ordem_compra.status
+        # Adicionar separação se existir
+        if lote.separacao:
+            lote_data['separacao'] = {
+                'id': lote.separacao.id,
+                'status': lote.separacao.status,
+                'percentual_aproveitamento': lote.separacao.percentual_aproveitamento
+            }
 
-        if lote.ordem_servico:
-            lote_data['os_numero'] = lote.ordem_servico.numero_os
-            lote_data['os_status'] = lote.ordem_servico.status
-
+        # Adicionar conferência se existir
         if lote.conferencia:
-            lote_data['conferencia_status'] = lote.conferencia.status
-            lote_data['peso_conferido'] = lote.conferencia.peso_conferido
+            lote_data['conferencia'] = {
+                'id': lote.conferencia.id,
+                'conferencia_status': lote.conferencia.conferencia_status,
+                'peso_real': lote.conferencia.peso_real,
+                'qualidade': lote.conferencia.qualidade
+            }
+
+        # Adicionar ordem de compra se existir
+        if lote.ordem_compra:
+            lote_data['ordem_compra'] = {
+                'id': lote.ordem_compra.id,
+                'status': lote.ordem_compra.status,
+                'valor_total': lote.ordem_compra.valor_total
+            }
+
+        # Adicionar ordem de serviço se existir
+        if lote.ordem_servico:
+            lote_data['ordem_servico'] = {
+                'id': lote.ordem_servico.id,
+                'numero_os': lote.ordem_servico.numero_os,
+                'status': lote.ordem_servico.status
+            }
 
         return jsonify(lote_data), 200
 
     except Exception as e:
-        print(f"Erro ao obter lote {id}: {str(e)}")
-        return jsonify({'erro': f'Erro ao carregar detalhes: {str(e)}'}), 500
+        print(f"❌ Erro ao obter lote {id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': f'Erro ao carregar detalhes do lote: {str(e)}'}), 500
 
 @bp.route('/<int:id>/aprovar', methods=['PUT'])
 @admin_required
