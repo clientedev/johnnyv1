@@ -1007,8 +1007,12 @@ textarea:focus-visible {
 
 /* Main content adjustment */
 main {
-    padding-top: 70px; /* Header height */
+    padding-top: 80px; /* Header height */
     min-height: calc(100vh - 150px);
+}
+
+main .container > *:first-child {
+    margin-top: var(--spacing-lg);
 }
 
 /* Adjust for desktop */
@@ -1029,7 +1033,11 @@ main {
     }
     
     main {
-        padding-top: 0;
+        padding-top: var(--spacing-lg);
+    }
+    
+    main .container > *:first-child {
+        margin-top: var(--spacing-xl);
     }
     
     header {
