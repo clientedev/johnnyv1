@@ -135,8 +135,8 @@
 
     <nav class="bottom-nav" id="navMenuMobile"></nav>
 
-    <main class="container mt-4">
-        <h1 style="font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: var(--spacing-lg);">
+    <main class="container" style="padding-top: 100px; padding-bottom: 20px;">
+        <h1 style="font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: var(--spacing-lg); margin-top: 0;">
             <i class="fas fa-warehouse"></i> WMS Full MRX
         </h1>
 
@@ -489,6 +489,52 @@
             </form>
         </div>
     </div>
+
+    <style>
+        /* Garantir espaçamento correto para header fixo */
+        body {
+            padding-bottom: 80px;
+        }
+
+        main.container {
+            min-height: calc(100vh - 150px);
+        }
+
+        /* Ajustes específicos para mobile */
+        @media (max-width: 767px) {
+            main.container {
+                padding-top: 80px !important;
+            }
+        }
+
+        /* Ajustes específicos para desktop */
+        @media (min-width: 768px) {
+            main.container {
+                padding-top: 100px !important;
+            }
+        }
+
+        /* Garantir que as tabs não fiquem cortadas */
+        .tabs {
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        /* Ajustar responsividade dos cards de métricas */
+        @media (max-width: 480px) {
+            .metric-card {
+                padding: 1rem;
+            }
+            
+            .metric-value {
+                font-size: 1.5rem;
+            }
+            
+            .metric-label {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="/static/js/utils.js"></script>
