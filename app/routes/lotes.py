@@ -53,8 +53,13 @@ def obter_lote(id):
         if not lote:
             return jsonify({'erro': 'Lote não encontrado'}), 404
 
-        # Preparar dados completos do lote
+        # Preparar dados completos do lote usando o método to_dict
         lote_data = lote.to_dict()
+        
+        # Adicionar informações extras que podem não estar no to_dict padrão
+        lote_data['tipo_lote_nome'] = lote.tipo_lote.nome if lote.tipo_lote else None
+        lote_data['fornecedor_nome'] = lote.fornecedor.nome if lote.fornecedor else None
+        lote_data['solicitacao_origem_id'] = lote.solicitacao_origem_id
 
         # Adicionar informações dos itens
         if lote.itens:
@@ -68,9 +73,10 @@ def obter_lote(id):
         else:
             lote_data['sublotes'] = []
 
-        # Adicionar movimentações
+        # Adicionar movimentações ordenadas
         if lote.movimentacoes:
-            lote_data['movimentacoes'] = [mov.to_dict() for mov in sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)]
+            movs_ordenadas = sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)
+            lote_data['movimentacoes'] = [mov.to_dict() for mov in movs_ordenadas]
         else:
             lote_data['movimentacoes'] = []
 
@@ -104,6 +110,7 @@ def obter_lote(id):
         print(f"❌ Erro ao obter lote {id}: {str(e)}")
         import traceback
         traceback.print_exc()
+        db.session.rollback()
         return jsonify({'erro': f'Erro ao carregar detalhes do lote: {str(e)}'}), 500
 
 @bp.route('/<int:id>/aprovar', methods=['PUT'])
@@ -190,8 +197,13 @@ def obter_lote_por_numero(numero_lote):
         if not lote:
             return jsonify({'erro': 'Lote não encontrado'}), 404
 
-        # Preparar dados completos do lote
+        # Preparar dados completos do lote usando o método to_dict
         lote_data = lote.to_dict()
+        
+        # Adicionar informações extras que podem não estar no to_dict padrão
+        lote_data['tipo_lote_nome'] = lote.tipo_lote.nome if lote.tipo_lote else None
+        lote_data['fornecedor_nome'] = lote.fornecedor.nome if lote.fornecedor else None
+        lote_data['solicitacao_origem_id'] = lote.solicitacao_origem_id
 
         # Adicionar informações dos itens
         if lote.itens:
@@ -205,11 +217,36 @@ def obter_lote_por_numero(numero_lote):
         else:
             lote_data['sublotes'] = []
 
-        # Adicionar movimentações
+        # Adicionar movimentações ordenadas
         if lote.movimentacoes:
-            lote_data['movimentacoes'] = [mov.to_dict() for mov in sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)]
+            movs_ordenadas = sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)
+            lote_data['movimentacoes'] = [mov.to_dict() for mov in movs_ordenadas]
         else:
             lote_data['movimentacoes'] = []
+
+        # Adicionar entrada de estoque se existir
+        if lote.entrada_estoque:
+            lote_data['entrada_estoque'] = lote.entrada_estoque.to_dict()
+
+        # Adicionar separação se existir
+        if lote.separacao:
+            lote_data['separacao'] = lote.separacao.to_dict()
+
+        # Adicionar conferência se existir
+        if lote.conferencia:
+            lote_data['conferencia'] = lote.conferencia.to_dict()
+
+        # Adicionar ordem de compra se existir
+        if lote.ordem_compra:
+            lote_data['ordem_compra'] = lote.ordem_compra.to_dict()
+
+        # Adicionar ordem de serviço se existir
+        if lote.ordem_servico:
+            lote_data['ordem_servico'] = lote.ordem_servico.to_dict()
+
+        # Adicionar solicitação origem se existir
+        if lote.solicitacao_origem:
+            lote_data['solicitacao_origem'] = lote.solicitacao_origem.to_dict()
 
         return jsonify(lote_data), 200
 
@@ -217,6 +254,7 @@ def obter_lote_por_numero(numero_lote):
         print(f"❌ Erro ao obter lote por número {numero_lote}: {str(e)}")
         import traceback
         traceback.print_exc()
+        db.session.rollback()
         return jsonify({'erro': f'Erro ao carregar detalhes do lote: {str(e)}'}), 500
 
 @bp.route('/estatisticas', methods=['GET'])
