@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gestao-placas-v3';
+const CACHE_NAME = 'gestao-placas-v4';
 const urlsToCache = [
   '/',
   '/static/css/style.css',
