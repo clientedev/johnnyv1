@@ -2,12 +2,79 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Fila de Separação - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* Ajustes de responsividade específicos */
+        @media (max-width: 768px) {
+            .container {
+                padding-left: var(--spacing-md);
+                padding-right: var(--spacing-md);
+            }
+
+            h1 {
+                font-size: clamp(1.25rem, 5vw, 1.75rem) !important;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            /* Ajustar grid de estatísticas para mobile */
+            .container > div[style*="grid-template-columns"] {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.75rem !important;
+            }
+
+            /* Ajustar font-size dos números de estatísticas */
+            .card > div[style*="font-size: 2rem"] {
+                font-size: 1.5rem !important;
+            }
+
+            .card > div[style*="font-size: 0.875rem"] {
+                font-size: 0.75rem !important;
+            }
+
+            /* Garantir que os cards não fiquem atrás do header ou menu */
+            #listaLotes {
+                margin-bottom: 1rem;
+            }
+
+            /* Ajustar botões em mobile */
+            .btn {
+                font-size: 0.875rem;
+                padding: 0.625rem 1rem;
+            }
+
+            /* Tornar selects mais amigáveis ao toque */
+            select {
+                min-height: 44px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container > div[style*="grid-template-columns"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            .btn {
+                width: 100%;
+                margin-top: 0.5rem;
+            }
+        }
+
+        /* Garantir que o main não fique atrás das navbars */
+        main.container {
+            min-height: calc(100vh - 140px);
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -26,7 +93,12 @@
         </div>
     </header>
 
-    <main class="container mt-4">
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav" id="navMenuMobile">
+        <!-- Menus serão renderizados dinamicamente pelo RBAC -->
+    </nav>
+
+    <main class="container mt-4" style="padding-top: calc(70px + 1rem); padding-bottom: calc(80px + 1rem);">
         <h1 style="font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: 1.5rem;">Fila de Separação</h1>
 
         <!-- Filtro de Status -->
@@ -344,5 +416,6 @@
             }, 30000);
         });
     </script>
+    <script src="/static/js/rbac.js"></script>
 </body>
 </html>
