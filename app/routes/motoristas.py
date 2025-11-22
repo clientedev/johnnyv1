@@ -9,7 +9,7 @@ bp = Blueprint('motoristas', __name__, url_prefix='/api/motoristas')
 @bp.route('', methods=['GET'])
 @jwt_required()
 def listar_motoristas():
-    motoristas = Motorista.query.filter_by(ativo=True).all()
+    motoristas = Motorista.query.all()
     return jsonify([m.to_dict() for m in motoristas]), 200
 
 @bp.route('/<int:motorista_id>', methods=['GET'])
