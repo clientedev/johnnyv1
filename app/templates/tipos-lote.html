@@ -394,9 +394,67 @@
     </div>
 
     <!-- Bottom Navigation (Mobile) -->
-    {% include 'includes/_bottom_nav.html' %}
+    <nav class="bottom-nav" id="navMenuMobile">
+        <!-- Menus serão renderizados dinamicamente pelo RBAC -->
+    </nav>
 
-    <script src="/static/js/auth.js"></script>
+    <script>
+        // Funções de autenticação necessárias
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        function removeToken() {
+            localStorage.removeItem('token');
+        }
+
+        async function fetchAPI(endpoint, options = {}) {
+            const token = getToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(`/api${endpoint}`, {
+                ...options,
+                headers
+            });
+
+            return response;
+        }
+
+        async function verificarAuth() {
+            const token = getToken();
+            if (!token) {
+                window.location.href = '/';
+                return null;
+            }
+
+            try {
+                const response = await fetchAPI('/auth/me');
+                if (!response.ok) {
+                    removeToken();
+                    window.location.href = '/';
+                    return null;
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Erro ao verificar autenticação:', error);
+                removeToken();
+                window.location.href = '/';
+                return null;
+            }
+        }
+
+        function logout() {
+            removeToken();
+            window.location.href = '/';
+        }
+    </script>
     <script src="/static/js/rbac.js"></script>
     <script>
         let materiais = [];
@@ -741,7 +799,11 @@
             await carregarMateriais();
         }
 
-        inicializar();
+        // Inicializar RBAC e menus primeiro
+        document.addEventListener('DOMContentLoaded', async () => {
+            await inicializarRBAC();
+            await inicializar();
+        });
     </script>
 </body>
 </html>
