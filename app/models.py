@@ -701,7 +701,9 @@ class Lote(db.Model):  # type: ignore
             'gps_inicio': self.gps_inicio,
             'gps_fim': self.gps_fim,
             'ip_inicio': self.ip_inicio,
-            'device_id': self.device_id
+            'device_id': self.device_id,
+            'lote_pai_id': self.lote_pai_id,
+            'solicitacao_origem_id': self.solicitacao_origem_id
         }
 
         # Adicionar informações dos relacionamentos se estiverem carregados
