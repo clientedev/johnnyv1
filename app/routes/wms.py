@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import db, Lote, MovimentacaoEstoque, Inventario, InventarioContagem, Usuario
 from app.auth import admin_required
 from datetime import datetime
+from sqlalchemy.orm import selectinload, joinedload
 import json
 
 bp = Blueprint('wms', __name__, url_prefix='/api/wms')
@@ -60,15 +61,30 @@ def listar_lotes_wms():
 @jwt_required()
 def obter_lote_detalhado(lote_id):
     try:
-        lote = Lote.query.get(lote_id)
+        # Usar eager loading para evitar N+1 queries
+        # Nota: .get() ignora options, então usamos .filter_by().first()
+        lote = Lote.query.options(
+            selectinload(Lote.itens),
+            selectinload(Lote.sublotes),
+            selectinload(Lote.movimentacoes),
+            joinedload(Lote.solicitacao_origem),
+            joinedload(Lote.ordem_compra),
+            joinedload(Lote.ordem_servico),
+            joinedload(Lote.conferencia),
+            joinedload(Lote.separacao),
+            joinedload(Lote.fornecedor),
+            joinedload(Lote.tipo_lote),
+            joinedload(Lote.reservado_por),
+            joinedload(Lote.bloqueado_por)
+        ).filter_by(id=lote_id).first()
         
         if not lote:
             return jsonify({'erro': 'Lote não encontrado'}), 404
         
         lote_dict = lote.to_dict()
-        lote_dict['itens'] = [item.to_dict() for item in lote.itens]
-        lote_dict['sublotes'] = [sublote.to_dict() for sublote in lote.sublotes]
-        lote_dict['movimentacoes'] = [mov.to_dict() for mov in lote.movimentacoes]
+        lote_dict['itens'] = [item.to_dict() for item in lote.itens] if lote.itens else []
+        lote_dict['sublotes'] = [sublote.to_dict() for sublote in lote.sublotes] if lote.sublotes else []
+        lote_dict['movimentacoes'] = [mov.to_dict() for mov in lote.movimentacoes] if lote.movimentacoes else []
         
         if lote.solicitacao_origem:
             lote_dict['solicitacao_origem'] = lote.solicitacao_origem.to_dict()
@@ -84,6 +100,56 @@ def obter_lote_detalhado(lote_id):
         return jsonify(lote_dict), 200
     
     except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao obter lote: {str(e)}'}), 500
+
+@bp.route('/lotes/numero/<string:numero_lote>', methods=['GET'])
+@jwt_required()
+def obter_lote_por_numero(numero_lote):
+    """
+    Endpoint otimizado para busca direta por número de lote.
+    Evita carregar todos os lotes no frontend.
+    """
+    try:
+        # Buscar por número de lote (indexado) com eager loading
+        lote = Lote.query.options(
+            selectinload(Lote.itens),
+            selectinload(Lote.sublotes),
+            selectinload(Lote.movimentacoes),
+            joinedload(Lote.solicitacao_origem),
+            joinedload(Lote.ordem_compra),
+            joinedload(Lote.ordem_servico),
+            joinedload(Lote.conferencia),
+            joinedload(Lote.separacao),
+            joinedload(Lote.fornecedor),
+            joinedload(Lote.tipo_lote),
+            joinedload(Lote.reservado_por),
+            joinedload(Lote.bloqueado_por)
+        ).filter(Lote.numero_lote.ilike(numero_lote.strip())).first()
+        
+        if not lote:
+            return jsonify({'erro': 'Lote não encontrado'}), 404
+        
+        lote_dict = lote.to_dict()
+        lote_dict['itens'] = [item.to_dict() for item in lote.itens] if lote.itens else []
+        lote_dict['sublotes'] = [sublote.to_dict() for sublote in lote.sublotes] if lote.sublotes else []
+        lote_dict['movimentacoes'] = [mov.to_dict() for mov in lote.movimentacoes] if lote.movimentacoes else []
+        
+        if lote.solicitacao_origem:
+            lote_dict['solicitacao_origem'] = lote.solicitacao_origem.to_dict()
+        if lote.ordem_compra:
+            lote_dict['ordem_compra'] = lote.ordem_compra.to_dict()
+        if lote.ordem_servico:
+            lote_dict['ordem_servico'] = lote.ordem_servico.to_dict()
+        if lote.conferencia:
+            lote_dict['conferencia'] = lote.conferencia.to_dict()
+        if lote.separacao:
+            lote_dict['separacao'] = lote.separacao.to_dict()
+        
+        return jsonify(lote_dict), 200
+    
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'erro': f'Erro ao obter lote: {str(e)}'}), 500
 
 @bp.route('/lotes/<int:lote_id>/bloquear', methods=['POST'])
@@ -104,6 +170,9 @@ def bloquear_lote(lote_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         dados_before = lote.to_dict()
         
         lote.bloqueado = True
@@ -116,7 +185,7 @@ def bloquear_lote(lote_id):
         auditoria.append({
             'acao': 'BLOQUEAR_LOTE',
             'usuario_id': usuario_id,
-            'usuario_nome': usuario.nome,
+            'usuario_nome': usuario.nome if usuario else 'Desconhecido',
             'tipo_bloqueio': tipo_bloqueio,
             'motivo': motivo,
             'timestamp': datetime.utcnow().isoformat(),
@@ -150,6 +219,9 @@ def desbloquear_lote(lote_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         dados_before = lote.to_dict()
         tipo_bloqueio_anterior = lote.tipo_bloqueio
         
@@ -161,7 +233,7 @@ def desbloquear_lote(lote_id):
         auditoria.append({
             'acao': 'DESBLOQUEAR_LOTE',
             'usuario_id': usuario_id,
-            'usuario_nome': usuario.nome,
+            'usuario_nome': usuario.nome if usuario else 'Desconhecido',
             'tipo_bloqueio_anterior': tipo_bloqueio_anterior,
             'timestamp': datetime.utcnow().isoformat(),
             'ip': request.remote_addr,
@@ -200,6 +272,9 @@ def reservar_lote(lote_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         dados_before = lote.to_dict()
         
         lote.reservado = True
@@ -211,7 +286,7 @@ def reservar_lote(lote_id):
         auditoria.append({
             'acao': 'RESERVAR_LOTE',
             'usuario_id': usuario_id,
-            'usuario_nome': usuario.nome,
+            'usuario_nome': usuario.nome if usuario else 'Desconhecido',
             'reservado_para': reservado_para,
             'timestamp': datetime.utcnow().isoformat(),
             'ip': request.remote_addr,
@@ -244,6 +319,9 @@ def liberar_reserva_lote(lote_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         dados_before = lote.to_dict()
         reservado_para_anterior = lote.reservado_para
         
@@ -256,7 +334,7 @@ def liberar_reserva_lote(lote_id):
         auditoria.append({
             'acao': 'LIBERAR_RESERVA',
             'usuario_id': usuario_id,
-            'usuario_nome': usuario.nome,
+            'usuario_nome': usuario.nome if usuario else 'Desconhecido',
             'reservado_para_anterior': reservado_para_anterior,
             'timestamp': datetime.utcnow().isoformat(),
             'ip': request.remote_addr,
@@ -302,6 +380,9 @@ def movimentar_lote(lote_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         dados_before = lote.to_dict()
         
         movimentacao = MovimentacaoEstoque(
@@ -322,7 +403,7 @@ def movimentar_lote(lote_id):
         
         auditoria_mov = [{
             'usuario_id': usuario_id,
-            'usuario_nome': usuario.nome,
+            'usuario_nome': usuario.nome if usuario else 'Desconhecido',
             'timestamp': datetime.utcnow().isoformat(),
             'ip': request.remote_addr,
             'gps': gps,
@@ -334,7 +415,7 @@ def movimentar_lote(lote_id):
         auditoria_lote.append({
             'acao': 'MOVIMENTACAO',
             'usuario_id': usuario_id,
-            'usuario_nome': usuario.nome,
+            'usuario_nome': usuario.nome if usuario else 'Desconhecido',
             'tipo': tipo,
             'localizacao_origem': movimentacao.localizacao_origem,
             'localizacao_destino': localizacao_destino,
@@ -400,6 +481,9 @@ def reverter_movimentacao(mov_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
         nova_movimentacao = MovimentacaoEstoque(
             lote_id=lote.id,
             tipo='reversao',
@@ -418,7 +502,7 @@ def reverter_movimentacao(mov_id):
         
         auditoria_mov = [{
             'usuario_id': usuario_id,
-            'usuario_nome': usuario.nome,
+            'usuario_nome': usuario.nome if usuario else 'Desconhecido',
             'acao': 'REVERSAO',
             'movimentacao_revertida_id': mov_id,
             'motivo': motivo,

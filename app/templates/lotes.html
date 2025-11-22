@@ -1040,33 +1040,31 @@
             conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Buscando lote...</p></div>';
 
             try {
-                const response = await fetchAPI('/wms/lotes');
-                const lotes = await response.json();
-                
-                const lote = lotes.find(l => l.numero_lote.toLowerCase() === numero.toLowerCase());
-                
-                if (!lote) {
-                    conteudo.innerHTML = `
-                        <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
-                            <i class="fas fa-exclamation-triangle fa-3x" style="margin-bottom: 1rem;"></i>
-                            <p style="font-size: 1.1rem;">Lote não encontrado</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const detalhesResponse = await fetchAPI(`/api/wms/lotes/${lote.id}`);
+                // Usar endpoint otimizado de busca por número
+                const detalhesResponse = await fetchAPI(`/api/wms/lotes/numero/${encodeURIComponent(numero)}`);
                 const loteDetalhado = await detalhesResponse.json();
 
                 renderDetalhesLote(loteDetalhado);
             } catch (error) {
                 console.error('Erro ao buscar lote:', error);
-                conteudo.innerHTML = `
-                    <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
-                        <i class="fas fa-exclamation-triangle fa-3x" style="margin-bottom: 1rem;"></i>
-                        <p style="font-size: 1.1rem;">Erro ao buscar lote: ${error.message}</p>
-                    </div>
-                `;
+                
+                if (error.message.includes('404') || error.message.includes('não encontrado')) {
+                    conteudo.innerHTML = `
+                        <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
+                            <i class="fas fa-exclamation-triangle fa-3x" style="margin-bottom: 1rem;"></i>
+                            <p style="font-size: 1.1rem;">Lote não encontrado</p>
+                            <p style="font-size: 0.9rem; color: var(--gray-600); margin-top: 0.5rem;">Verifique se o número foi digitado corretamente</p>
+                        </div>
+                    `;
+                } else {
+                    conteudo.innerHTML = `
+                        <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
+                            <i class="fas fa-exclamation-triangle fa-3x" style="margin-bottom: 1rem;"></i>
+                            <p style="font-size: 1.1rem;">Erro ao buscar lote</p>
+                            <p style="font-size: 0.9rem; color: var(--gray-600); margin-top: 0.5rem;">${error.message}</p>
+                        </div>
+                    `;
+                }
             }
         }
 
