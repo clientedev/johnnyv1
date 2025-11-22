@@ -760,7 +760,12 @@
             modalBody.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Carregando...</p></div>';
 
             try {
-                const response = await fetchAPI(`/lotes/${loteId}`);
+                const response = await fetchAPI(`/api/lotes/${loteId}`);
+                
+                if (!response || !response.ok) {
+                    throw new Error('Erro ao buscar lote');
+                }
+                
                 const lote = await response.json();
 
                 document.getElementById('detalhesLoteNumero').textContent = lote.numero_lote;
@@ -886,7 +891,7 @@
             const loteId = document.getElementById('movLoteId').value;
 
             try {
-                await fetchAPI(`/lotes/${loteId}/movimentar`, {
+                await fetchAPI(`/api/lotes/${loteId}/movimentar`, {
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
@@ -943,7 +948,7 @@
             if (!motivo) return;
 
             try {
-                await fetchAPI(`/lotes/${loteId}/bloquear`, {
+                await fetchAPI(`/api/lotes/${loteId}/bloquear`, {
                     method: 'POST',
                     body: JSON.stringify({ tipo_bloqueio: 'QC', motivo })
                 });
@@ -960,7 +965,7 @@
             if (!confirm('Deseja desbloquear este lote?')) return;
 
             try {
-                await fetchAPI(`/lotes/${loteId}/desbloquear`, { method: 'POST' });
+                await fetchAPI(`/api/lotes/${loteId}/desbloquear`, { method: 'POST' });
                 showAlert('Lote desbloqueado com sucesso!');
                 fecharModalDetalhes();
                 carregarLotesAtivos();
@@ -974,7 +979,7 @@
             if (!reservadoPara) return;
 
             try {
-                await fetchAPI(`/lotes/${loteId}/reservar`, {
+                await fetchAPI(`/api/lotes/${loteId}/reservar`, {
                     method: 'POST',
                     body: JSON.stringify({ reservado_para: reservadoPara })
                 });
@@ -991,7 +996,7 @@
             if (!confirm('Deseja liberar a reserva deste lote?')) return;
 
             try {
-                await fetchAPI(`/lotes/${loteId}/liberar-reserva`, { method: 'POST' });
+                await fetchAPI(`/api/lotes/${loteId}/liberar-reserva`, { method: 'POST' });
                 showAlert('Reserva liberada com sucesso!');
                 fecharModalDetalhes();
                 carregarLotesAtivos();
@@ -1046,7 +1051,12 @@
 
             try {
                 // Usar endpoint otimizado de busca por número
-                const detalhesResponse = await fetchAPI(`/lotes/numero/${encodeURIComponent(numero)}`);
+                const detalhesResponse = await fetchAPI(`/api/lotes/numero/${encodeURIComponent(numero)}`);
+                
+                if (!detalhesResponse || !detalhesResponse.ok) {
+                    throw new Error('Lote não encontrado');
+                }
+                
                 const loteDetalhado = await detalhesResponse.json();
 
                 renderDetalhesLote(loteDetalhado);
