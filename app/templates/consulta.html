@@ -173,14 +173,14 @@
         }
 
         async function carregarEmpresas() {
-            const response = await fetchAPI('/fornecedores');
+            const response = await fetchAPI('/consulta/fornecedores');
             const empresas = await response.json();
             
             const select = document.getElementById('filtroEmpresa');
             empresas.forEach(empresa => {
                 const option = document.createElement('option');
-                option.value = fornecedor.id;
-                option.textContent = fornecedor.nome;
+                option.value = empresa.id;
+                option.textContent = empresa.nome;
                 select.appendChild(option);
             });
         }
@@ -197,7 +197,7 @@
             const pesoMax = document.getElementById('pesoMax').value;
             const ordenarPor = document.getElementById('ordenarPor').value;
 
-            if (empresa) params.append('empresa_id', empresa);
+            if (empresa) params.append('fornecedor_id', empresa);
             if (tipoPlaca) params.append('tipo_placa', tipoPlaca);
             if (status) params.append('status', status);
             if (dataInicio) params.append('data_inicio', dataInicio);
@@ -229,7 +229,7 @@
             tbody.innerHTML = resultados.map(placa => `
                 <tr>
                     <td>${placa.tag || 'N/A'}</td>
-                    <td>${placa.empresa?.nome || 'N/A'}</td>
+                    <td>${placa.fornecedor?.nome || 'N/A'}</td>
                     <td>${placa.tipo_placa}</td>
                     <td>${placa.peso_kg.toFixed(2)}</td>
                     <td>R$ ${placa.valor.toFixed(2)}</td>
