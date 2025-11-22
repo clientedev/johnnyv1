@@ -7,7 +7,7 @@ db = SQLAlchemy()
 
 class Perfil(db.Model):  # type: ignore
     __tablename__ = 'perfis'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(50), unique=True, nullable=False)
     descricao = db.Column(db.Text)
@@ -15,12 +15,12 @@ class Perfil(db.Model):  # type: ignore
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     usuarios = db.relationship('Usuario', backref='perfil', lazy=True)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -31,13 +31,13 @@ class Perfil(db.Model):  # type: ignore
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
         }
-    
+
     def has_permission(self, permission: str) -> bool:
         return self.permissoes.get(permission, False) if self.permissoes else False
 
 class Usuario(db.Model):  # type: ignore
     __tablename__ = 'usuarios'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -47,16 +47,16 @@ class Usuario(db.Model):  # type: ignore
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
+
     solicitacoes = db.relationship('Solicitacao', backref='funcionario', lazy=True, cascade='all, delete-orphan', foreign_keys='Solicitacao.funcionario_id')
     notificacoes = db.relationship('Notificacao', backref='usuario', lazy=True, cascade='all, delete-orphan')
     entradas_processadas = db.relationship('EntradaEstoque', backref='admin', lazy=True, foreign_keys='EntradaEstoque.admin_id')
     criador = db.relationship('Usuario', remote_side=[id], backref='usuarios_criados')
     logs_auditoria = db.relationship('AuditoriaLog', backref='usuario', lazy=True, foreign_keys='AuditoriaLog.usuario_id')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -70,7 +70,7 @@ class Usuario(db.Model):  # type: ignore
             'criado_por': self.criado_por,
             'criador_nome': self.criador.nome if self.criador else None
         }
-    
+
     def has_permission(self, permission: str) -> bool:
         if self.perfil:
             return self.perfil.has_permission(permission)
@@ -78,7 +78,7 @@ class Usuario(db.Model):  # type: ignore
 
 class Vendedor(db.Model):  # type: ignore
     __tablename__ = 'vendedores'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True)
@@ -86,12 +86,12 @@ class Vendedor(db.Model):  # type: ignore
     cpf = db.Column(db.String(14), unique=True)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
-    
+
     fornecedores = db.relationship('Fornecedor', backref='vendedor', lazy=True)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -105,7 +105,7 @@ class Vendedor(db.Model):  # type: ignore
 
 class TipoLote(db.Model):  # type: ignore
     __tablename__ = 'tipos_lote'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False, unique=True)
     descricao = db.Column(db.String(300))
@@ -114,18 +114,18 @@ class TipoLote(db.Model):  # type: ignore
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     fornecedor_precos = db.relationship('FornecedorTipoLotePreco', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     itens_solicitacao = db.relationship('ItemSolicitacao', backref='tipo_lote', lazy=True)
     lotes = db.relationship('Lote', backref='tipo_lote', lazy=True)
     precos = db.relationship('TipoLotePreco', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
     fornecedor_tipos = db.relationship('FornecedorTipoLote', backref='tipo_lote', lazy=True, cascade='all, delete-orphan')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'classificacao' in kwargs and kwargs['classificacao'] is not None and kwargs['classificacao'] not in ['leve', 'media', 'pesada']:
             raise ValueError('Classificação deve ser: leve, media ou pesada')
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         precos_dict = {}
         if self.precos:
@@ -133,7 +133,7 @@ class TipoLote(db.Model):  # type: ignore
                 if preco.classificacao not in precos_dict:
                     precos_dict[preco.classificacao] = {}
                 precos_dict[preco.classificacao][preco.estrelas] = preco.preco_por_kg
-        
+
         return {
             'id': self.id,
             'nome': self.nome,
@@ -153,7 +153,7 @@ class TipoLotePreco(db.Model):  # type: ignore
         db.UniqueConstraint('tipo_lote_id', 'classificacao', 'estrelas', name='uq_tipo_lote_class_estrelas'),
         db.Index('idx_tipo_lote_class_estrelas', 'tipo_lote_id', 'classificacao', 'estrelas'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
     classificacao = db.Column(db.String(10), nullable=False)
@@ -162,7 +162,7 @@ class TipoLotePreco(db.Model):  # type: ignore
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'classificacao' in kwargs and kwargs['classificacao'] not in ['leve', 'medio', 'pesado']:
             raise ValueError('Classificação deve ser: leve, medio ou pesado')
@@ -171,7 +171,7 @@ class TipoLotePreco(db.Model):  # type: ignore
         if 'preco_por_kg' in kwargs and kwargs['preco_por_kg'] < 0:
             raise ValueError('Preço por kg deve ser maior ou igual a zero')
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -191,13 +191,13 @@ class FornecedorTipoLote(db.Model):  # type: ignore
     __table_args__ = (
         db.UniqueConstraint('fornecedor_id', 'tipo_lote_id', name='uq_fornecedor_tipo'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
     tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -213,7 +213,7 @@ class FornecedorClassificacaoEstrela(db.Model):  # type: ignore
     __table_args__ = (
         db.UniqueConstraint('fornecedor_id', 'classificacao', name='uq_fornecedor_classificacao'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
     classificacao = db.Column(db.String(10), nullable=False)
@@ -221,14 +221,14 @@ class FornecedorClassificacaoEstrela(db.Model):  # type: ignore
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'classificacao' in kwargs and kwargs['classificacao'] not in ['leve', 'medio', 'pesado']:
             raise ValueError('Classificação deve ser: leve, medio ou pesado')
         if 'estrelas' in kwargs and (kwargs['estrelas'] < 1 or kwargs['estrelas'] > 5):
             raise ValueError('Estrelas deve estar entre 1 e 5')
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -240,14 +240,14 @@ class FornecedorClassificacaoEstrela(db.Model):  # type: ignore
 
 class Fornecedor(db.Model):  # type: ignore
     __tablename__ = 'fornecedores'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(200), nullable=False)
     nome_social = db.Column(db.String(200))
     tipo_documento = db.Column(db.String(10), default='cnpj', nullable=True)
     cnpj = db.Column(db.String(18), unique=True)
     cpf = db.Column(db.String(14), unique=True)
-    
+
     rua = db.Column(db.String(200))
     numero = db.Column(db.String(20))
     cidade = db.Column(db.String(100))
@@ -255,7 +255,7 @@ class Fornecedor(db.Model):  # type: ignore
     estado = db.Column(db.String(2))
     bairro = db.Column(db.String(100))
     complemento = db.Column(db.String(200))
-    
+
     tem_outro_endereco = db.Column(db.Boolean, default=False)
     outro_rua = db.Column(db.String(200))
     outro_numero = db.Column(db.String(20))
@@ -264,31 +264,31 @@ class Fornecedor(db.Model):  # type: ignore
     outro_estado = db.Column(db.String(2))
     outro_bairro = db.Column(db.String(100))
     outro_complemento = db.Column(db.String(200))
-    
+
     telefone = db.Column(db.String(20))
     email = db.Column(db.String(120))
-    
+
     vendedor_id = db.Column(db.Integer, db.ForeignKey('vendedores.id'), nullable=True)
     criado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
+
     tabela_preco_id = db.Column(db.Integer, db.ForeignKey('tabelas_preco.id'), nullable=True, default=1)
     comprador_responsavel_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
-    
+
     conta_bancaria = db.Column(db.String(50))
     agencia = db.Column(db.String(20))
     chave_pix = db.Column(db.String(100))
     banco = db.Column(db.String(100))
-    
+
     condicao_pagamento = db.Column(db.String(50), default='avista')
     forma_pagamento = db.Column(db.String(50), default='pix')
-    
+
     observacoes = db.Column(db.Text)
-    
+
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
-    
+
     precos = db.relationship('FornecedorTipoLotePreco', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     solicitacoes = db.relationship('Solicitacao', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     lotes = db.relationship('Lote', backref='fornecedor', lazy=True)
@@ -298,10 +298,10 @@ class Fornecedor(db.Model):  # type: ignore
     tabela_preco = db.relationship('TabelaPreco', foreign_keys=[tabela_preco_id], backref='fornecedores')
     comprador_responsavel = db.relationship('Usuario', foreign_keys=[comprador_responsavel_id], backref='fornecedores_sob_responsabilidade')
     autorizacoes_preco = db.relationship('SolicitacaoAutorizacaoPreco', backref='fornecedor', lazy=True)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -355,17 +355,17 @@ class FornecedorFuncionarioAtribuicao(db.Model):  # type: ignore
     __table_args__ = (
         db.UniqueConstraint('fornecedor_id', 'funcionario_id', name='uq_fornecedor_funcionario'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
     funcionario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     data_atribuicao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     atribuido_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
+
     fornecedor = db.relationship('Fornecedor', backref='atribuicoes')
     funcionario = db.relationship('Usuario', foreign_keys=[funcionario_id], backref='fornecedores_atribuidos')
     atribuido_por = db.relationship('Usuario', foreign_keys=[atribuido_por_id])
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -384,7 +384,7 @@ class FornecedorTipoLotePreco(db.Model):  # type: ignore
         db.UniqueConstraint('fornecedor_id', 'tipo_lote_id', 'estrelas', name='uq_fornecedor_tipo_estrelas'),
         db.Index('idx_fornecedor_tipo_estrelas', 'fornecedor_id', 'tipo_lote_id', 'estrelas'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
     tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
@@ -393,12 +393,12 @@ class FornecedorTipoLotePreco(db.Model):  # type: ignore
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'estrelas' in kwargs and (kwargs['estrelas'] < 1 or kwargs['estrelas'] > 5):
             raise ValueError('Estrelas deve estar entre 1 e 5')
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -420,7 +420,7 @@ class FornecedorTipoLoteClassificacao(db.Model):  # type: ignore
         db.Index('idx_fornecedor_tipo_class', 'fornecedor_id', 'tipo_lote_id'),
         db.Index('idx_fornecedor_class_ativo', 'fornecedor_id', 'ativo'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
     tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=False)
@@ -430,16 +430,16 @@ class FornecedorTipoLoteClassificacao(db.Model):  # type: ignore
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     fornecedor = db.relationship('Fornecedor', backref='classificacoes_tipo_lote')
     tipo_lote = db.relationship('TipoLote', backref='classificacoes_fornecedor')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         for campo in ['leve_estrelas', 'medio_estrelas', 'pesado_estrelas']:
             if campo in kwargs and (kwargs[campo] < 1 or kwargs[campo] > 5):
                 raise ValueError(f'{campo} deve estar entre 1 e 5')
         super().__init__(**kwargs)
-    
+
     def get_estrelas_por_classificacao(self, classificacao: str) -> int:
         if classificacao == 'leve':
             return self.leve_estrelas
@@ -449,7 +449,7 @@ class FornecedorTipoLoteClassificacao(db.Model):  # type: ignore
             return self.pesado_estrelas
         else:
             return self.medio_estrelas
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -467,7 +467,7 @@ class FornecedorTipoLoteClassificacao(db.Model):  # type: ignore
 
 class Solicitacao(db.Model):  # type: ignore
     __tablename__ = 'solicitacoes'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     funcionario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
@@ -478,26 +478,26 @@ class Solicitacao(db.Model):  # type: ignore
     data_envio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_confirmacao = db.Column(db.DateTime, nullable=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
+
     rua = db.Column(db.String(200))
     numero = db.Column(db.String(20))
     cep = db.Column(db.String(10))
     localizacao_lat = db.Column(db.Float, nullable=True)
     localizacao_lng = db.Column(db.Float, nullable=True)
     endereco_completo = db.Column(db.String(500))
-    
+
     itens = db.relationship('ItemSolicitacao', backref='solicitacao', lazy=True, cascade='all, delete-orphan')
     admin = db.relationship('Usuario', foreign_keys=[admin_id], backref='solicitacoes_aprovadas_por_mim')
     ordem_compra = db.relationship('OrdemCompra', back_populates='solicitacao', uselist=False, cascade='all, delete-orphan')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         itens_list = list(self.itens) if self.itens else []
         total_peso = sum(item.peso_kg for item in itens_list)
         total_valor = sum(item.valor_calculado for item in itens_list)
-        
+
         return {
             'id': self.id,
             'funcionario_id': self.funcionario_id,
@@ -525,7 +525,7 @@ class Solicitacao(db.Model):  # type: ignore
 
 class ItemSolicitacao(db.Model):  # type: ignore
     __tablename__ = 'itens_solicitacao'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     solicitacao_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=False)
     tipo_lote_id = db.Column(db.Integer, db.ForeignKey('tipos_lote.id'), nullable=True)
@@ -543,9 +543,9 @@ class ItemSolicitacao(db.Model):  # type: ignore
     observacoes = db.Column(db.Text)
     data_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=True)
-    
+
     material = db.relationship('MaterialBase', backref='itens_solicitacao')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'estrelas_final' in kwargs and (kwargs['estrelas_final'] < 1 or kwargs['estrelas_final'] > 5):
             raise ValueError('Estrelas deve estar entre 1 e 5')
@@ -559,7 +559,7 @@ class ItemSolicitacao(db.Model):  # type: ignore
         if 'valor_calculado' not in kwargs or kwargs['valor_calculado'] is None:
             kwargs['valor_calculado'] = 0.0
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -593,7 +593,7 @@ class Lote(db.Model):  # type: ignore
         db.Index('idx_fornecedor_tipo_status', 'fornecedor_id', 'tipo_lote_id', 'status'),
         db.UniqueConstraint('conferencia_id', name='uq_lote_conferencia_id'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     numero_lote = db.Column(db.String(50), unique=True, nullable=False, default=lambda: str(uuid.uuid4()).upper())
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
@@ -602,7 +602,7 @@ class Lote(db.Model):  # type: ignore
     oc_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=True)
     os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=True)
     conferencia_id = db.Column(db.Integer, db.ForeignKey('conferencias_recebimento.id'), nullable=True)
-    
+
     peso_bruto_recebido = db.Column(db.Float, nullable=True)
     peso_liquido = db.Column(db.Float, nullable=True)
     peso_total_kg = db.Column(db.Float, nullable=False, default=0.0)
@@ -611,10 +611,10 @@ class Lote(db.Model):  # type: ignore
     estrelas_media = db.Column(db.Float, nullable=True)
     classificacao_predominante = db.Column(db.String(10), nullable=True)
     qualidade_recebida = db.Column(db.String(50), nullable=True)
-    
+
     status = db.Column(db.String(50), default='aberto', nullable=False)
     tipo_retirada = db.Column(db.String(20))
-    
+
     localizacao_atual = db.Column(db.String(100), nullable=True)
     reservado = db.Column(db.Boolean, default=False, nullable=False)
     reservado_para = db.Column(db.String(200), nullable=True)
@@ -629,19 +629,19 @@ class Lote(db.Model):  # type: ignore
     gps_fim = db.Column(db.JSON, nullable=True)
     ip_inicio = db.Column(db.String(50), nullable=True)
     device_id = db.Column(db.String(255), nullable=True)
-    
+
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_fechamento = db.Column(db.DateTime, nullable=True)
     data_aprovacao = db.Column(db.DateTime, nullable=True)
-    
+
     conferente_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     anexos = db.Column(db.JSON, default=lambda: [], nullable=True)
     divergencias = db.Column(db.JSON, default=lambda: [], nullable=True)
     observacoes = db.Column(db.Text)
     auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
-    
+
     lote_pai_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=True)
-    
+
     itens = db.relationship('ItemSolicitacao', backref='lote', lazy=True)
     solicitacao_origem = db.relationship('Solicitacao', backref='lotes_gerados', foreign_keys=[solicitacao_origem_id])
     ordem_compra = db.relationship('OrdemCompra', backref='lotes', foreign_keys=[oc_id])
@@ -654,36 +654,33 @@ class Lote(db.Model):  # type: ignore
     separacao = db.relationship('LoteSeparacao', backref='lote', uselist=False, cascade='all, delete-orphan')
     reservado_por = db.relationship('Usuario', foreign_keys=[reservado_por_id], backref='lotes_reservados')
     bloqueado_por = db.relationship('Usuario', foreign_keys=[bloqueado_por_id], backref='lotes_bloqueados')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         if not kwargs.get('numero_lote'):
             ano = datetime.now().year
             self.numero_lote = f"{ano}-{str(uuid.uuid4().hex[:5]).upper()}"
-    
+
     def to_dict(self):
-        return {
+        data = {
             'id': self.id,
             'numero_lote': self.numero_lote,
-            'fornecedor_id': self.fornecedor_id,
-            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
             'tipo_lote_id': self.tipo_lote_id,
-            'tipo_lote_nome': self.tipo_lote.nome if self.tipo_lote else None,
-            'solicitacao_origem_id': self.solicitacao_origem_id,
+            'fornecedor_id': self.fornecedor_id,
+            'peso_total_kg': self.peso_total_kg,
+            'valor_total': self.valor_total,
+            'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
+            'status': self.status,
+            'localizacao_atual': self.localizacao_atual,
+            'observacoes': self.observacoes,
             'oc_id': self.oc_id,
             'os_id': self.os_id,
             'conferencia_id': self.conferencia_id,
-            'peso_bruto_recebido': self.peso_bruto_recebido,
-            'peso_liquido': self.peso_liquido,
-            'peso_total_kg': self.peso_total_kg,
-            'valor_total': self.valor_total,
             'quantidade_itens': self.quantidade_itens,
             'estrelas_media': self.estrelas_media,
             'classificacao_predominante': self.classificacao_predominante,
             'qualidade_recebida': self.qualidade_recebida,
-            'status': self.status,
             'tipo_retirada': self.tipo_retirada,
-            'localizacao_atual': self.localizacao_atual,
             'reservado': self.reservado,
             'reservado_para': self.reservado_para,
             'reservado_por_id': self.reservado_por_id,
@@ -695,40 +692,61 @@ class Lote(db.Model):  # type: ignore
             'bloqueado_por_nome': self.bloqueado_por.nome if self.bloqueado_por else None,
             'bloqueado_em': self.bloqueado_em.isoformat() if self.bloqueado_em else None,
             'motivo_bloqueio': self.motivo_bloqueio,
-            'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
             'data_fechamento': self.data_fechamento.isoformat() if self.data_fechamento else None,
             'data_aprovacao': self.data_aprovacao.isoformat() if self.data_aprovacao else None,
             'conferente_id': self.conferente_id,
             'conferente_nome': self.conferente.nome if self.conferente else None,
             'anexos': self.anexos,
             'divergencias': self.divergencias,
-            'observacoes': self.observacoes,
-            'auditoria': self.auditoria,
-            'lote_pai_id': self.lote_pai_id,
             'gps_inicio': self.gps_inicio,
             'gps_fim': self.gps_fim,
             'ip_inicio': self.ip_inicio,
             'device_id': self.device_id
         }
 
+        # Adicionar informações dos relacionamentos se estiverem carregados
+        if hasattr(self, 'tipo_lote') and self.tipo_lote:
+            data['tipo_lote'] = {
+                'id': self.tipo_lote.id,
+                'nome': self.tipo_lote.nome
+            }
+
+        if hasattr(self, 'fornecedor') and self.fornecedor:
+            data['fornecedor'] = {
+                'id': self.fornecedor.id,
+                'nome': self.fornecedor.nome,
+                'cnpj': self.fornecedor.cnpj
+            }
+        
+        if hasattr(self, 'solicitacao_origem') and self.solicitacao_origem:
+            data['solicitacao_origem'] = {
+                'id': self.solicitacao_origem.id,
+                'funcionario_id': self.solicitacao_origem.funcionario_id,
+                'funcionario_nome': self.solicitacao_origem.funcionario.nome if self.solicitacao_origem.funcionario else None,
+                'fornecedor_id': self.solicitacao_origem.fornecedor_id,
+                'fornecedor_nome': self.solicitacao_origem.fornecedor.nome if self.solicitacao_origem.fornecedor else None
+            }
+
+        return data
+
 class EntradaEstoque(db.Model):  # type: ignore
     __tablename__ = 'entradas_estoque'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False)
     admin_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
+
     status = db.Column(db.String(20), default='pendente', nullable=False)
     data_entrada = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_processamento = db.Column(db.DateTime, nullable=True)
     observacoes = db.Column(db.Text)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         lote_dict = self.lote.to_dict() if self.lote else {}
-        
+
         return {
             'id': self.id,
             'lote_id': self.lote_id,
@@ -743,7 +761,7 @@ class EntradaEstoque(db.Model):  # type: ignore
 
 class Notificacao(db.Model):  # type: ignore
     __tablename__ = 'notificacoes'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     titulo = db.Column(db.String(200), nullable=False)
@@ -751,10 +769,10 @@ class Notificacao(db.Model):  # type: ignore
     tipo = db.Column(db.String(50), nullable=True, default=None)
     lida = db.Column(db.Boolean, default=False, nullable=False)
     data_envio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -768,17 +786,17 @@ class Notificacao(db.Model):  # type: ignore
 
 class Configuracao(db.Model):  # type: ignore
     __tablename__ = 'configuracoes'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     chave = db.Column(db.String(100), unique=True, nullable=False)
     valor = db.Column(db.Text, nullable=False)
     descricao = db.Column(db.String(200))
     tipo = db.Column(db.String(50), default='texto')
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -791,7 +809,7 @@ class Configuracao(db.Model):  # type: ignore
 
 class Veiculo(db.Model):  # type: ignore
     __tablename__ = 'veiculos'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     placa = db.Column(db.String(10), unique=True, nullable=False)
     renavam = db.Column(db.String(20), unique=True)
@@ -804,12 +822,12 @@ class Veiculo(db.Model):  # type: ignore
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
+
     motoristas = db.relationship('Motorista', backref='veiculo', lazy=True)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -828,7 +846,7 @@ class Veiculo(db.Model):  # type: ignore
 
 class Motorista(db.Model):  # type: ignore
     __tablename__ = 'motoristas'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), unique=True, nullable=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -842,12 +860,12 @@ class Motorista(db.Model):  # type: ignore
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    
+
     usuario = db.relationship('Usuario', foreign_keys=[usuario_id], backref='motorista_profile')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -874,7 +892,7 @@ class AuditoriaLog(db.Model):  # type: ignore
         db.Index('idx_usuario_data', 'usuario_id', 'data_acao'),
         db.Index('idx_entidade_acao', 'entidade_tipo', 'acao'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     acao = db.Column(db.String(50), nullable=False)
@@ -884,10 +902,10 @@ class AuditoriaLog(db.Model):  # type: ignore
     ip_address = db.Column(db.String(50))
     user_agent = db.Column(db.String(500))
     data_acao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -908,7 +926,7 @@ class OrdemCompra(db.Model):  # type: ignore
     __table_args__ = (
         db.UniqueConstraint('solicitacao_id', name='uq_oc_solicitacao'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     solicitacao_id = db.Column(db.Integer, db.ForeignKey('solicitacoes.id'), nullable=False, unique=True)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
@@ -922,16 +940,16 @@ class OrdemCompra(db.Model):  # type: ignore
     device_info = db.Column(db.String(100))
     criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    
+
     solicitacao = db.relationship('Solicitacao', back_populates='ordem_compra', foreign_keys=[solicitacao_id], uselist=False)
     fornecedor = db.relationship('Fornecedor', backref='ordens_compra', foreign_keys=[fornecedor_id])
     aprovador = db.relationship('Usuario', foreign_keys=[aprovado_por], backref='ocs_aprovadas')
     criador = db.relationship('Usuario', foreign_keys=[criado_por], backref='ocs_criadas')
     auditorias = db.relationship('AuditoriaOC', backref='ordem_compra', lazy=True, cascade='all, delete-orphan')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -957,7 +975,7 @@ class AuditoriaOC(db.Model):  # type: ignore
     __table_args__ = (
         db.Index('idx_oc_data', 'oc_id', 'data'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     oc_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=False)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
@@ -969,12 +987,12 @@ class AuditoriaOC(db.Model):  # type: ignore
     gps = db.Column(db.String(100))
     dispositivo = db.Column(db.String(500))
     data = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
-    
+
     usuario = db.relationship('Usuario', backref='auditorias_oc', foreign_keys=[usuario_id])
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -993,7 +1011,7 @@ class AuditoriaOC(db.Model):  # type: ignore
 
 class OrdemServico(db.Model):  # type: ignore
     __tablename__ = 'ordens_servico'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     oc_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=False)
     numero_os = db.Column(db.String(50), unique=True, nullable=False)
@@ -1011,7 +1029,7 @@ class OrdemServico(db.Model):  # type: ignore
     auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     ordem_compra = db.relationship('OrdemCompra', backref='ordens_servico', foreign_keys=[oc_id])
     motorista = db.relationship('Motorista', backref='ordens_servico', foreign_keys=[motorista_id])
     veiculo = db.relationship('Veiculo', backref='ordens_servico', foreign_keys=[veiculo_id])
@@ -1019,10 +1037,10 @@ class OrdemServico(db.Model):  # type: ignore
     eventos_gps = db.relationship('GPSLog', backref='ordem_servico', lazy=True, cascade='all, delete-orphan')
     rotas_operacionais = db.relationship('RotaOperacional', backref='ordem_servico', lazy=True, cascade='all, delete-orphan')
     conferencias = db.relationship('ConferenciaRecebimento', backref='ordem_servico', lazy=True, cascade='all, delete-orphan')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1049,7 +1067,7 @@ class OrdemServico(db.Model):  # type: ignore
 
 class RotaOperacional(db.Model):  # type: ignore
     __tablename__ = 'rotas_operacionais'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=False)
     motorista_id = db.Column(db.Integer, db.ForeignKey('motoristas.id'), nullable=False)
@@ -1059,13 +1077,13 @@ class RotaOperacional(db.Model):  # type: ignore
     km_real = db.Column(db.Float, nullable=True)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     finalizado_em = db.Column(db.DateTime, nullable=True)
-    
+
     motorista = db.relationship('Motorista', backref='rotas_operacionais', foreign_keys=[motorista_id])
     veiculo = db.relationship('Veiculo', backref='rotas_operacionais', foreign_keys=[veiculo_id])
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1083,7 +1101,7 @@ class RotaOperacional(db.Model):  # type: ignore
 
 class GPSLog(db.Model):  # type: ignore
     __tablename__ = 'gps_logs'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=False)
     evento = db.Column(db.String(50), nullable=False)
@@ -1094,10 +1112,10 @@ class GPSLog(db.Model):  # type: ignore
     device_id = db.Column(db.String(255), nullable=True)
     ip = db.Column(db.String(50), nullable=True)
     dados_adicionais = db.Column(db.JSON, nullable=True)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1114,7 +1132,7 @@ class GPSLog(db.Model):  # type: ignore
 
 class ConferenciaRecebimento(db.Model):  # type: ignore
     __tablename__ = 'conferencias_recebimento'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     os_id = db.Column(db.Integer, db.ForeignKey('ordens_servico.id'), nullable=False)
     oc_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=False)
@@ -1139,14 +1157,14 @@ class ConferenciaRecebimento(db.Model):  # type: ignore
     decisao_adm_motivo = db.Column(db.Text, nullable=True)
     gps_conferencia = db.Column(db.JSON, nullable=True)
     device_id_conferencia = db.Column(db.String(255), nullable=True)
-    
+
     ordem_compra = db.relationship('OrdemCompra', backref='conferencias', foreign_keys=[oc_id])
     conferente = db.relationship('Usuario', foreign_keys=[conferente_id], backref='conferencias_realizadas')
     decisor_adm = db.relationship('Usuario', foreign_keys=[decisao_adm_por], backref='decisoes_conferencia')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1179,7 +1197,7 @@ class ConferenciaRecebimento(db.Model):  # type: ignore
 
 class MovimentacaoEstoque(db.Model):  # type: ignore
     __tablename__ = 'movimentacoes_estoque'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False)
     tipo = db.Column(db.String(50), nullable=False)
@@ -1193,12 +1211,12 @@ class MovimentacaoEstoque(db.Model):  # type: ignore
     dados_before = db.Column(db.JSON, nullable=True)
     dados_after = db.Column(db.JSON, nullable=True)
     auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
-    
+
     usuario = db.relationship('Usuario', backref='movimentacoes_estoque')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1220,7 +1238,7 @@ class MovimentacaoEstoque(db.Model):  # type: ignore
 
 class LoteSeparacao(db.Model):  # type: ignore
     __tablename__ = 'lotes_separacao'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False, unique=True)
     status = db.Column(db.String(50), default='AGUARDANDO_SEPARACAO', nullable=False)
@@ -1236,13 +1254,13 @@ class LoteSeparacao(db.Model):  # type: ignore
     gps_fim = db.Column(db.JSON, nullable=True)
     ip_inicio = db.Column(db.String(50), nullable=True)
     device_id = db.Column(db.String(255), nullable=True)
-    
+
     operador = db.relationship('Usuario', backref='separacoes_realizadas')
     residuos = db.relationship('Residuo', backref='separacao', lazy=True, cascade='all, delete-orphan')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1266,7 +1284,7 @@ class LoteSeparacao(db.Model):  # type: ignore
 
 class Residuo(db.Model):  # type: ignore
     __tablename__ = 'residuos'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     separacao_id = db.Column(db.Integer, db.ForeignKey('lotes_separacao.id'), nullable=False)
     material = db.Column(db.String(100), nullable=False)
@@ -1281,12 +1299,12 @@ class Residuo(db.Model):  # type: ignore
     motivo_decisao = db.Column(db.Text, nullable=True)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
-    
+
     aprovador = db.relationship('Usuario', backref='residuos_aprovados')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1311,7 +1329,7 @@ class Inventario(db.Model):  # type: ignore
     __table_args__ = (
         db.Index('idx_status_data', 'status', 'data_inicio'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     numero_inventario = db.Column(db.String(50), unique=True, nullable=False)
     tipo = db.Column(db.String(50), default='GERAL', nullable=False)
@@ -1324,17 +1342,17 @@ class Inventario(db.Model):  # type: ignore
     observacoes = db.Column(db.Text, nullable=True)
     divergencias_consolidadas = db.Column(db.JSON, default=lambda: [], nullable=True)
     auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
-    
+
     criador = db.relationship('Usuario', foreign_keys=[criado_por_id], backref='inventarios_criados')
     finalizador = db.relationship('Usuario', foreign_keys=[finalizado_por_id], backref='inventarios_finalizados')
     contagens = db.relationship('InventarioContagem', backref='inventario', lazy=True, cascade='all, delete-orphan')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         if not kwargs.get('numero_inventario'):
             ano = datetime.now().year
             self.numero_inventario = f"INV-{ano}-{str(uuid.uuid4().hex[:5]).upper()}"
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1359,7 +1377,7 @@ class InventarioContagem(db.Model):  # type: ignore
         db.Index('idx_inventario_lote', 'inventario_id', 'lote_id'),
         db.UniqueConstraint('inventario_id', 'lote_id', 'numero_contagem', name='uq_inv_lote_contagem'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     inventario_id = db.Column(db.Integer, db.ForeignKey('inventarios.id'), nullable=False)
     lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False)
@@ -1373,15 +1391,15 @@ class InventarioContagem(db.Model):  # type: ignore
     fotos = db.Column(db.JSON, default=lambda: [], nullable=True)
     gps = db.Column(db.JSON, nullable=True)
     device_id = db.Column(db.String(255), nullable=True)
-    
+
     lote = db.relationship('Lote', backref='contagens_inventario')
     contador = db.relationship('Usuario', backref='contagens_realizadas')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'numero_contagem' in kwargs and (kwargs['numero_contagem'] < 1 or kwargs['numero_contagem'] > 3):
             raise ValueError('Número da contagem deve ser 1, 2 ou 3')
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1409,7 +1427,7 @@ class MaterialBase(db.Model):  # type: ignore
         db.Index('idx_materiais_base_classificacao', 'classificacao'),
         db.Index('idx_materiais_base_codigo', 'codigo'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     codigo = db.Column(db.String(20), unique=True, nullable=False)
     nome = db.Column(db.String(200), unique=True, nullable=False)
@@ -1418,15 +1436,15 @@ class MaterialBase(db.Model):  # type: ignore
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     precos = db.relationship('TabelaPrecoItem', backref='material', lazy=True, cascade='all, delete-orphan')
     autorizacoes = db.relationship('SolicitacaoAutorizacaoPreco', backref='material', lazy=True)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'classificacao' in kwargs and kwargs['classificacao'] not in ['leve', 'medio', 'pesado']:
             raise ValueError('Classificação deve ser: leve, medio ou pesado')
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         precos_dict = {}
         if self.precos:
@@ -1434,7 +1452,7 @@ class MaterialBase(db.Model):  # type: ignore
                 if preco_item.tabela_preco:
                     estrelas = preco_item.tabela_preco.nivel_estrelas
                     precos_dict[f'preco_{estrelas}_estrela'] = preco_item.preco_por_kg
-        
+
         return {
             'id': self.id,
             'codigo': self.codigo,
@@ -1450,20 +1468,20 @@ class MaterialBase(db.Model):  # type: ignore
 class TabelaPreco(db.Model):  # type: ignore
     """Tabela mestre de preços por estrelas (3 registros fixos: 1★, 2★, 3★)"""
     __tablename__ = 'tabelas_preco'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(50), unique=True, nullable=False)
     nivel_estrelas = db.Column(db.Integer, unique=True, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
+
     itens = db.relationship('TabelaPrecoItem', backref='tabela_preco', lazy=True, cascade='all, delete-orphan')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'nivel_estrelas' in kwargs and kwargs['nivel_estrelas'] not in [1, 2, 3]:
             raise ValueError('Nível de estrelas deve ser 1, 2 ou 3')
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1482,19 +1500,19 @@ class TabelaPrecoItem(db.Model):  # type: ignore
         db.Index('idx_tabela_preco_itens_tabela', 'tabela_preco_id'),
         db.Index('idx_tabela_preco_itens_material', 'material_id'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     tabela_preco_id = db.Column(db.Integer, db.ForeignKey('tabelas_preco.id', ondelete='CASCADE'), nullable=False)
     material_id = db.Column(db.Integer, db.ForeignKey('materiais_base.id', ondelete='CASCADE'), nullable=False)
     preco_por_kg = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'preco_por_kg' in kwargs and kwargs['preco_por_kg'] < 0:
             raise ValueError('Preço por kg deve ser maior ou igual a zero')
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1518,34 +1536,34 @@ class SolicitacaoAutorizacaoPreco(db.Model):  # type: ignore
         db.Index('idx_autorizacao_comprador', 'comprador_id'),
         db.Index('idx_autorizacao_fornecedor', 'fornecedor_id'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     ordem_compra_id = db.Column(db.Integer, db.ForeignKey('ordens_compra.id'), nullable=True)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
     comprador_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     material_id = db.Column(db.Integer, db.ForeignKey('materiais_base.id'), nullable=False)
     peso_kg = db.Column(db.Numeric(10, 2), nullable=False)
-    
+
     tabela_atual_id = db.Column(db.Integer, db.ForeignKey('tabelas_preco.id'), nullable=False)
     preco_tabela = db.Column(db.Numeric(10, 2), nullable=False)
     preco_negociado = db.Column(db.Numeric(10, 2), nullable=False)
     diferenca_percentual = db.Column(db.Numeric(5, 2), nullable=True)
-    
+
     justificativa = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(20), default='pendente', nullable=False)
-    
+
     decisao_adm_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     nova_tabela_atribuida_id = db.Column(db.Integer, db.ForeignKey('tabelas_preco.id'), nullable=True)
     motivo_decisao = db.Column(db.Text, nullable=True)
-    
+
     data_solicitacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_decisao = db.Column(db.DateTime, nullable=True)
-    
+
     comprador = db.relationship('Usuario', foreign_keys=[comprador_id], backref='solicitacoes_preco')
     tabela_atual = db.relationship('TabelaPreco', foreign_keys=[tabela_atual_id], backref='solicitacoes_autorizacao')
     decisao_adm = db.relationship('Usuario', foreign_keys=[decisao_adm_id], backref='decisoes_autorizacao_preco')
     nova_tabela_atribuida = db.relationship('TabelaPreco', foreign_keys=[nova_tabela_atribuida_id], backref='atribuicoes_autorizacao')
-    
+
     def __init__(self, **kwargs: Any) -> None:
         if 'status' in kwargs and kwargs['status'] not in ['pendente', 'aprovada', 'rejeitada']:
             raise ValueError('Status deve ser: pendente, aprovada ou rejeitada')
@@ -1556,7 +1574,7 @@ class SolicitacaoAutorizacaoPreco(db.Model):  # type: ignore
                 raise ValueError('Preço negociado deve ser maior que o preço da tabela')
             kwargs['diferenca_percentual'] = ((kwargs['preco_negociado'] - kwargs['preco_tabela']) / kwargs['preco_tabela']) * 100
         super().__init__(**kwargs)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
