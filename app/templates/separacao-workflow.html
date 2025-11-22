@@ -243,6 +243,7 @@
 
         async function carregarSublotes() {
             try {
+                console.log('🔍 Carregando sublotes do lote ID:', lote.id);
                 const response = await fetch(`/api/lotes/${lote.id}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -250,15 +251,19 @@
                 });
                 
                 if (!response.ok) {
+                    console.error('❌ Erro na resposta da API:', response.status, response.statusText);
                     throw new Error('Erro ao carregar sublotes');
                 }
                 
                 const loteCompleto = await response.json();
+                console.log('📦 Lote completo recebido:', loteCompleto);
+                console.log('📊 Sublotes encontrados:', loteCompleto.sublotes);
                 sublotes = loteCompleto.sublotes || [];
+                console.log('✅ Total de sublotes carregados:', sublotes.length);
                 
                 renderizarSublotes();
             } catch (error) {
-                console.error('Erro ao carregar sublotes:', error);
+                console.error('❌ Erro ao carregar sublotes:', error);
                 sublotes = [];
                 renderizarSublotes();
             }
@@ -266,6 +271,7 @@
 
         async function carregarResiduos() {
             try {
+                console.log('🔍 Carregando resíduos da separação ID:', separacaoId);
                 const response = await fetch(`/api/separacao/residuos?status=all`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -273,30 +279,37 @@
                 });
                 
                 if (!response.ok) {
+                    console.error('❌ Erro na resposta da API de resíduos:', response.status, response.statusText);
                     residuos = [];
                     renderizarResiduos();
                     return;
                 }
                 
                 const todosResiduos = await response.json();
+                console.log('📦 Total de resíduos recebidos:', todosResiduos.length);
                 residuos = todosResiduos.filter(r => r.separacao_id == separacaoId);
+                console.log('✅ Resíduos filtrados para separação ID', separacaoId, ':', residuos.length);
+                console.log('📊 Resíduos:', residuos);
                 
                 renderizarResiduos();
             } catch (error) {
-                console.error('Erro ao carregar resíduos:', error);
+                console.error('❌ Erro ao carregar resíduos:', error);
                 residuos = [];
                 renderizarResiduos();
             }
         }
 
         function renderizarSublotes() {
+            console.log('🎨 Renderizando sublotes:', sublotes.length);
             const container = document.getElementById('listaSublotes');
             
             if (!sublotes || sublotes.length === 0) {
+                console.log('ℹ️ Nenhum sublote para renderizar');
                 container.innerHTML = '<p style="text-align: center; color: var(--gray-600); padding: 2rem;">Nenhum sublote criado ainda</p>';
                 return;
             }
             
+            console.log('✅ Renderizando', sublotes.length, 'sublote(s)');
             container.innerHTML = sublotes.map(sublote => `
                 <div class="sublote-card" style="background: var(--success-bg); border-left: 4px solid var(--success-color); padding: 1rem; margin-bottom: 1rem; border-radius: 8px;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
@@ -323,13 +336,16 @@
         }
 
         function renderizarResiduos() {
+            console.log('🎨 Renderizando resíduos:', residuos.length);
             const container = document.getElementById('listaResiduos');
             
             if (!residuos || residuos.length === 0) {
+                console.log('ℹ️ Nenhum resíduo para renderizar');
                 container.innerHTML = '<p style="text-align: center; color: var(--gray-600); padding: 2rem;">Nenhum resíduo registrado</p>';
                 return;
             }
             
+            console.log('✅ Renderizando', residuos.length, 'resíduo(s)');
             container.innerHTML = residuos.map(residuo => {
                 const statusColor = {
                     'AGUARDANDO_APROVACAO': 'var(--warning-color)',
