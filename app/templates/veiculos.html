@@ -5,6 +5,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Veículos - MRX Systems</title>
+
+    <style>
+        /* Ajustes de espaçamento para header fixo e bottom nav */
+        body {
+            padding-bottom: 80px; /* Espaço para bottom nav em mobile */
+        }
+
+        main.container {
+            padding-top: 80px; /* Espaço para header fixo */
+            padding-bottom: 100px; /* Espaço para bottom nav */
+        }
+
+        /* Ajustes específicos para desktop */
+        @media (min-width: 1024px) {
+            main.container {
+                padding-top: 90px; /* Header um pouco maior no desktop */
+                padding-bottom: 100px; /* Mantém espaço para bottom nav */
+            }
+        }
+
+        /* Garantir que modais não sejam cortados */
+        .modal {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+    </style>
+
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -22,8 +49,8 @@
         </div>
     </header>
 
-    <main class="container">
-        <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-md); justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+    <main class="container" style="padding-top: 80px; padding-bottom: 100px;">
+        <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-md); justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg); margin-top: var(--spacing-md);">
             <h1 style="margin: 0;">Gerenciar Veículos</h1>
             <button class="btn btn-primary" onclick="abrirModalNovoVeiculo()">
                 <i class="fas fa-plus"></i> Novo Veículo
@@ -152,6 +179,9 @@
             </form>
         </div>
     </div>
+
+    <!-- Bottom Navigation (Mobile) -->
+    {% include 'includes/_bottom_nav.html' %}
 
     <script src="/static/js/utils.js"></script>
     <script src="/static/js/layout.js"></script>
