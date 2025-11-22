@@ -32,6 +32,16 @@
             padding-top: 20px;
             padding-bottom: 20px;
         }
+
+        /* Garantir que bottom nav fique acima de tudo */
+        .bottom-nav {
+            z-index: 1001 !important;
+        }
+
+        /* Header deve ficar abaixo do bottom nav */
+        header {
+            z-index: 100 !important;
+        }
         .materials-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -251,30 +261,6 @@
         </div>
     </header>
 
-    <nav class="bottom-nav">
-        <a href="/administracao.html" class="bottom-nav-item">
-            <i class="fas fa-cog icon"></i>
-            <span>Administração</span>
-        </a>
-        <a href="/dashboard.html" class="bottom-nav-item">
-            <i class="fas fa-chart-line icon"></i>
-            <span>Dashboard</span>
-        </a>
-        <div class="fab-container">
-            <button class="fab-button" onclick="window.location.href='/funcionario.html'" aria-label="Nova Solicitação">
-                <i class="fas fa-plus icon"></i>
-            </button>
-        </div>
-        <a href="/solicitacoes.html" class="bottom-nav-item">
-            <i class="fas fa-file-alt icon"></i>
-            <span>Solicitações</span>
-        </a>
-        <a href="/fornecedores.html" class="bottom-nav-item">
-            <i class="fas fa-building icon"></i>
-            <span>Fornecedores</span>
-        </a>
-    </nav>
-
     <main class="container mt-4" style="padding-top: 80px; padding-bottom: 100px;">
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md); margin-top: var(--spacing-md);">
             <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gestão de Materiais e Preços</h1>
@@ -421,6 +407,7 @@
     {% include 'includes/_bottom_nav.html' %}
 
     <script src="/static/js/auth.js"></script>
+    <script src="/static/js/rbac.js"></script>
     <script>
         let materiais = [];
         let materiaisFiltrados = [];
