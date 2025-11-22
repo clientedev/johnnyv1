@@ -88,7 +88,7 @@
                 </div>
             </div>
         </div>
-        
+
         <style>
             /* Tab Selector - Padrão Dashboard */
             .tab-selector {
@@ -170,19 +170,19 @@
                 gap: 16px;
                 margin-bottom: 24px;
             }
-            
+
             @media (min-width: 768px) {
                 .solicitacoes-grid {
                     grid-template-columns: repeat(2, 1fr);
                 }
             }
-            
+
             @media (min-width: 1200px) {
                 .solicitacoes-grid {
                     grid-template-columns: repeat(3, 1fr);
                 }
             }
-            
+
             /* Grid responsivo para Ordens de Compra */
             .ocs-grid {
                 display: grid;
@@ -190,19 +190,19 @@
                 gap: 16px;
                 margin-bottom: 24px;
             }
-            
+
             @media (min-width: 768px) {
                 .ocs-grid {
                     grid-template-columns: repeat(2, 1fr);
                 }
             }
-            
+
             @media (min-width: 1200px) {
                 .ocs-grid {
                     grid-template-columns: repeat(3, 1fr);
                 }
             }
-            
+
             /* Card de Solicitação */
             .solicitacao-card {
                 background: white;
@@ -214,12 +214,12 @@
                 position: relative;
                 overflow: hidden;
             }
-            
+
             .solicitacao-card:hover {
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
                 transform: translateY(-2px);
             }
-            
+
             .solicitacao-card::before {
                 content: '';
                 position: absolute;
@@ -229,7 +229,7 @@
                 height: 4px;
                 background: linear-gradient(90deg, #3b82f6, #60a5fa);
             }
-            
+
             /* Card de Ordem de Compra */
             .oc-card {
                 background: white;
@@ -241,12 +241,12 @@
                 position: relative;
                 overflow: hidden;
             }
-            
+
             .oc-card:hover {
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
                 transform: translateY(-2px);
             }
-            
+
             .oc-card::before {
                 content: '';
                 position: absolute;
@@ -256,7 +256,7 @@
                 height: 4px;
                 background: linear-gradient(90deg, #8b5cf6, #a78bfa);
             }
-            
+
             /* Header do Card */
             .card-header-section {
                 display: flex;
@@ -264,7 +264,7 @@
                 gap: 12px;
                 margin-bottom: 16px;
             }
-            
+
             .card-icon {
                 width: 48px;
                 height: 48px;
@@ -274,44 +274,44 @@
                 justify-content: center;
                 flex-shrink: 0;
             }
-            
+
             .solicitacao-icon {
                 background: linear-gradient(135deg, #3b82f6, #60a5fa);
             }
-            
+
             .oc-icon {
                 background: linear-gradient(135deg, #8b5cf6, #a78bfa);
             }
-            
+
             .card-icon i {
                 color: white;
                 font-size: 24px;
             }
-            
+
             .card-title-section {
                 flex: 1;
                 min-width: 0;
             }
-            
+
             .card-id {
                 font-size: 20px;
                 font-weight: 700;
                 color: #111827;
                 margin: 0 0 4px 0;
             }
-            
+
             .card-date {
                 font-size: 13px;
                 color: #6b7280;
             }
-            
+
             /* Informações do Card */
             .card-info-grid {
                 display: grid;
                 gap: 10px;
                 margin-bottom: 16px;
             }
-            
+
             .info-row {
                 display: flex;
                 align-items: center;
@@ -319,25 +319,25 @@
                 font-size: 14px;
                 color: #374151;
             }
-            
+
             .info-row i {
                 color: #3b82f6;
                 width: 18px;
                 font-size: 14px;
                 flex-shrink: 0;
             }
-            
+
             .info-label {
                 font-weight: 600;
                 color: #6b7280;
                 min-width: 90px;
             }
-            
+
             .info-value {
                 color: #111827;
                 word-break: break-word;
             }
-            
+
             /* Status Badge */
             .status-section {
                 display: flex;
@@ -348,7 +348,7 @@
                 border-radius: 8px;
                 margin-bottom: 16px;
             }
-            
+
             .status-badge {
                 padding: 6px 12px;
                 border-radius: 20px;
@@ -357,29 +357,29 @@
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }
-            
+
             .badge-pendente {
                 background: #fef3c7;
                 color: #92400e;
             }
-            
+
             .badge-aprovada {
                 background: #d1fae5;
                 color: #065f46;
             }
-            
+
             .badge-rejeitada {
                 background: #fee2e2;
                 color: #991b1b;
             }
-            
+
             /* Valor em destaque */
             .valor-destaque {
                 font-size: 18px;
                 font-weight: 700;
                 color: #059669;
             }
-            
+
             /* Ações do Card */
             .card-actions {
                 display: flex;
@@ -388,7 +388,7 @@
                 padding-top: 16px;
                 border-top: 1px solid #f3f4f6;
             }
-            
+
             .card-actions .btn {
                 flex: 1;
                 min-width: fit-content;
@@ -399,7 +399,7 @@
                 justify-content: center;
                 gap: 6px;
             }
-            
+
             /* Loading e Empty States */
             .loading-card {
                 grid-column: 1 / -1;
@@ -407,7 +407,7 @@
                 padding: 40px;
                 color: #6b7280;
             }
-            
+
             .spinner-border {
                 border: 3px solid #f3f4f6;
                 border-top: 3px solid #3b82f6;
@@ -417,25 +417,25 @@
                 animation: spin 1s linear infinite;
                 margin: 0 auto 16px;
             }
-            
+
             @keyframes spin {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
-            
+
             .empty-state {
                 grid-column: 1 / -1;
                 text-align: center;
                 padding: 60px 20px;
                 color: #6b7280;
             }
-            
+
             .empty-state i {
                 font-size: 48px;
                 color: #d1d5db;
                 margin-bottom: 16px;
             }
-            
+
             .empty-state h3 {
                 font-size: 18px;
                 color: #374151;
@@ -478,7 +478,7 @@
 
                 <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                     <h4 style="margin: 0 0 0.75rem 0; color: #0369a1;"> Localização</h4>
-                    
+
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label>Rua</label>
@@ -489,7 +489,7 @@
                             <input type="text" id="numero" placeholder="Nº">
                         </div>
                     </div>
-                    
+
                     <div class="form-group" style="margin-bottom: 0.75rem;">
                         <label>CEP</label>
                         <input type="text" id="cep" placeholder="00000-000">
@@ -557,7 +557,7 @@
                 <button class="modal-close" onclick="fecharModalAprovarOC()">&times;</button>
             </div>
             <div id="conteudoOC" style="margin-bottom: 1.5rem;"></div>
-            
+
             <div class="form-group">
                 <label>Observações</label>
                 <textarea id="observacaoOC" rows="3" placeholder="Observações sobre a aprovação/reprovação"></textarea>
@@ -603,19 +603,19 @@
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            
+
             // Remove active de todos os conteúdos
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
                 content.style.display = 'none';
             });
-            
+
             // Adiciona active ao botão clicado
             const clickedBtn = document.querySelector(`[data-tab="${tabName}"]`);
             if (clickedBtn) {
                 clickedBtn.classList.add('active');
             }
-            
+
             // Mostra o conteúdo correspondente
             if (tabName === 'solicitacoes') {
                 const secao = document.getElementById('secaoSolicitacoes');
@@ -635,7 +635,7 @@
         async function carregarPagina() {
             const user = await verificarAuth();
             if (!user) return;
-            
+
             usuarioAtual = user;
 
             await carregarFornecedores();
@@ -672,9 +672,9 @@
 
         async function carregarPrecosFornecedor() {
             const fornecedorId = document.getElementById('fornecedorSolicitacao').value;
-            
+
             console.log('🔍 carregarPrecosFornecedor chamada. Fornecedor ID:', fornecedorId);
-            
+
             if (!fornecedorId) {
                 console.log('⚠️ Nenhum fornecedor selecionado');
                 precosFornecedorSelecionado = {};
@@ -685,31 +685,31 @@
             try {
                 const url = `/solicitacoes/fornecedor/${fornecedorId}/materiais`;
                 console.log('📡 Fazendo chamada para:', url);
-                
+
                 const response = await fetchAPI(url);
-                
+
                 console.log('📥 Resposta recebida:', response);
-                
+
                 if (response && response.ok) {
                     const dados = await response.json();
-                    
+
                     console.log('✅ Dados recebidos:', dados);
                     console.log('📊 Total de materiais:', dados.materiais?.length || 0);
-                    
+
                     if (!dados.materiais || dados.materiais.length === 0) {
                         showAlert('Este fornecedor não tem preços configurados', 'warning');
                         precosFornecedorSelecionado = {};
                         todosTiposLote = [];
                         return;
                     }
-                    
+
                     precosFornecedorSelecionado = {};
                     todosTiposLote = dados.materiais;
-                    
+
                     dados.materiais.forEach(material => {
                         console.log(`  Processando material: ${material.nome} (ID: ${material.id})`);
                         console.log(`  Preço: R$ ${material.preco_unitario}/kg (${material.nivel_estrelas} estrelas)`);
-                        
+
                         precosFornecedorSelecionado[material.id] = {
                             preco_por_kg: material.preco_unitario,
                             estrelas: material.nivel_estrelas,
@@ -717,7 +717,7 @@
                             nome: material.nome
                         };
                     });
-                    
+
                     console.log('💰 Estrutura final de preços:', precosFornecedorSelecionado);
                     console.log('📦 Total de materiais com preço:', Object.keys(precosFornecedorSelecionado).length);
                 } else {
@@ -743,10 +743,10 @@
             try {
                 let url = '/solicitacoes';
                 if (status) url += `?status=${status}`;
-                
+
                 const response = await fetchAPI(url);
                 const container = document.getElementById('listaSolicitacoes');
-                
+
                 if (!response) {
                     container.innerHTML = `
                         <div class="empty-state">
@@ -785,7 +785,7 @@
                                        s.status === 'rejeitada' ? 'badge-rejeitada' : 
                                        'badge-pendente';
                     const statusLabel = s.status.toUpperCase();
-                    
+
                     return `
                         <div class="solicitacao-card">
                             <div class="card-header-section">
@@ -797,7 +797,7 @@
                                     <div class="card-date">${formatDate(s.data_envio)}</div>
                                 </div>
                             </div>
-                            
+
                             <div class="card-info-grid">
                                 <div class="info-row">
                                     <i class="fas fa-user"></i>
@@ -816,12 +816,12 @@
                                     <span class="info-value">${s.total_peso_kg ? s.total_peso_kg.toFixed(2) : '0.00'} kg</span>
                                 </div>
                             </div>
-                            
+
                             <div class="status-section">
                                 <span class="status-badge ${statusClass}">${statusLabel}</span>
                                 <span class="valor-destaque">R$ ${s.total_valor ? s.total_valor.toFixed(2) : '0.00'}</span>
                             </div>
-                            
+
                             <div class="card-actions">
                                 <button class="btn btn-primary" onclick="verDetalhes(${s.id})">
                                     <i class="fas fa-eye"></i> Ver Detalhes
@@ -894,7 +894,7 @@
 
         function renderizarItens() {
             const container = document.getElementById('listaItens');
-            
+
             if (itensSolicitacao.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #999; padding: 2rem;">Nenhum item adicionado ainda</p>';
                 return;
@@ -908,31 +908,31 @@
                             <i class="fas fa-trash"></i> Remover
                         </button>
                     </div>
-                    
+
                     <!-- Foto e Análise IA -->
                     <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;"> Foto do Lote</label>
-                        
+
                         ${item.imagem_url ? `
                             <div style="margin-bottom: 0.75rem;">
                                 <img src="${item.imagem_url}" style="max-width: 100%; max-height: 200px; border-radius: 8px; display: block; margin: 0 auto;">
                             </div>
                         ` : ''}
-                        
+
                         <input type="file" accept="image/*" capture="environment" id="foto_${item.id}" 
                             onchange="capturarFoto(${item.id}, this)" style="display: none;">
-                        
+
                         <button type="button" class="btn btn-primary w-full" onclick="document.getElementById('foto_${item.id}').click()"
                             ${item.analisando ? 'disabled' : ''}>
                             <i class="fas fa-camera"></i> ${item.imagem_url ? 'Trocar Foto' : 'Capturar Foto'}
                         </button>
-                        
+
                         ${item.analisando ? `
                             <div style="margin-top: 0.75rem; text-align: center; color: #1976d2;">
                                 <i class="fas fa-spinner fa-spin"></i> Analisando imagem com IA...
                             </div>
                         ` : ''}
-                        
+
                         ${item.classificacao_ia && item.justificativa_ia ? `
                             <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fff3e0; border-radius: 6px; border-left: 4px solid #ff9800;">
                                 <strong> Análise IA:</strong> ${item.classificacao_ia.toUpperCase()}<br>
@@ -940,7 +940,7 @@
                             </div>
                         ` : ''}
                     </div>
-                    
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label>Material *</label>
@@ -976,14 +976,14 @@
                 </div>
             `).join('');
         }
-        
+
         async function capturarFoto(itemId, inputElement) {
             const item = itensSolicitacao.find(i => i.id === itemId);
             if (!item) return;
-            
+
             const file = inputElement.files[0];
             if (!file) return;
-            
+
             // Mostrar preview da imagem
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -992,27 +992,27 @@
                 renderizarItens();
             };
             reader.readAsDataURL(file);
-            
+
             // Analisar com IA
             item.analisando = true;
             renderizarItens();
-            
+
             try {
                 const formData = new FormData();
                 formData.append('imagem', file);
-                
+
                 const response = await fetchAPI('/solicitacao-lotes/analisar-imagem', {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 if (response && response.ok) {
                     const resultado = await response.json();
-                    
+
                     if (resultado.sucesso || resultado.classificacao) {
                         item.classificacao_ia = resultado.classificacao;
                         item.justificativa_ia = resultado.justificativa;
-                        
+
                         showAlert('Imagem analisada com sucesso pela IA!', 'success');
                     } else {
                         showAlert('IA não conseguiu analisar a imagem: ' + (resultado.erro || 'Erro desconhecido'), 'warning');
@@ -1036,11 +1036,11 @@
             if (!item) return;
 
             item[campo] = valor;
-            
+
             if (campo === 'material_id' || campo === 'peso_kg') {
                 calcularValorItem(item);
             }
-            
+
             renderizarItens();
             atualizarResumo();
         }
@@ -1053,7 +1053,7 @@
             }
 
             const precoInfo = precosFornecedorSelecionado[item.material_id];
-            
+
             if (precoInfo && precoInfo.preco_por_kg) {
                 item.valor_calculado = item.peso_kg * precoInfo.preco_por_kg;
                 item.estrelas_final = precoInfo.estrelas;
@@ -1087,17 +1087,17 @@
             }
 
             showAlert('Capturando localização e endereço...', 'info');
-            
+
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    
+
                     document.getElementById('gpsInfo').style.display = 'block';
                     document.getElementById('gpsInfo').innerHTML = `
                         <i class="fas fa-spinner fa-spin"></i> Buscando endereço...
                     `;
-                    
+
                     try {
                         // Buscar endereço via geocoding reverso
                         const response = await fetchAPI('/solicitacao-lotes/geocode', {
@@ -1105,41 +1105,41 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ latitude: lat, longitude: lng })
                         });
-                        
+
                         if (response && response.ok) {
                             const endereco = await response.json();
-                            
+
                             if (endereco.sucesso) {
                                 // Preencher e bloquear campos
                                 document.getElementById('rua').value = endereco.rua || '';
                                 document.getElementById('numero').value = endereco.numero || '';
                                 document.getElementById('cep').value = endereco.cep || '';
-                                
+
                                 // Bloquear edição
                                 document.getElementById('rua').readOnly = true;
                                 document.getElementById('numero').readOnly = true;
                                 document.getElementById('cep').readOnly = true;
-                                
+
                                 document.getElementById('gpsInfo').dataset.lat = lat;
                                 document.getElementById('gpsInfo').dataset.lng = lng;
-                                
+
                                 document.getElementById('gpsInfo').innerHTML = `
                                     <i class="fas fa-check-circle"></i> Endereço encontrado!<br>
                                     ${endereco.endereco_completo || 'GPS: ' + lat.toFixed(6) + ', ' + lng.toFixed(6)}
                                 `;
-                                
+
                                 showAlert('Endereço capturado com sucesso!', 'success');
                             } else {
                                 // Falhou mas temos GPS
                                 document.getElementById('gpsInfo').dataset.lat = lat;
                                 document.getElementById('gpsInfo').dataset.lng = lng;
-                                
+
                                 document.getElementById('gpsInfo').innerHTML = `
                                     <i class="fas fa-exclamation-triangle"></i> GPS capturado, mas não foi possível buscar o endereço.<br>
                                     Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br>
                                     <small>${endereco.erro || 'Erro desconhecido'}</small>
                                 `;
-                                
+
                                 showAlert('GPS capturado, mas endereço não encontrado. Preencha manualmente.', 'warning');
                             }
                         }
@@ -1173,16 +1173,16 @@
             }
 
             const gpsInfo = document.getElementById('gpsInfo');
-            
+
             const itensParaEnvio = itensValidos.map(item => ({
                 material_id: parseInt(item.material_id),
                 peso_kg: parseFloat(item.peso_kg),
                 observacoes: item.observacoes || ''
             }));
-            
+
             console.log(' DEBUG - Enviando itens:', itensParaEnvio);
             console.log(' DEBUG - Itens originais:', itensSolicitacao);
-            
+
             const data = {
                 fornecedor_id: parseInt(document.getElementById('fornecedorSolicitacao').value),
                 tipo_retirada: document.getElementById('tipoRetirada').value,
@@ -1277,9 +1277,11 @@
                         <h3 style="margin: 1.5rem 0 1rem 0;"> Itens (${solicitacaoAtual.itens.length})</h3>
                         ${solicitacaoAtual.itens.map(item => `
                             <div class="card" style="margin-bottom: 1rem;">
-                                <p><strong>Tipo:</strong> ${item.tipo_lote_nome}</p>
+                                <p><strong>Material:</strong> ${item.material_nome || item.tipo_lote_nome || 'N/A'}</p>
+                                ${item.material_codigo ? `<p><strong>Código:</strong> ${item.material_codigo}</p>` : ''}
+                                <p><strong>Classificação:</strong> ${item.classificacao ? item.classificacao.toUpperCase() : 'N/A'}</p>
                                 <p><strong>Peso:</strong> ${item.peso_kg} kg</p>
-                                <p><strong>Estrelas:</strong> ${''.repeat(item.estrelas_final)}</p>
+                                <p><strong>Estrelas:</strong> ${'⭐'.repeat(item.estrelas_final)}</p>
                                 <p><strong>Valor:</strong> R$ ${item.valor_calculado.toFixed(2)}</p>
                                 ${item.observacoes ? `<p><strong>Obs:</strong> ${item.observacoes}</p>` : ''}
                                 ${item.lote_numero ? `<p><strong>Lote Gerado:</strong> ${item.lote_numero}</p>` : ''}
@@ -1330,14 +1332,14 @@
                 if (response && response.ok) {
                     const data = await response.json();
                     console.log(' Resposta da aprovação:', data);
-                    
+
                     showAlert('Solicitação aprovada! Lotes criados e OC gerada automaticamente.', 'success');
                     fecharModalDetalhes();
-                    
+
                     // Recarregar ambas as tabelas
                     await carregarSolicitacoes();
                     await carregarOCs();
-                    
+
                     console.log(' Tabelas recarregadas com sucesso');
                 } else {
                     const error = await response.json();
@@ -1378,10 +1380,10 @@
                 console.log(' Carregando OCs...');
                 let url = '/ordens-compra';
                 if (status) url += `?status=${status}`;
-                
+
                 const response = await fetchAPI(url);
                 const container = document.getElementById('listaOCs');
-                
+
                 if (!response) {
                     console.error(' Sem resposta do servidor');
                     container.innerHTML = `
@@ -1393,7 +1395,7 @@
                     `;
                     return;
                 }
-                
+
                 if (!response.ok) {
                     console.error(' Erro HTTP:', response.status);
                     container.innerHTML = `
@@ -1405,7 +1407,7 @@
                     `;
                     return;
                 }
-                
+
                 const ocs = await response.json();
                 console.log(` ${ocs.length} OC(s) carregada(s)`);
 
@@ -1424,14 +1426,14 @@
                     const statusClass = oc.status === 'aprovada' ? 'badge-aprovada' : 
                                        oc.status === 'rejeitada' ? 'badge-rejeitada' : 
                                        oc.status === 'em_analise' ? 'badge-pendente' : 'badge-pendente';
-                    
+
                     const statusLabel = oc.status === 'aprovada' ? 'APROVADA' :
                                        oc.status === 'rejeitada' ? 'REJEITADA' :
                                        oc.status === 'em_analise' ? 'EM ANÁLISE' : oc.status.toUpperCase();
-                    
+
                     const podeAprovar = usuarioAtual && (usuarioAtual.tipo === 'admin' || 
                         (usuarioAtual.perfil && (usuarioAtual.perfil.nome === 'Administrador' || usuarioAtual.perfil.nome === 'Financeiro')));
-                    
+
                     return `
                         <div class="oc-card">
                             <div class="card-header-section">
@@ -1443,7 +1445,7 @@
                                     <div class="card-date">SC #${oc.solicitacao_id} • ${formatDate(oc.criado_em)}</div>
                                 </div>
                             </div>
-                            
+
                             <div class="card-info-grid">
                                 <div class="info-row">
                                     <i class="fas fa-building"></i>
@@ -1456,12 +1458,12 @@
                                     </div>
                                 ` : ''}
                             </div>
-                            
+
                             <div class="status-section">
                                 <span class="status-badge ${statusClass}">${statusLabel}</span>
                                 <span class="valor-destaque">R$ ${oc.valor_total.toFixed(2)}</span>
                             </div>
-                            
+
                             <div class="card-actions">
                                 ${podeAprovar && oc.status === 'em_analise' ? 
                                     `<button class="btn btn-success" onclick="abrirModalAprovarOC(${oc.id})">
@@ -1525,7 +1527,7 @@
                 }
 
                 ocAtual = await response.json();
-                
+
                 document.getElementById('conteudoOC').innerHTML = `
                     <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px;">
                         <p><strong>Nº OC:</strong> #${ocAtual.id}</p>
@@ -1535,14 +1537,14 @@
                         <p><strong>Status Atual:</strong> ${ocAtual.status.toUpperCase()}</p>
                     </div>
                 `;
-                
+
                 document.getElementById('observacaoOC').value = '';
-                
+
                 document.getElementById('dispositivoOC').textContent = navigator.userAgent;
-                
+
                 gpsAtual = null;
                 document.getElementById('gpsOC').textContent = 'Capturando...';
-                
+
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
@@ -1557,9 +1559,9 @@
                 } else {
                     document.getElementById('gpsOC').textContent = 'Não suportado';
                 }
-                
+
                 document.getElementById('ipOC').textContent = 'Detectado automaticamente';
-                
+
                 document.getElementById('modalAprovarOC').classList.add('active');
             } catch (error) {
                 console.error('Erro ao abrir modal:', error);
@@ -1575,25 +1577,25 @@
 
         async function confirmarAcaoOC(acao) {
             if (!ocAtual) return;
-            
+
             const observacao = document.getElementById('observacaoOC').value;
-            
+
             if (acao === 'reprovar' && !observacao) {
                 showAlert('Por favor, informe o motivo da reprovação', 'error');
                 return;
             }
-            
+
             const confirmMsg = acao === 'aprovar' ? 
                 'Confirma a aprovação desta Ordem de Compra?' : 
                 'Confirma a reprovação desta Ordem de Compra?';
-            
+
             if (!confirm(confirmMsg)) return;
 
             try {
                 const endpoint = acao === 'aprovar' ? 
                     `/ordens-compra/${ocAtual.id}/aprovar` : 
                     `/ordens-compra/${ocAtual.id}/reprovar`;
-                
+
                 const response = await fetchAPI(endpoint, {
                     method: 'PATCH',
                     body: JSON.stringify({
