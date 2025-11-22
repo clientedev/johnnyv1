@@ -33,47 +33,136 @@
     </nav>
 
     <main class="container mt-4">
-        <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
-            <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Solicitações</h1>
+        <!-- Tab Selector -->
+        <div class="tab-selector">
+            <button class="tab-btn active" onclick="changeTab('solicitacoes')" data-tab="solicitacoes">
+                <i class="fas fa-file-alt"></i> Solicitações
+            </button>
+            <button class="tab-btn" onclick="changeTab('ordens-compra')" data-tab="ordens-compra">
+                <i class="fas fa-shopping-cart"></i> Ordens de Compra
+            </button>
         </div>
 
-        <div class="card mb-3">
-            <div class="flex gap-2" style="flex-wrap: wrap;">
-                <button class="btn btn-primary btn-small" onclick="filtrarStatus('')">Todos</button>
-                <button class="btn btn-warning btn-small" onclick="filtrarStatus('pendente')">Pendentes</button>
-                <button class="btn btn-success btn-small" onclick="filtrarStatus('aprovada')">Aprovadas</button>
-                <button class="btn btn-danger btn-small" onclick="filtrarStatus('rejeitada')">Rejeitadas</button>
+        <!-- Seção de Solicitações -->
+        <div id="secaoSolicitacoes" class="tab-content active">
+            <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
+                <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Solicitações</h1>
+            </div>
+
+            <div class="card mb-3">
+                <div class="flex gap-2" style="flex-wrap: wrap;">
+                    <button class="btn btn-primary btn-small" onclick="filtrarStatus('')">Todos</button>
+                    <button class="btn btn-warning btn-small" onclick="filtrarStatus('pendente')">Pendentes</button>
+                    <button class="btn btn-success btn-small" onclick="filtrarStatus('aprovada')">Aprovadas</button>
+                    <button class="btn btn-danger btn-small" onclick="filtrarStatus('rejeitada')">Rejeitadas</button>
+                </div>
+            </div>
+
+            <div id="listaSolicitacoes" class="solicitacoes-grid">
+                <div class="loading-card">
+                    <div class="spinner-border"></div>
+                    <p>Carregando solicitações...</p>
+                </div>
             </div>
         </div>
 
-        <div id="listaSolicitacoes" class="solicitacoes-grid">
-            <div class="loading-card">
-                <div class="spinner-border"></div>
-                <p>Carregando solicitações...</p>
+        <!-- Seção de Ordens de Compra -->
+        <div id="secaoOrdensCompra" class="tab-content" style="display: none;">
+            <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
+                <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Ordens de Compra</h1>
             </div>
-        </div>
 
-        <div class="flex justify-between items-center mb-3 mt-5" style="flex-wrap: wrap; gap: var(--spacing-md);">
-            <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);"> Ordens de Compra</h1>
-        </div>
-
-        <div class="card mb-3">
-            <div class="flex gap-2" style="flex-wrap: wrap;">
-                <button class="btn btn-primary btn-small" onclick="filtrarOCStatus('')">Todos</button>
-                <button class="btn btn-warning btn-small" onclick="filtrarOCStatus('em_analise')">Em Análise</button>
-                <button class="btn btn-success btn-small" onclick="filtrarOCStatus('aprovada')">Aprovadas</button>
-                <button class="btn btn-danger btn-small" onclick="filtrarOCStatus('rejeitada')">Rejeitadas</button>
+            <div class="card mb-3">
+                <div class="flex gap-2" style="flex-wrap: wrap;">
+                    <button class="btn btn-primary btn-small" onclick="filtrarOCStatus('')">Todos</button>
+                    <button class="btn btn-warning btn-small" onclick="filtrarOCStatus('em_analise')">Em Análise</button>
+                    <button class="btn btn-success btn-small" onclick="filtrarOCStatus('aprovada')">Aprovadas</button>
+                    <button class="btn btn-danger btn-small" onclick="filtrarOCStatus('rejeitada')">Rejeitadas</button>
+                </div>
             </div>
-        </div>
 
-        <div id="listaOCs" class="ocs-grid">
-            <div class="loading-card">
-                <div class="spinner-border"></div>
-                <p>Carregando ordens de compra...</p>
+            <div id="listaOCs" class="ocs-grid">
+                <div class="loading-card">
+                    <div class="spinner-border"></div>
+                    <p>Carregando ordens de compra...</p>
+                </div>
             </div>
         </div>
         
         <style>
+            /* Tab Selector - Padrão Dashboard */
+            .tab-selector {
+                display: flex;
+                gap: 10px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                padding: 16px 0;
+                margin-bottom: 24px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(5, 150, 105, 0.3) transparent;
+            }
+
+            .tab-selector::-webkit-scrollbar {
+                height: 4px;
+            }
+
+            .tab-selector::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            .tab-selector::-webkit-scrollbar-thumb {
+                background: rgba(5, 150, 105, 0.3);
+                border-radius: 2px;
+            }
+
+            .tab-btn {
+                flex: 0 0 auto;
+                padding: 10px 20px;
+                border: 2px solid #e5e7eb;
+                background: white;
+                border-radius: 24px;
+                font-weight: 600;
+                font-size: 14px;
+                color: #6b7280;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                -webkit-tap-highlight-color: transparent;
+                white-space: nowrap;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .tab-btn:hover {
+                border-color: var(--primary-color);
+                color: var(--primary-color);
+            }
+
+            .tab-btn:active {
+                transform: scale(0.95);
+            }
+
+            .tab-btn.active {
+                background: var(--primary-color);
+                color: white;
+                border-color: var(--primary-color);
+                box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+            }
+
+            .tab-btn i {
+                font-size: 16px;
+            }
+
+            /* Tab Content */
+            .tab-content {
+                display: none;
+            }
+
+            .tab-content.active {
+                display: block;
+            }
+
             /* Grid responsivo para Solicitações */
             .solicitacoes-grid {
                 display: grid;
@@ -507,6 +596,41 @@
         let todosFornecedores = [];
         let todosTiposLote = [];
         let precosFornecedorSelecionado = {};
+
+        // Função para alternar entre abas
+        function changeTab(tabName) {
+            // Remove active de todos os botões
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Remove active de todos os conteúdos
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            });
+            
+            // Adiciona active ao botão clicado
+            const clickedBtn = document.querySelector(`[data-tab="${tabName}"]`);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
+            
+            // Mostra o conteúdo correspondente
+            if (tabName === 'solicitacoes') {
+                const secao = document.getElementById('secaoSolicitacoes');
+                if (secao) {
+                    secao.classList.add('active');
+                    secao.style.display = 'block';
+                }
+            } else if (tabName === 'ordens-compra') {
+                const secao = document.getElementById('secaoOrdensCompra');
+                if (secao) {
+                    secao.classList.add('active');
+                    secao.style.display = 'block';
+                }
+            }
+        }
 
         async function carregarPagina() {
             const user = await verificarAuth();
