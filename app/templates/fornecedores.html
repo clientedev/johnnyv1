@@ -32,7 +32,7 @@
         <!-- Menus serão renderizados dinamicamente pelo RBAC -->
     </nav>
 
-    <main class="container mt-4" style="padding-top: 80px;">
+    <main class="container mt-4">
         <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
             <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Fornecedores</h1>
             <button class="btn btn-primary" onclick="abrirModalNovoFornecedor()">+ Novo Fornecedor</button>
@@ -218,13 +218,13 @@
             /* Padding específico para mobile na página de fornecedores */
             @media (max-width: 767px) {
                 main.container {
-                    padding-top: 80px !important;
+                    padding-top: 60px !important;
                 }
             }
             
             @media (min-width: 768px) {
                 main.container {
-                    padding-top: 0 !important;
+                    padding-top: 50px !important;
                 }
             }
         </style>
