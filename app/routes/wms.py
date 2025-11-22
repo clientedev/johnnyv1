@@ -115,6 +115,33 @@ def obter_lote_detalhado(lote_id):
         db.session.rollback()
         return jsonify({'erro': f'Erro ao obter lote: {str(e)}'}), 500
 
+@bp.route('/lotes/<int:lote_id>/sublotes', methods=['GET'])
+@jwt_required()
+def obter_sublotes_lote(lote_id):
+    """Endpoint específico para buscar apenas os sublotes de um lote"""
+    try:
+        lote = Lote.query.get(lote_id)
+        if not lote:
+            return jsonify({'erro': 'Lote não encontrado'}), 404
+
+        # Buscar apenas sublotes deste lote (lote_pai_id = lote_id)
+        sublotes = Lote.query.filter_by(lote_pai_id=lote_id).all()
+        
+        print(f'\n🔍 API /lotes/{lote_id}/sublotes')
+        print(f'   Total de sublotes encontrados: {len(sublotes)}')
+
+        resultado = []
+        for sublote in sublotes:
+            sublote_dict = sublote.to_dict()
+            sublote_dict['tipo_lote_nome'] = sublote.tipo_lote.nome if sublote.tipo_lote else None
+            sublote_dict['fornecedor_nome'] = sublote.fornecedor.nome if sublote.fornecedor else None
+            resultado.append(sublote_dict)
+
+        return jsonify(resultado), 200
+
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao obter sublotes: {str(e)}'}), 500
+
 @bp.route('/lotes/numero/<string:numero_lote>', methods=['GET'])
 @jwt_required()
 def obter_lote_por_numero(numero_lote):

@@ -496,6 +496,35 @@ def listar_residuos():
     except Exception as e:
         return jsonify({'erro': f'Erro ao listar resíduos: {str(e)}'}), 500
 
+@bp.route('/<int:separacao_id>/residuos', methods=['GET'])
+@jwt_required()
+def obter_residuos_separacao(separacao_id):
+    """Endpoint específico para buscar apenas os resíduos de uma separação"""
+    try:
+        separacao = LoteSeparacao.query.get(separacao_id)
+        if not separacao:
+            return jsonify({'erro': 'Separação não encontrada'}), 404
+
+        # Buscar apenas resíduos desta separação
+        residuos = Residuo.query.filter_by(separacao_id=separacao_id).order_by(Residuo.criado_em.desc()).all()
+        
+        print(f'\n🔍 API /separacao/{separacao_id}/residuos')
+        print(f'   Total de resíduos encontrados: {len(residuos)}')
+
+        resultado = []
+        for residuo in residuos:
+            residuo_dict = residuo.to_dict()
+            if separacao.lote:
+                residuo_dict['lote_numero'] = separacao.lote.numero_lote
+            if separacao.operador:
+                residuo_dict['operador_nome'] = separacao.operador.nome
+            resultado.append(residuo_dict)
+
+        return jsonify(resultado), 200
+
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao obter resíduos: {str(e)}'}), 500
+
 @bp.route('/estatisticas', methods=['GET'])
 @jwt_required()
 def obter_estatisticas_separacao():

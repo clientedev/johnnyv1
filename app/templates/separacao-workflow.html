@@ -245,26 +245,22 @@
             try {
                 console.log('🔍 Carregando sublotes do lote:', lote.id);
 
-                // Buscar todos os lotes e filtrar apenas os sublotes deste lote pai
-                const response = await fetch('/api/wms/lotes', {
+                // Usar endpoint específico para buscar sublotes do lote
+                const response = await fetch(`/api/wms/lotes/${lote.id}/sublotes`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
 
                 if (!response.ok) {
-                    console.error('❌ Erro na resposta da API de lotes:', response.status, response.statusText);
+                    console.error('❌ Erro na resposta da API de sublotes:', response.status, response.statusText);
                     sublotes = [];
                     renderizarSublotes();
                     return;
                 }
 
-                const todosLotes = await response.json();
-                console.log('📦 Total de lotes recebidos:', todosLotes.length);
-
-                // Filtrar apenas os sublotes deste lote (lote_pai_id === lote.id)
-                sublotes = todosLotes.filter(l => l.lote_pai_id === lote.id);
-                console.log('✅ Sublotes filtrados para o lote', lote.id, ':', sublotes.length);
+                sublotes = await response.json();
+                console.log('✅ Sublotes carregados para o lote', lote.id, ':', sublotes.length);
                 console.log('📊 Sublotes encontrados:', sublotes);
 
                 renderizarSublotes();
@@ -278,7 +274,9 @@
         async function carregarResiduos() {
             try {
                 console.log('🔍 Carregando resíduos da separação ID:', separacaoId);
-                const response = await fetch(`/api/separacao/residuos?status=all`, {
+                
+                // Usar endpoint específico para buscar resíduos da separação
+                const response = await fetch(`/api/separacao/${separacaoId}/residuos`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -291,10 +289,8 @@
                     return;
                 }
 
-                const todosResiduos = await response.json();
-                console.log('📦 Total de resíduos recebidos:', todosResiduos.length);
-                residuos = todosResiduos.filter(r => r.separacao_id == separacaoId);
-                console.log('✅ Resíduos filtrados para separação ID', separacaoId, ':', residuos.length);
+                residuos = await response.json();
+                console.log('✅ Resíduos carregados para separação ID', separacaoId, ':', residuos.length);
                 console.log('📊 Resíduos:', residuos);
 
                 renderizarResiduos();
