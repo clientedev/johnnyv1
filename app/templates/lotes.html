@@ -760,12 +760,7 @@
             modalBody.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Carregando...</p></div>';
 
             try {
-                const response = await fetchAPI(`/api/lotes/${loteId}`);
-                
-                if (!response || !response.ok) {
-                    throw new Error('Erro ao buscar lote');
-                }
-                
+                const response = await fetchAPI(`/lotes/${loteId}`);
                 const lote = await response.json();
 
                 document.getElementById('detalhesLoteNumero').textContent = lote.numero_lote;
@@ -891,7 +886,7 @@
             const loteId = document.getElementById('movLoteId').value;
 
             try {
-                await fetchAPI(`/api/lotes/${loteId}/movimentar`, {
+                await fetchAPI(`/lotes/${loteId}/movimentar`, {
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
@@ -948,7 +943,7 @@
             if (!motivo) return;
 
             try {
-                await fetchAPI(`/api/lotes/${loteId}/bloquear`, {
+                await fetchAPI(`/lotes/${loteId}/bloquear`, {
                     method: 'POST',
                     body: JSON.stringify({ tipo_bloqueio: 'QC', motivo })
                 });
@@ -965,7 +960,7 @@
             if (!confirm('Deseja desbloquear este lote?')) return;
 
             try {
-                await fetchAPI(`/api/lotes/${loteId}/desbloquear`, { method: 'POST' });
+                await fetchAPI(`/lotes/${loteId}/desbloquear`, { method: 'POST' });
                 showAlert('Lote desbloqueado com sucesso!');
                 fecharModalDetalhes();
                 carregarLotesAtivos();
@@ -979,7 +974,7 @@
             if (!reservadoPara) return;
 
             try {
-                await fetchAPI(`/api/lotes/${loteId}/reservar`, {
+                await fetchAPI(`/lotes/${loteId}/reservar`, {
                     method: 'POST',
                     body: JSON.stringify({ reservado_para: reservadoPara })
                 });
@@ -996,7 +991,7 @@
             if (!confirm('Deseja liberar a reserva deste lote?')) return;
 
             try {
-                await fetchAPI(`/api/lotes/${loteId}/liberar-reserva`, { method: 'POST' });
+                await fetchAPI(`/lotes/${loteId}/liberar-reserva`, { method: 'POST' });
                 showAlert('Reserva liberada com sucesso!');
                 fecharModalDetalhes();
                 carregarLotesAtivos();
@@ -1050,22 +1045,15 @@
             conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Buscando lote...</p></div>';
 
             try {
-                const response = await fetchAPI(`/api/lotes/numero/${encodeURIComponent(numero)}`);
-                
-                if (!response || !response.ok) {
-                    if (response && response.status === 404) {
-                        throw new Error('Lote não encontrado');
-                    }
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.erro || 'Erro ao buscar lote');
-                }
-                
-                const loteDetalhado = await response.json();
+                // Usar endpoint otimizado de busca por número
+                const detalhesResponse = await fetchAPI(`/lotes/numero/${encodeURIComponent(numero)}`);
+                const loteDetalhado = await detalhesResponse.json();
+
                 renderDetalhesLote(loteDetalhado);
             } catch (error) {
                 console.error('Erro ao buscar lote:', error);
 
-                if (error.message.includes('não encontrado')) {
+                if (error.message.includes('404') || error.message.includes('não encontrado')) {
                     conteudo.innerHTML = `
                         <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
                             <i class="fas fa-exclamation-triangle fa-3x" style="margin-bottom: 1rem;"></i>

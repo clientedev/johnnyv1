@@ -53,13 +53,8 @@ def obter_lote(id):
         if not lote:
             return jsonify({'erro': 'Lote não encontrado'}), 404
 
-        # Preparar dados completos do lote usando o método to_dict
+        # Preparar dados completos do lote
         lote_data = lote.to_dict()
-        
-        # Adicionar informações extras que podem não estar no to_dict padrão
-        lote_data['tipo_lote_nome'] = lote.tipo_lote.nome if lote.tipo_lote else None
-        lote_data['fornecedor_nome'] = lote.fornecedor.nome if lote.fornecedor else None
-        lote_data['solicitacao_origem_id'] = lote.solicitacao_origem_id
 
         # Adicionar informações dos itens
         if lote.itens:
@@ -73,10 +68,9 @@ def obter_lote(id):
         else:
             lote_data['sublotes'] = []
 
-        # Adicionar movimentações ordenadas
+        # Adicionar movimentações
         if lote.movimentacoes:
-            movs_ordenadas = sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)
-            lote_data['movimentacoes'] = [mov.to_dict() for mov in movs_ordenadas]
+            lote_data['movimentacoes'] = [mov.to_dict() for mov in sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)]
         else:
             lote_data['movimentacoes'] = []
 
@@ -110,7 +104,6 @@ def obter_lote(id):
         print(f"❌ Erro ao obter lote {id}: {str(e)}")
         import traceback
         traceback.print_exc()
-        db.session.rollback()
         return jsonify({'erro': f'Erro ao carregar detalhes do lote: {str(e)}'}), 500
 
 @bp.route('/<int:id>/aprovar', methods=['PUT'])
@@ -170,92 +163,6 @@ def rejeitar_lote(id):
     db.session.commit()
 
     return jsonify(lote.to_dict()), 200
-
-@bp.route('/numero/<string:numero_lote>', methods=['GET'])
-@jwt_required()
-def obter_lote_por_numero(numero_lote):
-    """Buscar lote por número"""
-    try:
-        from sqlalchemy.orm import selectinload, joinedload
-        
-        lote = Lote.query.options(
-            joinedload(Lote.tipo_lote),
-            joinedload(Lote.fornecedor),
-            joinedload(Lote.ordem_compra),
-            joinedload(Lote.ordem_servico),
-            joinedload(Lote.conferencia),
-            joinedload(Lote.entrada_estoque),
-            joinedload(Lote.separacao),
-            joinedload(Lote.solicitacao_origem),
-            joinedload(Lote.reservado_por),
-            joinedload(Lote.bloqueado_por),
-            selectinload(Lote.itens),
-            selectinload(Lote.sublotes),
-            selectinload(Lote.movimentacoes)
-        ).filter_by(numero_lote=numero_lote).first()
-
-        if not lote:
-            return jsonify({'erro': 'Lote não encontrado'}), 404
-
-        # Preparar dados completos do lote usando o método to_dict
-        lote_data = lote.to_dict()
-        
-        # Adicionar informações extras que podem não estar no to_dict padrão
-        lote_data['tipo_lote_nome'] = lote.tipo_lote.nome if lote.tipo_lote else None
-        lote_data['fornecedor_nome'] = lote.fornecedor.nome if lote.fornecedor else None
-        lote_data['solicitacao_origem_id'] = lote.solicitacao_origem_id
-
-        # Adicionar informações dos itens
-        if lote.itens:
-            lote_data['itens'] = [item.to_dict() for item in lote.itens]
-        else:
-            lote_data['itens'] = []
-
-        # Adicionar sublotes
-        if lote.sublotes:
-            lote_data['sublotes'] = [sublote.to_dict() for sublote in lote.sublotes]
-        else:
-            lote_data['sublotes'] = []
-
-        # Adicionar movimentações ordenadas
-        if lote.movimentacoes:
-            movs_ordenadas = sorted(lote.movimentacoes, key=lambda m: m.data_movimentacao, reverse=True)
-            lote_data['movimentacoes'] = [mov.to_dict() for mov in movs_ordenadas]
-        else:
-            lote_data['movimentacoes'] = []
-
-        # Adicionar entrada de estoque se existir
-        if lote.entrada_estoque:
-            lote_data['entrada_estoque'] = lote.entrada_estoque.to_dict()
-
-        # Adicionar separação se existir
-        if lote.separacao:
-            lote_data['separacao'] = lote.separacao.to_dict()
-
-        # Adicionar conferência se existir
-        if lote.conferencia:
-            lote_data['conferencia'] = lote.conferencia.to_dict()
-
-        # Adicionar ordem de compra se existir
-        if lote.ordem_compra:
-            lote_data['ordem_compra'] = lote.ordem_compra.to_dict()
-
-        # Adicionar ordem de serviço se existir
-        if lote.ordem_servico:
-            lote_data['ordem_servico'] = lote.ordem_servico.to_dict()
-
-        # Adicionar solicitação origem se existir
-        if lote.solicitacao_origem:
-            lote_data['solicitacao_origem'] = lote.solicitacao_origem.to_dict()
-
-        return jsonify(lote_data), 200
-
-    except Exception as e:
-        print(f"❌ Erro ao obter lote por número {numero_lote}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        db.session.rollback()
-        return jsonify({'erro': f'Erro ao carregar detalhes do lote: {str(e)}'}), 500
 
 @bp.route('/estatisticas', methods=['GET'])
 @jwt_required()
