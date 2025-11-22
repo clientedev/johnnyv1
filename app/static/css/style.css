@@ -309,25 +309,37 @@ nav.side-drawer a:active {
 
 .login-container {
     min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile */
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, #047857 0%, #059669 50%, #10b981 100%);
-    padding: var(--spacing-md);
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .login-box {
     background: white;
-    padding: var(--spacing-xl);
+    padding: clamp(1.5rem, 5vw, 2rem);
     border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     width: 100%;
     max-width: 420px;
+    margin: auto;
 }
 
 .logo-container {
     text-align: center;
     margin-bottom: var(--spacing-xl);
+}
+
+.logo-image {
+    width: clamp(80px, 20vw, 120px) !important;
+    height: clamp(80px, 20vw, 120px) !important;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+    object-fit: cover;
 }
 
 .logo-icon {
@@ -346,6 +358,47 @@ nav.side-drawer a:active {
     color: var(--gray-600);
     font-size: clamp(0.875rem, 4vw, 0.95rem);
     margin-top: var(--spacing-sm);
+}
+
+/* Mobile-specific login adjustments */
+@media (max-width: 768px) {
+    .login-container {
+        padding: var(--spacing-md);
+        align-items: flex-start;
+        padding-top: max(env(safe-area-inset-top), 1rem);
+        padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+    }
+    
+    .login-box {
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 380px) {
+    .login-container {
+        padding: var(--spacing-sm);
+    }
+    
+    .login-box {
+        padding: 1.25rem;
+        border-radius: 12px;
+    }
+}
+
+/* Login button - full width */
+.btn-login {
+    width: 100%;
+}
+
+/* Login subtitle */
+.login-subtitle {
+    margin-top: 1rem;
+    text-align: center;
+    color: var(--gray-600);
+    font-size: clamp(0.75rem, 3vw, 0.875rem);
+    line-height: 1.4;
 }
 
 /* ========== FORMS (MOBILE-OPTIMIZED) ========== */
@@ -668,7 +721,7 @@ table th {
 .pwa-install-banner {
     display: none;
     position: fixed;
-    bottom: var(--spacing-md);
+    bottom: max(env(safe-area-inset-bottom), var(--spacing-md));
     left: var(--spacing-md);
     right: var(--spacing-md);
     background: white;
@@ -676,6 +729,7 @@ table th {
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
+    max-width: 100%;
 }
 
 .pwa-install-banner.show {
@@ -683,6 +737,18 @@ table th {
     gap: var(--spacing-md);
     align-items: center;
     flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+@media (max-width: 480px) {
+    .pwa-install-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .pwa-install-banner button {
+        width: 100%;
+    }
 }
 
 /* ========== UTILITY CLASSES ========== */

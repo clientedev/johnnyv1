@@ -2,7 +2,9 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Login - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
@@ -21,7 +23,7 @@
     <div class="login-container">
         <div class="login-box">
             <div class="logo-container">
-                <img src="/static/images/mrx-logo.png" alt="MRX Systems" class="logo-image" style="width: 120px; height: 120px; border-radius: 50%; margin-bottom: 1rem;">
+                <img src="/static/images/mrx-logo.png" alt="MRX Systems" class="logo-image">
                 <h1>MRX Systems</h1>
             </div>
             <form id="loginForm">
@@ -33,9 +35,9 @@
                     <label for="senha">Senha</label>
                     <input type="password" id="senha" autocomplete="current-password" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%">Entrar</button>
+                <button type="submit" class="btn btn-primary btn-login">Entrar</button>
             </form>
-            <p style="margin-top: 1rem; text-align: center; color: var(--gray-600); font-size: 0.875rem;">
+            <p class="login-subtitle">
                 Gestão inteligente de recursos com tecnologia de ponta
             </p>
         </div>
