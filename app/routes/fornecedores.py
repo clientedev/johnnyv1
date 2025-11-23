@@ -34,7 +34,7 @@ def validar_cpf(cpf):
     return True
 
 def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
-    """Verifica se o usuário tem acesso ao fornecedor (criou ou foi atribuído)"""
+    """Verifica se o usuário tem acesso ao fornecedor (é comprador responsável)"""
     usuario = Usuario.query.get(usuario_id)
     
     if not usuario:
@@ -47,15 +47,8 @@ def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
     if not fornecedor:
         return False
     
-    if fornecedor.criado_por_id == usuario_id:
-        return True
-    
-    atribuicao = FornecedorFuncionarioAtribuicao.query.filter_by(
-        fornecedor_id=fornecedor_id,
-        funcionario_id=usuario_id
-    ).first()
-    
-    return atribuicao is not None
+    # Comprador tem acesso se for o comprador responsável
+    return fornecedor.comprador_responsavel_id == usuario_id
 
 @bp.route('', methods=['GET'])
 @jwt_required()
@@ -76,15 +69,9 @@ def listar_fornecedores():
         query = Fornecedor.query
         
         if usuario.tipo == 'funcionario':
-            subquery_ids_atribuidos = db.session.query(FornecedorFuncionarioAtribuicao.fornecedor_id).filter_by(
-                funcionario_id=usuario_id
-            ).subquery()
-            
+            # Comprador vê apenas fornecedores onde ele é o comprador responsável
             query = query.filter(
-                db.or_(
-                    Fornecedor.criado_por_id == usuario_id,
-                    Fornecedor.id.in_(subquery_ids_atribuidos)
-                )
+                Fornecedor.comprador_responsavel_id == usuario_id
             )
         
         if busca:
