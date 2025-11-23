@@ -22,11 +22,11 @@ def obter_estatisticas():
         total_reprovados = Solicitacao.query.filter_by(status='rejeitada').count()
         
         print(f'📈 Solicitações - Pendentes: {total_pendentes}, Aprovadas: {total_aprovados}, Reprovadas: {total_reprovados}')
-    
-    # Valor total de lotes aprovados
-    valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
-        Lote.status == 'aprovado'
-    ).scalar() or 0
+        
+        # Valor total de lotes aprovados
+        valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
+            Lote.status == 'aprovado'
+        ).scalar() or 0
     
     # Quilos por tipo de lote
     quilos_leve = db.session.query(func.sum(Lote.peso_total_kg)).join(
