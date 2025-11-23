@@ -43,6 +43,10 @@ def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
     if usuario.tipo == 'admin':
         return True
     
+    # Auditor tem acesso total de leitura
+    if usuario.perfil and usuario.perfil.nome == 'Auditoria / BI':
+        return True
+    
     fornecedor = Fornecedor.query.get(fornecedor_id)
     if not fornecedor:
         return False
@@ -68,7 +72,8 @@ def listar_fornecedores():
         
         query = Fornecedor.query
         
-        if usuario.tipo == 'funcionario':
+        # Auditor tem acesso total aos fornecedores (somente leitura)
+        if usuario.tipo == 'funcionario' and usuario.perfil and usuario.perfil.nome != 'Auditoria / BI':
             # Comprador vê apenas fornecedores onde ele é o comprador responsável
             query = query.filter(
                 Fornecedor.comprador_responsavel_id == usuario_id
