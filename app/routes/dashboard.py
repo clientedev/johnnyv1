@@ -13,27 +13,22 @@ bp = Blueprint('dashboard', __name__, url_prefix='/api/dashboard')
 @admin_required
 def obter_estatisticas():
     """Retorna estatísticas gerais do sistema"""
-    try:
-        print('📊 Iniciando obtenção de estatísticas do dashboard...')
-        
-        # Estatísticas de Solicitações/Relatórios
-        total_pendentes = Solicitacao.query.filter_by(status='pendente').count()
-        total_aprovados = Solicitacao.query.filter_by(status='aprovada').count()
-        total_reprovados = Solicitacao.query.filter_by(status='rejeitada').count()
-        
-        print(f'📈 Solicitações - Pendentes: {total_pendentes}, Aprovadas: {total_aprovados}, Reprovadas: {total_reprovados}')
-        
-        # Valor total de lotes aprovados
-        valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
-            Lote.status == 'aprovado'
-        ).scalar() or 0
-        
-        # Quilos por tipo de lote
-        quilos_leve = db.session.query(func.sum(Lote.peso_total_kg)).join(
-            TipoLote, Lote.tipo_lote_id == TipoLote.id
-        ).filter(
-            TipoLote.classificacao == 'leve'
-        ).scalar() or 0
+    # Estatísticas de Solicitações/Relatórios
+    total_pendentes = Solicitacao.query.filter_by(status='pendente').count()
+    total_aprovados = Solicitacao.query.filter_by(status='aprovada').count()
+    total_reprovados = Solicitacao.query.filter_by(status='rejeitada').count()
+    
+    # Valor total de lotes aprovados
+    valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
+        Lote.status == 'aprovado'
+    ).scalar() or 0
+    
+    # Quilos por tipo de lote
+    quilos_leve = db.session.query(func.sum(Lote.peso_total_kg)).join(
+        TipoLote, Lote.tipo_lote_id == TipoLote.id
+    ).filter(
+        TipoLote.classificacao == 'leve'
+    ).scalar() or 0
     
     quilos_media = db.session.query(func.sum(Lote.peso_total_kg)).join(
         TipoLote, Lote.tipo_lote_id == TipoLote.id
@@ -42,64 +37,48 @@ def obter_estatisticas():
     ).scalar() or 0
     
     quilos_pesada = db.session.query(func.sum(Lote.peso_total_kg)).join(
-            TipoLote, Lote.tipo_lote_id == TipoLote.id
-        ).filter(
-            TipoLote.classificacao == 'pesada'
-        ).scalar() or 0
-        
-        # Ranking de fornecedores (top 10)
-        ranking = db.session.query(
-            Fornecedor.id,
-            Fornecedor.nome,
-            func.count(Solicitacao.id).label('total')
-        ).join(
-            Solicitacao, Solicitacao.fornecedor_id == Fornecedor.id
-        ).filter(
-            Solicitacao.status == 'aprovada'
-        ).group_by(
-            Fornecedor.id, Fornecedor.nome
-        ).order_by(
-            func.count(Solicitacao.id).desc()
-        ).limit(10).all()
-        
-        ranking_empresas = [
-            {
-                'id': r.id,
-                'nome': r.nome,
-                'total': r.total
-            } for r in ranking
-        ]
-        
-        resultado = {
-            'relatorios': {
-                'pendentes': total_pendentes,
-                'aprovados': total_aprovados,
-                'reprovados': total_reprovados
-            },
-            'valor_total': float(valor_total),
-            'quilos_por_tipo': {
-                'leve': float(quilos_leve),
-                'media': float(quilos_media),
-                'pesada': float(quilos_pesada)
-            },
-            'ranking_empresas': ranking_empresas
-        }
-        
-        print(f'✅ Estatísticas processadas com sucesso: {len(ranking_empresas)} fornecedores no ranking')
-        return jsonify(resultado), 200
-        
-    except Exception as e:
-        print(f'❌ Erro ao obter estatísticas: {str(e)}')
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'erro': 'Erro ao processar estatísticas',
-            'detalhes': str(e),
-            'relatorios': {'pendentes': 0, 'aprovados': 0, 'reprovados': 0},
-            'valor_total': 0,
-            'quilos_por_tipo': {'leve': 0, 'media': 0, 'pesada': 0},
-            'ranking_empresas': []
-        }), 500
+        TipoLote, Lote.tipo_lote_id == TipoLote.id
+    ).filter(
+        TipoLote.classificacao == 'pesada'
+    ).scalar() or 0
+    
+    # Ranking de fornecedores (top 10)
+    ranking = db.session.query(
+        Fornecedor.id,
+        Fornecedor.nome,
+        func.count(Solicitacao.id).label('total')
+    ).join(
+        Solicitacao, Solicitacao.fornecedor_id == Fornecedor.id
+    ).filter(
+        Solicitacao.status == 'aprovada'
+    ).group_by(
+        Fornecedor.id, Fornecedor.nome
+    ).order_by(
+        func.count(Solicitacao.id).desc()
+    ).limit(10).all()
+    
+    ranking_empresas = [
+        {
+            'id': r.id,
+            'nome': r.nome,
+            'total': r.total
+        } for r in ranking
+    ]
+    
+    return jsonify({
+        'relatorios': {
+            'pendentes': total_pendentes,
+            'aprovados': total_aprovados,
+            'reprovados': total_reprovados
+        },
+        'valor_total': float(valor_total),
+        'quilos_por_tipo': {
+            'leve': float(quilos_leve),
+            'media': float(quilos_media),
+            'pesada': float(quilos_pesada)
+        },
+        'ranking_empresas': ranking_empresas
+    }), 200
 
 @bp.route('/grafico-mensal', methods=['GET'])
 @admin_required

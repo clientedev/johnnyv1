@@ -602,17 +602,13 @@
             if (!userData) return;
 
             // Permitir acesso ao dashboard para Admin e Auditoria/BI
-            const perfilNome = userData.perfil_nome || userData.perfil || '';
-            const isAdmin = userData.tipo === 'admin' || perfilNome === 'Administrador';
-            const isAuditoria = perfilNome === 'Auditoria / BI' || perfilNome === 'Auditoria/BI';
-            
-            if (!isAdmin && !isAuditoria) {
-                console.log('❌ Usuário não tem permissão para dashboard, redirecionando...');
+            if (userData.tipo !== 'admin' && userData.perfil !== 'Auditoria / BI') {
+                console.log('Usuário não tem permissão para dashboard, redirecionando...');
                 window.location.href = '/funcionario.html';
                 return;
             }
 
-            console.log('✅ Carregando dashboard para perfil:', perfilNome || userData.tipo);
+            console.log('✅ Carregando dashboard para perfil:', userData.perfil || userData.tipo);
             await changeModule('geral');
             await atualizarNotificacoes();
         }
@@ -624,27 +620,14 @@
                 const statsResponse = await fetchAPI('/dashboard/stats');
                 console.log('📊 Stats response:', statsResponse);
                 
-                if (!statsResponse) {
-                    console.error('❌ Sem resposta do servidor');
-                    showAlert('Erro de conexão com o servidor', 'error');
-                    return;
-                }
-                
-                if (!statsResponse.ok) {
-                    const errorText = await statsResponse.text();
-                    console.error('❌ Erro na resposta:', statsResponse.status, errorText);
-                    showAlert(`Erro ao carregar estatísticas: ${statsResponse.status}`, 'error');
+                if (!statsResponse || !statsResponse.ok) {
+                    console.error('❌ Erro na resposta:', statsResponse);
+                    showAlert('Erro ao carregar estatísticas do dashboard', 'error');
                     return;
                 }
                 
                 dashboardData = await statsResponse.json();
                 console.log('✅ Dados carregados:', dashboardData);
-                
-                if (!dashboardData || Object.keys(dashboardData).length === 0) {
-                    console.error('❌ Dados vazios recebidos do servidor');
-                    showAlert('Nenhum dado disponível para exibir', 'error');
-                    return;
-                }
 
                 updateKPILabels('geral');
                 updateKPIs({
