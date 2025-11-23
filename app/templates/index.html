@@ -66,12 +66,18 @@
             try {
                 const user = await login(email, senha);
                 
+                console.log('Login bem-sucedido:', user);
+                console.log('Tela inicial:', user.tela_inicial);
+                console.log('Perfil:', user.perfil);
+                
                 if (user.tela_inicial) {
                     window.location.href = user.tela_inicial;
                 } else if (user.tipo === 'admin') {
                     window.location.href = '/dashboard.html';
+                } else if (user.perfil === 'Auditoria / BI') {
+                    window.location.href = '/dashboard.html';
                 } else {
-                    window.location.href = '/funcionario.html';
+                    window.location.href = '/dashboard.html';
                 }
             } catch (error) {
                 showAlert(error.message);
@@ -85,8 +91,10 @@
                         window.location.href = user.tela_inicial;
                     } else if (user.tipo === 'admin') {
                         window.location.href = '/dashboard.html';
+                    } else if (user.perfil === 'Auditoria / BI') {
+                        window.location.href = '/dashboard.html';
                     } else {
-                        window.location.href = '/funcionario.html';
+                        window.location.href = '/dashboard.html';
                     }
                 }
             });

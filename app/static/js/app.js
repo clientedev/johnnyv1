@@ -254,8 +254,8 @@ function aplicarControleAcesso(user) {
             modulosVisiveis: ['fornecedores', 'solicitacoes']
         },
         'Auditoria / BI': {
-            paginasPermitidas: ['/dashboard.html', '/consulta.html', '/notificacoes.html', '/index.html', '/'],
-            modulosVisiveis: ['consulta', 'auditoria']
+            paginasPermitidas: ['/dashboard.html'],
+            modulosVisiveis: []
         }
     };
     
@@ -278,10 +278,8 @@ function aplicarControleAcesso(user) {
     
     if (!paginaPermitida && paginaAtual !== '/' && paginaAtual !== '/index.html') {
         console.warn(' Acesso negado à página:', paginaAtual);
-        showAlert(`Você não tem permissão para acessar esta página. Perfil: ${user.perfil_nome}`);
-        setTimeout(() => {
-            window.location.href = user.tela_inicial || '/solicitacoes.html';
-        }, 1500);
+        console.log(' Redirecionando para:', user.tela_inicial);
+        window.location.href = user.tela_inicial || '/dashboard.html';
         return;
     }
     
