@@ -163,74 +163,74 @@ def obter_metricas_financeiras():
             Usuario.tipo.in_(['admin', 'funcionario']),
             Usuario.ativo == True
         ).all()
-    
-    gastos_por_comprador = []
-    for comprador in compradores:
-        valor_mes = db.session.query(func.sum(Lote.valor_total)).join(
-            Fornecedor, Lote.fornecedor_id == Fornecedor.id
-        ).filter(
-            Fornecedor.comprador_responsavel_id == comprador.id,
-            Lote.data_criacao >= mes_atual,
-            Lote.status == 'aprovado'
-        ).scalar() or 0
         
-        valor_semana = db.session.query(func.sum(Lote.valor_total)).join(
-            Fornecedor, Lote.fornecedor_id == Fornecedor.id
-        ).filter(
-            Fornecedor.comprador_responsavel_id == comprador.id,
-            Lote.data_criacao >= inicio_semana,
-            Lote.status == 'aprovado'
-        ).scalar() or 0
+        gastos_por_comprador = []
+        for comprador in compradores:
+            valor_mes = db.session.query(func.sum(Lote.valor_total)).join(
+                Fornecedor, Lote.fornecedor_id == Fornecedor.id
+            ).filter(
+                Fornecedor.comprador_responsavel_id == comprador.id,
+                Lote.data_criacao >= mes_atual,
+                Lote.status == 'aprovado'
+            ).scalar() or 0
+            
+            valor_semana = db.session.query(func.sum(Lote.valor_total)).join(
+                Fornecedor, Lote.fornecedor_id == Fornecedor.id
+            ).filter(
+                Fornecedor.comprador_responsavel_id == comprador.id,
+                Lote.data_criacao >= inicio_semana,
+                Lote.status == 'aprovado'
+            ).scalar() or 0
+            
+            qtd_compras = db.session.query(func.count(Lote.id)).join(
+                Fornecedor, Lote.fornecedor_id == Fornecedor.id
+            ).filter(
+                Fornecedor.comprador_responsavel_id == comprador.id,
+                Lote.data_criacao >= mes_atual,
+                Lote.status == 'aprovado'
+            ).scalar() or 0
+            
+            ticket_medio = (float(valor_mes) / qtd_compras) if qtd_compras > 0 else 0
+            
+            gastos_por_comprador.append({
+                'nome': comprador.nome,
+                'valor_mes': float(valor_mes),
+                'valor_semana': float(valor_semana),
+                'qtd_compras': qtd_compras,
+                'ticket_medio': ticket_medio
+            })
         
-        qtd_compras = db.session.query(func.count(Lote.id)).join(
-            Fornecedor, Lote.fornecedor_id == Fornecedor.id
-        ).filter(
-            Fornecedor.comprador_responsavel_id == comprador.id,
-            Lote.data_criacao >= mes_atual,
-            Lote.status == 'aprovado'
-        ).scalar() or 0
+        gastos_mensais_ultimos_6_meses = []
+        nomes_meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
         
-        ticket_medio = (float(valor_mes) / qtd_compras) if qtd_compras > 0 else 0
+        for i in range(5, -1, -1):
+            mes_data = hoje - relativedelta(months=i)
+            mes_num = mes_data.month
+            ano = mes_data.year
+            
+            inicio_mes = datetime(ano, mes_num, 1)
+            if mes_num == 12:
+                fim_mes = datetime(ano + 1, 1, 1)
+            else:
+                fim_mes = datetime(ano, mes_num + 1, 1)
+            
+            valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
+                Lote.data_criacao >= inicio_mes,
+                Lote.data_criacao < fim_mes,
+                Lote.status == 'aprovado'
+            ).scalar() or 0
+            
+            gastos_mensais_ultimos_6_meses.append({
+                'mes': nomes_meses[mes_num],
+                'valor': float(valor_total)
+            })
         
-        gastos_por_comprador.append({
-            'nome': comprador.nome,
-            'valor_mes': float(valor_mes),
-            'valor_semana': float(valor_semana),
-            'qtd_compras': qtd_compras,
-            'ticket_medio': ticket_medio
-        })
-    
-    gastos_mensais_ultimos_6_meses = []
-    nomes_meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
-                  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-    
-    for i in range(5, -1, -1):
-        mes_data = hoje - relativedelta(months=i)
-        mes_num = mes_data.month
-        ano = mes_data.year
+        total_gasto_mes = sum([c['valor_mes'] for c in gastos_por_comprador])
+        total_compras_mes = sum([c['qtd_compras'] for c in gastos_por_comprador])
+        ticket_medio_geral = (total_gasto_mes / total_compras_mes) if total_compras_mes > 0 else 0
         
-        inicio_mes = datetime(ano, mes_num, 1)
-        if mes_num == 12:
-            fim_mes = datetime(ano + 1, 1, 1)
-        else:
-            fim_mes = datetime(ano, mes_num + 1, 1)
-        
-        valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
-            Lote.data_criacao >= inicio_mes,
-            Lote.data_criacao < fim_mes,
-            Lote.status == 'aprovado'
-        ).scalar() or 0
-        
-        gastos_mensais_ultimos_6_meses.append({
-            'mes': nomes_meses[mes_num],
-            'valor': float(valor_total)
-        })
-    
-    total_gasto_mes = sum([c['valor_mes'] for c in gastos_por_comprador])
-    total_compras_mes = sum([c['qtd_compras'] for c in gastos_por_comprador])
-    ticket_medio_geral = (total_gasto_mes / total_compras_mes) if total_compras_mes > 0 else 0
-    
-    return jsonify({
+        return jsonify({
             'gastos_por_comprador': gastos_por_comprador,
             'gastos_mensais': gastos_mensais_ultimos_6_meses,
             'total_gasto_mes': float(total_gasto_mes),
@@ -253,40 +253,40 @@ def obter_metricas_logistica():
         mes_atual = datetime(hoje.year, hoje.month, 1)
         
         motoristas = Motorista.query.filter(Motorista.ativo == True).all()
-    
-    metricas_motoristas = []
-    for motorista in motoristas:
-        total_os = OrdemServico.query.filter(
-            OrdemServico.motorista_id == motorista.id,
-            OrdemServico.criado_em >= mes_atual
-        ).count()
         
-        os_concluidas = OrdemServico.query.filter(
-            OrdemServico.motorista_id == motorista.id,
-            OrdemServico.status == 'FINALIZADA',
-            OrdemServico.criado_em >= mes_atual
-        ).count()
+        metricas_motoristas = []
+        for motorista in motoristas:
+            total_os = OrdemServico.query.filter(
+                OrdemServico.motorista_id == motorista.id,
+                OrdemServico.criado_em >= mes_atual
+            ).count()
+            
+            os_concluidas = OrdemServico.query.filter(
+                OrdemServico.motorista_id == motorista.id,
+                OrdemServico.status == 'FINALIZADA',
+                OrdemServico.criado_em >= mes_atual
+            ).count()
+            
+            km_total = 0  # OrdemServico não possui campo km_total
+            
+            tempo_medio_minutos = 0  # OrdemServico não possui campos data_conclusao e data_inicio
+            
+            taxa_conclusao = (os_concluidas / total_os * 100) if total_os > 0 else 0
+            
+            metricas_motoristas.append({
+                'nome': motorista.nome,
+                'total_os': total_os,
+                'os_concluidas': os_concluidas,
+                'km_total': float(km_total),
+                'tempo_medio_horas': float(tempo_medio_minutos) / 60,
+                'taxa_conclusao': round(taxa_conclusao, 2)
+            })
         
-        km_total = 0  # OrdemServico não possui campo km_total
+        total_km_mes = sum([m['km_total'] for m in metricas_motoristas])
+        total_os_mes = sum([m['total_os'] for m in metricas_motoristas])
+        media_km_por_os = (total_km_mes / total_os_mes) if total_os_mes > 0 else 0
         
-        tempo_medio_minutos = 0  # OrdemServico não possui campos data_conclusao e data_inicio
-        
-        taxa_conclusao = (os_concluidas / total_os * 100) if total_os > 0 else 0
-        
-        metricas_motoristas.append({
-            'nome': motorista.nome,
-            'total_os': total_os,
-            'os_concluidas': os_concluidas,
-            'km_total': float(km_total),
-            'tempo_medio_horas': float(tempo_medio_minutos) / 60,
-            'taxa_conclusao': round(taxa_conclusao, 2)
-        })
-    
-    total_km_mes = sum([m['km_total'] for m in metricas_motoristas])
-    total_os_mes = sum([m['total_os'] for m in metricas_motoristas])
-    media_km_por_os = (total_km_mes / total_os_mes) if total_os_mes > 0 else 0
-    
-    return jsonify({
+        return jsonify({
             'metricas_motoristas': metricas_motoristas,
             'total_km_mes': float(total_km_mes),
             'total_os_mes': total_os_mes,
@@ -308,61 +308,61 @@ def obter_analise_fornecedores():
         mes_atual = datetime(hoje.year, hoje.month, 1)
         
         fornecedores_ativos = Fornecedor.query.filter(Fornecedor.ativo == True).all()
-    
-    analise_fornecedores = []
-    for fornecedor in fornecedores_ativos:
-        total_solicitacoes = Solicitacao.query.filter(
-            Solicitacao.fornecedor_id == fornecedor.id,
-            Solicitacao.data_envio >= mes_atual
-        ).count()
         
-        solicitacoes_aprovadas = Solicitacao.query.filter(
-            Solicitacao.fornecedor_id == fornecedor.id,
-            Solicitacao.status == 'aprovada',
-            Solicitacao.data_envio >= mes_atual
-        ).count()
+        analise_fornecedores = []
+        for fornecedor in fornecedores_ativos:
+            total_solicitacoes = Solicitacao.query.filter(
+                Solicitacao.fornecedor_id == fornecedor.id,
+                Solicitacao.data_envio >= mes_atual
+            ).count()
+            
+            solicitacoes_aprovadas = Solicitacao.query.filter(
+                Solicitacao.fornecedor_id == fornecedor.id,
+                Solicitacao.status == 'aprovada',
+                Solicitacao.data_envio >= mes_atual
+            ).count()
+            
+            tempo_medio_aprovacao = db.session.query(
+                func.avg(
+                    func.extract('epoch', Solicitacao.data_confirmacao - Solicitacao.data_envio) / 3600
+                )
+            ).filter(
+                Solicitacao.fornecedor_id == fornecedor.id,
+                Solicitacao.status == 'aprovada',
+                Solicitacao.data_confirmacao.isnot(None),
+                Solicitacao.data_envio >= mes_atual
+            ).scalar() or 0
+            
+            peso_total = db.session.query(func.sum(Lote.peso_total_kg)).filter(
+                Lote.fornecedor_id == fornecedor.id,
+                Lote.status == 'aprovado',
+                Lote.data_criacao >= mes_atual
+            ).scalar() or 0
+            
+            valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
+                Lote.fornecedor_id == fornecedor.id,
+                Lote.status == 'aprovado',
+                Lote.data_criacao >= mes_atual
+            ).scalar() or 0
+            
+            taxa_aprovacao = (solicitacoes_aprovadas / total_solicitacoes * 100) if total_solicitacoes > 0 else 0
+            
+            preco_medio_kg = (float(valor_total) / float(peso_total)) if float(peso_total) > 0 else 0
+            
+            analise_fornecedores.append({
+                'nome': fornecedor.nome,
+                'total_solicitacoes': total_solicitacoes,
+                'solicitacoes_aprovadas': solicitacoes_aprovadas,
+                'taxa_aprovacao': round(taxa_aprovacao, 2),
+                'tempo_medio_aprovacao_horas': round(float(tempo_medio_aprovacao), 2),
+                'peso_total_kg': float(peso_total),
+                'valor_total': float(valor_total),
+                'preco_medio_kg': round(preco_medio_kg, 2)
+            })
         
-        tempo_medio_aprovacao = db.session.query(
-            func.avg(
-                func.extract('epoch', Solicitacao.data_confirmacao - Solicitacao.data_envio) / 3600
-            )
-        ).filter(
-            Solicitacao.fornecedor_id == fornecedor.id,
-            Solicitacao.status == 'aprovada',
-            Solicitacao.data_confirmacao.isnot(None),
-            Solicitacao.data_envio >= mes_atual
-        ).scalar() or 0
+        analise_fornecedores_ordenado = sorted(analise_fornecedores, key=lambda x: x['valor_total'], reverse=True)[:10]
         
-        peso_total = db.session.query(func.sum(Lote.peso_total_kg)).filter(
-            Lote.fornecedor_id == fornecedor.id,
-            Lote.status == 'aprovado',
-            Lote.data_criacao >= mes_atual
-        ).scalar() or 0
-        
-        valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
-            Lote.fornecedor_id == fornecedor.id,
-            Lote.status == 'aprovado',
-            Lote.data_criacao >= mes_atual
-        ).scalar() or 0
-        
-        taxa_aprovacao = (solicitacoes_aprovadas / total_solicitacoes * 100) if total_solicitacoes > 0 else 0
-        
-        preco_medio_kg = (float(valor_total) / float(peso_total)) if float(peso_total) > 0 else 0
-        
-        analise_fornecedores.append({
-            'nome': fornecedor.nome,
-            'total_solicitacoes': total_solicitacoes,
-            'solicitacoes_aprovadas': solicitacoes_aprovadas,
-            'taxa_aprovacao': round(taxa_aprovacao, 2),
-            'tempo_medio_aprovacao_horas': round(float(tempo_medio_aprovacao), 2),
-            'peso_total_kg': float(peso_total),
-            'valor_total': float(valor_total),
-            'preco_medio_kg': round(preco_medio_kg, 2)
-        })
-    
-    analise_fornecedores_ordenado = sorted(analise_fornecedores, key=lambda x: x['valor_total'], reverse=True)[:10]
-    
-    return jsonify({
+        return jsonify({
             'top_fornecedores': analise_fornecedores_ordenado,
             'total_fornecedores': len(fornecedores_ativos)
         }), 200
@@ -384,79 +384,79 @@ def obter_metricas_operacionais():
         total_solicitacoes = Solicitacao.query.filter(
             Solicitacao.data_envio >= mes_atual
         ).count()
-    
-    solicitacoes_aprovadas = Solicitacao.query.filter(
-        Solicitacao.data_envio >= mes_atual,
-        Solicitacao.status == 'aprovada'
-    ).count()
-    
-    solicitacoes_rejeitadas = Solicitacao.query.filter(
-        Solicitacao.data_envio >= mes_atual,
-        Solicitacao.status == 'rejeitada'
-    ).count()
-    
-    solicitacoes_pendentes = Solicitacao.query.filter(
-        Solicitacao.status == 'pendente'
-    ).count()
-    
-    taxa_aprovacao = (solicitacoes_aprovadas / total_solicitacoes * 100) if total_solicitacoes > 0 else 0
-    
-    tempo_medio_aprovacao = db.session.query(
-        func.avg(
-            func.extract('epoch', Solicitacao.data_confirmacao - Solicitacao.data_envio) / 3600
-        )
-    ).filter(
-        Solicitacao.status == 'aprovada',
-        Solicitacao.data_confirmacao.isnot(None),
-        Solicitacao.data_envio >= mes_atual
-    ).scalar() or 0
-    
-    tempo_medio_ciclo_completo = db.session.query(
-        func.avg(
-            func.extract('epoch', EntradaEstoque.data_entrada - Solicitacao.data_envio) / (3600 * 24)
-        )
-    ).join(
-        Lote, EntradaEstoque.lote_id == Lote.id
-    ).join(
-        Solicitacao, Lote.fornecedor_id == Solicitacao.fornecedor_id
-    ).filter(
-        Solicitacao.data_envio >= mes_atual,
-        EntradaEstoque.data_entrada.isnot(None)
-    ).scalar() or 0
-    
-    nomes_meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
-                  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-    
-    solicitacoes_por_mes = []
-    for i in range(5, -1, -1):
-        mes_data = hoje - relativedelta(months=i)
-        mes_num = mes_data.month
-        ano = mes_data.year
         
-        inicio_mes = datetime(ano, mes_num, 1)
-        if mes_num == 12:
-            fim_mes = datetime(ano + 1, 1, 1)
-        else:
-            fim_mes = datetime(ano, mes_num + 1, 1)
-        
-        total_mes = Solicitacao.query.filter(
-            Solicitacao.data_envio >= inicio_mes,
-            Solicitacao.data_envio < fim_mes
-        ).count()
-        
-        aprovadas_mes = Solicitacao.query.filter(
-            Solicitacao.data_envio >= inicio_mes,
-            Solicitacao.data_envio < fim_mes,
+        solicitacoes_aprovadas = Solicitacao.query.filter(
+            Solicitacao.data_envio >= mes_atual,
             Solicitacao.status == 'aprovada'
         ).count()
         
-        solicitacoes_por_mes.append({
-            'mes': nomes_meses[mes_num],
-            'total': total_mes,
-            'aprovadas': aprovadas_mes
-        })
-    
-    return jsonify({
+        solicitacoes_rejeitadas = Solicitacao.query.filter(
+            Solicitacao.data_envio >= mes_atual,
+            Solicitacao.status == 'rejeitada'
+        ).count()
+        
+        solicitacoes_pendentes = Solicitacao.query.filter(
+            Solicitacao.status == 'pendente'
+        ).count()
+        
+        taxa_aprovacao = (solicitacoes_aprovadas / total_solicitacoes * 100) if total_solicitacoes > 0 else 0
+        
+        tempo_medio_aprovacao = db.session.query(
+            func.avg(
+                func.extract('epoch', Solicitacao.data_confirmacao - Solicitacao.data_envio) / 3600
+            )
+        ).filter(
+            Solicitacao.status == 'aprovada',
+            Solicitacao.data_confirmacao.isnot(None),
+            Solicitacao.data_envio >= mes_atual
+        ).scalar() or 0
+        
+        tempo_medio_ciclo_completo = db.session.query(
+            func.avg(
+                func.extract('epoch', EntradaEstoque.data_entrada - Solicitacao.data_envio) / (3600 * 24)
+            )
+        ).join(
+            Lote, EntradaEstoque.lote_id == Lote.id
+        ).join(
+            Solicitacao, Lote.fornecedor_id == Solicitacao.fornecedor_id
+        ).filter(
+            Solicitacao.data_envio >= mes_atual,
+            EntradaEstoque.data_entrada.isnot(None)
+        ).scalar() or 0
+        
+        nomes_meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+        
+        solicitacoes_por_mes = []
+        for i in range(5, -1, -1):
+            mes_data = hoje - relativedelta(months=i)
+            mes_num = mes_data.month
+            ano = mes_data.year
+            
+            inicio_mes = datetime(ano, mes_num, 1)
+            if mes_num == 12:
+                fim_mes = datetime(ano + 1, 1, 1)
+            else:
+                fim_mes = datetime(ano, mes_num + 1, 1)
+            
+            total_mes = Solicitacao.query.filter(
+                Solicitacao.data_envio >= inicio_mes,
+                Solicitacao.data_envio < fim_mes
+            ).count()
+            
+            aprovadas_mes = Solicitacao.query.filter(
+                Solicitacao.data_envio >= inicio_mes,
+                Solicitacao.data_envio < fim_mes,
+                Solicitacao.status == 'aprovada'
+            ).count()
+            
+            solicitacoes_por_mes.append({
+                'mes': nomes_meses[mes_num],
+                'total': total_mes,
+                'aprovadas': aprovadas_mes
+            })
+        
+        return jsonify({
             'total_solicitacoes_mes': total_solicitacoes,
             'solicitacoes_aprovadas': solicitacoes_aprovadas,
             'solicitacoes_rejeitadas': solicitacoes_rejeitadas,
