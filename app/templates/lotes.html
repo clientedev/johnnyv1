@@ -122,6 +122,18 @@
             margin-bottom: 2rem;
         }
 
+        .graficos-container .card {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #graficoStatus,
+        #graficoLocalizacao {
+            max-height: 350px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
         @media (max-width: 768px) {
             .graficos-container {
                 grid-template-columns: 1fr;
@@ -138,8 +150,7 @@
 
             #graficoStatus,
             #graficoLocalizacao {
-                min-height: 200px !important;
-                max-height: 300px;
+                max-height: 300px !important;
             }
         }
     </style>
@@ -268,11 +279,11 @@
             <div class="graficos-container">
                 <div class="card">
                     <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-pie"></i> Lotes por Status</h3>
-                    <div id="graficoStatus" style="min-height: 250px;"></div>
+                    <div id="graficoStatus"></div>
                 </div>
                 <div class="card">
                     <h3 style="margin-bottom: 1rem;"><i class="fas fa-map-marker-alt"></i> Lotes por Localização</h3>
-                    <div id="graficoLocalizacao" style="min-height: 250px;"></div>
+                    <div id="graficoLocalizacao"></div>
                 </div>
             </div>
 
