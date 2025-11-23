@@ -232,6 +232,16 @@ function verificarAcessoPagina() {
         return false;
     }
 
+    // PROTEÇÃO ESPECÍFICA: Perfil Auditoria / BI só pode acessar dashboard
+    if (currentUserData.perfil === 'Auditoria / BI') {
+        if (paginaAtual !== '/dashboard.html') {
+            console.warn('⚠️ Perfil Auditoria/BI: redirecionando para dashboard');
+            window.location.href = '/dashboard.html';
+            return false;
+        }
+        return true;
+    }
+
     if (!paginasPermitidas || paginasPermitidas.length === 0) {
         console.error('ERRO CRÍTICO: Nenhuma página permitida configurada para o perfil:', currentUserData.perfil);
         console.error('Usuário:', currentUserData);
@@ -245,13 +255,13 @@ function verificarAcessoPagina() {
     });
     
     if (!paginaPermitida) {
-        console.warn(' Acesso negado à página:', paginaAtual);
+        console.warn('🚫 Acesso negado à página:', paginaAtual);
         console.warn('Páginas permitidas:', paginasPermitidas);
         window.location.href = '/acesso-negado.html';
         return false;
     }
 
-    console.log(' Acesso permitido à página:', paginaAtual);
+    console.log('✅ Acesso permitido à página:', paginaAtual);
     return true;
 }
 
