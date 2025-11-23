@@ -333,21 +333,20 @@
         <!-- TAB 4: Detalhes do Lote -->
         <div class="tab-content" id="detalhes-lote">
             <div class="card">
-                <h3 style="margin-bottom: 1rem;"><i class="fas fa-search"></i> Buscar Lote</h3>
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-search"></i> Selecionar Lote</h3>
                 <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
                     <div class="form-group" style="flex: 1; margin: 0;">
                         <label>Número do Lote</label>
-                        <input type="text" id="buscaLoteNumero" placeholder="Digite o número do lote...">
+                        <select id="buscaLoteNumero" onchange="buscarLotePorSelect()">
+                            <option value="">Selecione um lote...</option>
+                        </select>
                     </div>
-                    <button class="btn btn-primary" onclick="buscarLotePorNumero()" style="align-self: flex-end;">
-                        <i class="fas fa-search"></i> Buscar
-                    </button>
                 </div>
 
                 <div id="conteudoDetalhesLoteFull">
                     <div style="text-align: center; padding: 3rem; color: var(--gray-500);">
                         <i class="fas fa-box-open fa-4x" style="margin-bottom: 1rem;"></i>
-                        <p style="font-size: 1.1rem;">Digite um número de lote acima para visualizar os detalhes</p>
+                        <p style="font-size: 1.1rem;">Selecione um lote acima para visualizar os detalhes</p>
                     </div>
                 </div>
             </div>
@@ -1030,12 +1029,17 @@
                     throw new Error('Erro ao movimentar lote');
                 }
 
-                showAlert('Lote movimentado com sucesso!');
-                fecharModalDetalhes();
-                carregarLotesAtivos();
-                carregarMovimentacoes();
+                showAlert('Lote movimentado com sucesso!', 'success');
+                
+                // Recarregar detalhes do lote automaticamente
+                await buscarLoteDetalhes(loteId);
+                
+                // Atualizar outras abas se necessário
+                if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
+                if (typeof carregarMovimentacoes === 'function') carregarMovimentacoes();
+                if (typeof carregarVisaoGeral === 'function') carregarVisaoGeral();
             } catch (error) {
-                showAlert('Erro ao movimentar lote: ' + error.message);
+                showAlert('Erro ao movimentar lote: ' + error.message, 'error');
             }
         }
 
@@ -1044,16 +1048,24 @@
             if (!motivo) return;
 
             try {
-                await fetchAPI(`/wms/lotes/${loteId}/bloquear`, {
+                const response = await fetchAPI(`/wms/lotes/${loteId}/bloquear`, {
                     method: 'POST',
                     body: JSON.stringify({ tipo_bloqueio: 'QC', motivo })
                 });
 
-                showAlert('Lote bloqueado com sucesso!');
-                fecharModalDetalhes();
-                carregarLotesAtivos();
+                if (!response || !response.ok) {
+                    throw new Error('Erro ao bloquear lote');
+                }
+
+                showAlert('Lote bloqueado com sucesso!', 'success');
+                
+                // Recarregar detalhes do lote automaticamente
+                await buscarLoteDetalhes(loteId);
+                
+                if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
+                if (typeof carregarVisaoGeral === 'function') carregarVisaoGeral();
             } catch (error) {
-                showAlert('Erro ao bloquear lote: ' + error.message);
+                showAlert('Erro ao bloquear lote: ' + error.message, 'error');
             }
         }
 
@@ -1061,30 +1073,48 @@
             if (!confirm('Deseja desbloquear este lote?')) return;
 
             try {
-                await fetchAPI(`/wms/lotes/${loteId}/desbloquear`, { method: 'POST' });
-                showAlert('Lote desbloqueado com sucesso!');
-                fecharModalDetalhes();
-                carregarLotesAtivos();
+                const response = await fetchAPI(`/wms/lotes/${loteId}/desbloquear`, { method: 'POST' });
+                
+                if (!response || !response.ok) {
+                    throw new Error('Erro ao desbloquear lote');
+                }
+
+                showAlert('Lote desbloqueado com sucesso!', 'success');
+                
+                // Recarregar detalhes do lote automaticamente
+                await buscarLoteDetalhes(loteId);
+                
+                if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
+                if (typeof carregarVisaoGeral === 'function') carregarVisaoGeral();
             } catch (error) {
-                showAlert('Erro ao desbloquear lote: ' + error.message);
+                showAlert('Erro ao desbloquear lote: ' + error.message, 'error');
             }
         }
 
         async function reservarLote(loteId) {
-            const reservadoPara = prompt('Reservar para:');
-            if (!reservadoPara) return;
+            const reservadoPara = prompt('Reservar para (ex: OS-123, OC-456):');
+            if (!reservadoPara || !reservadoPara.trim()) return;
 
             try {
-                await fetchAPI(`/wms/lotes/${loteId}/reservar`, {
+                const response = await fetchAPI(`/wms/lotes/${loteId}/reservar`, {
                     method: 'POST',
-                    body: JSON.stringify({ reservado_para: reservadoPara })
+                    body: JSON.stringify({ reservado_para: reservadoPara.trim() })
                 });
 
-                showAlert('Lote reservado com sucesso!');
-                fecharModalDetalhes();
-                carregarLotesAtivos();
+                if (!response || !response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.erro || 'Erro ao reservar lote');
+                }
+
+                showAlert('✅ Lote reservado com sucesso!', 'success');
+                
+                // Recarregar detalhes do lote automaticamente
+                await buscarLoteDetalhes(loteId);
+                
+                if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
+                if (typeof carregarVisaoGeral === 'function') carregarVisaoGeral();
             } catch (error) {
-                showAlert('Erro ao reservar lote: ' + error.message);
+                showAlert('❌ Erro ao reservar lote: ' + error.message, 'error');
             }
         }
 
@@ -1092,12 +1122,22 @@
             if (!confirm('Deseja liberar a reserva deste lote?')) return;
 
             try {
-                await fetchAPI(`/wms/lotes/${loteId}/liberar-reserva`, { method: 'POST' });
-                showAlert('Reserva liberada com sucesso!');
-                fecharModalDetalhes();
-                carregarLotesAtivos();
+                const response = await fetchAPI(`/wms/lotes/${loteId}/liberar-reserva`, { method: 'POST' });
+                
+                if (!response || !response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.erro || 'Erro ao liberar reserva');
+                }
+
+                showAlert('✅ Reserva liberada com sucesso!', 'success');
+                
+                // Recarregar detalhes do lote automaticamente
+                await buscarLoteDetalhes(loteId);
+                
+                if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
+                if (typeof carregarVisaoGeral === 'function') carregarVisaoGeral();
             } catch (error) {
-                showAlert('Erro ao liberar reserva: ' + error.message);
+                showAlert('❌ Erro ao liberar reserva: ' + error.message, 'error');
             }
         }
 
@@ -1241,24 +1281,54 @@
             document.getElementById('conteudoDetalhesLoteFull').innerHTML = `
                 <div style="text-align: center; padding: 3rem; color: var(--gray-500);">
                     <i class="fas fa-box-open fa-4x" style="margin-bottom: 1rem;"></i>
-                    <p style="font-size: 1.1rem;">Digite um número de lote acima para visualizar os detalhes</p>
+                    <p style="font-size: 1.1rem;">Selecione um lote acima para visualizar os detalhes</p>
                 </div>
             `;
+            carregarLotesParaSelecao();
         }
 
-        async function buscarLotePorNumero() {
-            const numero = document.getElementById('buscaLoteNumero').value.trim();
-            if (!numero) {
-                showAlert('Digite um número de lote');
+        async function carregarLotesParaSelecao() {
+            try {
+                const response = await fetchAPI('/wms/lotes');
+                if (!response || !response.ok) {
+                    throw new Error('Erro ao carregar lotes');
+                }
+                const lotes = await response.json();
+
+                const select = document.getElementById('buscaLoteNumero');
+                select.innerHTML = '<option value="">Selecione um lote...</option>' + lotes.map(lote => 
+                    `<option value="${lote.id}">${lote.numero_lote} - ${lote.tipo_lote_nome || 'Material'} - ${lote.fornecedor_nome || 'Fornecedor'}</option>`
+                ).join('');
+            } catch (error) {
+                console.error('Erro ao carregar lotes para seleção:', error);
+                showAlert('Erro ao carregar lista de lotes');
+            }
+        }
+
+        async function buscarLotePorSelect() {
+            const loteId = document.getElementById('buscaLoteNumero').value;
+            if (!loteId) {
+                document.getElementById('conteudoDetalhesLoteFull').innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: var(--gray-500);">
+                        <i class="fas fa-box-open fa-4x" style="margin-bottom: 1rem;"></i>
+                        <p style="font-size: 1.1rem;">Selecione um lote acima para visualizar os detalhes</p>
+                    </div>
+                `;
                 return;
             }
 
+            await buscarLoteDetalhes(parseInt(loteId));
+        }
+
+        async function buscarLoteDetalhes(loteId) {
             const conteudo = document.getElementById('conteudoDetalhesLoteFull');
             conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Buscando lote...</p></div>';
 
             try {
-                // Usar endpoint otimizado de busca por número
-                const detalhesResponse = await fetchAPI(`/wms/lotes/numero/${encodeURIComponent(numero)}`);
+                const detalhesResponse = await fetchAPI(`/wms/lotes/${loteId}`);
+                if (!detalhesResponse || !detalhesResponse.ok) {
+                    throw new Error('Lote não encontrado');
+                }
                 const loteDetalhado = await detalhesResponse.json();
 
                 renderDetalhesLote(loteDetalhado);
@@ -1270,7 +1340,7 @@
                         <div style="text-align: center; padding: 3rem; color: var(--danger-color);">
                             <i class="fas fa-exclamation-triangle fa-3x" style="margin-bottom: 1rem;"></i>
                             <p style="font-size: 1.1rem;">Lote não encontrado</p>
-                            <p style="font-size: 0.9rem; color: var(--gray-600); margin-top: 0.5rem;">Verifique se o número foi digitado corretamente</p>
+                            <p style="font-size: 0.9rem; color: var(--gray-600); margin-top: 0.5rem;">Verifique se o lote existe no sistema</p>
                         </div>
                     `;
                 } else {
