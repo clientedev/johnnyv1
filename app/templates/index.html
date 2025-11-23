@@ -9,6 +9,17 @@
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* Remove scroll da tela de login - não permite scroll vertical ou horizontal */
+        html, body {
+            overflow: hidden !important;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 <body>
     <div class="pwa-install-banner">

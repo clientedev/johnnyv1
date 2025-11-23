@@ -311,13 +311,20 @@ nav.side-drawer a:active {
 .login-container {
     min-height: 100vh;
     min-height: 100dvh; /* Dynamic viewport height for mobile */
+    max-height: 100vh;
+    max-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, #047857 0%, #059669 50%, #10b981 100%);
     padding: var(--spacing-lg);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden; /* Remove scroll da tela de login */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
 }
 
 .login-box {
@@ -365,14 +372,14 @@ nav.side-drawer a:active {
 @media (max-width: 768px) {
     .login-container {
         padding: var(--spacing-md);
-        align-items: flex-start;
-        padding-top: max(env(safe-area-inset-top), 1rem);
-        padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+        align-items: center;
+        justify-content: center;
     }
     
     .login-box {
-        margin-top: 2rem;
-        margin-bottom: 2rem;
+        margin: 0;
+        max-height: 90vh;
+        overflow-y: auto;
     }
 }
 
@@ -1219,4 +1226,13 @@ main.container > *:first-child {
 .image-preview img {
     width: 100%;
     height: auto;
+}
+
+/* ========== WMS FULL MRX - AJUSTE MOBILE ========== */
+/* Corrige o título WMS Full MRX que fica atrás da navbar no mobile */
+@media (max-width: 768px) {
+    main.container h1 {
+        margin-top: 25px !important; /* Adiciona 25px de margem extra no mobile */
+        padding-top: 0;
+    }
 }
