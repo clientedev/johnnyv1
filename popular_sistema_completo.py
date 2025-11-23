@@ -53,26 +53,54 @@ def limpar_dados_antigos():
         db.session.query(AuditoriaLog).delete()
         db.session.query(AuditoriaOC).delete()
         
+        # ORDEM CORRETA: deletar filhos antes dos pais
+        # 1. Entradas de estoque (referencia lotes)
         db.session.query(EntradaEstoque).delete()
-        db.session.query(ConferenciaRecebimento).delete()
+        
+        # 2. Lotes (referencia conferencias, OS, OC, solicitacao, fornecedor, tipo_lote)
         db.session.query(Lote).delete()
+        
+        # 3. Conferências (referencia OS e OC)
+        db.session.query(ConferenciaRecebimento).delete()
+        
+        # 4. Ordens de Serviço (referencia OC, motorista, veiculo)
         db.session.query(OrdemServico).delete()
+        
+        # 5. Ordens de Compra (referencia solicitacao e fornecedor)
         db.session.query(OrdemCompra).delete()
+        
+        # 6. Itens de Solicitação (referencia solicitacao)
         db.session.query(ItemSolicitacao).delete()
+        
+        # 7. Solicitações (referencia fornecedor e usuario)
         db.session.query(Solicitacao).delete()
+        
+        # 8. Motoristas (referencia usuario e veiculo)
         db.session.query(Motorista).delete()
+        
+        # 9. Veículos
         db.session.query(Veiculo).delete()
+        
+        # 10. Relações de fornecedores
         db.session.query(FornecedorTipoLotePreco).delete()
         db.session.query(FornecedorTipoLoteClassificacao).delete()
         db.session.query(FornecedorClassificacaoEstrela).delete()
         db.session.query(FornecedorTipoLote).delete()
+        
+        # 11. Fornecedores
         db.session.query(Fornecedor).delete()
+        
+        # 12. Vendedores
         db.session.query(Vendedor).delete()
+        
+        # 13. Preços e materiais
         db.session.query(TabelaPrecoItem).delete()
         db.session.query(MaterialBase).delete()
+        
+        # 14. Notificações
         db.session.query(Notificacao).delete()
         
-        # Manter apenas admin e tipos de lote padrão
+        # 15. Manter apenas admin e tipos de lote padrão
         db.session.query(Usuario).filter(Usuario.email != 'admin@sistema.com').delete()
         db.session.query(TipoLote).filter(TipoLote.id != 1).delete()
         
