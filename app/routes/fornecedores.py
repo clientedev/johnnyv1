@@ -188,6 +188,16 @@ def criar_fornecedor():
             if tabela_id_req in [1, 2, 3]:
                 tabela_preco_id = tabela_id_req
         
+        # Definir comprador responsável
+        comprador_responsavel_id = None
+        if usuario.tipo == 'admin':
+            # Admin pode escolher qualquer comprador
+            if 'comprador_responsavel_id' in data and data['comprador_responsavel_id']:
+                comprador_responsavel_id = data['comprador_responsavel_id']
+        else:
+            # Comprador se auto-atribui automaticamente
+            comprador_responsavel_id = usuario_id
+        
         # Determinar tipo de documento e validar
         tipo_doc = data.get('tipo_documento', 'cnpj' if cnpj_normalizado else 'cpf')
         
@@ -208,6 +218,7 @@ def criar_fornecedor():
             cnpj=cnpj_normalizado,
             cpf=cpf_normalizado,
             tabela_preco_id=tabela_preco_id,
+            comprador_responsavel_id=comprador_responsavel_id,
             rua=data.get('rua', ''),
             numero=data.get('numero', ''),
             cidade=data.get('cidade', ''),

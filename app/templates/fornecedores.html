@@ -367,6 +367,26 @@
                     <textarea id="observacoes" rows="2"></textarea>
                 </div>
 
+                <!-- Comprador Responsável (Apenas Administrador) -->
+                <div data-perfil="Administrador" style="background: #e0f2fe; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid #0284c7;">
+                    <h4 style="margin: 0 0 1rem 0; color: #075985; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-user-tie"></i> Comprador Responsável
+                    </h4>
+                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #0c4a6e;">
+                        Selecione o comprador que será responsável por este fornecedor. Se não selecionar nenhum, o fornecedor ficará sem atribuição.
+                    </p>
+                    
+                    <div class="form-group">
+                        <label><strong>Comprador</strong></label>
+                        <select id="compradorResponsavelId" style="padding: 0.75rem; border: 2px solid #0284c7; border-radius: 8px; font-size: 1rem;">
+                            <option value="">Sem atribuição</option>
+                        </select>
+                        <small style="color: #075985; display: block; margin-top: 0.5rem;">
+                            <i class="fas fa-info-circle"></i> Apenas este comprador poderá criar solicitações para este fornecedor.
+                        </small>
+                    </div>
+                </div>
+
                 <!-- Tabela de Preços do Fornecedor (Apenas Administrador) -->
                 <div data-perfil="Administrador" style="background: #fef3c7; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid #f59e0b;">
                     <h4 style="margin: 0 0 1rem 0; color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
@@ -403,17 +423,39 @@
         let fornecedorAtual = null;
         let todosTiposLote = [];
         let precosConfigurados = {};
+        let listaCompradores = [];
 
         async function carregarPagina() {
             const user = await verificarAuth();
             if (!user) return;
 
             await carregarFornecedores();
+            await carregarCompradores();
             await atualizarNotificacoes();
             
             // Renderizar menus após carregar os dados do usuário
             if (typeof renderizarMenusMobile === 'function') {
                 renderizarMenusMobile();
+            }
+        }
+
+        async function carregarCompradores() {
+            try {
+                const response = await fetchAPI('/usuarios');
+                if (!response || !response.ok) return;
+                
+                const usuarios = await response.json();
+                listaCompradores = usuarios.filter(u => u.perfil_nome && u.perfil_nome.includes('Comprador'));
+                
+                const select = document.getElementById('compradorResponsavelId');
+                if (select) {
+                    select.innerHTML = '<option value="">Sem atribuição</option>';
+                    listaCompradores.forEach(c => {
+                        select.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar compradores:', error);
             }
         }
 
@@ -517,6 +559,12 @@
             const tabelaSelect = document.getElementById('tabelaPrecoId');
             if (tabelaSelect) {
                 tabelaSelect.value = '1';
+            }
+            
+            // Limpar seleção de comprador
+            const compradorSelect = document.getElementById('compradorResponsavelId');
+            if (compradorSelect) {
+                compradorSelect.value = '';
             }
             
             // Remover readonly dos campos
@@ -644,12 +692,17 @@
                 outro_complemento: document.getElementById('outroComplemento').value || null
             };
 
-            // Apenas admin pode definir/alterar a tabela de preços
+            // Apenas admin pode definir/alterar a tabela de preços e comprador responsável
             const isAdmin = currentUserData && (currentUserData.tipo === 'admin' || currentUserData.perfil === 'Administrador');
             if (isAdmin) {
                 const tabelaSelect = document.getElementById('tabelaPrecoId');
                 if (tabelaSelect) {
                     data.tabela_preco_id = parseInt(tabelaSelect.value);
+                }
+                
+                const compradorSelect = document.getElementById('compradorResponsavelId');
+                if (compradorSelect && compradorSelect.value) {
+                    data.comprador_responsavel_id = parseInt(compradorSelect.value);
                 }
             }
 
@@ -717,6 +770,12 @@
                 const tabelaSelect = document.getElementById('tabelaPrecoId');
                 if (tabelaSelect && fornecedorAtual.tabela_preco_id) {
                     tabelaSelect.value = fornecedorAtual.tabela_preco_id.toString();
+                }
+                
+                // Carregar comprador responsável (apenas admin vê e pode editar)
+                const compradorSelect = document.getElementById('compradorResponsavelId');
+                if (compradorSelect) {
+                    compradorSelect.value = fornecedorAtual.comprador_responsavel_id || '';
                 }
                 
                 // Carregar endereço alternativo se existir
