@@ -13,130 +13,156 @@ bp = Blueprint('dashboard', __name__, url_prefix='/api/dashboard')
 @admin_required
 def obter_estatisticas():
     """Retorna estatísticas gerais do sistema"""
-    # Estatísticas de Solicitações/Relatórios
-    total_pendentes = Solicitacao.query.filter_by(status='pendente').count()
-    total_aprovados = Solicitacao.query.filter_by(status='aprovada').count()
-    total_reprovados = Solicitacao.query.filter_by(status='rejeitada').count()
-    
-    # Valor total de lotes aprovados
-    valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
-        Lote.status == 'aprovado'
-    ).scalar() or 0
-    
-    # Quilos por tipo de lote
-    quilos_leve = db.session.query(func.sum(Lote.peso_total_kg)).join(
-        TipoLote, Lote.tipo_lote_id == TipoLote.id
-    ).filter(
-        TipoLote.classificacao == 'leve'
-    ).scalar() or 0
-    
-    quilos_media = db.session.query(func.sum(Lote.peso_total_kg)).join(
-        TipoLote, Lote.tipo_lote_id == TipoLote.id
-    ).filter(
-        TipoLote.classificacao == 'media'
-    ).scalar() or 0
-    
-    quilos_pesada = db.session.query(func.sum(Lote.peso_total_kg)).join(
-        TipoLote, Lote.tipo_lote_id == TipoLote.id
-    ).filter(
-        TipoLote.classificacao == 'pesada'
-    ).scalar() or 0
-    
-    # Ranking de fornecedores (top 10)
-    ranking = db.session.query(
-        Fornecedor.id,
-        Fornecedor.nome,
-        func.count(Solicitacao.id).label('total')
-    ).join(
-        Solicitacao, Solicitacao.fornecedor_id == Fornecedor.id
-    ).filter(
-        Solicitacao.status == 'aprovada'
-    ).group_by(
-        Fornecedor.id, Fornecedor.nome
-    ).order_by(
-        func.count(Solicitacao.id).desc()
-    ).limit(10).all()
-    
-    ranking_empresas = [
-        {
-            'id': r.id,
-            'nome': r.nome,
-            'total': r.total
-        } for r in ranking
-    ]
-    
-    return jsonify({
-        'relatorios': {
-            'pendentes': total_pendentes,
-            'aprovados': total_aprovados,
-            'reprovados': total_reprovados
-        },
-        'valor_total': float(valor_total),
-        'quilos_por_tipo': {
-            'leve': float(quilos_leve),
-            'media': float(quilos_media),
-            'pesada': float(quilos_pesada)
-        },
-        'ranking_empresas': ranking_empresas
-    }), 200
+    try:
+        # Estatísticas de Solicitações/Relatórios
+        total_pendentes = Solicitacao.query.filter_by(status='pendente').count()
+        total_aprovados = Solicitacao.query.filter_by(status='aprovada').count()
+        total_reprovados = Solicitacao.query.filter_by(status='rejeitada').count()
+        
+        print(f'📈 Solicitações - Pendentes: {total_pendentes}, Aprovadas: {total_aprovados}, Reprovadas: {total_reprovados}')
+        
+        # Valor total de lotes aprovados
+        valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
+            Lote.status == 'aprovado'
+        ).scalar() or 0
+        
+        # Quilos por tipo de lote
+        quilos_leve = db.session.query(func.sum(Lote.peso_total_kg)).join(
+            TipoLote, Lote.tipo_lote_id == TipoLote.id
+        ).filter(
+            TipoLote.classificacao == 'leve'
+        ).scalar() or 0
+        
+        quilos_media = db.session.query(func.sum(Lote.peso_total_kg)).join(
+            TipoLote, Lote.tipo_lote_id == TipoLote.id
+        ).filter(
+            TipoLote.classificacao == 'media'
+        ).scalar() or 0
+        
+        quilos_pesada = db.session.query(func.sum(Lote.peso_total_kg)).join(
+            TipoLote, Lote.tipo_lote_id == TipoLote.id
+        ).filter(
+            TipoLote.classificacao == 'pesada'
+        ).scalar() or 0
+        
+        print(f'⚖️  Quilos - Leve: {quilos_leve}, Média: {quilos_media}, Pesada: {quilos_pesada}')
+        
+        # Ranking de fornecedores (top 10)
+        ranking = db.session.query(
+            Fornecedor.id,
+            Fornecedor.nome,
+            func.count(Solicitacao.id).label('total')
+        ).join(
+            Solicitacao, Solicitacao.fornecedor_id == Fornecedor.id
+        ).filter(
+            Solicitacao.status == 'aprovada'
+        ).group_by(
+            Fornecedor.id, Fornecedor.nome
+        ).order_by(
+            func.count(Solicitacao.id).desc()
+        ).limit(10).all()
+        
+        ranking_empresas = [
+            {
+                'id': r.id,
+                'nome': r.nome,
+                'total': r.total
+            } for r in ranking
+        ]
+        
+        print(f'🏆 Ranking: {len(ranking_empresas)} fornecedores')
+        
+        resultado = {
+            'relatorios': {
+                'pendentes': total_pendentes,
+                'aprovados': total_aprovados,
+                'reprovados': total_reprovados
+            },
+            'valor_total': float(valor_total),
+            'quilos_por_tipo': {
+                'leve': float(quilos_leve),
+                'media': float(quilos_media),
+                'pesada': float(quilos_pesada)
+            },
+            'ranking_empresas': ranking_empresas
+        }
+        
+        print(f'✅ Estatísticas carregadas com sucesso')
+        return jsonify(resultado), 200
+        
+    except Exception as e:
+        print(f'❌ Erro ao carregar estatísticas: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': str(e)}), 500
 
 @bp.route('/grafico-mensal', methods=['GET'])
 @admin_required
 def obter_grafico_mensal():
     """Retorna dados de movimentação mensal para gráficos"""
-    from dateutil.relativedelta import relativedelta
-    
-    # Últimos 6 meses
-    hoje = datetime.now()
-    meses = []
-    dados = []
-    
-    # Nome do mês em português
-    nomes_meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
-                  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-    
-    for i in range(5, -1, -1):
-        # Calcular o mês corretamente usando relativedelta
-        mes_data = hoje - relativedelta(months=i)
-        mes_num = mes_data.month
-        ano = mes_data.year
+    try:
+        from dateutil.relativedelta import relativedelta
         
-        meses.append(nomes_meses[mes_num])
+        # Últimos 6 meses
+        hoje = datetime.now()
+        meses = []
+        dados = []
         
-        # Calcular início e fim do mês para filtro correto
-        inicio_mes = datetime(ano, mes_num, 1)
-        if mes_num == 12:
-            fim_mes = datetime(ano + 1, 1, 1)
-        else:
-            fim_mes = datetime(ano, mes_num + 1, 1)
+        # Nome do mês em português
+        nomes_meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
         
-        # Contar solicitações aprovadas no mês usando range de datas
-        count = Solicitacao.query.filter(
-            Solicitacao.data_envio >= inicio_mes,
-            Solicitacao.data_envio < fim_mes,
-            Solicitacao.status == 'aprovada'
-        ).count()
+        for i in range(5, -1, -1):
+            # Calcular o mês corretamente usando relativedelta
+            mes_data = hoje - relativedelta(months=i)
+            mes_num = mes_data.month
+            ano = mes_data.year
+            
+            meses.append(nomes_meses[mes_num])
+            
+            # Calcular início e fim do mês para filtro correto
+            inicio_mes = datetime(ano, mes_num, 1)
+            if mes_num == 12:
+                fim_mes = datetime(ano + 1, 1, 1)
+            else:
+                fim_mes = datetime(ano, mes_num + 1, 1)
+            
+            # Contar solicitações aprovadas no mês usando range de datas
+            count = Solicitacao.query.filter(
+                Solicitacao.data_envio >= inicio_mes,
+                Solicitacao.data_envio < fim_mes,
+                Solicitacao.status == 'aprovada'
+            ).count()
+            
+            dados.append(count)
         
-        dados.append(count)
-    
-    return jsonify({
-        'labels': meses,
-        'data': dados
-    }), 200
+        print(f'📊 Gráfico mensal - Meses: {meses}, Dados: {dados}')
+        
+        return jsonify({
+            'labels': meses,
+            'data': dados
+        }), 200
+        
+    except Exception as e:
+        print(f'❌ Erro ao carregar gráfico mensal: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': str(e)}), 500
 
 @bp.route('/financeiro', methods=['GET'])
 @admin_required
 def obter_metricas_financeiras():
     """Retorna métricas financeiras dos compradores"""
-    hoje = datetime.now()
-    mes_atual = datetime(hoje.year, hoje.month, 1)
-    mes_anterior = mes_atual - relativedelta(months=1)
-    inicio_semana = hoje - timedelta(days=hoje.weekday())
-    
-    compradores = Usuario.query.filter(
-        Usuario.tipo.in_(['admin', 'funcionario']),
-        Usuario.ativo == True
-    ).all()
+    try:
+        hoje = datetime.now()
+        mes_atual = datetime(hoje.year, hoje.month, 1)
+        mes_anterior = mes_atual - relativedelta(months=1)
+        inicio_semana = hoje - timedelta(days=hoje.weekday())
+        
+        compradores = Usuario.query.filter(
+            Usuario.tipo.in_(['admin', 'funcionario']),
+            Usuario.ativo == True
+        ).all()
     
     gastos_por_comprador = []
     for comprador in compradores:
@@ -205,21 +231,28 @@ def obter_metricas_financeiras():
     ticket_medio_geral = (total_gasto_mes / total_compras_mes) if total_compras_mes > 0 else 0
     
     return jsonify({
-        'gastos_por_comprador': gastos_por_comprador,
-        'gastos_mensais': gastos_mensais_ultimos_6_meses,
-        'total_gasto_mes': float(total_gasto_mes),
-        'total_compras_mes': total_compras_mes,
-        'ticket_medio_geral': ticket_medio_geral
-    }), 200
+            'gastos_por_comprador': gastos_por_comprador,
+            'gastos_mensais': gastos_mensais_ultimos_6_meses,
+            'total_gasto_mes': float(total_gasto_mes),
+            'total_compras_mes': total_compras_mes,
+            'ticket_medio_geral': ticket_medio_geral
+        }), 200
+        
+    except Exception as e:
+        print(f'❌ Erro ao carregar métricas financeiras: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': str(e)}), 500
 
 @bp.route('/logistica', methods=['GET'])
 @admin_required
 def obter_metricas_logistica():
     """Retorna métricas de logística"""
-    hoje = datetime.now()
-    mes_atual = datetime(hoje.year, hoje.month, 1)
-    
-    motoristas = Motorista.query.filter(Motorista.ativo == True).all()
+    try:
+        hoje = datetime.now()
+        mes_atual = datetime(hoje.year, hoje.month, 1)
+        
+        motoristas = Motorista.query.filter(Motorista.ativo == True).all()
     
     metricas_motoristas = []
     for motorista in motoristas:
@@ -254,20 +287,27 @@ def obter_metricas_logistica():
     media_km_por_os = (total_km_mes / total_os_mes) if total_os_mes > 0 else 0
     
     return jsonify({
-        'metricas_motoristas': metricas_motoristas,
-        'total_km_mes': float(total_km_mes),
-        'total_os_mes': total_os_mes,
-        'media_km_por_os': float(media_km_por_os)
-    }), 200
+            'metricas_motoristas': metricas_motoristas,
+            'total_km_mes': float(total_km_mes),
+            'total_os_mes': total_os_mes,
+            'media_km_por_os': float(media_km_por_os)
+        }), 200
+        
+    except Exception as e:
+        print(f'❌ Erro ao carregar métricas de logística: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': str(e)}), 500
 
 @bp.route('/analise-fornecedores', methods=['GET'])
 @admin_required
 def obter_analise_fornecedores():
     """Retorna análise detalhada de fornecedores"""
-    hoje = datetime.now()
-    mes_atual = datetime(hoje.year, hoje.month, 1)
-    
-    fornecedores_ativos = Fornecedor.query.filter(Fornecedor.ativo == True).all()
+    try:
+        hoje = datetime.now()
+        mes_atual = datetime(hoje.year, hoje.month, 1)
+        
+        fornecedores_ativos = Fornecedor.query.filter(Fornecedor.ativo == True).all()
     
     analise_fornecedores = []
     for fornecedor in fornecedores_ativos:
@@ -323,20 +363,27 @@ def obter_analise_fornecedores():
     analise_fornecedores_ordenado = sorted(analise_fornecedores, key=lambda x: x['valor_total'], reverse=True)[:10]
     
     return jsonify({
-        'top_fornecedores': analise_fornecedores_ordenado,
-        'total_fornecedores': len(fornecedores_ativos)
-    }), 200
+            'top_fornecedores': analise_fornecedores_ordenado,
+            'total_fornecedores': len(fornecedores_ativos)
+        }), 200
+        
+    except Exception as e:
+        print(f'❌ Erro ao carregar análise de fornecedores: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': str(e)}), 500
 
 @bp.route('/operacional', methods=['GET'])
 @admin_required
 def obter_metricas_operacionais():
     """Retorna métricas de eficiência operacional"""
-    hoje = datetime.now()
-    mes_atual = datetime(hoje.year, hoje.month, 1)
-    
-    total_solicitacoes = Solicitacao.query.filter(
-        Solicitacao.data_envio >= mes_atual
-    ).count()
+    try:
+        hoje = datetime.now()
+        mes_atual = datetime(hoje.year, hoje.month, 1)
+        
+        total_solicitacoes = Solicitacao.query.filter(
+            Solicitacao.data_envio >= mes_atual
+        ).count()
     
     solicitacoes_aprovadas = Solicitacao.query.filter(
         Solicitacao.data_envio >= mes_atual,
@@ -410,15 +457,21 @@ def obter_metricas_operacionais():
         })
     
     return jsonify({
-        'total_solicitacoes_mes': total_solicitacoes,
-        'solicitacoes_aprovadas': solicitacoes_aprovadas,
-        'solicitacoes_rejeitadas': solicitacoes_rejeitadas,
-        'solicitacoes_pendentes': solicitacoes_pendentes,
-        'taxa_aprovacao': round(taxa_aprovacao, 2),
-        'tempo_medio_aprovacao_horas': round(float(tempo_medio_aprovacao), 2),
-        'tempo_medio_ciclo_dias': round(float(tempo_medio_ciclo_completo), 2),
-        'solicitacoes_por_mes': solicitacoes_por_mes
-    }), 200
+            'total_solicitacoes_mes': total_solicitacoes,
+            'solicitacoes_aprovadas': solicitacoes_aprovadas,
+            'solicitacoes_rejeitadas': solicitacoes_rejeitadas,
+            'solicitacoes_pendentes': solicitacoes_pendentes,
+            'taxa_aprovacao': round(taxa_aprovacao, 2),
+            'tempo_medio_aprovacao_horas': round(float(tempo_medio_aprovacao), 2),
+            'tempo_medio_ciclo_dias': round(float(tempo_medio_ciclo_completo), 2),
+            'solicitacoes_por_mes': solicitacoes_por_mes
+        }), 200
+        
+    except Exception as e:
+        print(f'❌ Erro ao carregar métricas operacionais: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': str(e)}), 500
 
 # Cache simples para cotações (evitar múltiplas requisições)
 _cotacoes_cache = {
