@@ -13,10 +13,15 @@ bp = Blueprint('dashboard', __name__, url_prefix='/api/dashboard')
 @admin_required
 def obter_estatisticas():
     """Retorna estatísticas gerais do sistema"""
-    # Estatísticas de Solicitações/Relatórios
-    total_pendentes = Solicitacao.query.filter_by(status='pendente').count()
-    total_aprovados = Solicitacao.query.filter_by(status='aprovada').count()
-    total_reprovados = Solicitacao.query.filter_by(status='rejeitada').count()
+    try:
+        print('📊 Iniciando obtenção de estatísticas do dashboard...')
+        
+        # Estatísticas de Solicitações/Relatórios
+        total_pendentes = Solicitacao.query.filter_by(status='pendente').count()
+        total_aprovados = Solicitacao.query.filter_by(status='aprovada').count()
+        total_reprovados = Solicitacao.query.filter_by(status='rejeitada').count()
+        
+        print(f'📈 Solicitações - Pendentes: {total_pendentes}, Aprovadas: {total_aprovados}, Reprovadas: {total_reprovados}')
     
     # Valor total de lotes aprovados
     valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
@@ -65,20 +70,36 @@ def obter_estatisticas():
         } for r in ranking
     ]
     
-    return jsonify({
-        'relatorios': {
-            'pendentes': total_pendentes,
-            'aprovados': total_aprovados,
-            'reprovados': total_reprovados
-        },
-        'valor_total': float(valor_total),
-        'quilos_por_tipo': {
-            'leve': float(quilos_leve),
-            'media': float(quilos_media),
-            'pesada': float(quilos_pesada)
-        },
-        'ranking_empresas': ranking_empresas
-    }), 200
+    resultado = {
+            'relatorios': {
+                'pendentes': total_pendentes,
+                'aprovados': total_aprovados,
+                'reprovados': total_reprovados
+            },
+            'valor_total': float(valor_total),
+            'quilos_por_tipo': {
+                'leve': float(quilos_leve),
+                'media': float(quilos_media),
+                'pesada': float(quilos_pesada)
+            },
+            'ranking_empresas': ranking_empresas
+        }
+        
+        print(f'✅ Estatísticas processadas com sucesso: {len(ranking_empresas)} fornecedores no ranking')
+        return jsonify(resultado), 200
+        
+    except Exception as e:
+        print(f'❌ Erro ao obter estatísticas: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'erro': 'Erro ao processar estatísticas',
+            'detalhes': str(e),
+            'relatorios': {'pendentes': 0, 'aprovados': 0, 'reprovados': 0},
+            'valor_total': 0,
+            'quilos_por_tipo': {'leve': 0, 'media': 0, 'pesada': 0},
+            'ranking_empresas': []
+        }), 500
 
 @bp.route('/grafico-mensal', methods=['GET'])
 @admin_required

@@ -1,7 +1,7 @@
 import bcrypt
 from functools import wraps
 from flask import jsonify, request
-from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt, jwt_required
 from app.models import db, Usuario, Perfil
 from app.rbac_config import check_rota_api_permitida
 
@@ -16,16 +16,28 @@ def get_current_user():
     usuario_id = get_jwt_identity()
     return Usuario.query.get(usuario_id)
 
-def admin_required(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        usuario = get_current_user()
+def admin_required(f):
+    @wraps(f)
+    @jwt_required()
+    def decorated_function(*args, **kwargs):
+        current_user_id = get_jwt_identity()
+        user = Usuario.query.get(current_user_id)
 
-        if not usuario or usuario.tipo != 'admin':
-            return jsonify({'erro': 'Acesso negado. Apenas administradores podem acessar este recurso.'}), 403
+        if not user:
+            return jsonify({'erro': 'Usuário não encontrado'}), 403
 
-        return fn(*args, **kwargs)
-    return wrapper
+        # Permitir Admin e Auditoria/BI acessar endpoints de dashboard
+        perfil_nome = user.perfil.nome if user.perfil else ''
+        is_admin = user.tipo == 'admin' or perfil_nome == 'Administrador'
+        is_auditoria = perfil_nome in ['Auditoria / BI', 'Auditoria/BI']
+
+        if not (is_admin or is_auditoria):
+            print(f'❌ Acesso negado para usuário: {user.nome} (tipo: {user.tipo}, perfil: {perfil_nome})')
+            return jsonify({'erro': 'Acesso negado'}), 403
+
+        print(f'✅ Acesso permitido para: {user.nome} (tipo: {user.tipo}, perfil: {perfil_nome})')
+        return f(*args, **kwargs)
+    return decorated_function
 
 def permission_required(permission: str):
     def decorator(fn):
