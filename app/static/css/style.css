@@ -57,7 +57,7 @@ body {
 /* ========== MOBILE LAYOUT STRUCTURE ========== */
 
 body {
-    padding-bottom: 80px; /* Space for bottom navigation */
+    padding-bottom: 95px; /* Space for bottom navigation */
 }
 
 /* ========== HEADER (MOBILE-FIRST) ========== */
@@ -987,7 +987,7 @@ textarea:focus-visible {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    height: 70px;
+    height: 85px;
     z-index: 999;
     padding: 0 4px;
 }
@@ -1000,12 +1000,12 @@ textarea:focus-visible {
     flex: 1;
     text-decoration: none;
     color: var(--gray-600);
-    font-size: 0.65rem;
-    padding: 4px 2px;
+    font-size: 0.75rem;
+    padding: 6px 2px;
     transition: color 0.3s ease;
     min-height: var(--touch-target);
-    gap: 0.25rem;
-    max-width: 80px;
+    gap: 0.35rem;
+    max-width: 95px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1020,7 +1020,7 @@ textarea:focus-visible {
 }
 
 .bottom-nav-item .icon {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     transition: transform 0.3s ease;
 }
 
@@ -1102,7 +1102,7 @@ main.container > *:first-child {
     }
 
     body {
-        padding-bottom: 80px; /* Mantém espaço para barra */
+        padding-bottom: 95px; /* Mantém espaço para barra */
     }
 
     main {

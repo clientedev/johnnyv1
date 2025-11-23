@@ -114,6 +114,34 @@
         .timeline-item:last-child:after {
             display: none;
         }
+
+        .graficos-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .graficos-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .graficos-container .card {
+                padding: 1rem;
+            }
+
+            .graficos-container h3 {
+                font-size: 1rem;
+            }
+
+            #graficoStatus,
+            #graficoLocalizacao {
+                min-height: 200px !important;
+                max-height: 300px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -237,7 +265,7 @@
             </div>
 
             <!-- Gráficos e Timeline -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="graficos-container">
                 <div class="card">
                     <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-pie"></i> Lotes por Status</h3>
                     <div id="graficoStatus" style="min-height: 250px;"></div>
