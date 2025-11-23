@@ -490,6 +490,22 @@
         </div>
     </div>
 
+    <!-- Modal: Before/After -->
+    <div class="modal" id="modalBeforeAfter">
+        <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2><i class="fas fa-exchange-alt"></i> Comparação Before/After</h2>
+                <span class="modal-close" onclick="fecharModalBeforeAfter()">&times;</span>
+            </div>
+            <div id="conteudoBeforeAfter">
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p style="margin-top: 1rem;">Carregando dados...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <style>
         /* Garantir espaçamento correto para header fixo */
         body {
@@ -1101,9 +1117,120 @@
             const mov = movimentacoesData.find(m => m.id === movId);
             if (!mov) return;
 
-            alert(`Before/After da Movimentação #${movId}\n\n` +
-                  `Before: ${JSON.stringify(mov.dados_before || {}, null, 2)}\n\n` +
-                  `After: ${JSON.stringify(mov.dados_after || {}, null, 2)}`);
+            const modalBeforeAfter = document.getElementById('modalBeforeAfter');
+            const conteudo = document.getElementById('conteudoBeforeAfter');
+            
+            const before = mov.dados_before || {};
+            const after = mov.dados_after || {};
+            
+            conteudo.innerHTML = `
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="margin-bottom: 0.5rem; color: var(--gray-900);">
+                        <i class="fas fa-exchange-alt"></i> Movimentação #${movId}
+                    </h3>
+                    <p style="color: var(--gray-600); font-size: 0.875rem;">
+                        <strong>Lote:</strong> ${mov.lote_numero} | 
+                        <strong>Tipo:</strong> ${mov.tipo} | 
+                        <strong>Data:</strong> ${new Date(mov.data_movimentacao).toLocaleString('pt-BR')}
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div class="card" style="background: #fef3c7; border-left: 4px solid #f59e0b;">
+                        <h4 style="margin-bottom: 1rem; color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-history"></i> BEFORE (Antes)
+                        </h4>
+                        <div style="background: white; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.875rem;">
+                            ${formatarDados(before)}
+                        </div>
+                    </div>
+
+                    <div class="card" style="background: #d1fae5; border-left: 4px solid #059669;">
+                        <h4 style="margin-bottom: 1rem; color: #065f46; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-check-circle"></i> AFTER (Depois)
+                        </h4>
+                        <div style="background: white; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.875rem;">
+                            ${formatarDados(after)}
+                        </div>
+                    </div>
+                </div>
+
+                ${mov.auditoria && mov.auditoria.length > 0 ? `
+                    <div class="card" style="background: var(--gray-100);">
+                        <h4 style="margin-bottom: 1rem; color: var(--gray-900);">
+                            <i class="fas fa-info-circle"></i> Informações de Auditoria
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <div>
+                                <strong style="color: var(--gray-600); font-size: 0.875rem;">Usuário:</strong>
+                                <p style="margin: 0.25rem 0 0 0;">${mov.usuario_nome || '—'}</p>
+                            </div>
+                            <div>
+                                <strong style="color: var(--gray-600); font-size: 0.875rem;">IP:</strong>
+                                <p style="margin: 0.25rem 0 0 0;">${mov.auditoria[0]?.ip || '—'}</p>
+                            </div>
+                            <div>
+                                <strong style="color: var(--gray-600); font-size: 0.875rem;">Dispositivo:</strong>
+                                <p style="margin: 0.25rem 0 0 0;">${mov.auditoria[0]?.device_id || '—'}</p>
+                            </div>
+                            ${mov.auditoria[0]?.gps_lat && mov.auditoria[0]?.gps_lng ? `
+                                <div>
+                                    <strong style="color: var(--gray-600); font-size: 0.875rem;">Localização:</strong>
+                                    <p style="margin: 0.25rem 0 0 0;">
+                                        <a href="https://www.google.com/maps?q=${mov.auditoria[0].gps_lat},${mov.auditoria[0].gps_lng}" 
+                                           target="_blank" 
+                                           style="color: var(--primary-color); text-decoration: none;">
+                                            <i class="fas fa-map-marker-alt"></i> Ver no Mapa
+                                        </a>
+                                    </p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${mov.observacoes ? `
+                    <div class="card" style="background: #e0e7ff; border-left: 4px solid #6366f1;">
+                        <h4 style="margin-bottom: 0.5rem; color: #4338ca;">
+                            <i class="fas fa-comment"></i> Observações
+                        </h4>
+                        <p style="margin: 0; color: var(--gray-700);">${mov.observacoes}</p>
+                    </div>
+                ` : ''}
+            `;
+            
+            modalBeforeAfter.style.display = 'flex';
+        }
+
+        function formatarDados(dados) {
+            if (!dados || Object.keys(dados).length === 0) {
+                return '<p style="color: var(--gray-500); font-style: italic;">Sem dados registrados</p>';
+            }
+            
+            let html = '<div style="line-height: 1.8;">';
+            for (const [key, value] of Object.entries(dados)) {
+                const chave = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                let valor = value;
+                
+                if (typeof value === 'object' && value !== null) {
+                    valor = JSON.stringify(value, null, 2);
+                } else if (value === null || value === undefined) {
+                    valor = '<span style="color: var(--gray-400);">—</span>';
+                }
+                
+                html += `
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong style="color: var(--gray-700);">${chave}:</strong>
+                        <span style="color: var(--gray-900);">${valor}</span>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function fecharModalBeforeAfter() {
+            document.getElementById('modalBeforeAfter').style.display = 'none';
         }
 
         function verInventario(invId) {
