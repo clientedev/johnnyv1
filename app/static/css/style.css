@@ -1079,7 +1079,7 @@ main {
 /* Padding-top SOMENTE em mobile */
 @media (max-width: 767px) {
     main {
-        padding-top: 60px;
+        padding-top: 75px;
     }
 }
 
