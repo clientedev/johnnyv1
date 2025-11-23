@@ -27,13 +27,13 @@ def obter_estatisticas():
         valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
             Lote.status == 'aprovado'
         ).scalar() or 0
-    
-    # Quilos por tipo de lote
-    quilos_leve = db.session.query(func.sum(Lote.peso_total_kg)).join(
-        TipoLote, Lote.tipo_lote_id == TipoLote.id
-    ).filter(
-        TipoLote.classificacao == 'leve'
-    ).scalar() or 0
+        
+        # Quilos por tipo de lote
+        quilos_leve = db.session.query(func.sum(Lote.peso_total_kg)).join(
+            TipoLote, Lote.tipo_lote_id == TipoLote.id
+        ).filter(
+            TipoLote.classificacao == 'leve'
+        ).scalar() or 0
     
     quilos_media = db.session.query(func.sum(Lote.peso_total_kg)).join(
         TipoLote, Lote.tipo_lote_id == TipoLote.id
@@ -42,35 +42,35 @@ def obter_estatisticas():
     ).scalar() or 0
     
     quilos_pesada = db.session.query(func.sum(Lote.peso_total_kg)).join(
-        TipoLote, Lote.tipo_lote_id == TipoLote.id
-    ).filter(
-        TipoLote.classificacao == 'pesada'
-    ).scalar() or 0
-    
-    # Ranking de fornecedores (top 10)
-    ranking = db.session.query(
-        Fornecedor.id,
-        Fornecedor.nome,
-        func.count(Solicitacao.id).label('total')
-    ).join(
-        Solicitacao, Solicitacao.fornecedor_id == Fornecedor.id
-    ).filter(
-        Solicitacao.status == 'aprovada'
-    ).group_by(
-        Fornecedor.id, Fornecedor.nome
-    ).order_by(
-        func.count(Solicitacao.id).desc()
-    ).limit(10).all()
-    
-    ranking_empresas = [
-        {
-            'id': r.id,
-            'nome': r.nome,
-            'total': r.total
-        } for r in ranking
-    ]
-    
-    resultado = {
+            TipoLote, Lote.tipo_lote_id == TipoLote.id
+        ).filter(
+            TipoLote.classificacao == 'pesada'
+        ).scalar() or 0
+        
+        # Ranking de fornecedores (top 10)
+        ranking = db.session.query(
+            Fornecedor.id,
+            Fornecedor.nome,
+            func.count(Solicitacao.id).label('total')
+        ).join(
+            Solicitacao, Solicitacao.fornecedor_id == Fornecedor.id
+        ).filter(
+            Solicitacao.status == 'aprovada'
+        ).group_by(
+            Fornecedor.id, Fornecedor.nome
+        ).order_by(
+            func.count(Solicitacao.id).desc()
+        ).limit(10).all()
+        
+        ranking_empresas = [
+            {
+                'id': r.id,
+                'nome': r.nome,
+                'total': r.total
+            } for r in ranking
+        ]
+        
+        resultado = {
             'relatorios': {
                 'pendentes': total_pendentes,
                 'aprovados': total_aprovados,
