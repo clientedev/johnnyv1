@@ -1195,22 +1195,18 @@
                             const endereco = await response.json();
 
                             if (endereco.sucesso) {
-                                // Preencher e bloquear campos
+                                // Preencher campos (mas manter editáveis)
                                 document.getElementById('rua').value = endereco.rua || '';
                                 document.getElementById('numero').value = endereco.numero || '';
                                 document.getElementById('cep').value = endereco.cep || '';
-
-                                // Bloquear edição
-                                document.getElementById('rua').readOnly = true;
-                                document.getElementById('numero').readOnly = true;
-                                document.getElementById('cep').readOnly = true;
 
                                 document.getElementById('gpsInfo').dataset.lat = lat;
                                 document.getElementById('gpsInfo').dataset.lng = lng;
 
                                 document.getElementById('gpsInfo').innerHTML = `
                                     <i class="fas fa-check-circle"></i> Endereço encontrado!<br>
-                                    ${endereco.endereco_completo || 'GPS: ' + lat.toFixed(6) + ', ' + lng.toFixed(6)}
+                                    ${endereco.endereco_completo || 'GPS: ' + lat.toFixed(6) + ', ' + lng.toFixed(6)}<br>
+                                    <small style="color: #666; margin-top: 0.5rem; display: block;">Você pode editar os campos se necessário</small>
                                 `;
 
                                 showAlert('Endereço capturado com sucesso!', 'success');
