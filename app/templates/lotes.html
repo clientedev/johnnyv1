@@ -505,6 +505,77 @@
         </div>
     </div>
 
+    <!-- Modal: Detalhes do Inventário -->
+    <div class="modal" id="modalDetalhesInventario">
+        <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2><i class="fas fa-clipboard-list"></i> Detalhes do Inventário</h2>
+                <span class="modal-close" onclick="fecharModalDetalhesInventario()">&times;</span>
+            </div>
+            <div id="conteudoDetalhesInventario">
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p style="margin-top: 1rem;">Carregando...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar Contagem -->
+    <div class="modal" id="modalRegistrarContagem">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-clipboard-check"></i> Registrar Contagem</h2>
+                <span class="modal-close" onclick="fecharModalRegistrarContagem()">&times;</span>
+            </div>
+            <form id="formRegistrarContagem">
+                <div class="form-group">
+                    <label>Inventário</label>
+                    <input type="text" id="contagemInventarioNome" readonly>
+                    <input type="hidden" id="contagemInventarioId">
+                </div>
+                <div class="form-group">
+                    <label>Número do Lote *</label>
+                    <input type="text" id="contagemLoteNumero" placeholder="Digite o número do lote" required>
+                    <input type="hidden" id="contagemLoteId">
+                    <small>Pesquise o lote digitando parte do número</small>
+                </div>
+                <div class="form-group">
+                    <label>Número da Contagem *</label>
+                    <select id="contagemNumero" required>
+                        <option value="1">1ª Contagem</option>
+                        <option value="2">2ª Contagem</option>
+                        <option value="3">3ª Contagem (Desempate)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Peso Contado (kg) *</label>
+                    <input type="number" id="contagemPeso" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Localização Encontrada *</label>
+                    <select id="contagemLocalizacao" required>
+                        <option value="">Selecione...</option>
+                        <option value="RECEBIMENTO">Recebimento</option>
+                        <option value="DOCK 1">Dock 1</option>
+                        <option value="DOCK 2">Dock 2</option>
+                        <option value="SEPARACAO">Separação</option>
+                        <option value="PICKING">Picking</option>
+                        <option value="BULK">Bulk</option>
+                        <option value="QC">QC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <textarea id="contagemObservacoes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">
+                    <i class="fas fa-check"></i> Registrar Contagem
+                </button>
+            </form>
+        </div>
+    </div>
+
     <style>
         /* Garantir espaçamento correto para header fixo */
         body {
@@ -1273,8 +1344,246 @@
             document.getElementById('modalBeforeAfter').style.display = 'none';
         }
 
-        function verInventario(invId) {
-            window.location.href = `/inventario-detalhes.html?id=${invId}`;
+        async function verInventario(invId) {
+            document.getElementById('modalDetalhesInventario').style.display = 'flex';
+            const conteudo = document.getElementById('conteudoDetalhesInventario');
+            conteudo.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Carregando...</p></div>';
+
+            try {
+                const response = await fetchAPI(`/wms/inventarios/${invId}`);
+                const inv = await response.json();
+
+                const isAdmin = localStorage.getItem('userTipo') === 'admin';
+                const emAndamento = inv.status === 'EM_ANDAMENTO';
+
+                let html = `
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 0.5rem;">${inv.numero_inventario}</h3>
+                        <p style="color: var(--gray-600);">
+                            <span class="status-badge status-${inv.status.toLowerCase().replace(/_/g, '-')}">${inv.status}</span>
+                        </p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                        <div class="card">
+                            <h4><i class="fas fa-info-circle"></i> Informações</h4>
+                            <p><strong>Tipo:</strong> ${inv.tipo}</p>
+                            <p><strong>Localização:</strong> ${inv.localizacao || 'GERAL (Todo o estoque)'}</p>
+                            <p><strong>Data Início:</strong> ${new Date(inv.data_inicio).toLocaleString('pt-BR')}</p>
+                            ${inv.data_finalizacao ? `<p><strong>Data Finalização:</strong> ${new Date(inv.data_finalizacao).toLocaleString('pt-BR')}</p>` : ''}
+                            <p><strong>Criado por:</strong> ${inv.criador_nome || '—'}</p>
+                            ${inv.finalizador_nome ? `<p><strong>Finalizado por:</strong> ${inv.finalizador_nome}</p>` : ''}
+                            <p><strong>Total de Contagens:</strong> ${inv.contagens ? inv.contagens.length : 0}</p>
+                        </div>
+
+                        <div class="card">
+                            <h4><i class="fas fa-tasks"></i> Ações</h4>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                ${emAndamento ? `
+                                    <button class="btn btn-primary" onclick="abrirModalRegistrarContagem(${invId}, '${inv.numero_inventario}')">
+                                        <i class="fas fa-clipboard-check"></i> Registrar Contagem
+                                    </button>
+                                ` : ''}
+                                ${isAdmin && emAndamento ? `
+                                    <button class="btn btn-secondary" onclick="consolidarInventario(${invId})">
+                                        <i class="fas fa-compress"></i> Consolidar
+                                    </button>
+                                    <button class="btn btn-success" onclick="finalizarInventario(${invId})">
+                                        <i class="fas fa-check-circle"></i> Finalizar Inventário
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    ${inv.observacoes ? `
+                        <div class="card" style="margin-bottom: 2rem;">
+                            <h4><i class="fas fa-comment"></i> Observações</h4>
+                            <p>${inv.observacoes}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="card" style="margin-bottom: 2rem;">
+                        <h4><i class="fas fa-list"></i> Contagens Registradas (${inv.contagens ? inv.contagens.length : 0})</h4>
+                        ${inv.contagens && inv.contagens.length > 0 ? `
+                            <table style="width: 100%; margin-top: 1rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Lote</th>
+                                        <th>Nº Contagem</th>
+                                        <th>Peso (kg)</th>
+                                        <th>Localização</th>
+                                        <th>Contador</th>
+                                        <th>Data</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${inv.contagens.map(c => `
+                                        <tr>
+                                            <td>${c.lote_numero || '—'}</td>
+                                            <td>${c.numero_contagem}ª</td>
+                                            <td>${c.peso_contado ? c.peso_contado.toFixed(2) : '—'}</td>
+                                            <td>${c.localizacao_encontrada || '—'}</td>
+                                            <td>${c.contador_nome || '—'}</td>
+                                            <td>${new Date(c.data_contagem).toLocaleString('pt-BR')}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : '<p style="text-align: center; color: var(--gray-500); padding: 1rem;">Nenhuma contagem registrada</p>'}
+                    </div>
+
+                    ${inv.divergencias_consolidadas && inv.divergencias_consolidadas.length > 0 ? `
+                        <div class="card" style="background: #fef3c7; border-left: 4px solid #f59e0b;">
+                            <h4 style="color: #92400e;"><i class="fas fa-exclamation-triangle"></i> Divergências Consolidadas (${inv.divergencias_consolidadas.length})</h4>
+                            <table style="width: 100%; margin-top: 1rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Lote</th>
+                                        <th>Peso Sistema</th>
+                                        <th>1ª Contagem</th>
+                                        <th>2ª Contagem</th>
+                                        <th>3ª Contagem</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${inv.divergencias_consolidadas.map(d => `
+                                        <tr>
+                                            <td>${d.lote_numero}</td>
+                                            <td>${d.peso_sistema ? d.peso_sistema.toFixed(2) : '—'} kg</td>
+                                            <td>${d.contagem_1 ? d.contagem_1.toFixed(2) : '—'} kg</td>
+                                            <td>${d.contagem_2 ? d.contagem_2.toFixed(2) : '—'} kg</td>
+                                            <td>${d.contagem_3 ? d.contagem_3.toFixed(2) : '—'} kg</td>
+                                            <td><span class="status-badge status-divergente">${d.status}</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : ''}
+                `;
+
+                conteudo.innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao carregar inventário:', error);
+                conteudo.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Erro ao carregar inventário: ${error.message || 'Erro desconhecido'}
+                    </div>
+                `;
+            }
+        }
+
+        function fecharModalDetalhesInventario() {
+            document.getElementById('modalDetalhesInventario').style.display = 'none';
+        }
+
+        let lotesParaBuscaContagem = [];
+
+        function abrirModalRegistrarContagem(invId, invNumero) {
+            document.getElementById('contagemInventarioId').value = invId;
+            document.getElementById('contagemInventarioNome').value = invNumero;
+            document.getElementById('modalRegistrarContagem').style.display = 'flex';
+            carregarLotesParaBusca();
+        }
+
+        function fecharModalRegistrarContagem() {
+            document.getElementById('modalRegistrarContagem').style.display = 'none';
+            document.getElementById('formRegistrarContagem').reset();
+        }
+
+        async function carregarLotesParaBusca() {
+            try {
+                const response = await fetchAPI('/wms/lotes');
+                lotesParaBuscaContagem = await response.json();
+            } catch (error) {
+                console.error('Erro ao carregar lotes:', error);
+            }
+        }
+
+        document.getElementById('contagemLoteNumero')?.addEventListener('input', function(e) {
+            const valorDigitado = e.target.value.toUpperCase();
+            
+            if (valorDigitado.length >= 3) {
+                const loteEncontrado = lotesParaBuscaContagem.find(l => 
+                    l.numero_lote.toUpperCase().includes(valorDigitado)
+                );
+                
+                if (loteEncontrado) {
+                    document.getElementById('contagemLoteId').value = loteEncontrado.id;
+                    e.target.value = loteEncontrado.numero_lote;
+                }
+            }
+        });
+
+        document.getElementById('formRegistrarContagem')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const invId = document.getElementById('contagemInventarioId').value;
+            const loteId = document.getElementById('contagemLoteId').value;
+
+            if (!loteId) {
+                showAlert('Lote não encontrado. Digite um número de lote válido.');
+                return;
+            }
+
+            const dados = {
+                lote_id: parseInt(loteId),
+                numero_contagem: parseInt(document.getElementById('contagemNumero').value),
+                peso_contado: parseFloat(document.getElementById('contagemPeso').value),
+                localizacao_encontrada: document.getElementById('contagemLocalizacao').value,
+                observacoes: document.getElementById('contagemObservacoes').value
+            };
+
+            try {
+                await fetchAPI(`/wms/inventarios/${invId}/contagem`, {
+                    method: 'POST',
+                    body: JSON.stringify(dados)
+                });
+
+                showAlert('Contagem registrada com sucesso!');
+                fecharModalRegistrarContagem();
+                verInventario(parseInt(invId));
+                carregarInventarios();
+            } catch (error) {
+                showAlert('Erro ao registrar contagem: ' + error.message);
+            }
+        });
+
+        async function consolidarInventario(invId) {
+            if (!confirm('Deseja consolidar este inventário? Isso irá comparar as contagens e identificar divergências.')) return;
+
+            try {
+                const response = await fetchAPI(`/wms/inventarios/${invId}/consolidar`, {
+                    method: 'POST'
+                });
+
+                const resultado = await response.json();
+                
+                showAlert(`Inventário consolidado! Total de lotes: ${resultado.total_lotes}, Divergências: ${resultado.divergencias ? resultado.divergencias.length : 0}`);
+                verInventario(invId);
+                carregarInventarios();
+            } catch (error) {
+                showAlert('Erro ao consolidar inventário: ' + error.message);
+            }
+        }
+
+        async function finalizarInventario(invId) {
+            if (!confirm('Deseja finalizar este inventário? Os lotes bloqueados serão liberados.')) return;
+
+            try {
+                await fetchAPI(`/wms/inventarios/${invId}/finalizar`, {
+                    method: 'POST'
+                });
+
+                showAlert('Inventário finalizado com sucesso!');
+                fecharModalDetalhesInventario();
+                carregarInventarios();
+            } catch (error) {
+                showAlert('Erro ao finalizar inventário: ' + error.message);
+            }
         }
 
         function mostrarDetalhesTab() {
