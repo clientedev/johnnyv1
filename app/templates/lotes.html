@@ -733,7 +733,10 @@
             tbody.innerHTML = '<tr><td colspan="9" class="loading">Carregando...</td></tr>';
 
             try {
-                const response = await fetchAPI('/wms/movimentacoes');
+                const response = await fetchAPI('/estoque/movimentacoes');
+                if (!response || !response.ok) {
+                    throw new Error('Erro ao buscar movimentações');
+                }
                 movimentacoesData = await response.json();
 
                 if (movimentacoesData.length === 0) {
@@ -923,19 +926,25 @@
         document.getElementById('formMovimentacao').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const loteId = document.getElementById('movLoteId').value;
+            
             const dados = {
+                lote_id: parseInt(loteId),
                 tipo: document.getElementById('movTipo').value,
                 localizacao_destino: document.getElementById('movLocalizacaoDestino').value,
                 observacoes: document.getElementById('movObservacoes').value
             };
 
-            const loteId = document.getElementById('movLoteId').value;
-
             try {
-                await fetchAPI(`/lotes/${loteId}/movimentar`, {
+                const response = await fetchAPI('/estoque/movimentacoes', {
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
+                
+                if (!response || !response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.erro || 'Erro ao registrar movimentação');
+                }
 
                 showAlert('Movimentação registrada com sucesso!');
                 fecharModalMovimentacao();
@@ -991,14 +1000,19 @@
             const observacoes = prompt('Observações (opcional):') || '';
 
             try {
-                await fetchAPI(`/wms/lotes/${loteId}/movimentar`, {
+                const response = await fetchAPI('/estoque/movimentacoes', {
                     method: 'POST',
                     body: JSON.stringify({ 
+                        lote_id: loteId,
                         tipo: 'transferencia',
                         localizacao_destino: localizacao,
                         observacoes: observacoes
                     })
                 });
+                
+                if (!response || !response.ok) {
+                    throw new Error('Erro ao movimentar lote');
+                }
 
                 showAlert('Lote movimentado com sucesso!');
                 fecharModalDetalhes();
