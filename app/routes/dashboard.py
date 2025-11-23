@@ -144,7 +144,7 @@ def obter_metricas_financeiras():
             Fornecedor, Lote.fornecedor_id == Fornecedor.id
         ).filter(
             Fornecedor.comprador_responsavel_id == comprador.id,
-            Lote.data_cadastro >= mes_atual,
+            Lote.data_criacao >= mes_atual,
             Lote.status == 'aprovado'
         ).scalar() or 0
         
@@ -152,7 +152,7 @@ def obter_metricas_financeiras():
             Fornecedor, Lote.fornecedor_id == Fornecedor.id
         ).filter(
             Fornecedor.comprador_responsavel_id == comprador.id,
-            Lote.data_cadastro >= inicio_semana,
+            Lote.data_criacao >= inicio_semana,
             Lote.status == 'aprovado'
         ).scalar() or 0
         
@@ -160,7 +160,7 @@ def obter_metricas_financeiras():
             Fornecedor, Lote.fornecedor_id == Fornecedor.id
         ).filter(
             Fornecedor.comprador_responsavel_id == comprador.id,
-            Lote.data_cadastro >= mes_atual,
+            Lote.data_criacao >= mes_atual,
             Lote.status == 'aprovado'
         ).scalar() or 0
         
@@ -190,8 +190,8 @@ def obter_metricas_financeiras():
             fim_mes = datetime(ano, mes_num + 1, 1)
         
         valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
-            Lote.data_cadastro >= inicio_mes,
-            Lote.data_cadastro < fim_mes,
+            Lote.data_criacao >= inicio_mes,
+            Lote.data_criacao < fim_mes,
             Lote.status == 'aprovado'
         ).scalar() or 0
         
@@ -225,32 +225,18 @@ def obter_metricas_logistica():
     for motorista in motoristas:
         total_os = OrdemServico.query.filter(
             OrdemServico.motorista_id == motorista.id,
-            OrdemServico.data_criacao >= mes_atual
+            OrdemServico.criado_em >= mes_atual
         ).count()
         
         os_concluidas = OrdemServico.query.filter(
             OrdemServico.motorista_id == motorista.id,
-            OrdemServico.status == 'concluida',
-            OrdemServico.data_criacao >= mes_atual
+            OrdemServico.status == 'FINALIZADA',
+            OrdemServico.criado_em >= mes_atual
         ).count()
         
-        km_total = db.session.query(func.sum(OrdemServico.km_total)).filter(
-            OrdemServico.motorista_id == motorista.id,
-            OrdemServico.data_criacao >= mes_atual,
-            OrdemServico.status == 'concluida'
-        ).scalar() or 0
+        km_total = 0  # OrdemServico não possui campo km_total
         
-        tempo_medio_minutos = db.session.query(
-            func.avg(
-                func.extract('epoch', OrdemServico.data_conclusao - OrdemServico.data_inicio) / 60
-            )
-        ).filter(
-            OrdemServico.motorista_id == motorista.id,
-            OrdemServico.status == 'concluida',
-            OrdemServico.data_criacao >= mes_atual,
-            OrdemServico.data_conclusao.isnot(None),
-            OrdemServico.data_inicio.isnot(None)
-        ).scalar() or 0
+        tempo_medio_minutos = 0  # OrdemServico não possui campos data_conclusao e data_inicio
         
         taxa_conclusao = (os_concluidas / total_os * 100) if total_os > 0 else 0
         
@@ -310,13 +296,13 @@ def obter_analise_fornecedores():
         peso_total = db.session.query(func.sum(Lote.peso_total_kg)).filter(
             Lote.fornecedor_id == fornecedor.id,
             Lote.status == 'aprovado',
-            Lote.data_cadastro >= mes_atual
+            Lote.data_criacao >= mes_atual
         ).scalar() or 0
         
         valor_total = db.session.query(func.sum(Lote.valor_total)).filter(
             Lote.fornecedor_id == fornecedor.id,
             Lote.status == 'aprovado',
-            Lote.data_cadastro >= mes_atual
+            Lote.data_criacao >= mes_atual
         ).scalar() or 0
         
         taxa_aprovacao = (solicitacoes_aprovadas / total_solicitacoes * 100) if total_solicitacoes > 0 else 0
@@ -440,7 +426,13 @@ def obter_indicadores_externos():
     """Retorna indicadores externos como cotação do dólar"""
     try:
         response = requests.get('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL', timeout=5)
+        if response.status_code != 200:
+            raise Exception('API retornou status diferente de 200')
+        
         dados_moedas = response.json()
+        
+        if 'USDBRL' not in dados_moedas or 'EURBRL' not in dados_moedas:
+            raise Exception('Dados de moedas não encontrados na resposta')
         
         dolar = {
             'valor': float(dados_moedas['USDBRL']['bid']),
