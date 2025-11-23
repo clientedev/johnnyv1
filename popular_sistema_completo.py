@@ -38,7 +38,7 @@ from app.models import (
     Solicitacao, ItemSolicitacao, OrdemCompra, Veiculo, Motorista,
     OrdemServico, ConferenciaRecebimento, Lote, EntradaEstoque, Notificacao
 )
-from werkzeug.security import generate_password_hash
+from app.auth import hash_senha
 
 
 def limpar_dados_antigos():
@@ -353,7 +353,7 @@ def criar_usuarios():
     usuarios = {'admin': admin}
     for data in usuarios_data:
         senha = data.pop('senha')
-        usuario = Usuario(**data, senha_hash=generate_password_hash(senha), criado_por=admin.id)
+        usuario = Usuario(**data, senha_hash=hash_senha(senha), criado_por=admin.id)
         db.session.add(usuario)
         usuarios[data['email'].split('@')[0].replace('.', '_')] = usuario
     
