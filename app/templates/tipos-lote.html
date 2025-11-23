@@ -393,6 +393,35 @@
         </div>
     </div>
 
+    <!-- Modal Em Desenvolvimento -->
+    <div class="modal" id="modalEmDesenvolvimento">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+                <span class="modal-close" onclick="fecharModalEmDesenvolvimento()">&times;</span>
+            </div>
+            <div style="text-align: center; padding: 2rem 1.5rem;">
+                <div style="display: inline-block; padding: 1.5rem; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 50%; margin-bottom: 1.5rem;">
+                    <i class="fas fa-tools" style="font-size: 3rem; color: white;"></i>
+                </div>
+                <h2 style="margin-bottom: 1rem; color: #1f2937; font-size: 1.75rem;">Funcionalidade em Desenvolvimento</h2>
+                <p style="color: #6b7280; font-size: 1.125rem; margin-bottom: 0.5rem; font-weight: 500;">Histórico de Materiais</p>
+                <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem;">
+                    Esta funcionalidade está sendo desenvolvida e em breve estará disponível para uso. 
+                    Agradecemos sua paciência!
+                </p>
+                <div style="display: flex; gap: 0.75rem; align-items: center; justify-content: center; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                    <i class="fas fa-info-circle" style="color: #059669; font-size: 1.25rem;"></i>
+                    <p style="color: #4b5563; font-size: 0.875rem; margin: 0;">
+                        Em caso de dúvidas, entre em contato com o suporte
+                    </p>
+                </div>
+                <button class="btn btn-primary" onclick="fecharModalEmDesenvolvimento()" style="padding: 0.75rem 2rem; font-size: 1rem;">
+                    <i class="fas fa-check"></i> Entendi
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Bottom Navigation (Mobile) -->
     <nav class="bottom-nav" id="navMenuMobile">
         <!-- Menus serão renderizados dinamicamente pelo RBAC -->
@@ -619,7 +648,11 @@
         }
 
         function verHistorico(id) {
-            mostrarMensagem('Funcionalidade de histórico em desenvolvimento', 'info');
+            document.getElementById('modalEmDesenvolvimento').style.display = 'flex';
+        }
+
+        function fecharModalEmDesenvolvimento() {
+            document.getElementById('modalEmDesenvolvimento').style.display = 'none';
         }
 
         document.getElementById('formMaterial').addEventListener('submit', async (e) => {
