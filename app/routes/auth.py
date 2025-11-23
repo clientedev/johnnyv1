@@ -15,17 +15,31 @@ bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @bp.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    
-    if not data or not data.get('email') or not data.get('senha'):
-        return jsonify({'erro': 'Email e senha são obrigatórios'}), 400
-    
-    usuario = Usuario.query.filter_by(email=data['email']).first()
-    
-    if not usuario or not verificar_senha(data['senha'], usuario.senha_hash):
-        if usuario:
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('senha'):
+            return jsonify({'erro': 'Email e senha são obrigatórios'}), 400
+        
+        usuario = Usuario.query.filter_by(email=data['email']).first()
+        
+        if not usuario:
+            return jsonify({'erro': 'Email ou senha incorretos'}), 401
+        
+        # Tentar verificar senha com tratamento de erro
+        try:
+            senha_valida = verificar_senha(data['senha'], usuario.senha_hash)
+        except (ValueError, Exception) as e:
+            print(f'Erro ao verificar senha para {usuario.email}: {e}')
             registrar_login(usuario.id, sucesso=False)
-        return jsonify({'erro': 'Email ou senha incorretos'}), 401
+            return jsonify({'erro': 'Erro ao verificar credenciais. Por favor, contate o administrador.'}), 500
+        
+        if not senha_valida:
+            registrar_login(usuario.id, sucesso=False)
+            return jsonify({'erro': 'Email ou senha incorretos'}), 401
+    except Exception as e:
+        print(f'Erro no login: {e}')
+        return jsonify({'erro': 'Erro interno no servidor'}), 500
     
     if not usuario.ativo:
         return jsonify({'erro': 'Usuário inativo. Entre em contato com o administrador.'}), 403
