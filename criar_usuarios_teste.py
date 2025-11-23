@@ -1,7 +1,7 @@
 
 from app import create_app
 from app.models import db, Usuario, Perfil
-from werkzeug.security import generate_password_hash
+from app.auth import hash_senha
 
 app = create_app()
 
@@ -9,8 +9,8 @@ with app.app_context():
     print("🔄 Recriando usuários de teste com senhas válidas...")
     
     # Buscar perfis
-    perfil_comprador = Perfil.query.filter_by(nome='Comprador').first()
-    perfil_conferente = Perfil.query.filter_by(nome='Conferente').first()
+    perfil_comprador = Perfil.query.filter_by(nome='Comprador (PJ)').first()
+    perfil_conferente = Perfil.query.filter_by(nome='Conferente / Estoque').first()
     perfil_separacao = Perfil.query.filter_by(nome='Separação').first()
     perfil_financeiro = Perfil.query.filter_by(nome='Financeiro').first()
     perfil_auditoria = Perfil.query.filter_by(nome='Auditoria / BI').first()
@@ -67,14 +67,14 @@ with app.app_context():
         
         if usuario_existente:
             print(f"♻️  Atualizando senha de {usuario_data['email']}...")
-            usuario_existente.senha_hash = generate_password_hash(usuario_data['senha'], method='pbkdf2:sha256')
+            usuario_existente.senha_hash = hash_senha(usuario_data['senha'])
             usuario_existente.ativo = True
         else:
             print(f"✅ Criando usuário {usuario_data['email']}...")
             novo_usuario = Usuario(
                 email=usuario_data['email'],
                 nome=usuario_data['nome'],
-                senha_hash=generate_password_hash(usuario_data['senha'], method='pbkdf2:sha256'),
+                senha_hash=hash_senha(usuario_data['senha']),
                 tipo=usuario_data['tipo'],
                 perfil_id=usuario_data['perfil'].id if usuario_data['perfil'] else None,
                 ativo=True,
