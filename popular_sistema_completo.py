@@ -253,15 +253,15 @@ def criar_precos_materiais(materiais):
 
 
 def criar_tipos_lote():
-    """Cria tipos de lote adicionais"""
+    """Cria tipos de lote adicionais com classificações para popular os gráficos"""
     print("\n📋 Criando tipos de lote...")
     
     tipos_data = [
-        {'nome': 'Material de Informática', 'codigo': 'INF', 'descricao': 'Equipamentos e componentes de informática'},
-        {'nome': 'Material de Telecomunicações', 'codigo': 'TEL', 'descricao': 'Equipamentos de telecomunicações'},
-        {'nome': 'Linha Branca', 'codigo': 'LBR', 'descricao': 'Eletrodomésticos de linha branca'},
-        {'nome': 'Áudio e Vídeo', 'codigo': 'AVD', 'descricao': 'Equipamentos de áudio e vídeo'},
-        {'nome': 'Material Industrial', 'codigo': 'IND', 'descricao': 'Equipamentos e materiais industriais'}
+        {'nome': 'Material de Informática', 'codigo': 'INF', 'descricao': 'Equipamentos e componentes de informática', 'classificacao': 'media'},
+        {'nome': 'Material de Telecomunicações', 'codigo': 'TEL', 'descricao': 'Equipamentos de telecomunicações', 'classificacao': 'leve'},
+        {'nome': 'Linha Branca', 'codigo': 'LBR', 'descricao': 'Eletrodomésticos de linha branca', 'classificacao': 'pesada'},
+        {'nome': 'Áudio e Vídeo', 'codigo': 'AVD', 'descricao': 'Equipamentos de áudio e vídeo', 'classificacao': 'media'},
+        {'nome': 'Material Industrial', 'codigo': 'IND', 'descricao': 'Equipamentos e materiais industriais', 'classificacao': 'pesada'}
     ]
     
     tipos = []
@@ -272,6 +272,13 @@ def criar_tipos_lote():
     
     db.session.commit()
     print(f"✅ {len(tipos)} tipos de lote criados!")
+    
+    # Atualizar tipo de lote padrão (id=1) com classificação
+    tipo_padrao = db.session.query(TipoLote).filter_by(id=1).first()
+    if tipo_padrao and not tipo_padrao.classificacao:
+        tipo_padrao.classificacao = 'leve'
+        db.session.commit()
+        print("✅ Tipo de lote padrão atualizado com classificação 'leve'")
     
     # Retornar todos os tipos (incluindo o padrão)
     return db.session.query(TipoLote).all()
@@ -834,7 +841,7 @@ def criar_ordens_servico(ordens_compra, motoristas, veiculos, usuarios):
 
 
 def criar_conferencias_lotes(ordens_servico, usuarios):
-    """Cria conferências de recebimento e lotes com dados completos"""
+    """Cria conferências de recebimento e lotes com dados completos e pesos distribuídos"""
     print("\n✅ Criando conferências e lotes...")
     
     conferente = usuarios['maria_conferente']
@@ -846,15 +853,30 @@ def criar_conferencias_lotes(ordens_servico, usuarios):
     # Criar conferências para OSs finalizadas
     os_finalizadas = [os for os in ordens_servico if os.status in ['FINALIZADA', 'RETORNANDO']]
     
-    # Garantir pelo menos 20 lotes para popular bem os gráficos
-    num_lotes = max(20, len(os_finalizadas))
+    # Garantir pelo menos 30 lotes para popular bem os gráficos
+    num_lotes = max(30, len(os_finalizadas))
     os_para_processar = os_finalizadas * (num_lotes // len(os_finalizadas) + 1) if os_finalizadas else []
+    
+    # Pesos base por classificação (em kg) para garantir valores realistas
+    pesos_base = {
+        'leve': random.uniform(100, 300),
+        'media': random.uniform(500, 1000), 
+        'pesada': random.uniform(1500, 3000)
+    }
     
     for idx, os in enumerate(os_para_processar[:num_lotes]):
         oc = os.ordem_compra
         
-        # Peso previsto baseado nos itens da solicitação
+        # Peso previsto baseado nos itens da solicitação ou peso base
         peso_previsto = sum(item.peso_kg for item in oc.solicitacao.itens)
+        
+        # Se o peso é muito baixo, usar peso base da classificação
+        if peso_previsto < 50:
+            classificacao_idx = idx % 3
+            classificacoes = ['leve', 'media', 'pesada']
+            classificacao = classificacoes[classificacao_idx]
+            peso_previsto = pesos_base[classificacao] + random.uniform(-50, 50)
+        
         quantidade_prevista = len(oc.solicitacao.itens)
         
         # Peso real com variação de ±10%
@@ -894,20 +916,33 @@ def criar_conferencias_lotes(ordens_servico, usuarios):
         conferencias.append(conferencia)
         db.session.flush()
         
-        # Criar lote para esta conferência
-        tipo_lote = oc.solicitacao.itens[0].tipo_lote if oc.solicitacao.itens else None
+        # Obter todos os tipos de lote com classificação para distribuição balanceada
+        tipos_lote_com_classificacao = db.session.query(TipoLote).filter(
+            TipoLote.classificacao.isnot(None)
+        ).all()
+        
+        # Selecionar tipo de lote de forma rotativa para garantir boa distribuição
+        if tipos_lote_com_classificacao:
+            tipo_lote = tipos_lote_com_classificacao[idx % len(tipos_lote_com_classificacao)]
+        else:
+            # Fallback para o tipo de lote da solicitação
+            tipo_lote = oc.solicitacao.itens[0].tipo_lote if oc.solicitacao.itens else None
         
         if tipo_lote:
-            # Calcular classificação predominante baseada nos itens da solicitação
-            classificacoes = [item.classificacao for item in oc.solicitacao.itens if item.classificacao]
-            if classificacoes:
-                # Contar ocorrências e pegar a mais frequente
-                from collections import Counter
-                classificacao_counts = Counter(classificacoes)
-                classificacao_predominante = classificacao_counts.most_common(1)[0][0]
+            # Usar a classificação do tipo de lote selecionado para garantir consistência
+            if tipo_lote.classificacao:
+                classificacao_predominante = tipo_lote.classificacao
             else:
-                # Se não houver classificações, distribuir uniformemente
-                classificacao_predominante = ['leve', 'media', 'pesada'][idx % 3]
+                # Calcular classificação predominante baseada nos itens da solicitação
+                classificacoes = [item.classificacao for item in oc.solicitacao.itens if item.classificacao]
+                if classificacoes:
+                    # Contar ocorrências e pegar a mais frequente
+                    from collections import Counter
+                    classificacao_counts = Counter(classificacoes)
+                    classificacao_predominante = classificacao_counts.most_common(1)[0][0]
+                else:
+                    # Se não houver classificações, distribuir uniformemente
+                    classificacao_predominante = ['leve', 'media', 'pesada'][idx % 3]
             
             # Status variados, com maioria aprovado/em_estoque para aparecer nos gráficos
             status_opcoes = ['aprovado', 'em_estoque', 'separado', 'finalizado'] * 3 + ['recebido', 'em_conferencia', 'conferido']
