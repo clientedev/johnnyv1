@@ -9,7 +9,7 @@ from flask_jwt_extended import (
 from app.models import db, Usuario
 from app.auth import verificar_senha, get_user_jwt_claims
 from app.utils.auditoria import registrar_login
-from app.rbac_config import get_menus_by_perfil, get_tela_inicial_by_perfil, get_paginas_permitidas
+from app.rbac_config import get_menus_by_perfil, get_tela_inicial_by_perfil, get_paginas_permitidas, get_ocultar_menu_inferior
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -175,9 +175,11 @@ def get_menus():
     
     menus = get_menus_by_perfil(perfil_nome)
     paginas_permitidas = get_paginas_permitidas(perfil_nome)
+    ocultar_menu = get_ocultar_menu_inferior(perfil_nome)
     
     return jsonify({
         'perfil': perfil_nome,
         'menus': menus,
-        'paginas_permitidas': paginas_permitidas
+        'paginas_permitidas': paginas_permitidas,
+        'ocultar_menu_inferior': ocultar_menu
     }), 200

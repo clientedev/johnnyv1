@@ -12,8 +12,20 @@ async function renderizarNavegacaoRBAC() {
 
         const data = await response.json();
         const menus = data.menus || [];
+        const ocultarMenu = data.ocultar_menu_inferior || false;
+
+        // Se o perfil deve ocultar o menu inferior, remove e ajusta padding
+        if (ocultarMenu || menus.length === 0) {
+            nav.style.display = 'none';
+            const main = document.querySelector('main');
+            if (main) {
+                main.style.paddingBottom = '20px';
+            }
+            return;
+        }
 
         nav.innerHTML = '';
+        nav.style.display = 'flex';
 
         menus.slice(0, 5).forEach((menu, index) => {
             const a = document.createElement('a');

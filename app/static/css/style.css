@@ -1050,6 +1050,7 @@ textarea:focus-visible {
     position: relative;
     flex: 0 0 auto;
     margin: 0 2px;
+    overflow: visible;
 }
 
 .fab-button {
@@ -1059,7 +1060,7 @@ textarea:focus-visible {
     background: var(--primary-color);
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     border: none;
-    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1069,9 +1070,13 @@ textarea:focus-visible {
     bottom: 12px;
 }
 
+.fab-button:hover {
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+}
+
 .fab-button:active {
     transform: scale(0.95);
-    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
 }
 
 .fab-button .icon {

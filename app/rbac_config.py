@@ -162,26 +162,14 @@ PERFIL_CONFIG = {
             '/api/fornecedores',
             '/api/solicitacoes',
             '/api/lotes',
-            '/api/entradas'
+            '/api/entradas',
+            '/api/dashboard'
         ],
         'paginas_permitidas': [
-            '/dashboard.html',
-            '/auditoria.html',
-            '/usuarios.html',
-            '/fornecedores.html',
-            '/fornecedores-lista.html',
-            '/solicitacoes.html',
-            '/lotes.html',
-            '/lotes_aprovados.html',
-            '/entradas.html',
-            '/notificacoes.html'
+            '/dashboard.html'
         ],
-        'menus': [
-            {'id': 'dashboard', 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'dashboard'},
-            {'id': 'auditoria', 'nome': 'Auditoria', 'url': '/auditoria.html', 'icone': 'verified'},
-            {'id': 'solicitacoes', 'nome': 'Solicitações', 'url': '/solicitacoes.html', 'icone': 'request_quote'},
-            {'id': 'lotes', 'nome': 'Lotes', 'url': '/lotes.html', 'icone': 'inventory_2'}
-        ]
+        'menus': [],
+        'ocultar_menu_inferior': True
     }
 }
 
@@ -254,3 +242,8 @@ def get_paginas_permitidas(perfil_nome):
     """Retorna lista de páginas que o perfil pode acessar"""
     config = get_perfil_config(perfil_nome)
     return config.get('paginas_permitidas', [])
+
+def get_ocultar_menu_inferior(perfil_nome):
+    """Retorna se o perfil deve ocultar o menu inferior"""
+    config = get_perfil_config(perfil_nome)
+    return config.get('ocultar_menu_inferior', False)
