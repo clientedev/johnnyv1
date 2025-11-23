@@ -601,11 +601,14 @@
             const userData = await verificarAuth();
             if (!userData) return;
 
-            if (userData.tipo !== 'admin') {
+            // Permitir acesso ao dashboard para Admin e Auditoria/BI
+            if (userData.tipo !== 'admin' && userData.perfil !== 'Auditoria / BI') {
+                console.log('Usuário não tem permissão para dashboard, redirecionando...');
                 window.location.href = '/funcionario.html';
                 return;
             }
 
+            console.log('✅ Carregando dashboard para perfil:', userData.perfil || userData.tipo);
             await changeModule('geral');
             await atualizarNotificacoes();
         }

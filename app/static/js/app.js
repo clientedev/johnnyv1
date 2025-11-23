@@ -18,9 +18,9 @@ function initMobileMenu() {
     const menuToggle = document.querySelector('.menu-toggle');
     const nav = document.querySelector('nav');
     const navOverlay = document.querySelector('.nav-overlay');
-    
+
     if (!menuToggle) return;
-    
+
     menuToggle.addEventListener('click', () => {
         menuToggle.classList.toggle('active');
         nav.classList.toggle('active');
@@ -28,7 +28,7 @@ function initMobileMenu() {
             navOverlay.classList.toggle('active');
         }
     });
-    
+
     if (navOverlay) {
         navOverlay.addEventListener('click', () => {
             menuToggle.classList.remove('active');
@@ -36,7 +36,7 @@ function initMobileMenu() {
             navOverlay.classList.remove('active');
         });
     }
-    
+
     const navLinks = nav.querySelectorAll('a');
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
@@ -106,17 +106,17 @@ async function login(email, senha) {
 async function getCurrentUser() {
     try {
         const response = await fetchAPI('/auth/me');
-        
+
         if (!response) {
             return null;
         }
-        
+
         if (response.ok) {
             const data = await response.json();
             currentUser = data;
             return data;
         }
-        
+
         return null;
     } catch (error) {
         console.error('Erro ao obter usuário atual:', error);
@@ -136,10 +136,10 @@ function showAlert(message, type = 'error') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type}`;
     alertDiv.textContent = message;
-    
+
     const container = document.querySelector('.container') || document.body;
     container.insertBefore(alertDiv, container.firstChild);
-    
+
     setTimeout(() => {
         alertDiv.remove();
     }, 5000);
@@ -177,11 +177,11 @@ function initWebSocket() {
 
 async function atualizarNotificacoes() {
     const response = await fetchAPI('/notificacoes/nao-lidas');
-    
+
     if (response.ok) {
         const data = await response.json();
         const badge = document.querySelector('.notification-count');
-        
+
         if (badge) {
             if (data.count > 0) {
                 badge.textContent = data.count;
@@ -195,7 +195,7 @@ async function atualizarNotificacoes() {
 
 async function verificarAuth() {
     const token = getToken();
-    
+
     if (!token) {
         if (window.location.pathname !== '/' && !window.location.pathname.includes('index.html')) {
             window.location.href = '/';
@@ -203,17 +203,27 @@ async function verificarAuth() {
         return null;
     }
 
-    const user = await getCurrentUser();
-    
-    if (!user) {
-        removeToken();
-        window.location.href = '/';
+    try {
+        const user = await getCurrentUser();
+
+        if (!user) {
+            if (window.location.pathname !== '/' && !window.location.pathname.includes('index.html')) {
+                window.location.href = '/';
+            }
+            return null;
+        }
+
+        // Não fazer verificação de acesso aqui - deixar o RBAC fazer isso
+        // verificarAcessoPorPerfil(user);
+
+        return user;
+    } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        if (window.location.pathname !== '/' && !window.location.pathname.includes('index.html')) {
+            window.location.href = '/';
+        }
         return null;
     }
-
-    initWebSocket();
-    aplicarControleAcesso(user);
-    return user;
 }
 
 function hasPermission(permission) {
@@ -225,13 +235,13 @@ function hasPermission(permission) {
 
 function aplicarControleAcesso(user) {
     if (!user) return;
-    
+
     // Administrador tem acesso total
     if (user.tipo === 'admin' || user.perfil_nome === 'Administrador') {
         console.log(' Usuário admin - acesso total');
         return;
     }
-    
+
     const controlePorPerfil = {
         'Comprador (PJ)': {
             paginasPermitidas: ['/fornecedores.html', '/solicitacoes.html', '/notificacoes.html', '/index.html', '/'],
@@ -258,31 +268,31 @@ function aplicarControleAcesso(user) {
             modulosVisiveis: []
         }
     };
-    
+
     const controle = controlePorPerfil[user.perfil_nome];
-    
+
     if (!controle) {
         console.warn(' Perfil não mapeado:', user.perfil_nome);
         console.log('Permitindo acesso ao dashboard...');
         return;
     }
-    
+
     const paginaAtual = window.location.pathname;
     console.log(' Página atual:', paginaAtual);
     console.log(' Páginas permitidas:', controle.paginasPermitidas);
-    
+
     // Verificar se a página atual está na lista de permitidas
     const paginaPermitida = controle.paginasPermitidas.some(p => {
         return paginaAtual === p || paginaAtual.endsWith(p);
     });
-    
+
     if (!paginaPermitida && paginaAtual !== '/' && paginaAtual !== '/index.html') {
         console.warn(' Acesso negado à página:', paginaAtual);
         console.log(' Redirecionando para:', user.tela_inicial);
         window.location.href = user.tela_inicial || '/dashboard.html';
         return;
     }
-    
+
     console.log(' Acesso permitido - Perfil:', user.perfil_nome);
     ocultarModulosNaoPermitidos(controle.modulosVisiveis);
 }
@@ -292,13 +302,13 @@ function ocultarModulosNaoPermitidos(modulosVisiveis) {
     todosModulos.forEach(modulo => {
         const onclick = modulo.getAttribute('onclick');
         let visivel = false;
-        
+
         modulosVisiveis.forEach(moduloPermitido => {
             if (onclick && onclick.includes(moduloPermitido)) {
                 visivel = true;
             }
         });
-        
+
         if (!visivel) {
             modulo.style.display = 'none';
         }
@@ -322,7 +332,7 @@ let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    
+
     const banner = document.querySelector('.pwa-install-banner');
     if (banner) {
         banner.classList.add('show');
@@ -378,13 +388,13 @@ async function carregarEmpresasScanner() {
             console.error('Erro: Sem resposta do servidor');
             return;
         }
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             console.error('Erro ao carregar fornecedores:', errorData.mensagem || errorData.erro);
             return;
         }
-        
+
         const data = await response.json();
         const select = document.getElementById('scannerFornecedor');
         if (select) {
@@ -418,12 +428,12 @@ async function obterLocalizacaoAutomatica() {
         navigator.geolocation.getCurrentPosition(async (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            
+
             try {
                 const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`);
-                
+
                 const data = await response.json();
-                
+
                 if (data && data.address) {
                     const addr = data.address;
                     const rua = addr.road || addr.street || addr.pedestrian || 'Rua não identificada';
@@ -432,15 +442,15 @@ async function obterLocalizacaoAutomatica() {
                     const cidade = addr.city || addr.town || addr.village || '';
                     const estado = addr.state || '';
                     const cep = addr.postcode || 'CEP não disponível';
-                    
+
                     const enderecoCompleto = `${rua}, ${numero}${bairro ? ', ' + bairro : ''} - ${cidade}/${estado} - CEP: ${cep}`;
-                    
+
                     currentLocationData = {
                         lat: lat,
                         lng: lng,
                         endereco: enderecoCompleto
                     };
-                    
+
                     console.log(' Localização obtida:', enderecoCompleto);
                     resolve(currentLocationData);
                 } else {
@@ -489,14 +499,14 @@ function previewImage(input) {
 async function capturarLocalizacaoScanner() {
     const btn = document.getElementById('btnCapturarLocalizacao');
     const locationInfo = document.getElementById('locationInfo');
-    
+
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Obtendo localização...';
     }
-    
+
     const location = await obterLocalizacaoAutomatica();
-    
+
     if (location && location.endereco) {
         currentLocationData = location;
         if (locationInfo) {
@@ -521,7 +531,7 @@ async function calcularValorAutomatico() {
     const tipoPlaca = document.getElementById('tipoPlaca')?.value;
     const pesoKg = parseFloat(document.getElementById('pesoPlaca')?.value);
     const valorDisplay = document.getElementById('valorCalculado');
-    
+
     if (!fornecedorId || !tipoPlaca || !pesoKg || isNaN(pesoKg)) {
         if (valorDisplay) {
             valorDisplay.textContent = 'R$ 0,00';
@@ -529,15 +539,15 @@ async function calcularValorAutomatico() {
         }
         return;
     }
-    
+
     try {
         const response = await fetchAPI(`/api/fornecedores/${fornecedorId}/preco/${tipoPlaca}`);
-        
+
         if (response.ok) {
             const data = await response.json();
             const precoPorKg = data.preco_por_kg;
             const valorTotal = pesoKg * precoPorKg;
-            
+
             if (valorDisplay) {
                 valorDisplay.textContent = formatCurrency(valorTotal);
                 valorDisplay.setAttribute('data-valor', valorTotal);
@@ -561,15 +571,15 @@ function setupAutoCalculation() {
     const fornecedorSelect = document.getElementById('scannerFornecedor');
     const tipoPlacaSelect = document.getElementById('tipoPlaca');
     const pesoInput = document.getElementById('pesoPlaca');
-    
+
     if (fornecedorSelect) {
         fornecedorSelect.addEventListener('change', calcularValorAutomatico);
     }
-    
+
     if (tipoPlacaSelect) {
         tipoPlacaSelect.addEventListener('change', calcularValorAutomatico);
     }
-    
+
     if (pesoInput) {
         pesoInput.addEventListener('input', calcularValorAutomatico);
     }
@@ -579,7 +589,7 @@ function setupAutoCalculation() {
 function setActiveNavItem() {
     const currentPath = window.location.pathname;
     const navItems = document.querySelectorAll('.bottom-nav-item');
-    
+
     navItems.forEach(item => {
         item.classList.remove('active');
         if (item.getAttribute('href') === currentPath) {
@@ -594,25 +604,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (formScanner) {
         formScanner.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const valorCalculado = document.getElementById('valorCalculado')?.getAttribute('data-valor');
-            
+
             if (!valorCalculado || parseFloat(valorCalculado) <= 0) {
                 alert('Por favor, preencha todos os campos para calcular o valor automaticamente.');
                 return;
             }
-            
+
             const formData = new FormData();
             formData.append('fornecedor_id', document.getElementById('scannerFornecedor').value);
             formData.append('tipo_placa', document.getElementById('tipoPlaca').value);
             formData.append('peso_kg', document.getElementById('pesoPlaca').value);
             formData.append('valor', valorCalculado);
-            
+
             const fileInput = document.getElementById('fileInput');
             if (fileInput.files.length > 0) {
                 formData.append('imagem', fileInput.files[0]);
             }
-            
+
             if (currentLocationData.lat && currentLocationData.lng) {
                 formData.append('localizacao_lat', currentLocationData.lat);
                 formData.append('localizacao_lng', currentLocationData.lng);
@@ -620,7 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     formData.append('endereco_completo', currentLocationData.endereco);
                 }
             }
-            
+
             try {
                 const token = getToken();
                 const response = await fetch(`${API_URL}/placas`, {
@@ -630,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     body: formData
                 });
-                
+
                 if (response.ok) {
                     alert('Placa registrada com sucesso!');
                     closeScanner();
@@ -647,6 +657,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     setActiveNavItem();
 });

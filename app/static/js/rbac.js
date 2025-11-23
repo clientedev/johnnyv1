@@ -206,6 +206,7 @@ function ocultarElementosPorPerfil() {
 function verificarAcessoPagina() {
     const paginaAtual = window.location.pathname;
 
+    // Páginas públicas sempre permitidas
     if (paginaAtual === '/' || paginaAtual === '/index.html' || paginaAtual === '/acesso-negado.html') {
         return true;
     }
@@ -221,7 +222,9 @@ function verificarAcessoPagina() {
         return false;
     }
 
+    // Admin tem acesso total
     if (currentUserData.tipo === 'admin' || currentUserData.perfil === 'Administrador') {
+        console.log('✅ Acesso permitido - Admin tem acesso total');
         return true;
     }
 
@@ -234,12 +237,18 @@ function verificarAcessoPagina() {
 
     // PROTEÇÃO ESPECÍFICA: Perfil Auditoria / BI só pode acessar dashboard
     if (currentUserData.perfil === 'Auditoria / BI') {
-        if (paginaAtual !== '/dashboard.html') {
-            console.warn('⚠️ Perfil Auditoria/BI: redirecionando para dashboard');
+        console.log('🔍 Verificando acesso para perfil Auditoria/BI');
+        console.log('Página atual:', paginaAtual);
+        
+        if (paginaAtual === '/dashboard.html') {
+            console.log('✅ Acesso permitido - Dashboard é permitido para Auditoria/BI');
+            return true;
+        } else {
+            console.warn('⚠️ Perfil Auditoria/BI tentou acessar:', paginaAtual);
+            console.warn('⚠️ Redirecionando para dashboard');
             window.location.href = '/dashboard.html';
             return false;
         }
-        return true;
     }
 
     if (!paginasPermitidas || paginasPermitidas.length === 0) {
