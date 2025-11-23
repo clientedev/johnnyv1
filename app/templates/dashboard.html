@@ -581,6 +581,38 @@
         <div id="chartsContainer">
             <!-- Placeholder - gráficos serão inseridos dinamicamente -->
         </div>
+
+        <!-- Métricas Financeiras Adicionais (sempre visíveis) -->
+        <div class="chart-card" style="margin-top: 24px;">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <i class="fas fa-dollar-sign"></i>
+                    Indicadores Financeiros
+                </div>
+                <div id="cotacaoDolar" style="display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600;">
+                    <i class="fas fa-sync fa-spin" style="color: var(--primary-color);"></i>
+                    <span>Carregando cotação...</span>
+                </div>
+            </div>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-item-label">Dólar (Hoje)</div>
+                    <div class="stat-item-value" id="dolarHoje">R$ 0,00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-item-label">Variação</div>
+                    <div class="stat-item-value" id="dolarVariacao" style="font-size: 16px;">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-item-label">Gasto Hoje</div>
+                    <div class="stat-item-value" id="gastoHoje">R$ 0,00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-item-label">Gasto Mês</div>
+                    <div class="stat-item-value" id="gastoMes">R$ 0,00</div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
@@ -684,6 +716,140 @@
                         },
                         options: { responsive: true, maintainAspectRatio: false }
                     });
+                }
+
+                // Gráfico 3 - Gastos Diários
+                const gastosResponse = await fetchAPI('/dashboard/gastos-diarios');
+                if (gastosResponse && gastosResponse.ok) {
+                    const gastosData = await gastosResponse.json();
+                    
+                    const canvas3 = document.getElementById('chart3');
+                    if (canvas3) {
+                        const ctx3 = canvas3.getContext('2d');
+                        if (activeCharts['chart3']) {
+                            activeCharts['chart3'].destroy();
+                        }
+                        activeCharts['chart3'] = new Chart(ctx3, {
+                            type: 'line',
+                            data: {
+                                labels: gastosData.labels,
+                                datasets: [{
+                                    label: 'Gastos (R$)',
+                                    data: gastosData.valores,
+                                    borderColor: '#f59e0b',
+                                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false }
+                        });
+                    }
+                }
+
+                // Gráfico 4 - Gastos por Comprador
+                const gastosCompradorResponse = await fetchAPI('/dashboard/gastos-comprador?periodo=mes');
+                if (gastosCompradorResponse && gastosCompradorResponse.ok) {
+                    const gastosCompradorData = await gastosCompradorResponse.json();
+                    
+                    const canvas4 = document.getElementById('chart4');
+                    if (canvas4) {
+                        const ctx4 = canvas4.getContext('2d');
+                        if (activeCharts['chart4']) {
+                            activeCharts['chart4'].destroy();
+                        }
+                        activeCharts['chart4'] = new Chart(ctx4, {
+                            type: 'bar',
+                            data: {
+                                labels: gastosCompradorData.compradores.map(c => c.nome),
+                                datasets: [{
+                                    label: 'Valor Total (R$)',
+                                    data: gastosCompradorData.compradores.map(c => c.valor_total),
+                                    backgroundColor: '#3b82f6'
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false }
+                        });
+                    }
+                }
+
+                // Gráfico 5 - KM Motoristas
+                const kmResponse = await fetchAPI('/dashboard/km-motoristas?periodo=mes');
+                if (kmResponse && kmResponse.ok) {
+                    const kmData = await kmResponse.json();
+                    
+                    const canvas5 = document.getElementById('chart5');
+                    if (canvas5) {
+                        const ctx5 = canvas5.getContext('2d');
+                        if (activeCharts['chart5']) {
+                            activeCharts['chart5'].destroy();
+                        }
+                        activeCharts['chart5'] = new Chart(ctx5, {
+                            type: 'bar',
+                            data: {
+                                labels: kmData.motoristas.map(m => m.nome),
+                                datasets: [{
+                                    label: 'KM Rodados',
+                                    data: kmData.motoristas.map(m => m.km_total),
+                                    backgroundColor: '#10b981'
+                                }]
+                            },
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                return context.parsed.y.toFixed(2) + ' km';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+
+                // Eficiência Operacional
+                const eficienciaResponse = await fetchAPI('/dashboard/eficiencia-operacional');
+                if (eficienciaResponse && eficienciaResponse.ok) {
+                    const eficienciaData = await eficienciaResponse.json();
+                    
+                    document.getElementById('tempoAprovacao').textContent = eficienciaData.tempo_medio_aprovacao_horas.toFixed(1) + 'h';
+                    document.getElementById('taxaAprovacao').textContent = eficienciaData.taxa_aprovacao_percent.toFixed(1) + '%';
+                    document.getElementById('taxaDivergencia').textContent = eficienciaData.taxa_divergencia_percent.toFixed(1) + '%';
+                }
+
+                // Cotação do Dólar
+                const dolarResponse = await fetchAPI('/dashboard/cotacao-dolar');
+                if (dolarResponse && dolarResponse.ok) {
+                    const dolarData = await dolarResponse.json();
+                    
+                    document.getElementById('dolarHoje').textContent = 'R$ ' + dolarData.cotacao.toFixed(2);
+                    
+                    const variacaoEl = document.getElementById('dolarVariacao');
+                    const variacao = dolarData.variacao;
+                    variacaoEl.textContent = (variacao >= 0 ? '+' : '') + variacao.toFixed(2) + '%';
+                    variacaoEl.style.color = variacao >= 0 ? '#ef4444' : '#10b981';
+                    
+                    const cotacaoEl = document.getElementById('cotacaoDolar');
+                    cotacaoEl.innerHTML = `
+                        <i class="fas fa-dollar-sign" style="color: var(--primary-color);"></i>
+                        <span>USD: R$ ${dolarData.cotacao.toFixed(2)}</span>
+                        <span style="color: ${variacao >= 0 ? '#ef4444' : '#10b981'}; font-size: 12px;">${variacao >= 0 ? '▲' : '▼'} ${Math.abs(variacao).toFixed(2)}%</span>
+                    `;
+                }
+
+                // Calcular gastos hoje e mês para métricas adicionais
+                const gastosHojeMesResponse = await fetchAPI('/dashboard/gastos-diarios');
+                if (gastosHojeMesResponse && gastosHojeMesResponse.ok) {
+                    const gastosHojeMesData = await gastosHojeMesResponse.json();
+                    const gastoHoje = gastosHojeMesData.valores[gastosHojeMesData.valores.length - 1] || 0;
+                    const gastoMes = gastosHojeMesData.valores.reduce((a, b) => a + b, 0);
+                    
+                    document.getElementById('gastoHoje').textContent = 'R$ ' + gastoHoje.toFixed(2);
+                    document.getElementById('gastoMes').textContent = 'R$ ' + gastoMes.toFixed(2);
                 }
 
                 // Ranking
@@ -954,9 +1120,46 @@
                     </div>
                     <div class="chart-card">
                         <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-dollar-sign"></i> Gastos Diários (30 dias)</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart3"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
                             <div class="chart-title"><i class="fas fa-trophy"></i> Ranking de Fornecedores</div>
                         </div>
                         <ul class="ranking-list" id="ranking"></ul>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-users"></i> Gastos por Comprador (Mês)</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart4"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-truck"></i> KM Rodados por Motorista</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart5"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-tachometer-alt"></i> Eficiência Operacional</div>
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-item">
+                                <div class="stat-item-label">Tempo Médio Aprovação</div>
+                                <div class="stat-item-value" id="tempoAprovacao">0h</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-item-label">Taxa de Aprovação</div>
+                                <div class="stat-item-value" id="taxaAprovacao">0%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-item-label">Taxa de Divergência</div>
+                                <div class="stat-item-value" id="taxaDivergencia">0%</div>
+                            </div>
+                        </div>
                     </div>
                 `,
                 'empresas': `
