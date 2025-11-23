@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
 from app.models import db, Fornecedor, Solicitacao, Lote, EntradaEstoque, FornecedorTipoLotePreco, ItemSolicitacao, TipoLote, OrdemCompra, Usuario, Motorista, OrdemServico
-from app.auth import admin_required
+from app.auth import admin_ou_auditor_required
 from sqlalchemy import func, extract, case, and_, or_
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -10,7 +10,7 @@ import requests
 bp = Blueprint('dashboard', __name__, url_prefix='/api/dashboard')
 
 @bp.route('/stats', methods=['GET'])
-@admin_required
+@admin_ou_auditor_required
 def obter_estatisticas():
     """Retorna estatísticas gerais do sistema"""
     # Estatísticas de Solicitações/Relatórios
@@ -81,7 +81,7 @@ def obter_estatisticas():
     }), 200
 
 @bp.route('/grafico-mensal', methods=['GET'])
-@admin_required
+@admin_ou_auditor_required
 def obter_grafico_mensal():
     """Retorna dados de movimentação mensal para gráficos"""
     from dateutil.relativedelta import relativedelta
@@ -125,7 +125,7 @@ def obter_grafico_mensal():
     }), 200
 
 @bp.route('/financeiro', methods=['GET'])
-@admin_required
+@admin_ou_auditor_required
 def obter_metricas_financeiras():
     """Retorna métricas financeiras dos compradores"""
     hoje = datetime.now()
@@ -213,7 +213,7 @@ def obter_metricas_financeiras():
     }), 200
 
 @bp.route('/logistica', methods=['GET'])
-@admin_required
+@admin_ou_auditor_required
 def obter_metricas_logistica():
     """Retorna métricas de logística"""
     hoje = datetime.now()
@@ -261,7 +261,7 @@ def obter_metricas_logistica():
     }), 200
 
 @bp.route('/analise-fornecedores', methods=['GET'])
-@admin_required
+@admin_ou_auditor_required
 def obter_analise_fornecedores():
     """Retorna análise detalhada de fornecedores"""
     hoje = datetime.now()
@@ -328,7 +328,7 @@ def obter_analise_fornecedores():
     }), 200
 
 @bp.route('/operacional', methods=['GET'])
-@admin_required
+@admin_ou_auditor_required
 def obter_metricas_operacionais():
     """Retorna métricas de eficiência operacional"""
     hoje = datetime.now()
@@ -428,7 +428,7 @@ _cotacoes_cache = {
 CACHE_DURACAO_MINUTOS = 30
 
 @bp.route('/indicadores-externos', methods=['GET'])
-@admin_required
+@admin_ou_auditor_required
 def obter_indicadores_externos():
     """Retorna indicadores externos como cotação do dólar"""
     global _cotacoes_cache

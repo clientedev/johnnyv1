@@ -64,6 +64,30 @@ def perfil_required(*perfis_permitidos):
 
 PERFIL_AUDITORIA = 'Auditoria / BI'
 
+def admin_ou_auditor_required(fn):
+    """
+    Decorator que permite acesso para Admin e Auditor
+    Usado principalmente para rotas de dashboard e relatórios
+    """
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        usuario = get_current_user()
+
+        if not usuario:
+            return jsonify({'erro': 'Usuário não autenticado'}), 401
+
+        # Admin tem acesso total
+        if usuario.tipo == 'admin':
+            return fn(*args, **kwargs)
+
+        # Auditor também tem acesso total ao dashboard
+        if usuario.perfil and usuario.perfil.nome == PERFIL_AUDITORIA:
+            return fn(*args, **kwargs)
+
+        return jsonify({'erro': 'Acesso negado. Apenas Administradores e Auditores podem acessar este recurso.'}), 403
+
+    return wrapper
+
 def somente_leitura_ou_admin(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
