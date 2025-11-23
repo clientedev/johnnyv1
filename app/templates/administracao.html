@@ -387,8 +387,12 @@
         async function carregarAtribuicoes() {
             try {
                 const response = await fetchAPI('/fornecedores');
+                if (!response || !response.ok) {
+                    throw new Error('Erro ao buscar fornecedores');
+                }
                 fornecedoresList = await response.json();
                 
+                console.log('Fornecedores carregados:', fornecedoresList);
                 renderizarAtribuicoes(fornecedoresList);
             } catch (error) {
                 console.error('Erro ao carregar atribuições:', error);
@@ -408,11 +412,13 @@
                 const doc = f.cnpj ? formatarCNPJ(f.cnpj) : (f.cpf ? formatarCPF(f.cpf) : 'N/A');
                 const comprador = f.comprador_responsavel_nome || '<span style="color: #9ca3af;">Não atribuído</span>';
                 
+                console.log(`Fornecedor ${f.nome}: comprador_responsavel_id=${f.comprador_responsavel_id}, comprador_responsavel_nome=${f.comprador_responsavel_nome}`);
+                
                 return `
-                    <tr>
+                    <tr data-fornecedor-id="${f.id}">
                         <td>${f.nome}</td>
                         <td>${doc}</td>
-                        <td>${comprador}</td>
+                        <td id="comprador-${f.id}">${comprador}</td>
                         <td>
                             <button class="btn btn-small btn-primary" onclick="abrirModalAtribuir(${f.id}, '${f.nome.replace(/'/g, "\\'")}')">
                                 <i class="fas fa-user-plus"></i> ${f.comprador_responsavel_id ? 'Alterar' : 'Atribuir'}
@@ -476,16 +482,22 @@
             }
             
             try {
-                await fetchAPI(`/fornecedores/${fornecedorId}`, {
+                const response = await fetchAPI(`/fornecedores/${fornecedorId}`, {
                     method: 'PUT',
                     body: JSON.stringify({
                         comprador_responsavel_id: parseInt(compradorId)
                     })
                 });
                 
-                showAlert('Comprador atribuído com sucesso!');
-                fecharModalAtribuirComprador();
-                await carregarAtribuicoes();
+                if (response && response.ok) {
+                    showAlert('Comprador atribuído com sucesso!', 'success');
+                    fecharModalAtribuirComprador();
+                    // Recarregar a lista de fornecedores para atualizar a tabela
+                    await carregarAtribuicoes();
+                } else {
+                    const errorData = await response.json();
+                    showAlert('Erro ao atribuir comprador: ' + (errorData.erro || 'Erro desconhecido'));
+                }
             } catch (error) {
                 showAlert('Erro ao atribuir comprador: ' + error.message);
             }

@@ -454,6 +454,20 @@ def atualizar_fornecedor(id):
             if tabela_id_req in [1, 2, 3]:
                 fornecedor.tabela_preco_id = tabela_id_req
         
+        # Atualizar comprador responsável
+        if 'comprador_responsavel_id' in data:
+            comprador_id = data['comprador_responsavel_id']
+            if comprador_id is None:
+                fornecedor.comprador_responsavel_id = None
+                print(f"✓ Removendo comprador responsável do fornecedor {fornecedor.nome}")
+            else:
+                comprador = Usuario.query.get(comprador_id)
+                if comprador:
+                    fornecedor.comprador_responsavel_id = comprador_id
+                    print(f"✓ Atribuindo comprador {comprador.nome} ao fornecedor {fornecedor.nome}")
+                else:
+                    print(f"✗ Comprador ID {comprador_id} não encontrado")
+        
         # Atualizar tipos de lote selecionados com classificações (leve/médio/pesado)
         # Funcionários não podem modificar estrelas
         if 'tipos_lote' in data and isinstance(data['tipos_lote'], list) and usuario.tipo == 'admin':
