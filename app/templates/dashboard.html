@@ -1748,7 +1748,7 @@
                     });
                 }
 
-                // Gráfico 2 - Valor por mês
+                // Gráfico 2 - Solicitações por mês
                 const graficoResponse = await fetchAPI('/dashboard/grafico-mensal');
                 const graficoData = await graficoResponse.json();
                 const ctx2 = document.getElementById('chart2')?.getContext('2d');
@@ -1758,12 +1758,20 @@
                         data: {
                             labels: graficoData.labels,
                             datasets: [{
-                                label: 'Valor (R$)',
-                                data: graficoData.data.map(v => v * 1000), // Simula valores
+                                label: 'Solicitações',
+                                data: graficoData.data,
                                 backgroundColor: '#059669'
                             }]
                         },
-                        options: { responsive: true, maintainAspectRatio: false }
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
                     });
                 }
             } catch (error) {
@@ -1775,8 +1783,13 @@
 
         async function loadFornecedoresBI() {
             try {
-                const response = await fetchAPI('/fornecedores'); // Usa empresas como fornecedores
+                const response = await fetchAPI('/fornecedores');
                 const fornecedores = await response.json();
+                
+                // Buscar ranking de fornecedores para dados reais
+                const statsResponse = await fetchAPI('/dashboard/stats');
+                const statsData = await statsResponse.json();
+                const ranking = statsData.ranking_empresas || [];
                 
                 const ativos = fornecedores.filter(f => f.ativo !== false).length;
                 const inativos = fornecedores.length - ativos;
@@ -1786,7 +1799,7 @@
                     pendentes: fornecedores.length,
                     aprovados: ativos,
                     reprovados: inativos,
-                    valorTotal: 0
+                    valorTotal: ranking.reduce((sum, r) => sum + r.total, 0)
                 });
 
                 // Gráfico 1 - Ativos vs Inativos
@@ -1805,16 +1818,17 @@
                     });
                 }
 
-                // Gráfico 2 - Volume por fornecedor
+                // Gráfico 2 - Volume de Solicitações por Fornecedor (dados reais do ranking)
                 const ctx2 = document.getElementById('chart2')?.getContext('2d');
-                if (ctx2) {
+                if (ctx2 && ranking.length > 0) {
+                    const topFornecedores = ranking.slice(0, 5);
                     activeCharts['chart2'] = new Chart(ctx2, {
                         type: 'bar',
                         data: {
-                            labels: fornecedores.slice(0, 5).map(f => f.nome),
+                            labels: topFornecedores.map(f => f.nome),
                             datasets: [{
-                                label: 'Volume',
-                                data: fornecedores.slice(0, 5).map(() => Math.floor(Math.random() * 1000) + 500),
+                                label: 'Total de Solicitações',
+                                data: topFornecedores.map(f => f.total),
                                 backgroundColor: '#059669'
                             }]
                         },
