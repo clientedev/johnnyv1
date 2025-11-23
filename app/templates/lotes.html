@@ -639,11 +639,11 @@
             .metric-card {
                 padding: 1rem;
             }
-            
+
             .metric-value {
                 font-size: 1.5rem;
             }
-            
+
             .metric-label {
                 font-size: 0.75rem;
             }
@@ -777,18 +777,31 @@
 
             div.innerHTML = movimentacoes.map(mov => `
                 <div class="timeline-item">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                        <strong>${mov.tipo}</strong>
-                        <span style="color: var(--gray-600); font-size: 0.875rem;">
-                            ${new Date(mov.data_movimentacao).toLocaleString('pt-BR')}
-                        </span>
-                    </div>
-                    <div style="color: var(--gray-700);">
-                        Lote <strong>${mov.lote_numero}</strong>: 
-                        ${mov.localizacao_origem || '—'} → ${mov.localizacao_destino || '—'}
-                    </div>
-                    <div style="color: var(--gray-600); font-size: 0.875rem; margin-top: 0.25rem;">
-                        ${mov.usuario_nome} | ${mov.peso ? mov.peso + ' kg' : ''}
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+                            <strong style="color: var(--primary-color); font-size: 0.95rem;">${mov.tipo}</strong>
+                            <span style="color: var(--gray-600); font-size: 0.8rem; white-space: nowrap;">
+                                ${new Date(mov.data_movimentacao).toLocaleString('pt-BR', { 
+                                    day: '2-digit', 
+                                    month: '2-digit', 
+                                    year: 'numeric',
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                })}
+                            </span>
+                        </div>
+                        <div style="color: var(--gray-700); font-size: 0.9rem; line-height: 1.4;">
+                            Lote <strong>${mov.lote_numero}</strong>
+                        </div>
+                        <div style="color: var(--gray-600); font-size: 0.85rem;">
+                            <i class="fas fa-map-marker-alt" style="color: var(--danger-color);"></i> ${mov.localizacao_origem || 'Origem'} 
+                            <i class="fas fa-arrow-right" style="margin: 0 0.5rem;"></i> 
+                            <i class="fas fa-map-marker-alt" style="color: var(--success-color);"></i> ${mov.localizacao_destino || 'Destino'}
+                        </div>
+                        <div style="color: var(--gray-600); font-size: 0.85rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <span><i class="fas fa-user"></i> ${mov.usuario_nome}</span>
+                            ${mov.peso ? `<span><i class="fas fa-weight"></i> ${mov.peso} kg</span>` : ''}
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -1041,7 +1054,7 @@
             e.preventDefault();
 
             const loteId = document.getElementById('movLoteId').value;
-            
+
             const dados = {
                 lote_id: parseInt(loteId),
                 tipo: document.getElementById('movTipo').value,
@@ -1054,7 +1067,7 @@
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
-                
+
                 if (!response || !response.ok) {
                     const error = await response.json();
                     throw new Error(error.erro || 'Erro ao registrar movimentação');
@@ -1123,16 +1136,16 @@
                         observacoes: observacoes
                     })
                 });
-                
+
                 if (!response || !response.ok) {
                     throw new Error('Erro ao movimentar lote');
                 }
 
                 showAlert('Lote movimentado com sucesso!', 'success');
-                
+
                 // Recarregar detalhes do lote automaticamente
                 await buscarLoteDetalhes(loteId);
-                
+
                 // Atualizar outras abas se necessário
                 if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
                 if (typeof carregarMovimentacoes === 'function') carregarMovimentacoes();
@@ -1157,10 +1170,10 @@
                 }
 
                 showAlert('Lote bloqueado com sucesso!', 'success');
-                
+
                 // Recarregar detalhes do lote automaticamente
                 await buscarLoteDetalhes(loteId);
-                
+
                 if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
                 if (typeof carregarVisaoGeral === 'function') carregarVisaoGeral();
             } catch (error) {
@@ -1173,16 +1186,16 @@
 
             try {
                 const response = await fetchAPI(`/wms/lotes/${loteId}/desbloquear`, { method: 'POST' });
-                
+
                 if (!response || !response.ok) {
                     throw new Error('Erro ao desbloquear lote');
                 }
 
                 showAlert('Lote desbloqueado com sucesso!', 'success');
-                
+
                 // Recarregar detalhes do lote automaticamente
                 await buscarLoteDetalhes(loteId);
-                
+
                 if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
                 if (typeof carregarVisaoGeral === 'function') carregarVisaoGeral();
             } catch (error) {
@@ -1206,10 +1219,10 @@
                 }
 
                 showAlert('✅ Lote reservado com sucesso!', 'success');
-                
+
                 // Recarregar detalhes do lote automaticamente
                 await buscarLoteDetalhes(loteId);
-                
+
                 if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
                 if (typeof carregarVisaoGeral === 'function') carregarVisaoGeral();
             } catch (error) {
@@ -1222,17 +1235,17 @@
 
             try {
                 const response = await fetchAPI(`/wms/lotes/${loteId}/liberar-reserva`, { method: 'POST' });
-                
+
                 if (!response || !response.ok) {
                     const error = await response.json();
                     throw new Error(error.erro || 'Erro ao liberar reserva');
                 }
 
                 showAlert('✅ Reserva liberada com sucesso!', 'success');
-                
+
                 // Recarregar detalhes do lote automaticamente
                 await buscarLoteDetalhes(loteId);
-                
+
                 if (typeof carregarLotesAtivos === 'function') carregarLotesAtivos();
                 if (typeof carregarVisaoGeral === 'function') carregarVisaoGeral();
             } catch (error) {
@@ -1258,10 +1271,10 @@
 
             const modalBeforeAfter = document.getElementById('modalBeforeAfter');
             const conteudo = document.getElementById('conteudoBeforeAfter');
-            
+
             const before = mov.dados_before || {};
             const after = mov.dados_after || {};
-            
+
             conteudo.innerHTML = `
                 <div style="margin-bottom: 1.5rem;">
                     <h3 style="margin-bottom: 0.5rem; color: var(--gray-900);">
@@ -1337,7 +1350,7 @@
                     </div>
                 ` : ''}
             `;
-            
+
             modalBeforeAfter.style.display = 'flex';
         }
 
@@ -1345,18 +1358,18 @@
             if (!dados || Object.keys(dados).length === 0) {
                 return '<p style="color: var(--gray-500); font-style: italic;">Sem dados registrados</p>';
             }
-            
+
             let html = '<div style="line-height: 1.8;">';
             for (const [key, value] of Object.entries(dados)) {
                 const chave = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                 let valor = value;
-                
+
                 if (typeof value === 'object' && value !== null) {
                     valor = JSON.stringify(value, null, 2);
                 } else if (value === null || value === undefined) {
                     valor = '<span style="color: var(--gray-400);">—</span>';
                 }
-                
+
                 html += `
                     <div style="margin-bottom: 0.5rem;">
                         <strong style="color: var(--gray-700);">${chave}:</strong>
@@ -1533,12 +1546,12 @@
 
         document.getElementById('contagemLoteNumero')?.addEventListener('input', function(e) {
             const valorDigitado = e.target.value.toUpperCase();
-            
+
             if (valorDigitado.length >= 3) {
                 const loteEncontrado = lotesParaBuscaContagem.find(l => 
                     l.numero_lote.toUpperCase().includes(valorDigitado)
                 );
-                
+
                 if (loteEncontrado) {
                     document.getElementById('contagemLoteId').value = loteEncontrado.id;
                     e.target.value = loteEncontrado.numero_lote;
@@ -1589,7 +1602,7 @@
                 });
 
                 const resultado = await response.json();
-                
+
                 showAlert(`Inventário consolidado! Total de lotes: ${resultado.total_lotes}, Divergências: ${resultado.divergencias ? resultado.divergencias.length : 0}`);
                 verInventario(invId);
                 carregarInventarios();
