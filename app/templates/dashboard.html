@@ -511,6 +511,21 @@
             <button class="period-btn" onclick="changeModule('compras')" data-module="compras">
                 <i class="fas fa-shopping-cart"></i> Compras
             </button>
+            <button class="period-btn" onclick="changeModule('financeiro')" data-module="financeiro">
+                <i class="fas fa-dollar-sign"></i> Financeiro
+            </button>
+            <button class="period-btn" onclick="changeModule('logistica')" data-module="logistica">
+                <i class="fas fa-truck"></i> Logística
+            </button>
+            <button class="period-btn" onclick="changeModule('analise-fornecedores')" data-module="analise-fornecedores">
+                <i class="fas fa-star"></i> Análise Fornecedores
+            </button>
+            <button class="period-btn" onclick="changeModule('operacional')" data-module="operacional">
+                <i class="fas fa-cogs"></i> Operacional
+            </button>
+            <button class="period-btn" onclick="changeModule('indicadores')" data-module="indicadores">
+                <i class="fas fa-chart-line"></i> Indicadores
+            </button>
         </div>
 
         <!-- Filters Section -->
@@ -899,6 +914,26 @@
                 'fornecedores': {
                     filters: ['status', 'data'],
                     showFilters: true
+                },
+                'financeiro': {
+                    filters: [],
+                    showFilters: false
+                },
+                'logistica': {
+                    filters: [],
+                    showFilters: false
+                },
+                'analise-fornecedores': {
+                    filters: [],
+                    showFilters: false
+                },
+                'operacional': {
+                    filters: [],
+                    showFilters: false
+                },
+                'indicadores': {
+                    filters: [],
+                    showFilters: false
                 }
             };
 
@@ -1072,6 +1107,130 @@
                             <div class="chart-title"><i class="fas fa-chart-area"></i> Volume de Compras por Fornecedor</div>
                         </div>
                         <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                `,
+                'financeiro': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-user-tie"></i> Gastos por Comprador (Mês Atual)</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-chart-line"></i> Gastos Mensais (Últimos 6 Meses)</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-receipt"></i> Ticket Médio por Comprador</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart3"></canvas></div>
+                    </div>
+                `,
+                'logistica': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-truck"></i> KM Rodados por Motorista</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-percentage"></i> Taxa de Conclusão por Motorista (%)</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-clock"></i> Tempo Médio de Coleta/Entrega (horas)</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart3"></canvas></div>
+                    </div>
+                `,
+                'analise-fornecedores': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-trophy"></i> Top 10 Fornecedores por Volume</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-check-circle"></i> Taxa de Aprovação por Fornecedor</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart2', 'bar', this)"><i class="fas fa-chart-bar"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart2', 'line', this)"><i class="fas fa-chart-line"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-dollar-sign"></i> Preço Médio por Kg (Fornecedores)</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart3"></canvas></div>
+                    </div>
+                `,
+                'operacional': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-tasks"></i> Taxa de Aprovação (%)</div>
+                            <div class="chart-type-selector">
+                                <button class="chart-type-btn active" onclick="changeChart('chart1', 'doughnut', this)"><i class="fas fa-circle-notch"></i></button>
+                                <button class="chart-type-btn" onclick="changeChart('chart1', 'pie', this)"><i class="fas fa-chart-pie"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-chart-line"></i> Solicitações por Mês</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart2"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-hourglass-half"></i> Tempo Médio de Aprovação e Ciclo</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart3"></canvas></div>
+                    </div>
+                `,
+                'indicadores': `
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-dollar-sign"></i> Cotação do Dólar (USD/BRL)</div>
+                        </div>
+                        <div style="padding: 20px; text-align: center;">
+                            <div id="dolarValue" style="font-size: 48px; font-weight: bold; color: #059669; margin-bottom: 10px;">R$ 0,00</div>
+                            <div id="dolarVariacao" style="font-size: 18px; color: #6b7280;"></div>
+                            <div id="dolarData" style="font-size: 14px; color: #9ca3af; margin-top: 10px;"></div>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-chart-line"></i> Histórico do Dólar (Últimos 30 Dias)</div>
+                        </div>
+                        <div class="chart-container"><canvas id="chart1"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title"><i class="fas fa-euro-sign"></i> Cotação do Euro (EUR/BRL)</div>
+                        </div>
+                        <div style="padding: 20px; text-align: center;">
+                            <div id="euroValue" style="font-size: 48px; font-weight: bold; color: #3b82f6; margin-bottom: 10px;">R$ 0,00</div>
+                            <div id="euroVariacao" style="font-size: 18px; color: #6b7280;"></div>
+                            <div id="euroData" style="font-size: 14px; color: #9ca3af; margin-top: 10px;"></div>
+                        </div>
                     </div>
                 `
             };
@@ -1300,6 +1459,21 @@
                         break;
                     case 'fornecedores':
                         await loadFornecedoresBI();
+                        break;
+                    case 'financeiro':
+                        await loadFinanceiroBI();
+                        break;
+                    case 'logistica':
+                        await loadLogisticaBI();
+                        break;
+                    case 'analise-fornecedores':
+                        await loadAnaliseFornecedoresBI();
+                        break;
+                    case 'operacional':
+                        await loadOperacionalBI();
+                        break;
+                    case 'indicadores':
+                        await loadIndicadoresBI();
                         break;
                 }
             } catch (error) {
@@ -1654,6 +1828,496 @@
             }
         }
 
+        async function loadFinanceiroBI() {
+            try {
+                const response = await fetchAPI('/dashboard/financeiro');
+                const data = await response.json();
+                
+                updateKPILabels('financeiro');
+                updateKPIs({
+                    pendentes: data.total_gasto_mes,
+                    aprovados: data.total_compras_mes,
+                    reprovados: data.ticket_medio_geral,
+                    valorTotal: data.gastos_por_comprador.length
+                });
+
+                // Gráfico 1 - Gastos por Comprador
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1 && data.gastos_por_comprador.length > 0) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'bar',
+                        data: {
+                            labels: data.gastos_por_comprador.map(c => c.nome),
+                            datasets: [{
+                                label: 'Gasto Mensal (R$)',
+                                data: data.gastos_por_comprador.map(c => c.valor_mes),
+                                backgroundColor: '#059669'
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toLocaleString('pt-BR');
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico 2 - Gastos Mensais Últimos 6 Meses
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'line',
+                        data: {
+                            labels: data.gastos_mensais.map(m => m.mes),
+                            datasets: [{
+                                label: 'Valor (R$)',
+                                data: data.gastos_mensais.map(m => m.valor),
+                                borderColor: '#059669',
+                                backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toLocaleString('pt-BR');
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico 3 - Ticket Médio por Comprador
+                const ctx3 = document.getElementById('chart3')?.getContext('2d');
+                if (ctx3 && data.gastos_por_comprador.length > 0) {
+                    activeCharts['chart3'] = new Chart(ctx3, {
+                        type: 'bar',
+                        data: {
+                            labels: data.gastos_por_comprador.map(c => c.nome),
+                            datasets: [{
+                                label: 'Ticket Médio (R$)',
+                                data: data.gastos_por_comprador.map(c => c.ticket_medio),
+                                backgroundColor: '#3b82f6'
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toLocaleString('pt-BR');
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados financeiros:', error);
+                updateKPILabels('financeiro');
+                updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+            }
+        }
+
+        async function loadLogisticaBI() {
+            try {
+                const response = await fetchAPI('/dashboard/logistica');
+                const data = await response.json();
+                
+                updateKPILabels('logistica');
+                updateKPIs({
+                    pendentes: data.total_km_mes,
+                    aprovados: data.total_os_mes,
+                    reprovados: data.media_km_por_os,
+                    valorTotal: data.metricas_motoristas.length
+                });
+
+                // Gráfico 1 - KM Rodados por Motorista
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1 && data.metricas_motoristas.length > 0) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'bar',
+                        data: {
+                            labels: data.metricas_motoristas.map(m => m.nome),
+                            datasets: [{
+                                label: 'KM Total',
+                                data: data.metricas_motoristas.map(m => m.km_total),
+                                backgroundColor: '#f59e0b'
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico 2 - Taxa de Conclusão
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2 && data.metricas_motoristas.length > 0) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: data.metricas_motoristas.map(m => m.nome),
+                            datasets: [{
+                                label: 'Taxa de Conclusão (%)',
+                                data: data.metricas_motoristas.map(m => m.taxa_conclusao),
+                                backgroundColor: '#10b981'
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico 3 - Tempo Médio de Coleta/Entrega
+                const ctx3 = document.getElementById('chart3')?.getContext('2d');
+                if (ctx3 && data.metricas_motoristas.length > 0) {
+                    activeCharts['chart3'] = new Chart(ctx3, {
+                        type: 'bar',
+                        data: {
+                            labels: data.metricas_motoristas.map(m => m.nome),
+                            datasets: [{
+                                label: 'Tempo Médio (horas)',
+                                data: data.metricas_motoristas.map(m => m.tempo_medio_horas),
+                                backgroundColor: '#3b82f6'
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados de logística:', error);
+                updateKPILabels('logistica');
+                updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+            }
+        }
+
+        async function loadAnaliseFornecedoresBI() {
+            try {
+                const response = await fetchAPI('/dashboard/analise-fornecedores');
+                const data = await response.json();
+                
+                updateKPILabels('analise-fornecedores');
+                updateKPIs({
+                    pendentes: data.total_fornecedores,
+                    aprovados: data.top_fornecedores.length,
+                    reprovados: data.top_fornecedores.reduce((sum, f) => sum + f.valor_total, 0),
+                    valorTotal: data.top_fornecedores.reduce((sum, f) => sum + f.peso_total_kg, 0)
+                });
+
+                // Gráfico 1 - Top 10 Fornecedores por Volume
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1 && data.top_fornecedores.length > 0) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'bar',
+                        data: {
+                            labels: data.top_fornecedores.map(f => f.nome),
+                            datasets: [{
+                                label: 'Valor Total (R$)',
+                                data: data.top_fornecedores.map(f => f.valor_total),
+                                backgroundColor: '#059669'
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            indexAxis: 'y',
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toLocaleString('pt-BR');
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico 2 - Taxa de Aprovação
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2 && data.top_fornecedores.length > 0) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: data.top_fornecedores.map(f => f.nome),
+                            datasets: [{
+                                label: 'Taxa de Aprovação (%)',
+                                data: data.top_fornecedores.map(f => f.taxa_aprovacao),
+                                backgroundColor: '#10b981'
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico 3 - Preço Médio por KG
+                const ctx3 = document.getElementById('chart3')?.getContext('2d');
+                if (ctx3 && data.top_fornecedores.length > 0) {
+                    activeCharts['chart3'] = new Chart(ctx3, {
+                        type: 'bar',
+                        data: {
+                            labels: data.top_fornecedores.map(f => f.nome),
+                            datasets: [{
+                                label: 'Preço Médio/Kg (R$)',
+                                data: data.top_fornecedores.map(f => f.preco_medio_kg),
+                                backgroundColor: '#f59e0b'
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toFixed(2);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar análise de fornecedores:', error);
+                updateKPILabels('analise-fornecedores');
+                updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+            }
+        }
+
+        async function loadOperacionalBI() {
+            try {
+                const response = await fetchAPI('/dashboard/operacional');
+                const data = await response.json();
+                
+                updateKPILabels('operacional');
+                updateKPIs({
+                    pendentes: data.solicitacoes_pendentes,
+                    aprovados: data.solicitacoes_aprovadas,
+                    reprovados: data.solicitacoes_rejeitadas,
+                    valorTotal: data.taxa_aprovacao
+                });
+
+                // Gráfico 1 - Taxa de Aprovação
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1) {
+                    const totalSolicitacoes = data.total_solicitacoes_mes;
+                    const aprovadas = data.solicitacoes_aprovadas;
+                    const rejeitadas = data.solicitacoes_rejeitadas;
+                    const pendentes = data.solicitacoes_pendentes;
+                    
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Aprovadas', 'Rejeitadas', 'Pendentes'],
+                            datasets: [{
+                                data: [aprovadas, rejeitadas, pendentes],
+                                backgroundColor: ['#10b981', '#ef4444', '#f59e0b']
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+                // Gráfico 2 - Solicitações por Mês
+                const ctx2 = document.getElementById('chart2')?.getContext('2d');
+                if (ctx2) {
+                    activeCharts['chart2'] = new Chart(ctx2, {
+                        type: 'line',
+                        data: {
+                            labels: data.solicitacoes_por_mes.map(m => m.mes),
+                            datasets: [{
+                                label: 'Total',
+                                data: data.solicitacoes_por_mes.map(m => m.total),
+                                borderColor: '#059669',
+                                backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }, {
+                                label: 'Aprovadas',
+                                data: data.solicitacoes_por_mes.map(m => m.aprovadas),
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Gráfico 3 - Tempos Médios
+                const ctx3 = document.getElementById('chart3')?.getContext('2d');
+                if (ctx3) {
+                    activeCharts['chart3'] = new Chart(ctx3, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Tempo Médio Aprovação (h)', 'Tempo Ciclo Completo (dias)'],
+                            datasets: [{
+                                label: 'Tempo',
+                                data: [data.tempo_medio_aprovacao_horas, data.tempo_medio_ciclo_dias],
+                                backgroundColor: ['#3b82f6', '#f59e0b']
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados operacionais:', error);
+                updateKPILabels('operacional');
+                updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+            }
+        }
+
+        async function loadIndicadoresBI() {
+            try {
+                const response = await fetchAPI('/dashboard/indicadores-externos');
+                const data = await response.json();
+                
+                updateKPILabels('indicadores');
+                updateKPIs({
+                    pendentes: data.dolar.valor,
+                    aprovados: data.euro.valor,
+                    reprovados: data.dolar.variacao,
+                    valorTotal: 0
+                });
+
+                // Exibir cotação do dólar
+                const dolarValueEl = document.getElementById('dolarValue');
+                const dolarVariacaoEl = document.getElementById('dolarVariacao');
+                const dolarDataEl = document.getElementById('dolarData');
+                
+                if (dolarValueEl && data.dolar) {
+                    dolarValueEl.textContent = 'R$ ' + data.dolar.valor.toFixed(2);
+                    const variacaoClass = data.dolar.variacao >= 0 ? 'positive' : 'negative';
+                    const variacaoIcon = data.dolar.variacao >= 0 ? '▲' : '▼';
+                    dolarVariacaoEl.innerHTML = `<span class="kpi-change ${variacaoClass}">${variacaoIcon} ${Math.abs(data.dolar.variacao).toFixed(2)}%</span>`;
+                    dolarDataEl.textContent = 'Atualizado em: ' + data.dolar.data_atualizacao;
+                }
+
+                // Exibir cotação do euro
+                const euroValueEl = document.getElementById('euroValue');
+                const euroVariacaoEl = document.getElementById('euroVariacao');
+                const euroDataEl = document.getElementById('euroData');
+                
+                if (euroValueEl && data.euro) {
+                    euroValueEl.textContent = 'R$ ' + data.euro.valor.toFixed(2);
+                    const variacaoClass = data.euro.variacao >= 0 ? 'positive' : 'negative';
+                    const variacaoIcon = data.euro.variacao >= 0 ? '▲' : '▼';
+                    euroVariacaoEl.innerHTML = `<span class="kpi-change ${variacaoClass}">${variacaoIcon} ${Math.abs(data.euro.variacao).toFixed(2)}%</span>`;
+                    euroDataEl.textContent = 'Atualizado em: ' + data.euro.data_atualizacao;
+                }
+
+                // Gráfico 1 - Histórico do Dólar
+                const ctx1 = document.getElementById('chart1')?.getContext('2d');
+                if (ctx1 && data.historico_dolar.length > 0) {
+                    activeCharts['chart1'] = new Chart(ctx1, {
+                        type: 'line',
+                        data: {
+                            labels: data.historico_dolar.map(h => h.data),
+                            datasets: [{
+                                label: 'USD/BRL',
+                                data: data.historico_dolar.map(h => h.valor),
+                                borderColor: '#059669',
+                                backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    ticks: {
+                                        callback: function(value) {
+                                            return 'R$ ' + value.toFixed(2);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar indicadores externos:', error);
+                updateKPILabels('indicadores');
+                updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+            }
+        }
+
         function updateKPIs(data) {
             document.getElementById('kpi1Value').textContent = data.pendentes;
             document.getElementById('kpi2Value').textContent = data.aprovados;
@@ -1704,10 +2368,40 @@
                     kpi2: 'Ativos',
                     kpi3: 'Inativos',
                     kpi4: 'Volume Total'
+                },
+                'financeiro': {
+                    kpi1: 'Gasto Total (Mês)',
+                    kpi2: 'Total de Compras',
+                    kpi3: 'Ticket Médio',
+                    kpi4: 'Compradores Ativos'
+                },
+                'logistica': {
+                    kpi1: 'KM Total (Mês)',
+                    kpi2: 'Ordens de Serviço',
+                    kpi3: 'Média KM/OS',
+                    kpi4: 'Motoristas Ativos'
+                },
+                'analise-fornecedores': {
+                    kpi1: 'Total Fornecedores',
+                    kpi2: 'Top 10 Fornecedores',
+                    kpi3: 'Valor Total Top 10',
+                    kpi4: 'Peso Total (kg)'
+                },
+                'operacional': {
+                    kpi1: 'Pendentes',
+                    kpi2: 'Aprovadas',
+                    kpi3: 'Rejeitadas',
+                    kpi4: 'Taxa de Aprovação (%)'
+                },
+                'indicadores': {
+                    kpi1: 'Dólar (R$)',
+                    kpi2: 'Euro (R$)',
+                    kpi3: 'Variação Dólar (%)',
+                    kpi4: 'Atualizado'
                 }
             };
 
-            const moduleLabels = labels[module];
+            const moduleLabels = labels[module] || labels['geral'];
             document.getElementById('kpi1Label').textContent = moduleLabels.kpi1;
             document.getElementById('kpi2Label').textContent = moduleLabels.kpi2;
             document.getElementById('kpi3Label').textContent = moduleLabels.kpi3;
@@ -1722,7 +2416,12 @@
                 'tipos-lote': ['/tipos-lote.html', '/tipos-lote.html', '/tipos-lote.html', '/tipos-lote.html'],
                 'entradas': ['/entradas.html', '/entradas.html', '/entradas.html', '/entradas.html'],
                 'compras': ['/compras.html', '/compras.html', '/compras.html', '/compras.html'],
-                'fornecedores': ['/fornecedores.html', '/fornecedores.html', '/fornecedores.html', '/fornecedores.html']
+                'fornecedores': ['/fornecedores.html', '/fornecedores.html', '/fornecedores.html', '/fornecedores.html'],
+                'financeiro': ['/dashboard.html', '/dashboard.html', '/dashboard.html', '/dashboard.html'],
+                'logistica': ['/motoristas.html', '/motoristas.html', '/motoristas.html', '/motoristas.html'],
+                'analise-fornecedores': ['/fornecedores.html', '/fornecedores.html', '/fornecedores.html', '/fornecedores.html'],
+                'operacional': ['/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html', '/solicitacoes.html'],
+                'indicadores': ['/dashboard.html', '/dashboard.html', '/dashboard.html', '/dashboard.html']
             };
 
             const route = routes[currentModule][kpiNumber - 1];
