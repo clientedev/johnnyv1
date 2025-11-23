@@ -1,102 +1,93 @@
 
-"""
-Script para criar usuários de teste para validação do sistema RBAC
-"""
-import os
-os.environ['DATABASE_URL'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/mrx_db')
-
 from app import create_app
-from app.models import db, Usuario, Perfil, Motorista
-from app.auth import hash_senha
+from app.models import db, Usuario, Perfil
+from werkzeug.security import generate_password_hash
 
-def criar_usuarios_teste():
-    app = create_app()
+app = create_app()
+
+with app.app_context():
+    print("🔄 Recriando usuários de teste com senhas válidas...")
     
-    with app.app_context():
-        # Mapear perfis
-        perfis = {
-            'Administrador': 'admin@teste.com',
-            'Comprador (PJ)': 'comprador@teste.com',
-            'Conferente / Estoque': 'conferente@teste.com',
-            'Separação': 'separacao@teste.com',
-            'Motorista': 'motorista@teste.com',
-            'Financeiro': 'financeiro@teste.com',
-            'Auditoria / BI': 'auditoria@teste.com'
+    # Buscar perfis
+    perfil_comprador = Perfil.query.filter_by(nome='Comprador').first()
+    perfil_conferente = Perfil.query.filter_by(nome='Conferente').first()
+    perfil_separacao = Perfil.query.filter_by(nome='Separação').first()
+    perfil_financeiro = Perfil.query.filter_by(nome='Financeiro').first()
+    perfil_auditoria = Perfil.query.filter_by(nome='Auditoria / BI').first()
+    
+    # Lista de usuários para criar/atualizar
+    usuarios_teste = [
+        {
+            'email': 'joao.comprador@mrx.com',
+            'nome': 'João Comprador',
+            'senha': 'senha123',
+            'tipo': 'funcionario',
+            'perfil': perfil_comprador
+        },
+        {
+            'email': 'fernanda.compradora@mrx.com',
+            'nome': 'Fernanda Compradora',
+            'senha': 'senha123',
+            'tipo': 'funcionario',
+            'perfil': perfil_comprador
+        },
+        {
+            'email': 'carlos.conferente@mrx.com',
+            'nome': 'Carlos Conferente',
+            'senha': 'senha123',
+            'tipo': 'funcionario',
+            'perfil': perfil_conferente
+        },
+        {
+            'email': 'ana.separacao@mrx.com',
+            'nome': 'Ana Separação',
+            'senha': 'senha123',
+            'tipo': 'funcionario',
+            'perfil': perfil_separacao
+        },
+        {
+            'email': 'roberto.financeiro@mrx.com',
+            'nome': 'Roberto Financeiro',
+            'senha': 'senha123',
+            'tipo': 'funcionario',
+            'perfil': perfil_financeiro
+        },
+        {
+            'email': 'auditoria@teste.com',
+            'nome': 'Usuário Auditoria',
+            'senha': 'senha123',
+            'tipo': 'funcionario',
+            'perfil': perfil_auditoria
         }
+    ]
+    
+    for usuario_data in usuarios_teste:
+        # Verificar se usuário já existe
+        usuario_existente = Usuario.query.filter_by(email=usuario_data['email']).first()
         
-        print("🔧 Criando usuários de teste para RBAC...\n")
-        
-        for perfil_nome, email in perfis.items():
-            # Verificar se já existe
-            usuario_existente = Usuario.query.filter_by(email=email).first()
-            if usuario_existente:
-                print(f"⚠️  Usuário {email} já existe. Pulando...")
-                
-                # Se for motorista, verificar se tem registro de motorista
-                if perfil_nome == 'Motorista':
-                    motorista_existente = Motorista.query.filter_by(usuario_id=usuario_existente.id).first()
-                    if not motorista_existente:
-                        print(f"   🚗 Criando registro de motorista para {email}...")
-                        motorista = Motorista(
-                            usuario_id=usuario_existente.id,
-                            nome=usuario_existente.nome,
-                            cpf='12345678900',
-                            email=email,
-                            telefone='11999999999',
-                            ativo=True,
-                            criado_por=usuario_existente.id
-                        )
-                        db.session.add(motorista)
-                        print(f"   ✅ Registro de motorista criado!")
-                
-                continue
-            
-            # Buscar perfil
-            perfil = Perfil.query.filter_by(nome=perfil_nome).first()
-            if not perfil:
-                print(f"❌ Perfil '{perfil_nome}' não encontrado!")
-                continue
-            
-            # Criar usuário
-            usuario = Usuario(
-                nome=perfil_nome,
-                email=email,
-                senha_hash=hash_senha('teste123'),
-                tipo='funcionario' if perfil_nome != 'Administrador' else 'admin',
-                perfil_id=perfil.id,
-                ativo=True
+        if usuario_existente:
+            print(f"♻️  Atualizando senha de {usuario_data['email']}...")
+            usuario_existente.senha_hash = generate_password_hash(usuario_data['senha'], method='pbkdf2:sha256')
+            usuario_existente.ativo = True
+        else:
+            print(f"✅ Criando usuário {usuario_data['email']}...")
+            novo_usuario = Usuario(
+                email=usuario_data['email'],
+                nome=usuario_data['nome'],
+                senha_hash=generate_password_hash(usuario_data['senha'], method='pbkdf2:sha256'),
+                tipo=usuario_data['tipo'],
+                perfil_id=usuario_data['perfil'].id if usuario_data['perfil'] else None,
+                ativo=True,
+                criado_por=1  # Admin
             )
-            
-            db.session.add(usuario)
-            db.session.flush()
-            
-            print(f"✅ Criado: {email} | Perfil: {perfil_nome} | Senha: teste123")
-            
-            # Se for motorista, criar registro correspondente
-            if perfil_nome == 'Motorista':
-                motorista = Motorista(
-                    usuario_id=usuario.id,
-                    nome=usuario.nome,
-                    cpf='12345678900',
-                    email=email,
-                    telefone='11999999999',
-                    ativo=True,
-                    criado_por=usuario.id
-                )
-                db.session.add(motorista)
-                print(f"   🚗 Registro de motorista criado!")
-        
-        db.session.commit()
-        
-        print("\n" + "="*60)
-        print("🎉 USUÁRIOS DE TESTE CRIADOS COM SUCESSO!")
-        print("="*60)
-        print("\nCredenciais para Login:")
+            db.session.add(novo_usuario)
+    
+    db.session.commit()
+    print("\n✅ Usuários de teste atualizados com sucesso!")
+    print("\n📋 Credenciais de acesso:")
+    print("=" * 60)
+    for usuario_data in usuarios_teste:
+        print(f"Email: {usuario_data['email']}")
+        print(f"Senha: {usuario_data['senha']}")
+        print(f"Perfil: {usuario_data['perfil'].nome if usuario_data['perfil'] else 'Sem perfil'}")
         print("-" * 60)
-        for perfil_nome, email in perfis.items():
-            print(f"📧 {email:30} | Senha: teste123")
-        print("-" * 60)
-        print("\n💡 Use estas credenciais para testar diferentes perfis no sistema")
-
-if __name__ == '__main__':
-    criar_usuarios_teste()
