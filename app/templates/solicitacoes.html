@@ -492,7 +492,13 @@
 
                     <div class="form-group" style="margin-bottom: 0.75rem;">
                         <label>CEP</label>
-                        <input type="text" id="cep" placeholder="00000-000">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="cep" placeholder="00000-000" style="flex: 1;" maxlength="9" oninput="formatarCEPSolicitacao(this)">
+                            <button type="button" class="btn btn-secondary" onclick="buscarCEPSolicitacao()">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                        </div>
+                        <small style="color: #666; margin-top: 0.25rem; display: block;">Os campos são preenchidos automaticamente ao selecionar o fornecedor, mas podem ser editados</small>
                     </div>
 
                     <button type="button" class="btn btn-secondary w-full" onclick="capturarLocalizacao()">
@@ -679,9 +685,42 @@
                 console.log('⚠️ Nenhum fornecedor selecionado');
                 precosFornecedorSelecionado = {};
                 todosTiposLote = [];
+                // Limpar campos de localização se existirem
+                try {
+                    const ruaEl = document.getElementById('rua');
+                    const numeroEl = document.getElementById('numero');
+                    const cepEl = document.getElementById('cep');
+                    if (ruaEl) ruaEl.value = '';
+                    if (numeroEl) numeroEl.value = '';
+                    if (cepEl) cepEl.value = '';
+                } catch (e) {
+                    console.warn('Erro ao limpar campos de localização:', e);
+                }
                 return;
             }
 
+            // Auto-preencher endereço do fornecedor (sem bloquear carregamento de preços)
+            try {
+                const fornecedorResponse = await fetchAPI(`/fornecedores/${fornecedorId}`);
+                if (fornecedorResponse && fornecedorResponse.ok) {
+                    const fornecedor = await fornecedorResponse.json();
+                    console.log('📍 Dados do fornecedor para localização:', fornecedor);
+                    
+                    // Preencher campos de localização se existirem
+                    const ruaEl = document.getElementById('rua');
+                    const numeroEl = document.getElementById('numero');
+                    const cepEl = document.getElementById('cep');
+                    
+                    if (ruaEl) ruaEl.value = fornecedor.outro_rua || fornecedor.rua || '';
+                    if (numeroEl) numeroEl.value = fornecedor.outro_numero || fornecedor.numero || '';
+                    if (cepEl) cepEl.value = fornecedor.outro_cep || fornecedor.cep || '';
+                }
+            } catch (error) {
+                console.warn('Erro ao carregar endereço do fornecedor:', error);
+                // Continua para carregar preços mesmo se falhar o preenchimento de endereço
+            }
+
+            // Carregar preços e materiais do fornecedor
             try {
                 const url = `/solicitacoes/fornecedor/${fornecedorId}/materiais`;
                 console.log('📡 Fazendo chamada para:', url);
@@ -1078,6 +1117,52 @@
             document.getElementById('totalItens').textContent = totalItens;
             document.getElementById('pesoTotal').textContent = pesoTotal.toFixed(2) + ' kg';
             document.getElementById('valorTotal').textContent = 'R$ ' + valorTotal.toFixed(2);
+        }
+
+        function formatarCEPSolicitacao(input) {
+            let valor = input.value.replace(/\D/g, '');
+            if (valor.length > 5) {
+                valor = valor.substring(0, 5) + '-' + valor.substring(5, 8);
+            }
+            input.value = valor;
+        }
+
+        async function buscarCEPSolicitacao() {
+            const cepInput = document.getElementById('cep');
+            if (!cepInput) {
+                console.error('Campo CEP não encontrado');
+                return;
+            }
+            
+            const cep = cepInput.value.replace(/\D/g, '');
+            
+            if (!cep || cep.length !== 8) {
+                showAlert('Digite um CEP válido com 8 dígitos', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetchAPI(`/fornecedores/buscar-cep/${cep}`);
+                
+                if (response && response.ok) {
+                    const data = await response.json();
+                    
+                    // Preencher campos de endereço disponíveis (verificando existência)
+                    const ruaEl = document.getElementById('rua');
+                    const cepEl = document.getElementById('cep');
+                    
+                    if (ruaEl) ruaEl.value = data.rua || '';
+                    if (cepEl) cepEl.value = data.cep || '';
+                    
+                    showAlert('✅ Endereço preenchido com sucesso!', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || 'CEP não encontrado', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar CEP:', error);
+                showAlert('Erro ao buscar CEP. Verifique sua conexão.', 'error');
+            }
         }
 
         async function capturarLocalizacao() {

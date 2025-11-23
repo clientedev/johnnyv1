@@ -4,6 +4,9 @@ from app.models import Fornecedor, FornecedorTipoLotePreco, FornecedorTipoLoteCl
 from app.auth import admin_required
 import requests
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('fornecedores', __name__, url_prefix='/api/fornecedores')
 
@@ -53,6 +56,51 @@ def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
     
     # Comprador tem acesso se for o comprador responsável
     return fornecedor.comprador_responsavel_id == usuario_id
+
+@bp.route('/buscar-cep/<cep>', methods=['GET'])
+@jwt_required()
+def buscar_cep(cep):
+    """Busca informações de endereço pelo CEP usando a API ViaCEP"""
+    try:
+        # Remove formatação do CEP
+        cep_limpo = re.sub(r'[^\d]', '', cep)
+        
+        # Valida formato do CEP
+        if not cep_limpo or len(cep_limpo) != 8:
+            return jsonify({'erro': 'CEP inválido. O CEP deve conter 8 dígitos.'}), 400
+        
+        # Consulta API ViaCEP
+        logger.info(f'Buscando CEP: {cep_limpo}')
+        response = requests.get(f'https://viacep.com.br/ws/{cep_limpo}/json/', timeout=5)
+        
+        if response.status_code != 200:
+            return jsonify({'erro': 'Erro ao consultar CEP. Tente novamente.'}), response.status_code
+        
+        dados = response.json()
+        
+        # Verifica se o CEP foi encontrado
+        if 'erro' in dados and dados['erro']:
+            return jsonify({'erro': 'CEP não encontrado.'}), 404
+        
+        # Retorna dados formatados
+        return jsonify({
+            'cep': dados.get('cep'),
+            'rua': dados.get('logradouro'),
+            'bairro': dados.get('bairro'),
+            'cidade': dados.get('localidade'),
+            'estado': dados.get('uf'),
+            'complemento': dados.get('complemento', '')
+        }), 200
+        
+    except requests.exceptions.Timeout:
+        logger.error('Timeout ao buscar CEP')
+        return jsonify({'erro': 'Tempo limite excedido ao buscar CEP. Tente novamente.'}), 408
+    except requests.exceptions.RequestException as e:
+        logger.error(f'Erro na requisição ViaCEP: {str(e)}')
+        return jsonify({'erro': 'Erro ao consultar serviço de CEP. Tente novamente mais tarde.'}), 500
+    except Exception as e:
+        logger.error(f'Erro ao buscar CEP: {str(e)}')
+        return jsonify({'erro': f'Erro interno ao buscar CEP: {str(e)}'}), 500
 
 @bp.route('', methods=['GET'])
 @jwt_required()
