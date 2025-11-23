@@ -2258,13 +2258,26 @@
         async function loadIndicadoresBI() {
             try {
                 const response = await fetchAPI('/dashboard/indicadores-externos');
+                
+                if (!response || !response.ok) {
+                    console.error('❌ Erro ao buscar indicadores externos');
+                    throw new Error('Erro ao buscar indicadores');
+                }
+                
                 const data = await response.json();
+                
+                console.log('📊 Dados de indicadores:', data);
+                
+                // Se houve erro na API, mostrar valores zerados mas não falhar
+                if (data.erro) {
+                    console.warn('⚠️ API retornou erro:', data.erro);
+                }
                 
                 updateKPILabels('indicadores');
                 updateKPIs({
-                    pendentes: data.dolar.valor,
-                    aprovados: data.euro.valor,
-                    reprovados: data.dolar.variacao,
+                    pendentes: data.dolar?.valor || 0,
+                    aprovados: data.euro?.valor || 0,
+                    reprovados: data.dolar?.variacao || 0,
                     valorTotal: 0
                 });
 
@@ -2273,12 +2286,16 @@
                 const dolarVariacaoEl = document.getElementById('dolarVariacao');
                 const dolarDataEl = document.getElementById('dolarData');
                 
-                if (dolarValueEl && data.dolar) {
+                if (dolarValueEl && data.dolar && data.dolar.valor > 0) {
                     dolarValueEl.textContent = 'R$ ' + data.dolar.valor.toFixed(2);
                     const variacaoClass = data.dolar.variacao >= 0 ? 'positive' : 'negative';
                     const variacaoIcon = data.dolar.variacao >= 0 ? '▲' : '▼';
                     dolarVariacaoEl.innerHTML = `<span class="kpi-change ${variacaoClass}">${variacaoIcon} ${Math.abs(data.dolar.variacao).toFixed(2)}%</span>`;
-                    dolarDataEl.textContent = 'Atualizado em: ' + data.dolar.data_atualizacao;
+                    dolarDataEl.textContent = 'Atualizado em: ' + (data.dolar.data_atualizacao || 'N/A');
+                } else if (dolarValueEl) {
+                    dolarValueEl.textContent = 'R$ 0,00';
+                    dolarVariacaoEl.innerHTML = '<span style="color: #6b7280;">Dados indisponíveis</span>';
+                    dolarDataEl.textContent = data.erro || 'API temporariamente indisponível';
                 }
 
                 // Exibir cotação do euro
@@ -2286,49 +2303,94 @@
                 const euroVariacaoEl = document.getElementById('euroVariacao');
                 const euroDataEl = document.getElementById('euroData');
                 
-                if (euroValueEl && data.euro) {
+                if (euroValueEl && data.euro && data.euro.valor > 0) {
                     euroValueEl.textContent = 'R$ ' + data.euro.valor.toFixed(2);
                     const variacaoClass = data.euro.variacao >= 0 ? 'positive' : 'negative';
                     const variacaoIcon = data.euro.variacao >= 0 ? '▲' : '▼';
                     euroVariacaoEl.innerHTML = `<span class="kpi-change ${variacaoClass}">${variacaoIcon} ${Math.abs(data.euro.variacao).toFixed(2)}%</span>`;
-                    euroDataEl.textContent = 'Atualizado em: ' + data.euro.data_atualizacao;
+                    euroDataEl.textContent = 'Atualizado em: ' + (data.euro.data_atualizacao || 'N/A');
+                } else if (euroValueEl) {
+                    euroValueEl.textContent = 'R$ 0,00';
+                    euroVariacaoEl.innerHTML = '<span style="color: #6b7280;">Dados indisponíveis</span>';
+                    euroDataEl.textContent = data.erro || 'API temporariamente indisponível';
                 }
 
                 // Gráfico 1 - Histórico do Dólar
                 const ctx1 = document.getElementById('chart1')?.getContext('2d');
-                if (ctx1 && data.historico_dolar.length > 0) {
-                    activeCharts['chart1'] = new Chart(ctx1, {
-                        type: 'line',
-                        data: {
-                            labels: data.historico_dolar.map(h => h.data),
-                            datasets: [{
-                                label: 'USD/BRL',
-                                data: data.historico_dolar.map(h => h.valor),
-                                borderColor: '#059669',
-                                backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                                tension: 0.4,
-                                fill: true
-                            }]
-                        },
-                        options: { 
-                            responsive: true, 
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    ticks: {
-                                        callback: function(value) {
-                                            return 'R$ ' + value.toFixed(2);
+                if (ctx1) {
+                    if (activeCharts['chart1']) {
+                        activeCharts['chart1'].destroy();
+                    }
+                    
+                    if (data.historico_dolar && data.historico_dolar.length > 0) {
+                        activeCharts['chart1'] = new Chart(ctx1, {
+                            type: 'line',
+                            data: {
+                                labels: data.historico_dolar.map(h => h.data),
+                                datasets: [{
+                                    label: 'USD/BRL',
+                                    data: data.historico_dolar.map(h => h.valor),
+                                    borderColor: '#059669',
+                                    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        ticks: {
+                                            callback: function(value) {
+                                                return 'R$ ' + value.toFixed(2);
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                    });
+                        });
+                    } else {
+                        // Criar gráfico vazio com mensagem
+                        activeCharts['chart1'] = new Chart(ctx1, {
+                            type: 'line',
+                            data: {
+                                labels: ['Sem dados'],
+                                datasets: [{
+                                    label: 'USD/BRL',
+                                    data: [0],
+                                    borderColor: '#9ca3af',
+                                    backgroundColor: 'rgba(156, 163, 175, 0.1)'
+                                }]
+                            },
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    }
+                                }
+                            }
+                        });
+                    }
                 }
             } catch (error) {
-                console.error('Erro ao carregar indicadores externos:', error);
+                console.error('❌ Erro fatal ao carregar indicadores externos:', error);
                 updateKPILabels('indicadores');
                 updateKPIs({ pendentes: 0, aprovados: 0, reprovados: 0, valorTotal: 0 });
+                
+                // Mostrar mensagem de erro nos elementos
+                const dolarValueEl = document.getElementById('dolarValue');
+                const euroValueEl = document.getElementById('euroValue');
+                if (dolarValueEl) {
+                    dolarValueEl.textContent = 'Erro ao carregar';
+                    document.getElementById('dolarVariacao').innerHTML = '<span style="color: #ef4444;">Tente novamente mais tarde</span>';
+                }
+                if (euroValueEl) {
+                    euroValueEl.textContent = 'Erro ao carregar';
+                    document.getElementById('euroVariacao').innerHTML = '<span style="color: #ef4444;">Tente novamente mais tarde</span>';
+                }
             }
         }
 
