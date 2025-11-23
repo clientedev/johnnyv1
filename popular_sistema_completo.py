@@ -564,18 +564,24 @@ def criar_solicitacoes(fornecedores, usuarios, materiais, tipos_lote):
     
     solicitacoes = []
     
-    # Criar 20 solicitações com diferentes status
-    for i in range(20):
+    # Criar 40 solicitações com diferentes status (mais dados para os gráficos)
+    for i in range(40):
         fornecedor = random.choice(fornecedores)
         funcionario = random.choice([comprador, comprador2])
         
-        # Datas variadas nos últimos 30 dias
-        dias_atras = random.randint(0, 30)
+        # Datas distribuídas nos últimos 6 meses para popular o gráfico mensal
+        dias_atras = random.randint(0, 180)
         data_envio = datetime.now() - timedelta(days=dias_atras)
         
-        # Status variados
-        status_opcoes = ['pendente', 'confirmada', 'aprovada', 'em_coleta']
-        status = random.choice(status_opcoes)
+        # Status variados - mais aprovadas para popular os gráficos
+        if i < 25:
+            status = 'aprovada'  # 25 aprovadas
+        elif i < 30:
+            status = 'pendente'  # 5 pendentes
+        elif i < 35:
+            status = 'confirmada'  # 5 confirmadas
+        else:
+            status = 'em_coleta'  # 5 em coleta
         
         solicitacao = Solicitacao(
             funcionario_id=funcionario.id,
@@ -584,7 +590,7 @@ def criar_solicitacoes(fornecedores, usuarios, materiais, tipos_lote):
             modalidade_frete='FOB' if random.random() > 0.3 else 'CIF',
             status=status,
             data_envio=data_envio,
-            data_confirmacao=data_envio + timedelta(hours=random.randint(2, 48)) if status != 'pendente' else None,
+            data_confirmacao=data_envio + timedelta(hours=random.randint(2, 48)) if status in ['aprovada', 'confirmada', 'em_coleta'] else None,
             admin_id=admin.id if status in ['aprovada', 'em_coleta'] else None,
             rua=fornecedor.rua,
             numero=fornecedor.numero,
@@ -662,7 +668,7 @@ def criar_ordens_compra(solicitacoes, usuarios):
     # Criar OC para solicitações confirmadas/aprovadas/em_coleta
     solicitacoes_aprovadas = [s for s in solicitacoes if s.status in ['confirmada', 'aprovada', 'em_coleta']]
     
-    for solicitacao in solicitacoes_aprovadas[:15]:  # Criar 15 OCs
+    for solicitacao in solicitacoes_aprovadas[:30]:  # Criar 30 OCs
         # Calcular valor total da solicitação
         valor_total = sum(item.valor_calculado for item in solicitacao.itens)
         
@@ -840,7 +846,11 @@ def criar_conferencias_lotes(ordens_servico, usuarios):
     # Criar conferências para OSs finalizadas
     os_finalizadas = [os for os in ordens_servico if os.status in ['FINALIZADA', 'RETORNANDO']]
     
-    for os in os_finalizadas[:8]:  # Criar 8 conferências
+    # Garantir pelo menos 20 lotes para popular bem os gráficos
+    num_lotes = max(20, len(os_finalizadas))
+    os_para_processar = os_finalizadas * (num_lotes // len(os_finalizadas) + 1) if os_finalizadas else []
+    
+    for idx, os in enumerate(os_para_processar[:num_lotes]):
         oc = os.ordem_compra
         
         # Peso previsto baseado nos itens da solicitação
@@ -888,6 +898,21 @@ def criar_conferencias_lotes(ordens_servico, usuarios):
         tipo_lote = oc.solicitacao.itens[0].tipo_lote if oc.solicitacao.itens else None
         
         if tipo_lote:
+            # Calcular classificação predominante baseada nos itens da solicitação
+            classificacoes = [item.classificacao for item in oc.solicitacao.itens if item.classificacao]
+            if classificacoes:
+                # Contar ocorrências e pegar a mais frequente
+                from collections import Counter
+                classificacao_counts = Counter(classificacoes)
+                classificacao_predominante = classificacao_counts.most_common(1)[0][0]
+            else:
+                # Se não houver classificações, distribuir uniformemente
+                classificacao_predominante = ['leve', 'media', 'pesada'][idx % 3]
+            
+            # Status variados, com maioria aprovado/em_estoque para aparecer nos gráficos
+            status_opcoes = ['aprovado', 'em_estoque', 'separado', 'finalizado'] * 3 + ['recebido', 'em_conferencia', 'conferido']
+            status = random.choice(status_opcoes)
+            
             lote = Lote(
                 numero_lote=f"LOTE-{datetime.now().year}-{str(len(lotes)+1).zfill(5)}",
                 fornecedor_id=oc.fornecedor_id,
@@ -901,10 +926,10 @@ def criar_conferencias_lotes(ordens_servico, usuarios):
                 peso_total_kg=peso_real,
                 valor_total=oc.valor_total,
                 quantidade_itens=quantidade_real,
-                estrelas_media=round(sum(item.estrelas_final for item in oc.solicitacao.itens) / len(oc.solicitacao.itens), 1),
-                classificacao_predominante=random.choice(['leve', 'medio', 'pesado']),
+                estrelas_media=round(sum(item.estrelas_final for item in oc.solicitacao.itens) / len(oc.solicitacao.itens), 1) if oc.solicitacao.itens else 2.0,
+                classificacao_predominante=classificacao_predominante,
                 qualidade_recebida=qualidade,
-                status=random.choice(['recebido', 'em_conferencia', 'conferido', 'disponivel']),
+                status=status,
                 tipo_retirada=oc.solicitacao.tipo_retirada,
                 localizacao_atual=random.choice(['A1', 'A2', 'B1', 'B2', 'C1']),
                 conferente_id=conferente.id,
