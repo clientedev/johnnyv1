@@ -318,6 +318,33 @@
                 </div>
             </div>
 
+
+            <!-- Gráficos e Timeline -->
+            <div class="graficos-container">
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-pie"></i> Lotes por Status</h3>
+                    <div id="graficoStatus"></div>
+                </div>
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-map-marker-alt"></i> Lotes por Localização</h3>
+                    <div id="graficoLocalizacao"></div>
+                </div>
+            </div>
+
+            <!-- Últimas Movimentações -->
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-history"></i> Últimas 20 Movimentações</h3>
+                <div class="timeline" id="timelineMovimentacoes">
+                    <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p style="margin-top: 1rem;">Carregando movimentações...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Lotes Ativos -->
+        <div class="tab-content" id="lotes-ativos">
             <!-- Filtros Avançados -->
             <div class="card" style="margin-bottom: 1.5rem;">
                 <h3 style="margin-bottom: 1rem;"><i class="fas fa-filter"></i> Filtros Avançados</h3>
@@ -365,32 +392,6 @@
                 </div>
             </div>
 
-            <!-- Gráficos e Timeline -->
-            <div class="graficos-container">
-                <div class="card">
-                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-pie"></i> Lotes por Status</h3>
-                    <div id="graficoStatus"></div>
-                </div>
-                <div class="card">
-                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-map-marker-alt"></i> Lotes por Localização</h3>
-                    <div id="graficoLocalizacao"></div>
-                </div>
-            </div>
-
-            <!-- Últimas Movimentações -->
-            <div class="card">
-                <h3 style="margin-bottom: 1rem;"><i class="fas fa-history"></i> Últimas 20 Movimentações</h3>
-                <div class="timeline" id="timelineMovimentacoes">
-                    <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
-                        <i class="fas fa-spinner fa-spin fa-2x"></i>
-                        <p style="margin-top: 1rem;">Carregando movimentações...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 2: Lotes Ativos -->
-        <div class="tab-content" id="lotes-ativos">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3><i class="fas fa-boxes"></i> Lotes Ativos</h3>
@@ -913,7 +914,22 @@
             tbody.innerHTML = '<tr><td colspan="10" class="loading">Carregando...</td></tr>';
 
             try {
-                const response = await fetchAPI('/wms/lotes');
+                const filtros = new URLSearchParams();
+                
+                const tipoLote = document.getElementById('filtroTipoLote')?.value;
+                const fornecedor = document.getElementById('filtroFornecedor')?.value;
+                const status = document.getElementById('filtroStatus')?.value;
+                const localizacao = document.getElementById('filtroLocalizacao')?.value;
+                
+                if (tipoLote) filtros.append('tipo_lote_id', tipoLote);
+                if (fornecedor) filtros.append('fornecedor_id', fornecedor);
+                if (status) filtros.append('status', status);
+                if (localizacao) filtros.append('localizacao', localizacao);
+                
+                const queryString = filtros.toString();
+                const url = queryString ? `/wms/lotes?${queryString}` : '/wms/lotes';
+                
+                const response = await fetchAPI(url);
                 lotesData = await response.json();
 
                 if (lotesData.length === 0) {
