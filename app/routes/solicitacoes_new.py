@@ -240,12 +240,17 @@ def criar_solicitacao():
         if not fornecedor:
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
 
+        # Determinar se a solicitação será aprovada automaticamente ou ficará pendente
+        # Inicialmente assumir que NÃO requer aprovação manual (será auto-aprovada)
+        # IMPORTANTE: Uma vez setado como True, nunca volta para False (flag latched)
+        requer_aprovacao_manual = False
+
         solicitacao = Solicitacao(
             funcionario_id=usuario.id,
             fornecedor_id=data['fornecedor_id'],
             tipo_retirada=data.get('tipo_retirada', 'buscar'),
             observacoes=data.get('observacoes', ''),
-            status='pendente'
+            status='pendente'  # Será atualizado para 'aprovada' ou 'pendente' após processar todos os itens
         )
 
         db.session.add(solicitacao)
@@ -261,9 +266,10 @@ def criar_solicitacao():
             print(f"\n Item recebido do frontend:")
             print(f"   {item_data}")
 
-            if not item_data.get('peso_kg'):
-                print(f"    Item sem peso - pulando")
-                continue
+            # VALIDAÇÃO CRÍTICA: Peso deve ser positivo
+            if not item_data.get('peso_kg') or float(item_data.get('peso_kg', 0)) <= 0:
+                db.session.rollback()
+                return jsonify({'erro': f'Peso inválido ({item_data.get("peso_kg", 0)} kg). Todos os itens devem ter peso maior que zero.'}), 400
 
             # NOVO FORMATO: usando material_id (alinhado com Fluxo_comprador.md)
             if item_data.get('material_id'):
@@ -277,31 +283,105 @@ def criar_solicitacao():
                     continue
                 
                 print(f"    Material: {material.nome} (Classificação: {material.classificacao})")
-                print(f"    Calculando valor usando tabela do fornecedor...")
                 
-                valor, preco_por_kg, tabela_estrelas = calcular_valor_item_novo(
-                    data['fornecedor_id'],
-                    material_id,
-                    item_data['peso_kg']
-                )
+                # Verificar se usa preço customizado
+                preco_customizado = item_data.get('preco_customizado', False)
+                preco_oferecido = item_data.get('preco_oferecido')
                 
-                print(f"    Valor final: R$ {valor:.2f} (Tabela: {tabela_estrelas}★)")
+                if preco_customizado and preco_oferecido is not None:
+                    print(f"    Usando PREÇO CUSTOMIZADO: R$ {preco_oferecido}/kg")
+                    
+                    # VALIDAÇÃO CRÍTICA: Preço oferecido deve ser > 0
+                    if float(preco_oferecido) <= 0:
+                        db.session.rollback()
+                        return jsonify({'erro': f'Preço oferecido inválido (R$ {preco_oferecido}/kg). O preço deve ser maior que zero.'}), 400
+                    
+                    # Buscar o preço da tabela para comparação
+                    _, preco_tabela, tabela_estrelas = calcular_valor_item_novo(
+                        data['fornecedor_id'],
+                        material_id,
+                        item_data['peso_kg']
+                    )
+                    
+                    # Validar que o material tem preço configurado na tabela
+                    if preco_tabela <= 0:
+                        print(f"    ⚠️ Material sem preço configurado na tabela - REQUER APROVAÇÃO MANUAL")
+                        requer_aprovacao_manual = True  # Flag latched - uma vez True, sempre True
+                        preco_tabela = 0
+                        tabela_estrelas = 0
+                    
+                    print(f"    Preço da tabela ({tabela_estrelas}★): R$ {preco_tabela}/kg")
+                    print(f"    Preço oferecido: R$ {preco_oferecido}/kg")
+                    
+                    # Calcular valor com preço oferecido
+                    valor = float(preco_oferecido) * float(item_data['peso_kg'])
+                    
+                    # Verificar se precisa aprovação manual (apenas se preço da tabela é válido)
+                    if preco_tabela > 0 and float(preco_oferecido) > float(preco_tabela):
+                        print(f"    ⚠️ Preço oferecido MAIOR que tabela - REQUER APROVAÇÃO MANUAL")
+                        requer_aprovacao_manual = True  # Flag latched - uma vez True, sempre True
+                    elif preco_tabela > 0:
+                        print(f"    ✓ Preço oferecido menor ou igual à tabela - aprovação automática")
+                    
+                    item = ItemSolicitacao(
+                        solicitacao_id=solicitacao.id,
+                        material_id=material_id,
+                        peso_kg=float(item_data['peso_kg']),
+                        classificacao=material.classificacao,
+                        estrelas_sugeridas_ia=item_data.get('estrelas_sugeridas_ia'),
+                        estrelas_final=tabela_estrelas,
+                        valor_calculado=valor,
+                        preco_por_kg_snapshot=float(preco_oferecido),
+                        estrelas_snapshot=tabela_estrelas,
+                        preco_customizado=True,
+                        preco_oferecido=float(preco_oferecido),
+                        imagem_url=item_data.get('imagem_url', ''),
+                        observacoes=item_data.get('observacoes', '')
+                    )
+                    
+                    print(f"    Item salvo: Material={material.nome}, Valor=R$ {item.valor_calculado:.2f}, Preço custom=R$ {preco_oferecido}/kg")
+                else:
+                    # Usar preço da tabela (comportamento padrão)
+                    print(f"    Calculando valor usando tabela do fornecedor...")
+                    
+                    valor, preco_por_kg, tabela_estrelas = calcular_valor_item_novo(
+                        data['fornecedor_id'],
+                        material_id,
+                        item_data['peso_kg']
+                    )
+                    
+                    # VALIDAÇÃO: Material deve ter preço configurado na tabela
+                    if preco_por_kg <= 0:
+                        print(f"    ⚠️ Material sem preço configurado na tabela - REQUER APROVAÇÃO MANUAL")
+                        requer_aprovacao_manual = True  # Flag latched - uma vez True, sempre True
+                        preco_por_kg = 0
+                        tabela_estrelas = 0
+                        valor = 0
+                    
+                    print(f"    Valor final: R$ {valor:.2f} (Tabela: {tabela_estrelas}★)")
+                    if preco_por_kg > 0:
+                        print(f"    ✓ Usando preço da tabela - aprovação automática")
+                    else:
+                        print(f"    ⚠️ Preço inválido - solicitação requer aprovação manual")
+                    
+                    item = ItemSolicitacao(
+                        solicitacao_id=solicitacao.id,
+                        material_id=material_id,
+                        peso_kg=float(item_data['peso_kg']),
+                        classificacao=material.classificacao,
+                        estrelas_sugeridas_ia=item_data.get('estrelas_sugeridas_ia'),
+                        estrelas_final=tabela_estrelas,
+                        valor_calculado=valor,
+                        preco_por_kg_snapshot=preco_por_kg,
+                        estrelas_snapshot=tabela_estrelas,
+                        preco_customizado=False,
+                        preco_oferecido=None,
+                        imagem_url=item_data.get('imagem_url', ''),
+                        observacoes=item_data.get('observacoes', '')
+                    )
+                    
+                    print(f"    Item salvo: Material={material.nome}, Valor=R$ {item.valor_calculado:.2f}, Tabela={tabela_estrelas}★")
                 
-                item = ItemSolicitacao(
-                    solicitacao_id=solicitacao.id,
-                    material_id=material_id,
-                    peso_kg=float(item_data['peso_kg']),
-                    classificacao=material.classificacao,
-                    estrelas_sugeridas_ia=item_data.get('estrelas_sugeridas_ia'),
-                    estrelas_final=tabela_estrelas,
-                    valor_calculado=valor,
-                    preco_por_kg_snapshot=preco_por_kg,
-                    estrelas_snapshot=tabela_estrelas,
-                    imagem_url=item_data.get('imagem_url', ''),
-                    observacoes=item_data.get('observacoes', '')
-                )
-                
-                print(f"    Item salvo: Material={material.nome}, Valor=R$ {item.valor_calculado:.2f}, Tabela={tabela_estrelas}★")
                 db.session.add(item)
             
             # FORMATO ANTIGO: usando tipo_lote_id + classificacao (retrocompatibilidade)
@@ -355,6 +435,21 @@ def criar_solicitacao():
             else:
                 print(f"    Item inválido - sem material_id nem tipo_lote_id - pulando")
                 continue
+
+        # Definir status final da solicitação
+        if requer_aprovacao_manual:
+            solicitacao.status = 'pendente'
+            print(f"\n{'='*60}")
+            print(f" STATUS FINAL: PENDENTE (requer aprovação manual)")
+            print(f" Motivo: Um ou mais itens têm preço oferecido acima da tabela")
+            print(f"{'='*60}")
+        else:
+            solicitacao.status = 'aprovada'
+            solicitacao.data_confirmacao = datetime.utcnow()
+            print(f"\n{'='*60}")
+            print(f" STATUS FINAL: APROVADA AUTOMATICAMENTE")
+            print(f" Motivo: Todos os itens usam preço da tabela ou preço oferecido ≤ tabela")
+            print(f"{'='*60}")
 
         db.session.commit()
 
@@ -629,6 +724,175 @@ def aprovar_solicitacao(id):
         traceback.print_exc()
         print(f"{'='*60}\n")
         return jsonify({'erro': f'Erro ao aprovar solicitação: {str(e)}'}), 500
+
+@bp.route('/<int:id>/aprovar-e-promover', methods=['POST'])
+@admin_required
+def aprovar_e_promover_solicitacao(id):
+    """
+    Aprova a solicitação E promove o fornecedor (aumenta a tabela de preço).
+    Promoção: 1★ → 2★ ou 2★ → 3★ (máximo 3★)
+    """
+    try:
+        print(f"\n{'='*60}")
+        print(f" INICIANDO APROVAÇÃO COM PROMOÇÃO - SOLICITAÇÃO #{id}")
+        print(f"{'='*60}")
+        
+        solicitacao = Solicitacao.query.get(id)
+        
+        if not solicitacao:
+            return jsonify({'erro': 'Solicitação não encontrada'}), 404
+        
+        if solicitacao.status != 'pendente':
+            return jsonify({'erro': f'Solicitação já foi processada (status: {solicitacao.status})'}), 400
+        
+        fornecedor = solicitacao.fornecedor
+        if not fornecedor:
+            return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        # Salvar tabela de preço anterior
+        tabela_anterior_id = fornecedor.tabela_preco_id
+        tabela_anterior = TabelaPreco.query.get(tabela_anterior_id) if tabela_anterior_id else None
+        estrelas_anterior = tabela_anterior.nivel_estrelas if tabela_anterior else 0
+        
+        print(f" Fornecedor: {fornecedor.nome}")
+        print(f" Tabela de preço atual: {tabela_anterior.nome if tabela_anterior else 'Nenhuma'} ({estrelas_anterior}★)")
+        
+        # Promover fornecedor (aumentar estrelas)
+        if estrelas_anterior >= 3:
+            # Já está no nível máximo, não pode promover mais
+            print(f" Fornecedor já está no nível máximo ({estrelas_anterior}★)")
+            return jsonify({
+                'erro': f'Fornecedor já está no nível máximo ({estrelas_anterior}★) e não pode ser promovido. Use a opção "Aceitar" ao invés de "Aceitar e Promover".'
+            }), 400
+        elif not tabela_anterior_id or estrelas_anterior < 1:
+            # Fornecedor sem tabela, atribuir 1★
+            nova_tabela = TabelaPreco.query.filter_by(nivel_estrelas=1).first()
+            print(f" Promovendo de: Sem tabela → 1★")
+        elif estrelas_anterior == 1:
+            # 1★ → 2★
+            nova_tabela = TabelaPreco.query.filter_by(nivel_estrelas=2).first()
+            print(f" Promovendo de: 1★ → 2★")
+        elif estrelas_anterior == 2:
+            # 2★ → 3★
+            nova_tabela = TabelaPreco.query.filter_by(nivel_estrelas=3).first()
+            print(f" Promovendo de: 2★ → 3★")
+        else:
+            # Caso inesperado
+            nova_tabela = tabela_anterior
+            print(f" Situação inesperada - mantendo tabela atual")
+        
+        if not nova_tabela:
+            return jsonify({'erro': 'Tabela de preço para promoção não encontrada no sistema'}), 500
+        
+        # Atualizar tabela do fornecedor
+        fornecedor.tabela_preco_id = nova_tabela.id
+        
+        print(f" Nova tabela de preço: {nova_tabela.nome} ({nova_tabela.nivel_estrelas}★)")
+        
+        # Aprovar a solicitação usando a lógica existente
+        # Criar OC e lotes (reutilizar lógica da função aprovar_solicitacao)
+        usuario_id = get_jwt_identity()
+        data = request.get_json(silent=True) or {}
+        
+        solicitacao.status = 'aprovada'
+        solicitacao.data_confirmacao = datetime.utcnow()
+        solicitacao.admin_id = usuario_id
+        
+        # Criar Ordem de Compra
+        valor_total_oc = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
+        
+        oc = OrdemCompra(
+            solicitacao_id=id,
+            fornecedor_id=solicitacao.fornecedor_id,
+            valor_total=valor_total_oc,
+            status='em_analise',
+            criado_por=usuario_id,
+            observacao=data.get('observacao', f'OC gerada pela aprovação da solicitação #{id} COM PROMOÇÃO do fornecedor de {estrelas_anterior}★ para {nova_tabela.nivel_estrelas}★')
+        )
+        db.session.add(oc)
+        db.session.flush()
+        
+        print(f" OC #{oc.id} criada com sucesso")
+        
+        # Criar lotes (simplificado)
+        lotes_criados = []
+        lotes_agrupados = {}
+        
+        for item in solicitacao.itens:
+            if item.material_id:
+                chave = ('material', item.material_id, item.estrelas_final)
+            elif item.tipo_lote_id:
+                chave = ('tipo_lote', item.tipo_lote_id, item.estrelas_final)
+            else:
+                continue
+            
+            if chave not in lotes_agrupados:
+                lotes_agrupados[chave] = []
+            lotes_agrupados[chave].append(item)
+        
+        for chave, itens in lotes_agrupados.items():
+            tipo_chave, id_referencia, estrelas = chave
+            
+            peso_total = sum(item.peso_kg for item in itens)
+            valor_total = sum(item.valor_calculado for item in itens)
+            
+            lote = Lote(
+                fornecedor_id=solicitacao.fornecedor_id,
+                tipo_lote_id=itens[0].tipo_lote_id if itens[0].tipo_lote_id else 1,
+                solicitacao_origem_id=id,
+                oc_id=oc.id,
+                peso_total_kg=peso_total,
+                valor_total=valor_total,
+                quantidade_itens=len(itens),
+                estrelas_media=estrelas,
+                status='em_transito',
+                tipo_retirada=solicitacao.tipo_retirada
+            )
+            db.session.add(lote)
+            db.session.flush()
+            
+            for item in itens:
+                item.lote_id = lote.id
+            
+            lotes_criados.append({
+                'id': lote.id,
+                'numero_lote': lote.numero_lote,
+                'peso_total_kg': lote.peso_total_kg,
+                'valor_total': lote.valor_total
+            })
+            
+            print(f" Lote criado: #{lote.numero_lote} ({len(itens)} itens)")
+        
+        db.session.commit()
+        
+        print(f"\n{'='*60}")
+        print(f" APROVAÇÃO COM PROMOÇÃO CONCLUÍDA!")
+        print(f"{'='*60}")
+        print(f" Fornecedor promovido: {estrelas_anterior}★ → {nova_tabela.nivel_estrelas}★")
+        print(f" Solicitação: #{solicitacao.id} (aprovada)")
+        print(f" OC criada: #{oc.id}")
+        print(f" Lotes criados: {len(lotes_criados)}")
+        print(f"{'='*60}\n")
+        
+        return jsonify({
+            'mensagem': f'Solicitação aprovada e fornecedor promovido de {estrelas_anterior}★ para {nova_tabela.nivel_estrelas}★',
+            'solicitacao': solicitacao.to_dict(),
+            'oc_id': oc.id,
+            'lotes_criados': lotes_criados,
+            'promocao': {
+                'estrelas_anterior': estrelas_anterior,
+                'estrelas_nova': nova_tabela.nivel_estrelas,
+                'tabela_anterior': tabela_anterior.nome if tabela_anterior else None,
+                'tabela_nova': nova_tabela.nome
+            }
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"\nERRO ao aprovar com promoção: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': f'Erro ao aprovar e promover: {str(e)}'}), 500
 
 @bp.route('/<int:id>/rejeitar', methods=['POST'])
 @admin_required

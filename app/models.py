@@ -539,6 +539,8 @@ class ItemSolicitacao(db.Model):  # type: ignore
     valor_calculado = db.Column(db.Float, nullable=False, default=0.0)
     preco_por_kg_snapshot = db.Column(db.Float, nullable=True)
     estrelas_snapshot = db.Column(db.Integer, nullable=True)
+    preco_customizado = db.Column(db.Boolean, default=False, nullable=False)
+    preco_oferecido = db.Column(db.Float, nullable=True)
     imagem_url = db.Column(db.String(500))
     observacoes = db.Column(db.Text)
     data_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -579,6 +581,8 @@ class ItemSolicitacao(db.Model):  # type: ignore
             'valor_calculado': self.valor_calculado,
             'preco_por_kg_snapshot': self.preco_por_kg_snapshot,
             'estrelas_snapshot': self.estrelas_snapshot,
+            'preco_customizado': self.preco_customizado,
+            'preco_oferecido': self.preco_oferecido,
             'imagem_url': self.imagem_url,
             'observacoes': self.observacoes,
             'data_registro': self.data_registro.isoformat() if self.data_registro else None,
