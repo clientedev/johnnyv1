@@ -114,7 +114,7 @@
         async function carregarPagina() {
             const user = await verificarAuth();
             if (!user) return;
-            
+
             usuarioAtual = user;
             if (user.tipo !== 'admin' && user.perfil_nome !== 'Administrador') {
                 showAlert('Acesso restrito a administradores');
@@ -122,7 +122,6 @@
                 return;
             }
 
-            await carregarMenusRBAC();
             await carregarResiduos();
             await carregarEstatisticas();
             await atualizarNotificacoes();
@@ -131,10 +130,10 @@
         async function carregarResiduos() {
             try {
                 const status = document.getElementById('filtroStatus').value;
-                
+
                 const response = await fetchAPI(`/separacao/residuos?status=${status}`);
                 if (!response || !response.ok) return;
-                
+
                 residuos = await response.json();
                 renderizarResiduos();
             } catch (error) {
@@ -147,9 +146,9 @@
             try {
                 const response = await fetchAPI('/separacao/estatisticas');
                 if (!response || !response.ok) return;
-                
+
                 const stats = await response.json();
-                
+
                 document.getElementById('statPendentes').textContent = stats.residuos_pendentes || 0;
                 document.getElementById('statAprovados').textContent = stats.residuos_aprovados || 0;
                 document.getElementById('statRejeitados').textContent = stats.residuos_rejeitados || 0;
@@ -160,7 +159,7 @@
 
         function renderizarResiduos() {
             const container = document.getElementById('listaResiduos');
-            
+
             if (residuos.length === 0) {
                 container.innerHTML = `
                     <div class="card" style="text-align: center; padding: 2rem;">
@@ -170,16 +169,16 @@
                 `;
                 return;
             }
-            
+
             container.innerHTML = residuos.map(res => {
                 const statusClass = {
                     'AGUARDANDO_APROVACAO': 'status-pendente',
                     'APROVADO': 'status-aprovado',
                     'REJEITADO': 'status-rejeitado'
                 }[res.status] || '';
-                
+
                 const aguardandoAprovacao = res.status === 'AGUARDANDO_APROVACAO';
-                
+
                 return `
                     <div class="card" style="border-left: 4px solid ${
                         res.status === 'APROVADO' ? 'var(--success-color)' : 
@@ -196,7 +195,7 @@
                                 </div>
                                 <span class="status ${statusClass}">${formatarStatus(res.status)}</span>
                             </div>
-                            
+
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
                                 <div>
                                     <p style="color: var(--gray-600); margin: 0; font-size: 0.875rem;">Peso</p>
@@ -219,21 +218,21 @@
                                     <p style="margin: 0.25rem 0 0 0;">${formatDate(res.criado_em)}</p>
                                 </div>
                             </div>
-                            
+
                             ${res.justificativa ? `
                                 <div style="background: var(--gray-100); padding: 0.75rem; border-radius: 8px;">
                                     <p style="margin: 0; color: var(--gray-600); font-size: 0.875rem; font-weight: bold;">Justificativa:</p>
                                     <p style="margin: 0.5rem 0 0 0;">${res.justificativa}</p>
                                 </div>
                             ` : ''}
-                            
+
                             ${res.status !== 'AGUARDANDO_APROVACAO' && res.motivo_decisao ? `
                                 <div style="background: ${res.status === 'APROVADO' ? 'var(--success-bg)' : 'var(--danger-bg)'}; padding: 0.75rem; border-radius: 8px;">
                                     <p style="margin: 0; color: var(--gray-600); font-size: 0.875rem; font-weight: bold;">Motivo da Decisão:</p>
                                     <p style="margin: 0.5rem 0 0 0;">${res.motivo_decisao}</p>
                                 </div>
                             ` : ''}
-                            
+
                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 ${aguardandoAprovacao ? `
                                     <button class="btn btn-success" onclick="abrirModalDecisao(${res.id}, 'APROVAR')">
@@ -258,14 +257,14 @@
         function abrirModalDecisao(id, decisao) {
             residuoAtual = residuos.find(r => r.id === id);
             decisaoAtual = decisao;
-            
+
             const titulo = decisao === 'APROVAR' ? 'Aprovar Resíduo' : 'Rejeitar Resíduo';
             document.getElementById('tituloModal').textContent = titulo;
-            
+
             const btnConfirmar = document.getElementById('btnConfirmar');
             btnConfirmar.className = decisao === 'APROVAR' ? 'btn btn-success' : 'btn btn-danger';
             btnConfirmar.textContent = decisao === 'APROVAR' ? 'Aprovar' : 'Rejeitar';
-            
+
             document.getElementById('motivoDecisao').value = '';
             document.getElementById('modalDecisao').classList.add('active');
         }
@@ -273,7 +272,7 @@
         async function confirmarDecisao() {
             try {
                 const motivo = document.getElementById('motivoDecisao').value.trim();
-                
+
                 const response = await fetchAPI(`/separacao/residuos/${residuoAtual.id}/aprovar-adm`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -323,7 +322,7 @@
         }
 
         carregarPagina();
-        
+
         // Atualizar a cada 30 segundos
         setInterval(() => {
             if (document.getElementById('filtroStatus').value === 'AGUARDANDO_APROVACAO') {
