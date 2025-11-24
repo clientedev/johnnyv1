@@ -69,15 +69,14 @@ def listar_os():
         if oc_id:
             query = query.filter_by(oc_id=oc_id)
         
-        if usuario.tipo == 'funcionario':
-            perfil_nome = usuario.perfil.nome if usuario.perfil else None
-            
-            if perfil_nome == 'Motorista':
-                motorista = Motorista.query.filter_by(usuario_id=usuario_id).first()
-                if motorista:
-                    query = query.filter_by(motorista_id=motorista.id)
-                else:
-                    return jsonify([]), 200
+        perfil_nome = usuario.perfil.nome if usuario.perfil else None
+        
+        if perfil_nome == 'Motorista' or usuario.tipo == 'motorista':
+            motorista = Motorista.query.filter_by(usuario_id=usuario_id).first()
+            if motorista:
+                query = query.filter_by(motorista_id=motorista.id)
+            else:
+                return jsonify([]), 200
         
         os_list = query.order_by(OrdemServico.criado_em.desc()).all()
         
@@ -98,12 +97,11 @@ def obter_os(id):
         if not os:
             return jsonify({'erro': 'Ordem de Serviço não encontrada'}), 404
         
-        if usuario.tipo == 'funcionario':
-            perfil_nome = usuario.perfil.nome if usuario.perfil else None
-            if perfil_nome == 'Motorista':
-                motorista = Motorista.query.filter_by(usuario_id=usuario_id).first()
-                if not motorista or os.motorista_id != motorista.id:
-                    return jsonify({'erro': 'Acesso negado'}), 403
+        perfil_nome = usuario.perfil.nome if usuario.perfil else None
+        if perfil_nome == 'Motorista' or usuario.tipo == 'motorista':
+            motorista = Motorista.query.filter_by(usuario_id=usuario_id).first()
+            if not motorista or os.motorista_id != motorista.id:
+                return jsonify({'erro': 'Acesso negado'}), 403
         
         os_dict = os.to_dict()
         
@@ -493,12 +491,11 @@ def obter_estatisticas():
         
         query = OrdemServico.query
         
-        if usuario.tipo == 'funcionario':
-            perfil_nome = usuario.perfil.nome if usuario.perfil else None
-            if perfil_nome == 'Motorista':
-                motorista = Motorista.query.filter_by(usuario_id=usuario_id).first()
-                if motorista:
-                    query = query.filter_by(motorista_id=motorista.id)
+        perfil_nome = usuario.perfil.nome if usuario.perfil else None
+        if perfil_nome == 'Motorista' or usuario.tipo == 'motorista':
+            motorista = Motorista.query.filter_by(usuario_id=usuario_id).first()
+            if motorista:
+                query = query.filter_by(motorista_id=motorista.id)
         
         total_os = query.count()
         pendentes = query.filter_by(status='PENDENTE').count()
