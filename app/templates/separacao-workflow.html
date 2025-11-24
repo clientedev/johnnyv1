@@ -92,11 +92,26 @@
                 <div id="tabContentSublotes" class="tab-content active">
                     <h3>Criar Sublote</h3>
                     <form id="formSublote" style="display: grid; gap: 1rem; margin-bottom: 2rem;">
-                        <div class="form-group">
+                        <div class="form-group" style="background: var(--info-bg); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--info-color);">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin: 0;">
+                                <input type="checkbox" id="checkboxMaterialManual" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: bold; color: var(--gray-900);">
+                                    <i class="fas fa-keyboard"></i> Digitar material manualmente
+                                </span>
+                            </label>
+                            <p style="margin: 0.5rem 0 0 1.75rem; font-size: 0.875rem; color: var(--gray-700);">
+                                Marque esta opção se desejar digitar um novo tipo de material que não está na lista
+                            </p>
+                        </div>
+                        <div class="form-group" id="containerSelectMaterial">
                             <label>Tipo de Material *</label>
                             <select id="tipoLoteSublote" required>
                                 <option value="">Selecione...</option>
                             </select>
+                        </div>
+                        <div class="form-group" id="containerInputMaterial" style="display: none;">
+                            <label>Tipo de Material *</label>
+                            <input type="text" id="tipoLoteSubloteManual" placeholder="Digite o tipo de material (ex: Plástico PET, Alumínio, etc.)">
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                             <div class="form-group">
@@ -428,9 +443,31 @@
             }
         }
 
+        document.getElementById('checkboxMaterialManual').addEventListener('change', function() {
+            const containerSelect = document.getElementById('containerSelectMaterial');
+            const containerInput = document.getElementById('containerInputMaterial');
+            const selectMaterial = document.getElementById('tipoLoteSublote');
+            const inputMaterial = document.getElementById('tipoLoteSubloteManual');
+
+            if (this.checked) {
+                containerSelect.style.display = 'none';
+                containerInput.style.display = 'block';
+                selectMaterial.removeAttribute('required');
+                inputMaterial.setAttribute('required', 'required');
+                selectMaterial.value = '';
+            } else {
+                containerSelect.style.display = 'block';
+                containerInput.style.display = 'none';
+                inputMaterial.removeAttribute('required');
+                selectMaterial.setAttribute('required', 'required');
+                inputMaterial.value = '';
+            }
+        });
+
         document.getElementById('formSublote').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const usaMaterialManual = document.getElementById('checkboxMaterialManual').checked;
             const peso = parseFloat(document.getElementById('pesoSublote').value);
 
             const pesoRestante = (lote.peso_total_kg || 0) - (separacao.peso_total_sublotes || 0) - (separacao.peso_total_residuos || 0);
@@ -439,19 +476,43 @@
                 return;
             }
 
+            let tipoLoteId = null;
+            let tipoLoteNome = null;
+
+            if (usaMaterialManual) {
+                tipoLoteNome = document.getElementById('tipoLoteSubloteManual').value.trim();
+                if (!tipoLoteNome) {
+                    alert('Por favor, digite o tipo de material');
+                    return;
+                }
+            } else {
+                tipoLoteId = parseInt(document.getElementById('tipoLoteSublote').value);
+                if (!tipoLoteId) {
+                    alert('Por favor, selecione o tipo de material');
+                    return;
+                }
+            }
+
             try {
+                const requestBody = {
+                    peso: peso,
+                    qualidade: document.getElementById('qualidadeSublote').value,
+                    observacoes: document.getElementById('observacoesSublote').value
+                };
+
+                if (usaMaterialManual) {
+                    requestBody.tipo_lote_nome = tipoLoteNome;
+                } else {
+                    requestBody.tipo_lote_id = tipoLoteId;
+                }
+
                 const response = await fetch(`/api/separacao/${separacaoId}/sublotes`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
-                    body: JSON.stringify({
-                        tipo_lote_id: parseInt(document.getElementById('tipoLoteSublote').value),
-                        peso: peso,
-                        qualidade: document.getElementById('qualidadeSublote').value,
-                        observacoes: document.getElementById('observacoesSublote').value
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {
@@ -464,6 +525,12 @@
                 separacao.peso_total_sublotes = (separacao.peso_total_sublotes || 0) + peso;
 
                 document.getElementById('formSublote').reset();
+                document.getElementById('checkboxMaterialManual').checked = false;
+                document.getElementById('containerSelectMaterial').style.display = 'block';
+                document.getElementById('containerInputMaterial').style.display = 'none';
+                document.getElementById('tipoLoteSublote').setAttribute('required', 'required');
+                document.getElementById('tipoLoteSubloteManual').removeAttribute('required');
+                
                 await carregarSublotes();
                 atualizarProgresso();
                 alert('Sublote criado com sucesso!');
