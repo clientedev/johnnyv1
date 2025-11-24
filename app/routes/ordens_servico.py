@@ -4,7 +4,7 @@ from app.models import db, OrdemServico, OrdemCompra, Fornecedor, Motorista, Vei
 from app.auth import admin_required
 from datetime import datetime
 
-bp = Blueprint('ordens_servico', __name__, url_prefix='/api/os')
+bp = Blueprint('ordens_servico', __name__)
 
 def gerar_numero_os():
     import uuid
