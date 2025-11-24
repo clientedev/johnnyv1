@@ -51,3 +51,23 @@ def perfil():
 @bp.route('/admin.html')
 def admin():
     return render_template('admin.html')
+
+@bp.route('/logistica.html')
+def logistica():
+    return render_template('logistica.html')
+
+@bp.route('/kanban.html')
+def kanban():
+    return render_template('kanban.html')
+
+@bp.route('/app-motorista.html')
+def app_motorista():
+    return render_template('app-motorista.html')
+
+@bp.route('/motoristas.html')
+def motoristas():
+    return render_template('motoristas.html')
+
+@bp.route('/veiculos.html')
+def veiculos():
+    return render_template('veiculos.html')
