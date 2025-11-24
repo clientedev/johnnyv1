@@ -4,7 +4,7 @@ from app.models import db, Veiculo
 from app.auth import permission_required, admin_required
 from app.utils.auditoria import registrar_criacao, registrar_atualizacao, registrar_exclusao
 
-bp = Blueprint('veiculos', __name__, url_prefix='/api/veiculos')
+bp = Blueprint('veiculos', __name__)
 
 @bp.route('', methods=['GET'])
 @jwt_required()
