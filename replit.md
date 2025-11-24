@@ -3,6 +3,9 @@
 ### Overview
 The MRX System is a comprehensive platform for managing electronic scrap purchases. Its core functionalities include a star-based pricing system (1★, 2★, 3★), price authorization workflows for negotiations exceeding standard rates, and geolocation tracking for suppliers. The system aims to streamline the procurement process for electronic scrap, enhance pricing control, and improve supplier management.
 
+### Recent Changes
+-   **Automatic OC Generation Fix (November 24, 2025)**: Fixed critical bug where Purchase Orders (OC - Ordem de Compra) and inventory lots were not being created automatically when a purchase request was auto-approved (price within table limits). Created `_criar_oc_e_lotes()` helper function to centralize OC/lot creation logic, used by both automatic approval flow and manual admin approval. This ensures consistent behavior: when a request is approved (either automatically or manually), the corresponding OC and lots are immediately generated in the same transaction.
+
 ### User Preferences
 I want iterative development.
 I prefer detailed explanations.
