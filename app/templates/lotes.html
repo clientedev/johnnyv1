@@ -203,11 +203,11 @@
             .btn-text {
                 display: none;
             }
-            
+
             .btn-text-desktop {
                 display: none;
             }
-            
+
             .btn {
                 padding: var(--spacing-sm) var(--spacing-md);
                 font-size: 0.875rem;
@@ -226,7 +226,7 @@
             .btn-text {
                 display: inline;
             }
-            
+
             .btn-text-desktop {
                 display: none;
             }
@@ -351,26 +351,26 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                     <div class="form-group" style="margin: 0;">
                         <label>Material</label>
-                        <select id="filtroTipoLote" onchange="aplicarFiltros()">
-                            <option value="">Todos</option>
+                        <select id="filtroMaterial" onchange="aplicarFiltros()">
+                            <option value="todos">Todos</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label>Fornecedor</label>
                         <select id="filtroFornecedor" onchange="aplicarFiltros()">
-                            <option value="">Todos</option>
+                            <option value="todos">Todos</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label>Status</label>
                         <select id="filtroStatus" onchange="aplicarFiltros()">
-                            <option value="">Todos</option>
+                            <option value="todos">Todos</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label>Localização</label>
                         <select id="filtroLocalizacao" onchange="aplicarFiltros()">
-                            <option value="">Todas</option>
+                            <option value="todos">Todas</option>
                         </select>
                     </div>
                 </div>
@@ -775,34 +775,60 @@
 
         async function carregarFiltros() {
             try {
-                const [fornecedores, tiposLote, statusOpcoes, localizacaoOpcoes] = await Promise.all([
-                    fetchAPI('/fornecedores').then(r => r.json()),
-                    fetchAPI('/tipos-lote').then(r => r.json()),
-                    fetchAPI('wms/status-opcoes').then(r => r.json()),
-                    fetchAPI('wms/localizacao-opcoes').then(r => r.json())
-                ]);
+                // Carregar materiais
+                const materiaisResponse = await fetchAPI('/wms/materiais-opcoes');
+                if (materiaisResponse.ok) {
+                    const materiais = await materiaisResponse.json();
+                    const selectMaterial = document.getElementById('filtroMaterial');
+                    if (selectMaterial) {
+                        selectMaterial.innerHTML = '<option value="todos">Todos</option>';
+                        materiais.forEach(m => {
+                            selectMaterial.innerHTML += `<option value="${m.id}">${m.nome} (${m.codigo})</option>`;
+                        });
+                    }
+                }
 
-                const selectFornecedor = document.getElementById('filtroFornecedor');
-                selectFornecedor.innerHTML = '<option value="">Todos</option>' + fornecedores.map(f => 
-                    `<option value="${f.id}">${f.nome}</option>`
-                ).join('');
+                // Carregar fornecedores
+                const fornecedoresResponse = await fetchAPI('/wms/fornecedores-opcoes');
+                if (fornecedoresResponse.ok) {
+                    const fornecedores = await fornecedoresResponse.json();
+                    const selectFornecedor = document.getElementById('filtroFornecedor');
+                    if (selectFornecedor) {
+                        selectFornecedor.innerHTML = '<option value="todos">Todos</option>';
+                        fornecedores.forEach(f => {
+                            selectFornecedor.innerHTML += `<option value="${f.id}">${f.nome}</option>`;
+                        });
+                    }
+                }
 
-                const selectTipoLote = document.getElementById('filtroTipoLote');
-                selectTipoLote.innerHTML = '<option value="">Todos</option>' + tiposLote.map(t => 
-                    `<option value="${t.id}">${t.nome}</option>`
-                ).join('');
+                // Carregar status dinâmicos
+                const statusResponse = await fetchAPI('/wms/status-opcoes');
+                if (statusResponse.ok) {
+                    const statusList = await statusResponse.json();
+                    const selectStatus = document.getElementById('filtroStatus');
+                    if (selectStatus) {
+                        selectStatus.innerHTML = '<option value="todos">Todos</option>';
+                        statusList.forEach(s => {
+                            selectStatus.innerHTML += `<option value="${s.value}">${s.label}</option>`;
+                        });
+                    }
+                }
 
-                const selectStatus = document.getElementById('filtroStatus');
-                selectStatus.innerHTML = '<option value="">Todos</option>' + statusOpcoes.map(s => 
-                    `<option value="${s}">${formatarStatus(s)}</option>`
-                ).join('');
-
-                const selectLocalizacao = document.getElementById('filtroLocalizacao');
-                selectLocalizacao.innerHTML = '<option value="">Todas</option>' + localizacaoOpcoes.map(loc => 
-                    `<option value="${loc}">${loc}</option>`
-                ).join('');
+                // Carregar localizações dinâmicas
+                const localizacaoResponse = await fetchAPI('/wms/localizacao-opcoes');
+                if (localizacaoResponse.ok) {
+                    const localizacoes = await localizacaoResponse.json();
+                    const selectLocalizacao = document.getElementById('filtroLocalizacao');
+                    if (selectLocalizacao) {
+                        selectLocalizacao.innerHTML = '<option value="todos">Todas</option>';
+                        localizacoes.forEach(loc => {
+                            selectLocalizacao.innerHTML += `<option value="${loc}">${loc}</option>`;
+                        });
+                    }
+                }
             } catch (error) {
                 console.error('Erro ao carregar filtros:', error);
+                showAlert('Erro ao carregar filtros. Tente recarregar a página.', 'error');
             }
         }
 
@@ -926,20 +952,20 @@
 
             try {
                 const filtros = new URLSearchParams();
-                
-                const tipoLote = document.getElementById('filtroTipoLote')?.value;
+
+                const tipoLote = document.getElementById('filtroMaterial')?.value; // Corrigido para filtroMaterial
                 const fornecedor = document.getElementById('filtroFornecedor')?.value;
                 const status = document.getElementById('filtroStatus')?.value;
                 const localizacao = document.getElementById('filtroLocalizacao')?.value;
-                
-                if (tipoLote) filtros.append('tipo_lote_id', tipoLote);
-                if (fornecedor) filtros.append('fornecedor_id', fornecedor);
-                if (status) filtros.append('status', status);
-                if (localizacao) filtros.append('localizacao', localizacao);
-                
+
+                if (tipoLote && tipoLote !== 'todos') filtros.append('tipo_lote_id', tipoLote); // Corrigido para tipo_lote_id
+                if (fornecedor && fornecedor !== 'todos') filtros.append('fornecedor_id', fornecedor);
+                if (status && status !== 'todos') filtros.append('status', status);
+                if (localizacao && localizacao !== 'todos') filtros.append('localizacao', localizacao);
+
                 const queryString = filtros.toString();
                 const url = queryString ? `/wms/lotes?${queryString}` : '/wms/lotes';
-                
+
                 const response = await fetchAPI(url);
                 lotesData = await response.json();
 
