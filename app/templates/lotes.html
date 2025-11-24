@@ -365,28 +365,12 @@
                         <label>Status</label>
                         <select id="filtroStatus" onchange="aplicarFiltros()">
                             <option value="">Todos</option>
-                            <option value="EM_ESTOQUE">Em Estoque</option>
-                            <option value="BLOQUEADO_QC">Bloqueado QC</option>
-                            <option value="BLOQUEADO_INVENTARIO">Bloqueado Inventário</option>
-                            <option value="AGUARDANDO_SEPARACAO">Aguardando Separação</option>
-                            <option value="EM_SEPARACAO">Em Separação</option>
-                            <option value="PROCESSADO">Processado</option>
-                            <option value="DIVERGENTE_AGUARDANDO_ADM">Divergente</option>
-                            <option value="ENCERRADO">Encerrado</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label>Localização</label>
                         <select id="filtroLocalizacao" onchange="aplicarFiltros()">
                             <option value="">Todas</option>
-                            <option value="RECEBIMENTO">Recebimento</option>
-                            <option value="DOCK 1">Dock 1</option>
-                            <option value="DOCK 2">Dock 2</option>
-                            <option value="SEPARACAO">Separação</option>
-                            <option value="PICKING">Picking</option>
-                            <option value="BULK">Bulk</option>
-                            <option value="INVENTARIO">Inventário</option>
-                            <option value="QC">QC</option>
                         </select>
                     </div>
                 </div>
@@ -791,9 +775,11 @@
 
         async function carregarFiltros() {
             try {
-                const [fornecedores, tiposLote] = await Promise.all([
+                const [fornecedores, tiposLote, statusOpcoes, localizacaoOpcoes] = await Promise.all([
                     fetchAPI('/fornecedores').then(r => r.json()),
-                    fetchAPI('/tipos-lote').then(r => r.json())
+                    fetchAPI('/tipos-lote').then(r => r.json()),
+                    fetchAPI('wms/status-opcoes').then(r => r.json()),
+                    fetchAPI('wms/localizacao-opcoes').then(r => r.json())
                 ]);
 
                 const selectFornecedor = document.getElementById('filtroFornecedor');
@@ -805,9 +791,34 @@
                 selectTipoLote.innerHTML = '<option value="">Todos</option>' + tiposLote.map(t => 
                     `<option value="${t.id}">${t.nome}</option>`
                 ).join('');
+
+                const selectStatus = document.getElementById('filtroStatus');
+                selectStatus.innerHTML = '<option value="">Todos</option>' + statusOpcoes.map(s => 
+                    `<option value="${s}">${formatarStatus(s)}</option>`
+                ).join('');
+
+                const selectLocalizacao = document.getElementById('filtroLocalizacao');
+                selectLocalizacao.innerHTML = '<option value="">Todas</option>' + localizacaoOpcoes.map(loc => 
+                    `<option value="${loc}">${loc}</option>`
+                ).join('');
             } catch (error) {
                 console.error('Erro ao carregar filtros:', error);
             }
+        }
+
+        function formatarStatus(status) {
+            const mapa = {
+                'aberto': 'Aberto',
+                'EM_ESTOQUE': 'Em Estoque',
+                'BLOQUEADO_QC': 'Bloqueado QC',
+                'BLOQUEADO_INVENTARIO': 'Bloqueado Inventário',
+                'AGUARDANDO_SEPARACAO': 'Aguardando Separação',
+                'EM_SEPARACAO': 'Em Separação',
+                'PROCESSADO': 'Processado',
+                'DIVERGENTE_AGUARDANDO_ADM': 'Divergente',
+                'ENCERRADO': 'Encerrado'
+            };
+            return mapa[status] || status;
         }
 
         async function carregarVisaoGeral() {

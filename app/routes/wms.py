@@ -924,3 +924,94 @@ def obter_estatisticas():
 
     except Exception as e:
         return jsonify({'erro': f'Erro ao obter estatísticas: {str(e)}'}), 500
+
+# ==================== OPÇÕES DE FILTROS ====================
+
+@bp.route('/status-opcoes', methods=['GET'])
+@jwt_required()
+def obter_status_opcoes():
+    """
+    Retorna todos os status possíveis do sistema.
+    Combina status padrão com status encontrados no banco.
+    """
+    try:
+        # Status padrão do sistema
+        status_padrao = [
+            'aberto',
+            'EM_ESTOQUE',
+            'BLOQUEADO_QC',
+            'BLOQUEADO_INVENTARIO',
+            'AGUARDANDO_SEPARACAO',
+            'EM_SEPARACAO',
+            'PROCESSADO',
+            'DIVERGENTE_AGUARDANDO_ADM',
+            'ENCERRADO'
+        ]
+        
+        # Buscar status únicos existentes no banco
+        status_banco = db.session.query(Lote.status).distinct().filter(
+            Lote.status.isnot(None)
+        ).all()
+        status_banco = [s[0] for s in status_banco if s[0]]
+        
+        # Combinar e remover duplicatas
+        todos_status = list(set(status_padrao + status_banco))
+        todos_status.sort()
+        
+        return jsonify(todos_status), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao obter opções de status: {str(e)}'}), 500
+
+@bp.route('/localizacao-opcoes', methods=['GET'])
+@jwt_required()
+def obter_localizacao_opcoes():
+    """
+    Retorna todas as localizações possíveis do sistema.
+    Combina localizações padrão com localizações encontradas no banco.
+    """
+    try:
+        # Localizações padrão do sistema
+        localizacoes_padrao = [
+            'RECEBIMENTO',
+            'DOCK 1',
+            'DOCK 2',
+            'SEPARACAO',
+            'PICKING',
+            'BULK',
+            'INVENTARIO',
+            'QC',
+            'EXPEDICAO',
+            'QUARENTENA'
+        ]
+        
+        # Buscar localizações únicas de lotes
+        localizacoes_lotes = db.session.query(Lote.localizacao_atual).distinct().filter(
+            Lote.localizacao_atual.isnot(None)
+        ).all()
+        localizacoes_lotes = [loc[0] for loc in localizacoes_lotes if loc[0]]
+        
+        # Buscar localizações únicas de movimentações (origem e destino)
+        localizacoes_mov_origem = db.session.query(MovimentacaoEstoque.localizacao_origem).distinct().filter(
+            MovimentacaoEstoque.localizacao_origem.isnot(None)
+        ).all()
+        localizacoes_mov_origem = [loc[0] for loc in localizacoes_mov_origem if loc[0]]
+        
+        localizacoes_mov_destino = db.session.query(MovimentacaoEstoque.localizacao_destino).distinct().filter(
+            MovimentacaoEstoque.localizacao_destino.isnot(None)
+        ).all()
+        localizacoes_mov_destino = [loc[0] for loc in localizacoes_mov_destino if loc[0]]
+        
+        # Combinar todas as localizações e remover duplicatas
+        todas_localizacoes = list(set(
+            localizacoes_padrao + 
+            localizacoes_lotes + 
+            localizacoes_mov_origem + 
+            localizacoes_mov_destino
+        ))
+        todas_localizacoes.sort()
+        
+        return jsonify(todas_localizacoes), 200
+    
+    except Exception as e:
+        return jsonify({'erro': f'Erro ao obter opções de localização: {str(e)}'}), 500
