@@ -9,6 +9,145 @@ import os
 
 bp = Blueprint('solicitacoes', __name__, url_prefix='/api/solicitacoes')
 
+def _criar_oc_e_lotes(solicitacao, usuario_id, data_request=None):
+    """
+    Função auxiliar para criar OC e lotes a partir de uma solicitação aprovada.
+    Usada tanto na aprovação automática quanto na aprovação manual.
+    
+    Args:
+        solicitacao: Objeto Solicitacao já aprovado
+        usuario_id: ID do usuário que aprovou (ou None para aprovação automática)
+        data_request: Dados da requisição (opcional)
+        
+    Returns:
+        tuple: (oc, lotes_criados) onde oc é o objeto OrdemCompra e lotes_criados é lista de números de lote
+    """
+    if data_request is None:
+        data_request = {}
+    
+    print(f"\n{'='*60}")
+    print(f" CRIANDO OC E LOTES PARA SOLICITAÇÃO #{solicitacao.id}")
+    print(f"{'='*60}")
+    
+    if not solicitacao.itens or len(solicitacao.itens) == 0:
+        raise ValueError('Solicitação não possui itens')
+    
+    itens_sem_preco = [item for item in solicitacao.itens if item.valor_calculado is None or item.valor_calculado < 0]
+    if itens_sem_preco:
+        raise ValueError(f'Existem {len(itens_sem_preco)} itens sem preço configurado ou com valor inválido')
+    
+    oc_existente = OrdemCompra.query.filter_by(solicitacao_id=solicitacao.id).first()
+    if oc_existente:
+        print(f" ⚠️ OC já existe: #{oc_existente.id} - pulando criação")
+        return oc_existente, []
+    
+    valor_total_oc = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
+    print(f" Valor total calculado: R$ {valor_total_oc:.2f}")
+    
+    if valor_total_oc < 0:
+        raise ValueError('Valor total da OC não pode ser negativo')
+    
+    print(f"\n ETAPA 1: Criando Ordem de Compra...")
+    oc = OrdemCompra(
+        solicitacao_id=solicitacao.id,
+        fornecedor_id=solicitacao.fornecedor_id,
+        valor_total=valor_total_oc,
+        status='em_analise',
+        criado_por=usuario_id,
+        observacao=data_request.get('observacao', f'OC gerada automaticamente pela aprovação da solicitação #{solicitacao.id}')
+    )
+    db.session.add(oc)
+    db.session.flush()
+    
+    print(f" ✓ OC #{oc.id} criada com sucesso")
+    print(f"   Status: {oc.status}")
+    print(f"   Valor: R$ {oc.valor_total:.2f}")
+    
+    print(f"\n ETAPA 2: Criando lotes...")
+    
+    lotes_agrupados = {}
+    
+    for item in solicitacao.itens:
+        if item.material_id:
+            chave = ('material', item.material_id, item.estrelas_final)
+        elif item.tipo_lote_id:
+            chave = ('tipo_lote', item.tipo_lote_id, item.estrelas_final)
+        else:
+            print(f"    ⚠️ Item {item.id} sem material_id nem tipo_lote_id - pulando")
+            continue
+        
+        if chave not in lotes_agrupados:
+            lotes_agrupados[chave] = []
+        lotes_agrupados[chave].append(item)
+    
+    lotes_criados = []
+    
+    for chave, itens in lotes_agrupados.items():
+        tipo_chave, id_referencia, estrelas = chave
+        
+        peso_total = sum(item.peso_kg for item in itens)
+        valor_total = sum((item.valor_calculado or 0.0) for item in itens)
+        estrelas_media = sum((item.estrelas_final or 3) for item in itens) / len(itens)
+        
+        classificacoes = [item.classificacao for item in itens if item.classificacao]
+        classificacao_predominante = max(set(classificacoes), key=classificacoes.count) if classificacoes else None
+        
+        if tipo_chave == 'material':
+            material = MaterialBase.query.get(id_referencia)
+            tipo_lote_id = 1
+            print(f"    Criando lote para material: {material.nome if material else id_referencia}")
+        else:
+            tipo_lote_id = id_referencia
+            print(f"    Criando lote para tipo_lote_id: {tipo_lote_id}")
+        
+        lote = Lote(
+            fornecedor_id=solicitacao.fornecedor_id,
+            tipo_lote_id=tipo_lote_id,
+            solicitacao_origem_id=solicitacao.id,
+            peso_total_kg=peso_total,
+            valor_total=valor_total,
+            quantidade_itens=len(itens),
+            estrelas_media=estrelas_media,
+            classificacao_predominante=classificacao_predominante,
+            tipo_retirada=solicitacao.tipo_retirada,
+            status='aberto'
+        )
+        db.session.add(lote)
+        db.session.flush()
+        
+        print(f"    ✓ Lote criado: {lote.numero_lote} (Estrelas: {estrelas}, Itens: {len(itens)})")
+        lotes_criados.append(lote.numero_lote)
+        
+        for item in itens:
+            item.lote_id = lote.id
+    
+    print(f" ✓ {len(lotes_criados)} lote(s) criado(s): {', '.join(lotes_criados)}")
+    
+    print(f"\n ETAPA 3: Registrando auditoria da OC...")
+    if usuario_id:
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr) if request else None
+        gps = data_request.get('gps')
+        dispositivo = request.headers.get('User-Agent', '') if request else 'Sistema'
+        
+        registrar_auditoria_oc(
+            oc_id=oc.id,
+            usuario_id=usuario_id,
+            acao='criacao',
+            status_anterior=None,
+            status_novo='em_analise',
+            observacao=f'OC criada automaticamente pela aprovação da solicitação #{solicitacao.id}',
+            ip=ip,
+            gps=gps,
+            dispositivo=dispositivo
+        )
+        print(f" ✓ Auditoria registrada")
+    else:
+        print(f" ⚠️ Auditoria não registrada (sem usuario_id)")
+    
+    print(f"{'='*60}\n")
+    
+    return oc, lotes_criados
+
 @bp.route('/fornecedor/<int:fornecedor_id>/materiais', methods=['GET'])
 @jwt_required()
 def listar_materiais_fornecedor(fornecedor_id):
@@ -443,6 +582,13 @@ def criar_solicitacao():
             print(f" STATUS FINAL: PENDENTE (requer aprovação manual)")
             print(f" Motivo: Um ou mais itens têm preço oferecido acima da tabela")
             print(f"{'='*60}")
+            
+            db.session.commit()
+            
+            sol_dict = solicitacao.to_dict()
+            sol_dict['itens'] = [item.to_dict() for item in solicitacao.itens]
+            
+            return jsonify(sol_dict), 201
         else:
             solicitacao.status = 'aprovada'
             solicitacao.data_confirmacao = datetime.utcnow()
@@ -450,13 +596,30 @@ def criar_solicitacao():
             print(f" STATUS FINAL: APROVADA AUTOMATICAMENTE")
             print(f" Motivo: Todos os itens usam preço da tabela ou preço oferecido ≤ tabela")
             print(f"{'='*60}")
-
-        db.session.commit()
-
-        sol_dict = solicitacao.to_dict()
-        sol_dict['itens'] = [item.to_dict() for item in solicitacao.itens]
-
-        return jsonify(sol_dict), 201
+            
+            db.session.flush()
+            
+            try:
+                oc, lotes_criados = _criar_oc_e_lotes(solicitacao, usuario_id, data)
+                
+                db.session.commit()
+                
+                sol_dict = solicitacao.to_dict()
+                sol_dict['itens'] = [item.to_dict() for item in solicitacao.itens]
+                sol_dict['oc_id'] = oc.id
+                sol_dict['lotes_criados'] = lotes_criados
+                
+                print(f"\n{'='*60}")
+                print(f" ✅ SOLICITAÇÃO APROVADA AUTOMATICAMENTE E OC #{oc.id} CRIADA")
+                print(f" Lotes criados: {', '.join(lotes_criados)}")
+                print(f"{'='*60}\n")
+                
+                return jsonify(sol_dict), 201
+                
+            except Exception as e:
+                print(f"\n❌ ERRO ao criar OC/lotes: {str(e)}")
+                db.session.rollback()
+                raise
 
     except ValueError as e:
         db.session.rollback()
@@ -529,118 +692,11 @@ def aprovar_solicitacao(id):
         solicitacao.admin_id = usuario_id
         print(f" Status atualizado para: aprovada")
         
-        print(f"\n ETAPA 2: Criando Ordem de Compra...")
-        oc = OrdemCompra(
-            solicitacao_id=id,
-            fornecedor_id=solicitacao.fornecedor_id,
-            valor_total=valor_total_oc,
-            status='em_analise',
-            criado_por=usuario_id,
-            observacao=data.get('observacao', f'OC gerada automaticamente pela aprovação da solicitação #{id}')
-        )
-        db.session.add(oc)
         db.session.flush()
         
-        print(f" OC #{oc.id} criada com sucesso")
-        print(f"   Status: {oc.status}")
-        print(f"   Valor: R$ {oc.valor_total:.2f}")
+        oc, lotes_criados = _criar_oc_e_lotes(solicitacao, usuario_id, data)
         
-        print(f"\n ETAPA 3: Criando lotes...")
-        
-        # NOVO: Agrupar por material_id (sistema atualizado) ou tipo_lote_id (retrocompatibilidade)
-        lotes_agrupados = {}
-        
-        for item in solicitacao.itens:
-            # Usar material_id se disponível, senão usar tipo_lote_id (retrocompatibilidade)
-            if item.material_id:
-                chave = ('material', item.material_id, item.estrelas_final)
-            elif item.tipo_lote_id:
-                chave = ('tipo_lote', item.tipo_lote_id, item.estrelas_final)
-            else:
-                print(f"    ⚠️ Item {item.id} sem material_id nem tipo_lote_id - pulando")
-                continue
-            
-            if chave not in lotes_agrupados:
-                lotes_agrupados[chave] = []
-            lotes_agrupados[chave].append(item)
-        
-        for chave, itens in lotes_agrupados.items():
-            tipo_chave, id_referencia, estrelas = chave
-            
-            peso_total = sum(item.peso_kg for item in itens)
-            valor_total = sum((item.valor_calculado or 0.0) for item in itens)
-            estrelas_media = sum((item.estrelas_final or 3) for item in itens) / len(itens)
-            
-            # Determinar classificação predominante
-            classificacoes = [item.classificacao for item in itens if item.classificacao]
-            classificacao_predominante = max(set(classificacoes), key=classificacoes.count) if classificacoes else None
-            
-            # Para lotes baseados em material, precisamos criar um tipo_lote genérico ou usar um existente
-            # Por ora, vamos usar tipo_lote_id = 1 como fallback (você pode ajustar conforme necessário)
-            if tipo_chave == 'material':
-                # Buscar material para pegar informações
-                material = MaterialBase.query.get(id_referencia)
-                tipo_lote_id = 1  # Tipo genérico - ajuste conforme seu modelo de negócio
-                print(f"    Criando lote para material: {material.nome if material else id_referencia}")
-            else:
-                tipo_lote_id = id_referencia
-                print(f"    Criando lote para tipo_lote_id: {tipo_lote_id}")
-            
-            lote = Lote(
-                fornecedor_id=solicitacao.fornecedor_id,
-                tipo_lote_id=tipo_lote_id,
-                solicitacao_origem_id=solicitacao.id,
-                peso_total_kg=peso_total,
-                valor_total=valor_total,
-                quantidade_itens=len(itens),
-                estrelas_media=estrelas_media,
-                classificacao_predominante=classificacao_predominante,
-                tipo_retirada=solicitacao.tipo_retirada,
-                status='aberto'
-            )
-            db.session.add(lote)
-            db.session.flush()
-            
-            print(f"    Lote criado: {lote.numero_lote} (Estrelas: {estrelas}, Itens: {len(itens)})")
-            lotes_criados.append(lote.numero_lote)
-            
-            for item in itens:
-                item.lote_id = lote.id
-        
-        print(f" {len(lotes_criados)} lote(s) criado(s): {', '.join(lotes_criados)}")
-        
-        print(f"\n ETAPA 4: Registrando auditoria da OC...")
-        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        gps = data.get('gps')
-        dispositivo = request.headers.get('User-Agent', '')
-        
-        registrar_auditoria_oc(
-            oc_id=oc.id,
-            usuario_id=usuario_id,
-            acao='criacao',
-            status_anterior=None,
-            status_novo='em_analise',
-            observacao=f'OC criada automaticamente pela aprovação da solicitação #{id}',
-            ip=ip,
-            gps=gps,
-            dispositivo=dispositivo
-        )
-        print(f" Auditoria registrada")
-        
-        print(f"\n Salvando TODAS as alterações no banco...")
-        db.session.commit()
-        print(f" COMMIT REALIZADO - Dados persistidos no banco")
-        
-        print(f"\n VERIFICAÇÃO: Consultando OC no banco...")
-        oc_verificacao = OrdemCompra.query.filter_by(id=oc.id).first()
-        if oc_verificacao:
-            print(f"    OC #{oc_verificacao.id} CONFIRMADA no banco de dados")
-            print(f"      Solicitação ID: {oc_verificacao.solicitacao_id}")
-            print(f"      Valor: R$ {oc_verificacao.valor_total:.2f}")
-        else:
-            print(f"    ERRO CRÍTICO: OC NÃO encontrada no banco após commit!")
-        
-        print(f"\n ETAPA 5: Criando notificações...")
+        print(f"\n ETAPA 2: Criando notificações...")
         notificacao_funcionario = Notificacao(
             usuario_id=solicitacao.funcionario_id,
             titulo='Solicitação Aprovada',
