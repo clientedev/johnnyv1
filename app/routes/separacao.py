@@ -155,8 +155,11 @@ def criar_sublote(id):
 
         data = request.get_json()
 
-        if not data or not data.get('peso') or not data.get('tipo_lote_id'):
-            return jsonify({'erro': 'peso e tipo_lote_id são obrigatórios'}), 400
+        if not data or not data.get('peso'):
+            return jsonify({'erro': 'peso é obrigatório'}), 400
+
+        if not data.get('tipo_lote_id') and not data.get('tipo_lote_nome'):
+            return jsonify({'erro': 'tipo_lote_id ou tipo_lote_nome é obrigatório'}), 400
 
         separacao = LoteSeparacao.query.get(id)
         if not separacao:
@@ -174,6 +177,28 @@ def criar_sublote(id):
         if not lote_pai:
             return jsonify({'erro': 'Lote pai não encontrado'}), 404
 
+        tipo_lote_id = data.get('tipo_lote_id')
+        
+        if not tipo_lote_id and data.get('tipo_lote_nome'):
+            from app.models import TipoLote
+            tipo_lote_nome = data['tipo_lote_nome'].strip()
+            
+            tipo_lote_existente = TipoLote.query.filter(
+                db.func.lower(TipoLote.nome) == db.func.lower(tipo_lote_nome)
+            ).first()
+            
+            if tipo_lote_existente:
+                tipo_lote_id = tipo_lote_existente.id
+            else:
+                novo_tipo_lote = TipoLote(
+                    nome=tipo_lote_nome,
+                    descricao=f'Tipo criado automaticamente durante separação',
+                    ativo=True
+                )
+                db.session.add(novo_tipo_lote)
+                db.session.flush()
+                tipo_lote_id = novo_tipo_lote.id
+
         ano = datetime.now().year
         numero_sequencial = Lote.query.filter(
             Lote.numero_lote.like(f"{ano}-%")  # type: ignore
@@ -183,7 +208,7 @@ def criar_sublote(id):
         sublote = Lote(
             numero_lote=numero_lote,
             fornecedor_id=lote_pai.fornecedor_id,
-            tipo_lote_id=data['tipo_lote_id'],
+            tipo_lote_id=tipo_lote_id,
             peso_total_kg=data['peso'],
             qualidade_recebida=data.get('qualidade'),
             status='CRIADO_SEPARACAO',
@@ -222,7 +247,8 @@ def criar_sublote(id):
             detalhes={
                 'sublote_numero': numero_lote,
                 'peso': data['peso'],
-                'tipo_lote_id': data['tipo_lote_id']
+                'tipo_lote_id': tipo_lote_id,
+                'tipo_lote_nome': data.get('tipo_lote_nome')
             },
             gps=data.get('gps'),
             device_id=data.get('device_id') or separacao.device_id
