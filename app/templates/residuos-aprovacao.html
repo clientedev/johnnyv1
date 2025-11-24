@@ -27,28 +27,8 @@
     </header>
 
     <!-- Bottom Navigation (Mobile) -->
-    <nav class="bottom-nav">
-        <a href="/administracao.html" class="bottom-nav-item">
-            <i class="fas fa-cog icon"></i>
-            <span>Admin</span>
-        </a>
-        <a href="/dashboard.html" class="bottom-nav-item">
-            <i class="fas fa-chart-line icon"></i>
-            <span>Dashboard</span>
-        </a>
-        <div class="fab-container">
-            <button class="fab-button" onclick="window.location.href='/solicitacoes.html'" aria-label="Nova Solicitação">
-                <i class="fas fa-plus icon"></i>
-            </button>
-        </div>
-        <a href="/entradas.html" class="bottom-nav-item">
-            <i class="fas fa-warehouse icon"></i>
-            <span>Entradas</span>
-        </a>
-        <a href="/residuos-aprovacao.html" class="bottom-nav-item active">
-            <i class="fas fa-recycle icon"></i>
-            <span>Resíduos</span>
-        </a>
+    <nav class="bottom-nav" id="navMenuMobile">
+        <!-- Menus serão renderizados dinamicamente pelo RBAC -->
     </nav>
 
     <main class="container mt-4">
@@ -123,6 +103,7 @@
     </div>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/rbac.js"></script>
     <script src="/static/js/app.js"></script>
     <script>
         let residuos = [];
@@ -141,6 +122,7 @@
                 return;
             }
 
+            await carregarMenusRBAC();
             await carregarResiduos();
             await carregarEstatisticas();
             await atualizarNotificacoes();
