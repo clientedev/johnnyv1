@@ -112,16 +112,15 @@ def verificar_conflito_endereco(rua, numero, cidade, estado, cep, fornecedor_id_
             )
         
         if endereco_igual:
-            comprador_nome = None
+            comprador_nome = 'Não atribuído'
             if fornecedor.comprador_responsavel_id:
                 comprador = Usuario.query.get(fornecedor.comprador_responsavel_id)
                 if comprador:
                     comprador_nome = comprador.nome
             
-            mensagem = f'CNPJ já cadastrado\n\n'
+            mensagem = f'CNPJ já cadastrado\n'
             mensagem += f'Fornecedor: {fornecedor.nome}\n'
-            if comprador_nome:
-                mensagem += f'Comprador Responsável: {comprador_nome}\n'
+            mensagem += f'Comprador Responsável: {comprador_nome}\n'
             mensagem += f'Endereço: {fornecedor.rua}, {fornecedor.numero} - {fornecedor.cidade}/{fornecedor.estado}'
             
             return {

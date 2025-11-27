@@ -662,12 +662,29 @@
                 } else if (response && response.status === 409) {
                     const error = await response.json();
                     
-                    // Verificar se é conflito de endereço ou CNPJ duplicado
-                    if (error.conflito_endereco) {
-                        showAlert(error.erro || error.conflito_endereco.mensagem, 'error');
-                    } else {
-                        showAlert(error.erro || 'CNPJ já cadastrado', 'error');
-                    }
+                    // Exibir a mensagem formatada que vem do backend
+                    const mensagemErro = error.erro || error.conflito_endereco?.mensagem || 'CNPJ já cadastrado';
+                    
+                    // Quebrar linhas da mensagem para melhor visualização
+                    const mensagemFormatada = mensagemErro.replace(/\n/g, '<br>');
+                    
+                    // Criar alerta customizado com HTML
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-error';
+                    alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; max-width: 500px; background: #fee; border: 2px solid #f00; border-radius: 8px; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+                    alertDiv.innerHTML = `
+                        <div style="display: flex; align-items: start; gap: 0.75rem;">
+                            <i class="fas fa-exclamation-circle" style="color: #c00; font-size: 1.5rem;"></i>
+                            <div style="flex: 1;">
+                                <strong style="display: block; margin-bottom: 0.5rem; color: #c00;">Fornecedor já cadastrado</strong>
+                                <div style="font-size: 0.9rem; color: #600; white-space: pre-line;">${mensagemErro}</div>
+                            </div>
+                            <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 1.5rem; color: #c00; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+                        </div>
+                    `;
+                    document.body.appendChild(alertDiv);
+                    
+                    setTimeout(() => alertDiv.remove(), 8000);
                     
                     document.getElementById('dadosCNPJ').style.display = 'block';
                 } else {
