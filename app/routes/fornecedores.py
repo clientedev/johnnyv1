@@ -299,6 +299,21 @@ def criar_fornecedor():
         if not data.get('cnpj') and not data.get('cpf'):
             return jsonify({'erro': 'CNPJ ou CPF é obrigatório'}), 400
         
+        # VERIFICAR CONFLITO DE ENDEREÇO PRIMEIRO (antes de validar CNPJ/CPF)
+        conflito = verificar_conflito_endereco(
+            rua=data.get('rua'),
+            numero=data.get('numero'),
+            cidade=data.get('cidade'),
+            estado=data.get('estado'),
+            cep=data.get('cep')
+        )
+        
+        if conflito:
+            return jsonify({
+                'erro': conflito['mensagem'],
+                'conflito_endereco': conflito
+            }), 409
+        
         cnpj_normalizado = None
         cpf_normalizado = None
         
@@ -324,20 +339,6 @@ def criar_fornecedor():
             email_existente = Fornecedor.query.filter_by(email=data['email']).first()
             if email_existente:
                 return jsonify({'erro': 'E-mail já cadastrado para outro fornecedor'}), 400
-        
-        conflito = verificar_conflito_endereco(
-            rua=data.get('rua'),
-            numero=data.get('numero'),
-            cidade=data.get('cidade'),
-            estado=data.get('estado'),
-            cep=data.get('cep')
-        )
-        
-        if conflito:
-            return jsonify({
-                'erro': conflito['mensagem'],
-                'conflito_endereco': conflito
-            }), 409
         
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
@@ -960,13 +961,6 @@ def consultar_cnpj(cnpj):
         if not validar_cnpj(cnpj_limpo):
             return jsonify({'erro': 'CNPJ inválido. Verifique o número digitado.'}), 400
         
-        fornecedor_existente = Fornecedor.query.filter_by(cnpj=cnpj_limpo).first()
-        if fornecedor_existente:
-            return jsonify({
-                'erro': 'CNPJ já cadastrado',
-                'fornecedor': fornecedor_existente.to_dict()
-            }), 409
-        
         empresa_data = None
         apis = [
             {
@@ -1044,6 +1038,7 @@ def consultar_cnpj(cnpj):
         if not empresa_data:
             return jsonify({'erro': 'CNPJ não encontrado. Preencha os dados manualmente.'}), 404
         
+        # Verificar conflito de endereço
         conflito = verificar_conflito_endereco(
             rua=empresa_data.get('rua'),
             numero=empresa_data.get('numero'),
@@ -1053,7 +1048,19 @@ def consultar_cnpj(cnpj):
         )
         
         if conflito:
-            empresa_data['conflito_endereco'] = conflito
+            # Retornar APENAS a mensagem de conflito se houver
+            return jsonify({
+                'erro': conflito['mensagem'],
+                'conflito_endereco': conflito
+            }), 409
+        
+        # Verificar se CNPJ já existe (apenas depois de verificar endereço)
+        fornecedor_existente = Fornecedor.query.filter_by(cnpj=cnpj_limpo).first()
+        if fornecedor_existente:
+            return jsonify({
+                'erro': 'CNPJ já cadastrado',
+                'fornecedor': fornecedor_existente.to_dict()
+            }), 409
         
         return jsonify(empresa_data), 200
         

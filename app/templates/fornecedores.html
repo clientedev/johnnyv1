@@ -641,35 +641,7 @@
                         throw new Error(dadosReceita.mensagem || 'Erro ao consultar CNPJ');
                     }
 
-                    // Verificar conflito de endereço ANTES de preencher os campos
-                    const enderecoData = {
-                        rua: dadosReceita.logradouro || '',
-                        numero: dadosReceita.numero || '',
-                        cidade: dadosReceita.municipio || '',
-                        estado: dadosReceita.uf || '',
-                        cep: dadosReceita.cep || ''
-                    };
-
-                    const fornecedorId = document.getElementById('fornecedorId').value;
-                    if (fornecedorId) {
-                        enderecoData.fornecedor_id = parseInt(fornecedorId);
-                    }
-
-                    const conflitoResponse = await fetchAPI('/fornecedores/verificar-endereco', {
-                        method: 'POST',
-                        body: JSON.stringify(enderecoData)
-                    });
-
-                    // Se retornou 409 (conflito), exibir mensagem e parar
-                    if (conflitoResponse && conflitoResponse.status === 409) {
-                        const conflito = await conflitoResponse.json();
-                        showAlert(conflito.mensagem || 'Conflito de endereço detectado', 'error');
-                        btn.disabled = false;
-                        btn.textContent = '🔍 Buscar';
-                        return;
-                    }
-
-                    // Se não há conflito, preencher os campos normalmente
+                    // Se chegou aqui, não há conflito - preencher os campos normalmente
                     document.getElementById('nome').value = dadosReceita.nome || dadosReceita.razao_social || '';
                     document.getElementById('rua').value = dadosReceita.logradouro || '';
                     document.getElementById('numero').value = dadosReceita.numero || '';
@@ -689,7 +661,14 @@
                     showAlert('Dados do CNPJ carregados com sucesso!', 'success');
                 } else if (response && response.status === 409) {
                     const error = await response.json();
-                    showAlert(error.erro || 'CNPJ já cadastrado', 'error');
+                    
+                    // Verificar se é conflito de endereço ou CNPJ duplicado
+                    if (error.conflito_endereco) {
+                        showAlert(error.erro || error.conflito_endereco.mensagem, 'error');
+                    } else {
+                        showAlert(error.erro || 'CNPJ já cadastrado', 'error');
+                    }
+                    
                     document.getElementById('dadosCNPJ').style.display = 'block';
                 } else {
                     showAlert('CNPJ não encontrado. Preencha os dados manualmente.', 'error');
