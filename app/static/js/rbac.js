@@ -166,7 +166,7 @@ function renderizarMenusMobile(containerId = 'navMenuMobile') {
             
             const fabButton = document.createElement('button');
             fabButton.className = 'fab-button';
-            fabButton.setAttribute('aria-label', 'Nova Solicitação');
+            fabButton.setAttribute('aria-label', 'Nova Compra');
             fabButton.onclick = function() {
                 if (typeof abrirModalNovaSolicitacao === 'function') {
                     abrirModalNovaSolicitacao();

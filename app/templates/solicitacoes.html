@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitações - MRX Systems</title>
+    <title>Pedidos de Compra - MRX Systems</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#059669">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
@@ -15,7 +15,7 @@
         <div class="header-content" style="justify-content: space-between;">
             <div class="logo">
                 <img src="/static/images/mrx-logo.png" alt="MRX">
-                <span>Solicitações</span>
+                <span>Pedidos de Compra</span>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
@@ -36,7 +36,7 @@
         <!-- Tab Selector -->
         <div class="tab-selector">
             <button class="tab-btn active" onclick="changeTab('solicitacoes')" data-tab="solicitacoes">
-                <i class="fas fa-file-alt"></i> Solicitações
+                <i class="fas fa-file-alt"></i> Pedidos de Compra
             </button>
             <button class="tab-btn" onclick="changeTab('ordens-compra')" data-tab="ordens-compra">
                 <i class="fas fa-shopping-cart"></i> Ordens de Compra
@@ -46,7 +46,7 @@
         <!-- Seção de Solicitações -->
         <div id="secaoSolicitacoes" class="tab-content active">
             <div class="flex justify-between items-center mb-3" style="flex-wrap: wrap; gap: var(--spacing-md);">
-                <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Solicitações</h1>
+                <h1 style="font-size: clamp(1.5rem, 6vw, 2rem);">Gerenciar Pedidos de Compra</h1>
             </div>
 
             <div class="card mb-3">
@@ -61,7 +61,7 @@
             <div id="listaSolicitacoes" class="solicitacoes-grid">
                 <div class="loading-card">
                     <div class="spinner-border"></div>
-                    <p>Carregando solicitações...</p>
+                    <p>Carregando pedidos de compra...</p>
                 </div>
             </div>
         </div>
@@ -203,7 +203,7 @@
                 }
             }
 
-            /* Card de Solicitação */
+            /* Card de Pedido de Compra */
             .solicitacao-card {
                 background: white;
                 border-radius: 12px;
@@ -444,11 +444,11 @@
         </style>
     </main>
 
-    <!-- Modal Nova Solicitação -->
+    <!-- Modal Nova Compra -->
     <div class="modal" id="modalNovaSolicitacao">
         <div class="modal-content" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h2>Nova Solicitação</h2>
+                <h2>Nova Compra</h2>
                 <button class="modal-close" onclick="fecharModalSolicitacao()">&times;</button>
             </div>
             <form id="formSolicitacao">
@@ -509,13 +509,13 @@
 
                 <div class="form-group">
                     <label>Observações</label>
-                    <textarea id="observacoes" rows="2" placeholder="Observações gerais da solicitação"></textarea>
+                    <textarea id="observacoes" rows="2" placeholder="Observações gerais do pedido"></textarea>
                 </div>
 
                 <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #e5e7eb;">
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 style="margin: 0;"> Itens da Solicitação</h3>
+                    <h3 style="margin: 0;"> Itens do Pedido</h3>
                     <button type="button" class="btn btn-primary" onclick="adicionarItem()">+ Adicionar Item</button>
                 </div>
 
@@ -538,7 +538,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-full mt-3" id="btnEnviarSolicitacao"> Enviar Solicitação</button>
+                <button type="submit" class="btn btn-primary w-full mt-3" id="btnEnviarSolicitacao"> Enviar Pedido</button>
             </form>
         </div>
     </div>
@@ -547,7 +547,7 @@
     <div class="modal" id="modalDetalhes">
         <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h2>Detalhes da Solicitação</h2>
+                <h2>Detalhes do Pedido de Compra</h2>
                 <button class="modal-close" onclick="fecharModalDetalhes()">&times;</button>
             </div>
             <div id="detalhesConteudo"></div>
@@ -800,7 +800,7 @@
                     container.innerHTML = `
                         <div class="empty-state">
                             <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
-                            <h3 style="color: #ef4444;">Erro ao carregar solicitações</h3>
+                            <h3 style="color: #ef4444;">Erro ao carregar pedidos de compra</h3>
                             <p>Tente recarregar a página</p>
                         </div>
                     `;
@@ -812,8 +812,8 @@
                     container.innerHTML = `
                         <div class="empty-state">
                             <i class="fas fa-file-alt"></i>
-                            <h3>Nenhuma solicitação encontrada</h3>
-                            <p>As solicitações criadas aparecerão aqui</p>
+                            <h3>Nenhum pedido de compra encontrado</h3>
+                            <p>Os pedidos de compra criados aparecerão aqui</p>
                         </div>
                     `;
                     return;
@@ -832,7 +832,7 @@
                                     <i class="fas fa-file-alt"></i>
                                 </div>
                                 <div class="card-title-section">
-                                    <h3 class="card-id">Solicitação #${s.id}</h3>
+                                    <h3 class="card-id">Pedido de Compra #${s.id}</h3>
                                     <div class="card-date">${formatDate(s.data_envio)}</div>
                                 </div>
                             </div>
@@ -870,12 +870,12 @@
                     `;
                 }).join('');
             } catch (error) {
-                console.error('Erro ao carregar solicitações:', error);
+                console.error('Erro ao carregar pedidos de compra:', error);
                 const container = document.getElementById('listaSolicitacoes');
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
-                        <h3 style="color: #ef4444;">Erro ao carregar solicitações</h3>
+                        <h3 style="color: #ef4444;">Erro ao carregar pedidos de compra</h3>
                         <p>${error.message}</p>
                     </div>
                 `;
@@ -918,9 +918,6 @@
                 id: itemId,
                 material_id: null,
                 peso_kg: 0,
-                imagem_url: null,
-                imagem_file: null,
-                analisando: false,
                 observacoes: '',
                 valor_calculado: 0,
                 estrelas_final: 3,
@@ -948,38 +945,6 @@
                         <button type="button" class="btn btn-danger" onclick="removerItem(${item.id})" style="font-size: 0.85rem; padding: 0.3rem 0.6rem;">
                             <i class="fas fa-trash"></i> Remover
                         </button>
-                    </div>
-
-                    <!-- Foto e Análise IA -->
-                    <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;"> Foto do Lote</label>
-
-                        ${item.imagem_url ? `
-                            <div style="margin-bottom: 0.75rem;">
-                                <img src="${item.imagem_url}" style="max-width: 100%; max-height: 200px; border-radius: 8px; display: block; margin: 0 auto;">
-                            </div>
-                        ` : ''}
-
-                        <input type="file" accept="image/*" capture="environment" id="foto_${item.id}" 
-                            onchange="capturarFoto(${item.id}, this)" style="display: none;">
-
-                        <button type="button" class="btn btn-primary w-full" onclick="document.getElementById('foto_${item.id}').click()"
-                            ${item.analisando ? 'disabled' : ''}>
-                            <i class="fas fa-camera"></i> ${item.imagem_url ? 'Trocar Foto' : 'Capturar Foto'}
-                        </button>
-
-                        ${item.analisando ? `
-                            <div style="margin-top: 0.75rem; text-align: center; color: #1976d2;">
-                                <i class="fas fa-spinner fa-spin"></i> Analisando imagem com IA...
-                            </div>
-                        ` : ''}
-
-                        ${item.classificacao_ia && item.justificativa_ia ? `
-                            <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fff3e0; border-radius: 6px; border-left: 4px solid #ff9800;">
-                                <strong> Análise IA:</strong> ${item.classificacao_ia.toUpperCase()}<br>
-                                <small style="color: #666;">${item.justificativa_ia}</small>
-                            </div>
-                        ` : ''}
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
@@ -1047,60 +1012,6 @@
                     </div>
                 </div>
             `).join('');
-        }
-
-        async function capturarFoto(itemId, inputElement) {
-            const item = itensSolicitacao.find(i => i.id === itemId);
-            if (!item) return;
-
-            const file = inputElement.files[0];
-            if (!file) return;
-
-            // Mostrar preview da imagem
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                item.imagem_url = e.target.result;
-                item.imagem_file = file;
-                renderizarItens();
-            };
-            reader.readAsDataURL(file);
-
-            // Analisar com IA
-            item.analisando = true;
-            renderizarItens();
-
-            try {
-                const formData = new FormData();
-                formData.append('imagem', file);
-
-                const response = await fetchAPI('/solicitacao-lotes/analisar-imagem', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response && response.ok) {
-                    const resultado = await response.json();
-
-                    if (resultado.sucesso || resultado.classificacao) {
-                        item.classificacao_ia = resultado.classificacao;
-                        item.justificativa_ia = resultado.justificativa;
-
-                        showAlert('Imagem analisada com sucesso pela IA!', 'success');
-                    } else {
-                        showAlert('IA não conseguiu analisar a imagem: ' + (resultado.erro || 'Erro desconhecido'), 'warning');
-                    }
-                } else {
-                    showAlert('Erro ao analisar imagem com IA', 'error');
-                }
-            } catch (error) {
-                console.error('Erro ao analisar imagem:', error);
-                showAlert('Erro ao analisar imagem: ' + error.message, 'error');
-            } finally {
-                item.analisando = false;
-                calcularValorItem(item);
-                renderizarItens();
-                atualizarResumo();
-            }
         }
 
         function atualizarItemCampo(itemId, campo, valor) {
@@ -1289,7 +1200,7 @@
             e.preventDefault();
 
             if (itensSolicitacao.length === 0) {
-                showAlert('Adicione pelo menos um item à solicitação', 'error');
+                showAlert('Adicione pelo menos um item ao pedido', 'error');
                 return;
             }
 
@@ -1341,20 +1252,20 @@
                 });
 
                 if (response && response.ok) {
-                    showAlert('Solicitação enviada com sucesso!', 'success');
+                    showAlert('Pedido de Compra enviado com sucesso!', 'success');
                     fecharModalSolicitacao();
                     await carregarSolicitacoes();
                 } else {
                     const error = await response.json();
-                    showAlert(error.erro || 'Erro ao enviar solicitação', 'error');
+                    showAlert(error.erro || 'Erro ao enviar pedido', 'error');
                 }
             } catch (error) {
-                console.error('Erro ao enviar solicitação:', error);
-                showAlert('Erro ao enviar solicitação', 'error');
+                console.error('Erro ao enviar pedido:', error);
+                showAlert('Erro ao enviar pedido', 'error');
             } finally {
                 const btn = document.getElementById('btnEnviarSolicitacao');
                 btn.disabled = false;
-                btn.textContent = ' Enviar Solicitação';
+                btn.textContent = ' Enviar Pedido';
             }
         });
 
@@ -1463,7 +1374,7 @@
                 document.getElementById('modalDetalhes').classList.add('active');
             } catch (error) {
                 console.error('Erro ao carregar detalhes:', error);
-                showAlert('Erro ao carregar detalhes da solicitação', 'error');
+                showAlert('Erro ao carregar detalhes do pedido', 'error');
             }
         }
 
@@ -1472,7 +1383,7 @@
         }
 
         async function aprovarSolicitacao() {
-            if (!confirm('Aprovar esta solicitação? Os lotes serão criados automaticamente.')) return;
+            if (!confirm('Aprovar este pedido? Os lotes serão criados automaticamente.')) return;
 
             try {
                 const response = await fetchAPI(`/solicitacoes/${solicitacaoAtual.id}/aprovar`, {
@@ -1483,7 +1394,7 @@
                     const data = await response.json();
                     console.log(' Resposta da aprovação:', data);
 
-                    showAlert('Solicitação aprovada! Lotes criados e OC gerada automaticamente.', 'success');
+                    showAlert('Pedido aprovado! Lotes criados e OC gerada automaticamente.', 'success');
                     fecharModalDetalhes();
 
                     // Recarregar ambas as tabelas
@@ -1493,16 +1404,16 @@
                     console.log(' Tabelas recarregadas com sucesso');
                 } else {
                     const error = await response.json();
-                    showAlert(error.erro || 'Erro ao aprovar solicitação', 'error');
+                    showAlert(error.erro || 'Erro ao aprovar pedido', 'error');
                 }
             } catch (error) {
                 console.error('Erro ao aprovar:', error);
-                showAlert('Erro ao aprovar solicitação', 'error');
+                showAlert('Erro ao aprovar pedido', 'error');
             }
         }
 
         async function aprovarEPromoverFornecedor() {
-            if (!confirm('Aprovar esta solicitação E promover o fornecedor (aumentar estrelas)?\n\nIsso aumentará o nível da tabela de preço do fornecedor em 1★.')) return;
+            if (!confirm('Aprovar este pedido E promover o fornecedor (aumentar estrelas)?\n\nIsso aumentará o nível da tabela de preço do fornecedor em 1★.')) return;
 
             try {
                 const response = await fetchAPI(`/solicitacoes/${solicitacaoAtual.id}/aprovar-e-promover`, {
@@ -1517,7 +1428,7 @@
                     const estrelasAnterior = promocao.estrelas_anterior || 0;
                     const estrelasNova = promocao.estrelas_nova || 0;
 
-                    showAlert(`Solicitação aprovada! Fornecedor promovido de ${estrelasAnterior}★ para ${estrelasNova}★`, 'success');
+                    showAlert(`Pedido aprovado! Fornecedor promovido de ${estrelasAnterior}★ para ${estrelasNova}★`, 'success');
                     fecharModalDetalhes();
 
                     await carregarSolicitacoes();
@@ -1545,16 +1456,16 @@
                 });
 
                 if (response && response.ok) {
-                    showAlert('Solicitação rejeitada', 'success');
+                    showAlert('Pedido rejeitado', 'success');
                     fecharModalDetalhes();
                     await carregarSolicitacoes();
                 } else {
                     const error = await response.json();
-                    showAlert(error.erro || 'Erro ao rejeitar solicitação', 'error');
+                    showAlert(error.erro || 'Erro ao rejeitar pedido', 'error');
                 }
             } catch (error) {
                 console.error('Erro ao rejeitar:', error);
-                showAlert('Erro ao rejeitar solicitação', 'error');
+                showAlert('Erro ao rejeitar pedido', 'error');
             }
         }
 
@@ -1678,7 +1589,7 @@
         }
 
         async function gerarOC(solicitacaoId) {
-            if (!confirm('Gerar Ordem de Compra para esta solicitação aprovada?')) return;
+            if (!confirm('Gerar Ordem de Compra para este pedido aprovado?')) return;
 
             try {
                 const response = await fetchAPI(`/ordens-compra/solicitacao/${solicitacaoId}`, {
