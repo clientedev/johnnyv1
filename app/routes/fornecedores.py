@@ -118,12 +118,18 @@ def verificar_conflito_endereco(rua, numero, cidade, estado, cep, fornecedor_id_
                 if comprador:
                     comprador_nome = comprador.nome
             
+            mensagem = f'CNPJ já cadastrado\n\n'
+            mensagem += f'Fornecedor: {fornecedor.nome}\n'
+            if comprador_nome:
+                mensagem += f'Comprador Responsável: {comprador_nome}\n'
+            mensagem += f'Endereço: {fornecedor.rua}, {fornecedor.numero} - {fornecedor.cidade}/{fornecedor.estado}'
+            
             return {
                 'conflito': True,
                 'fornecedor_id': fornecedor.id,
                 'fornecedor_nome': fornecedor.nome,
                 'comprador_responsavel': comprador_nome,
-                'mensagem': f'Conflito de endereço: comprador "{comprador_nome}" já está responsável por esta localização.' if comprador_nome else f'Conflito de endereço: fornecedor "{fornecedor.nome}" já está cadastrado neste endereço.'
+                'mensagem': mensagem
             }
     
     return None
