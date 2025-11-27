@@ -657,7 +657,17 @@
                     document.getElementById('bairro').setAttribute('readonly', 'true');
                     
                     document.getElementById('dadosCNPJ').style.display = 'block';
-                    showAlert(' Dados do CNPJ carregados com sucesso! Os campos foram bloqueados pois vieram da Receita Federal.', 'success');
+                    
+                    // Verificar se há conflito de endereço
+                    if (data.conflito_endereco) {
+                        showAlert(data.conflito_endereco.mensagem, 'warning');
+                    } else {
+                        showAlert(' Dados do CNPJ carregados com sucesso! Os campos foram bloqueados pois vieram da Receita Federal.', 'success');
+                    }
+                } else if (response && response.status === 409) {
+                    const error = await response.json();
+                    showAlert(error.erro || 'CNPJ já cadastrado', 'error');
+                    document.getElementById('dadosCNPJ').style.display = 'block';
                 } else {
                     showAlert('CNPJ não encontrado. Preencha os dados manualmente.', 'error');
                     document.getElementById('dadosCNPJ').style.display = 'block';
@@ -678,6 +688,44 @@
                 valor = valor.substring(0, 5) + '-' + valor.substring(5, 8);
             }
             input.value = valor;
+        }
+
+        async function verificarConflitoEndereco() {
+            const rua = document.getElementById('rua').value;
+            const numero = document.getElementById('numero').value;
+            const cidade = document.getElementById('cidade').value;
+            const estado = document.getElementById('estado').value;
+            const cep = document.getElementById('cep').value;
+            const fornecedorId = document.getElementById('fornecedorId').value || null;
+            
+            if (!rua || !cidade || !estado) {
+                return null;
+            }
+            
+            try {
+                const response = await fetchAPI('/fornecedores/verificar-endereco', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        rua: rua,
+                        numero: numero,
+                        cidade: cidade,
+                        estado: estado,
+                        cep: cep,
+                        fornecedor_id: fornecedorId ? parseInt(fornecedorId) : null
+                    })
+                });
+                
+                if (response && response.status === 409) {
+                    const conflito = await response.json();
+                    showAlert(conflito.mensagem, 'warning');
+                    return conflito;
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Erro ao verificar endereço:', error);
+                return null;
+            }
         }
 
         async function buscarEnderecoPorCEP() {
@@ -701,7 +749,10 @@
                     document.getElementById('estado').value = data.estado || '';
                     document.getElementById('cep').value = data.cep || '';
                     
-                    showAlert('✅ Endereço preenchido com sucesso!', 'success');
+                    // Verificar conflito de endereço após preencher
+                    await verificarConflitoEndereco();
+                    
+                    showAlert('Endereço preenchido com sucesso!', 'success');
                 } else {
                     const error = await response.json();
                     showAlert(error.erro || 'CEP não encontrado', 'error');
@@ -777,7 +828,12 @@
                     await carregarFornecedores();
                 } else {
                     const error = await response.json();
-                    showAlert(error.erro || 'Erro ao salvar fornecedor', 'error');
+                    // Se for conflito de endereço, mostrar como warning
+                    if (response.status === 409 && error.conflito_endereco) {
+                        showAlert(error.erro, 'warning');
+                    } else {
+                        showAlert(error.erro || 'Erro ao salvar fornecedor', 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao salvar fornecedor:', error);

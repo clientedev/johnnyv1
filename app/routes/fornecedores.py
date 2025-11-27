@@ -57,6 +57,105 @@ def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
     # Comprador tem acesso se for o comprador responsável
     return fornecedor.comprador_responsavel_id == usuario_id
 
+def verificar_conflito_endereco(rua, numero, cidade, estado, cep, fornecedor_id_excluir=None):
+    """
+    Verifica se já existe um fornecedor com o mesmo endereço.
+    Retorna o fornecedor conflitante e o nome do comprador responsável, ou None se não houver conflito.
+    
+    Args:
+        rua: Rua/logradouro
+        numero: Número do endereço
+        cidade: Cidade
+        estado: Estado (UF)
+        cep: CEP (será normalizado)
+        fornecedor_id_excluir: ID do fornecedor a excluir da busca (para edição)
+    
+    Returns:
+        dict com informações do conflito ou None
+    """
+    if not rua or not cidade or not estado:
+        return None
+    
+    cep_normalizado = re.sub(r'[^\d]', '', cep) if cep else None
+    rua_normalizada = rua.strip().lower() if rua else ''
+    numero_normalizado = str(numero).strip() if numero else ''
+    cidade_normalizada = cidade.strip().lower() if cidade else ''
+    estado_normalizado = estado.strip().upper() if estado else ''
+    
+    query = Fornecedor.query.filter(
+        Fornecedor.ativo == True
+    )
+    
+    if fornecedor_id_excluir:
+        query = query.filter(Fornecedor.id != fornecedor_id_excluir)
+    
+    fornecedores = query.all()
+    
+    for fornecedor in fornecedores:
+        fornecedor_rua = (fornecedor.rua or '').strip().lower()
+        fornecedor_numero = str(fornecedor.numero or '').strip()
+        fornecedor_cidade = (fornecedor.cidade or '').strip().lower()
+        fornecedor_estado = (fornecedor.estado or '').strip().upper()
+        fornecedor_cep = re.sub(r'[^\d]', '', fornecedor.cep) if fornecedor.cep else None
+        
+        endereco_igual = (
+            rua_normalizada == fornecedor_rua and
+            numero_normalizado == fornecedor_numero and
+            cidade_normalizada == fornecedor_cidade and
+            estado_normalizado == fornecedor_estado
+        )
+        
+        if cep_normalizado and fornecedor_cep:
+            endereco_igual = endereco_igual or (
+                cep_normalizado == fornecedor_cep and
+                numero_normalizado == fornecedor_numero
+            )
+        
+        if endereco_igual:
+            comprador_nome = None
+            if fornecedor.comprador_responsavel_id:
+                comprador = Usuario.query.get(fornecedor.comprador_responsavel_id)
+                if comprador:
+                    comprador_nome = comprador.nome
+            
+            return {
+                'conflito': True,
+                'fornecedor_id': fornecedor.id,
+                'fornecedor_nome': fornecedor.nome,
+                'comprador_responsavel': comprador_nome,
+                'mensagem': f'Conflito de endereço: comprador "{comprador_nome}" já está responsável por esta localização.' if comprador_nome else f'Conflito de endereço: fornecedor "{fornecedor.nome}" já está cadastrado neste endereço.'
+            }
+    
+    return None
+
+@bp.route('/verificar-endereco', methods=['POST'])
+@jwt_required()
+def verificar_endereco():
+    """Endpoint para verificar conflito de endereço antes de cadastrar"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'erro': 'Dados não fornecidos'}), 400
+        
+        conflito = verificar_conflito_endereco(
+            rua=data.get('rua'),
+            numero=data.get('numero'),
+            cidade=data.get('cidade'),
+            estado=data.get('estado'),
+            cep=data.get('cep'),
+            fornecedor_id_excluir=data.get('fornecedor_id')
+        )
+        
+        if conflito:
+            return jsonify(conflito), 409
+        
+        return jsonify({'conflito': False}), 200
+        
+    except Exception as e:
+        logger.error(f'Erro ao verificar endereço: {str(e)}')
+        return jsonify({'erro': f'Erro ao verificar endereço: {str(e)}'}), 500
+
 @bp.route('/buscar-cep/<cep>', methods=['GET'])
 @jwt_required()
 def buscar_cep(cep):
@@ -225,6 +324,20 @@ def criar_fornecedor():
             email_existente = Fornecedor.query.filter_by(email=data['email']).first()
             if email_existente:
                 return jsonify({'erro': 'E-mail já cadastrado para outro fornecedor'}), 400
+        
+        conflito = verificar_conflito_endereco(
+            rua=data.get('rua'),
+            numero=data.get('numero'),
+            cidade=data.get('cidade'),
+            estado=data.get('estado'),
+            cep=data.get('cep')
+        )
+        
+        if conflito:
+            return jsonify({
+                'erro': conflito['mensagem'],
+                'conflito_endereco': conflito
+            }), 409
         
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
@@ -930,6 +1043,17 @@ def consultar_cnpj(cnpj):
         
         if not empresa_data:
             return jsonify({'erro': 'CNPJ não encontrado. Preencha os dados manualmente.'}), 404
+        
+        conflito = verificar_conflito_endereco(
+            rua=empresa_data.get('rua'),
+            numero=empresa_data.get('numero'),
+            cidade=empresa_data.get('cidade'),
+            estado=empresa_data.get('estado'),
+            cep=empresa_data.get('cep')
+        )
+        
+        if conflito:
+            empresa_data['conflito_endereco'] = conflito
         
         return jsonify(empresa_data), 200
         

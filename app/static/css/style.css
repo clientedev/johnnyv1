@@ -496,6 +496,12 @@ input[type="number"] {
     border: 1px solid #a7f3d0;
 }
 
+.alert-warning {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fcd34d;
+}
+
 /* ========== CARDS (RESPONSIVE) ========== */
 
 .card {
