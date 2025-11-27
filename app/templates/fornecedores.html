@@ -44,7 +44,7 @@
                 <p>Carregando fornecedores...</p>
             </div>
         </div>
-        
+
         <style>
             .fornecedores-grid {
                 display: grid;
@@ -52,19 +52,19 @@
                 gap: 16px;
                 margin-bottom: 24px;
             }
-            
+
             @media (min-width: 768px) {
                 .fornecedores-grid {
                     grid-template-columns: repeat(2, 1fr);
                 }
             }
-            
+
             @media (min-width: 1200px) {
                 .fornecedores-grid {
                     grid-template-columns: repeat(3, 1fr);
                 }
             }
-            
+
             .fornecedor-card {
                 background: white;
                 border-radius: 12px;
@@ -75,12 +75,12 @@
                 position: relative;
                 overflow: hidden;
             }
-            
+
             .fornecedor-card:hover {
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
                 transform: translateY(-2px);
             }
-            
+
             .fornecedor-card::before {
                 content: '';
                 position: absolute;
@@ -90,14 +90,14 @@
                 height: 4px;
                 background: linear-gradient(90deg, #059669, #10b981);
             }
-            
+
             .fornecedor-header {
                 display: flex;
                 align-items: flex-start;
                 gap: 12px;
                 margin-bottom: 16px;
             }
-            
+
             .fornecedor-icon {
                 width: 48px;
                 height: 48px;
@@ -108,17 +108,17 @@
                 justify-content: center;
                 flex-shrink: 0;
             }
-            
+
             .fornecedor-icon i {
                 color: white;
                 font-size: 24px;
             }
-            
+
             .fornecedor-title {
                 flex: 1;
                 min-width: 0;
             }
-            
+
             .fornecedor-nome {
                 font-size: 18px;
                 font-weight: 700;
@@ -126,19 +126,19 @@
                 margin: 0 0 4px 0;
                 word-break: break-word;
             }
-            
+
             .fornecedor-cnpj {
                 font-size: 14px;
                 color: #6b7280;
                 font-family: 'Courier New', monospace;
             }
-            
+
             .fornecedor-info {
                 display: grid;
                 gap: 12px;
                 margin-bottom: 16px;
             }
-            
+
             .info-item {
                 display: flex;
                 align-items: center;
@@ -146,13 +146,13 @@
                 font-size: 14px;
                 color: #374151;
             }
-            
+
             .info-item i {
                 color: #059669;
                 width: 20px;
                 font-size: 16px;
             }
-            
+
             .fornecedor-actions {
                 display: flex;
                 flex-wrap: wrap;
@@ -160,7 +160,7 @@
                 padding-top: 16px;
                 border-top: 1px solid #f3f4f6;
             }
-            
+
             .fornecedor-actions .btn {
                 flex: 1;
                 min-width: fit-content;
@@ -171,14 +171,14 @@
                 justify-content: center;
                 gap: 6px;
             }
-            
+
             .loading-card {
                 grid-column: 1 / -1;
                 text-align: center;
                 padding: 40px;
                 color: #6b7280;
             }
-            
+
             .spinner-border {
                 border: 3px solid #f3f4f6;
                 border-top: 3px solid #059669;
@@ -188,32 +188,32 @@
                 animation: spin 1s linear infinite;
                 margin: 0 auto 16px;
             }
-            
+
             @keyframes spin {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
-            
+
             .empty-state {
                 grid-column: 1 / -1;
                 text-align: center;
                 padding: 60px 20px;
                 color: #6b7280;
             }
-            
+
             .empty-state i {
                 font-size: 48px;
                 color: #d1d5db;
                 margin-bottom: 16px;
             }
-            
+
             .empty-state h3 {
                 font-size: 18px;
                 color: #374151;
                 margin-bottom: 8px;
             }
         </style>
-        
+
         <style>
             /* Padding específico para mobile na página de fornecedores */
             @media (max-width: 767px) {
@@ -221,7 +221,7 @@
                     padding-top: 60px !important;
                 }
             }
-            
+
             @media (min-width: 768px) {
                 main.container {
                     padding-top: 50px !important;
@@ -239,7 +239,7 @@
             </div>
             <form id="formFornecedor">
                 <input type="hidden" id="fornecedorId">
-                
+
                 <div class="form-group">
                     <label style="margin-bottom: 0.5rem; display: block;">Tipo de Documento</label>
                     <div style="display: flex; gap: 1.5rem; margin-bottom: 0.5rem;">
@@ -264,7 +264,7 @@
 
                 <div id="dadosCNPJ" style="display: none; background: #f0f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                     <h4 style="margin: 0 0 1rem 0; color: #0369a1;"> Dados da Receita Federal</h4>
-                    
+
                     <div class="form-group">
                         <label>CEP</label>
                         <div style="display: flex; gap: 0.5rem;">
@@ -275,12 +275,12 @@
                         </div>
                         <small style="color: #666; margin-top: 0.25rem; display: block;">Digite o CEP e clique em Buscar para preencher automaticamente o endereço</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Nome / Razão Social</label>
                         <input type="text" id="nome" required>
                     </div>
-                    
+
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
                             <label>Rua</label>
@@ -291,7 +291,7 @@
                             <input type="text" id="numero">
                         </div>
                     </div>
-                    
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
                             <label>Cidade</label>
@@ -311,7 +311,7 @@
                         <label>Bairro</label>
                         <input type="text" id="bairro">
                     </div>
-                    
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
                             <label>Telefone</label>
@@ -335,7 +335,7 @@
 
                 <div id="camposEnderecoVisita" style="display: none; background: #fef3c7; padding: 1rem; border-radius: 8px; margin-top: 0.5rem; border-left: 4px solid #f59e0b;">
                     <h4 style="margin: 0 0 1rem 0; color: #92400e;"> Endereço de Visita/Coleta</h4>
-                    
+
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
                             <label>Rua</label>
@@ -346,7 +346,7 @@
                             <input type="text" id="outroNumero">
                         </div>
                     </div>
-                    
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
                             <label>Cidade</label>
@@ -372,7 +372,7 @@
                         <input type="text" id="outroComplemento" placeholder="Apto, Sala, etc.">
                     </div>
                 </div>
-                
+
                 <div class="form-group" style="margin-top: 1.5rem;">
                     <label>Observações</label>
                     <textarea id="observacoes" rows="2"></textarea>
@@ -386,7 +386,7 @@
                     <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #0c4a6e;">
                         Selecione o comprador que será responsável por este fornecedor. Se não selecionar nenhum, o fornecedor ficará sem atribuição.
                     </p>
-                    
+
                     <div class="form-group">
                         <label><strong>Comprador</strong></label>
                         <select id="compradorResponsavelId" style="padding: 0.75rem; border: 2px solid #0284c7; border-radius: 8px; font-size: 1rem;">
@@ -406,7 +406,7 @@
                     <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #78350f;">
                         Define qual tabela de preços será usada para este fornecedor. Novos fornecedores iniciam com 1★.
                     </p>
-                    
+
                     <div class="form-group">
                         <label><strong>Tabela de Preços</strong></label>
                         <select id="tabelaPrecoId" style="padding: 0.75rem; border: 2px solid #d97706; border-radius: 8px; font-size: 1rem;">
@@ -419,7 +419,7 @@
                         </small>
                     </div>
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary w-full"> Salvar Fornecedor</button>
             </form>
         </div>
@@ -443,7 +443,7 @@
             await carregarFornecedores();
             await carregarCompradores();
             await atualizarNotificacoes();
-            
+
             // Renderizar menus após carregar os dados do usuário
             if (typeof renderizarMenusMobile === 'function') {
                 renderizarMenusMobile();
@@ -454,10 +454,10 @@
             try {
                 const response = await fetchAPI('/usuarios');
                 if (!response || !response.ok) return;
-                
+
                 const usuarios = await response.json();
                 listaCompradores = usuarios.filter(u => u.perfil_nome && u.perfil_nome.includes('Comprador'));
-                
+
                 const select = document.getElementById('compradorResponsavelId');
                 if (select) {
                     select.innerHTML = '<option value="">Sem atribuição</option>';
@@ -496,7 +496,7 @@
                     const telefone = f.telefone || 'Não informado';
                     const cidade = f.cidade || 'Não informada';
                     const cnpj = f.cnpj ? formatarCNPJ(f.cnpj) : 'Não informado';
-                    
+
                     return `
                         <div class="fornecedor-card">
                             <div class="fornecedor-header">
@@ -508,7 +508,7 @@
                                     <div class="fornecedor-cnpj">${cnpj}</div>
                                 </div>
                             </div>
-                            
+
                             <div class="fornecedor-info">
                                 <div class="info-item">
                                     <i class="fas fa-phone"></i>
@@ -519,7 +519,7 @@
                                     <span>${cidade}</span>
                                 </div>
                             </div>
-                            
+
                             <div class="fornecedor-actions">
                                 <button class="btn btn-secondary" onclick="editarFornecedor(${f.id})">
                                     <i class="fas fa-edit"></i> Editar
@@ -550,7 +550,7 @@
                 `;
             }
         }
-        
+
         function formatarCNPJ(cnpj) {
             if (!cnpj) return '';
             const numeros = cnpj.replace(/\D/g, '');
@@ -565,28 +565,28 @@
             document.getElementById('dadosCNPJ').style.display = 'block';
             document.getElementById('camposEnderecoVisita').style.display = 'none';
             document.getElementById('temOutroEndereco').checked = false;
-            
+
             // Definir tabela padrão como 1 estrela para novos fornecedores
             const tabelaSelect = document.getElementById('tabelaPrecoId');
             if (tabelaSelect) {
                 tabelaSelect.value = '1';
             }
-            
+
             // Limpar seleção de comprador
             const compradorSelect = document.getElementById('compradorResponsavelId');
             if (compradorSelect) {
                 compradorSelect.value = '';
             }
-            
+
             // Remover readonly dos campos
             ['nome', 'rua', 'numero', 'cidade', 'estado', 'cep', 'bairro'].forEach(id => {
                 document.getElementById(id).removeAttribute('readonly');
             });
-            
+
             document.getElementById('modalFornecedor').classList.add('active');
         }
 
-        
+
 
         function toggleEnderecoVisita() {
             const checkbox = document.getElementById('temOutroEndereco');
@@ -600,7 +600,7 @@
             const label = document.getElementById('labelDocumento');
             const btnBuscar = document.getElementById('btnBuscarCNPJ');
             const textoAjuda = document.getElementById('textoAjuda');
-            
+
             if (tipoSelecionado === 'cpf') {
                 label.textContent = 'CPF';
                 input.placeholder = '000.000.000-00';
@@ -614,56 +614,79 @@
                 btnBuscar.style.display = 'inline-block';
                 textoAjuda.textContent = 'Digite o CNPJ e clique em Buscar para preencher automaticamente';
             }
-            
+
             input.value = '';
         }
 
         async function buscarCNPJ() {
             const cnpjInput = document.getElementById('cnpj');
             const cnpj = cnpjInput.value.replace(/\D/g, '');
-            
+
             if (!cnpj || cnpj.length !== 14) {
                 showAlert('Digite um CNPJ válido com 14 dígitos', 'error');
                 return;
             }
-            
+
             const btn = document.getElementById('btnBuscarCNPJ');
             btn.disabled = true;
             btn.textContent = '⏳ Buscando...';
-            
+
             try {
                 const response = await fetchAPI(`/fornecedores/consultar-cnpj/${cnpj}`);
-                
+
                 if (response && response.ok) {
-                    const data = await response.json();
-                    
-                    document.getElementById('nome').value = data.nome || '';
-                    document.getElementById('rua').value = data.rua || '';
-                    document.getElementById('numero').value = data.numero || '';
-                    document.getElementById('cidade').value = data.cidade || '';
-                    document.getElementById('estado').value = data.estado || '';
-                    document.getElementById('cep').value = data.cep || '';
-                    document.getElementById('bairro').value = data.bairro || '';
-                    document.getElementById('telefone').value = data.telefone || '';
-                    document.getElementById('email').value = data.email || '';
-                    
-                    // Tornar campos readonly após buscar CNPJ
-                    document.getElementById('nome').setAttribute('readonly', 'true');
-                    document.getElementById('rua').setAttribute('readonly', 'true');
-                    document.getElementById('numero').setAttribute('readonly', 'true');
-                    document.getElementById('cidade').setAttribute('readonly', 'true');
-                    document.getElementById('estado').setAttribute('readonly', 'true');
-                    document.getElementById('cep').setAttribute('readonly', 'true');
-                    document.getElementById('bairro').setAttribute('readonly', 'true');
-                    
-                    document.getElementById('dadosCNPJ').style.display = 'block';
-                    
-                    // Verificar se há conflito de endereço
-                    if (data.conflito_endereco) {
-                        showAlert(data.conflito_endereco.mensagem, 'warning');
-                    } else {
-                        showAlert(' Dados do CNPJ carregados com sucesso! Os campos foram bloqueados pois vieram da Receita Federal.', 'success');
+                    const dadosReceita = await response.json();
+
+                    if (!dadosReceita || dadosReceita.erro) {
+                        throw new Error(dadosReceita.mensagem || 'Erro ao consultar CNPJ');
                     }
+
+                    // Verificar conflito de endereço ANTES de preencher os campos
+                    const enderecoData = {
+                        rua: dadosReceita.logradouro || '',
+                        numero: dadosReceita.numero || '',
+                        cidade: dadosReceita.municipio || '',
+                        estado: dadosReceita.uf || '',
+                        cep: dadosReceita.cep || ''
+                    };
+
+                    const fornecedorId = document.getElementById('fornecedorId').value;
+                    if (fornecedorId) {
+                        enderecoData.fornecedor_id = parseInt(fornecedorId);
+                    }
+
+                    const conflitoResponse = await fetchAPI('/fornecedores/verificar-endereco', {
+                        method: 'POST',
+                        body: JSON.stringify(enderecoData)
+                    });
+
+                    // Se retornou 409 (conflito), exibir mensagem e parar
+                    if (conflitoResponse && conflitoResponse.status === 409) {
+                        const conflito = await conflitoResponse.json();
+                        showAlert(conflito.mensagem || 'Conflito de endereço detectado', 'error');
+                        btn.disabled = false;
+                        btn.textContent = '🔍 Buscar';
+                        return;
+                    }
+
+                    // Se não há conflito, preencher os campos normalmente
+                    document.getElementById('nome').value = dadosReceita.nome || dadosReceita.razao_social || '';
+                    document.getElementById('rua').value = dadosReceita.logradouro || '';
+                    document.getElementById('numero').value = dadosReceita.numero || '';
+                    document.getElementById('cidade').value = dadosReceita.municipio || '';
+                    document.getElementById('estado').value = dadosReceita.uf || '';
+                    document.getElementById('cep').value = dadosReceita.cep || '';
+                    document.getElementById('bairro').value = dadosReceita.bairro || '';
+                    document.getElementById('telefone').value = dadosReceita.telefone || '';
+                    document.getElementById('email').value = dadosReceita.email || '';
+
+                    document.getElementById('dadosCNPJ').style.display = 'block';
+
+                    ['nome', 'rua', 'numero', 'cidade', 'estado', 'cep', 'bairro'].forEach(id => {
+                        document.getElementById(id).setAttribute('readonly', true);
+                    });
+
+                    showAlert('Dados do CNPJ carregados com sucesso!', 'success');
                 } else if (response && response.status === 409) {
                     const error = await response.json();
                     showAlert(error.erro || 'CNPJ já cadastrado', 'error');
@@ -674,11 +697,11 @@
                 }
             } catch (error) {
                 console.error('Erro ao buscar CNPJ:', error);
-                showAlert('Erro ao buscar CNPJ. Preencha os dados manualmente.', 'error');
+                showAlert(error.message || 'Erro ao buscar CNPJ. Preencha os dados manualmente.', 'error');
                 document.getElementById('dadosCNPJ').style.display = 'block';
             } finally {
                 btn.disabled = false;
-                btn.textContent = ' Buscar';
+                btn.textContent = '🔍 Buscar';
             }
         }
 
@@ -697,11 +720,11 @@
             const estado = document.getElementById('estado').value;
             const cep = document.getElementById('cep').value;
             const fornecedorId = document.getElementById('fornecedorId').value || null;
-            
+
             if (!rua || !cidade || !estado) {
                 return null;
             }
-            
+
             try {
                 const response = await fetchAPI('/fornecedores/verificar-endereco', {
                     method: 'POST',
@@ -714,13 +737,13 @@
                         fornecedor_id: fornecedorId ? parseInt(fornecedorId) : null
                     })
                 });
-                
+
                 if (response && response.status === 409) {
                     const conflito = await response.json();
                     showAlert(conflito.mensagem, 'warning');
                     return conflito;
                 }
-                
+
                 return null;
             } catch (error) {
                 console.error('Erro ao verificar endereço:', error);
@@ -731,27 +754,27 @@
         async function buscarEnderecoPorCEP() {
             const cepInput = document.getElementById('cepBusca');
             const cep = cepInput.value.replace(/\D/g, '');
-            
+
             if (!cep || cep.length !== 8) {
                 showAlert('Digite um CEP válido com 8 dígitos', 'error');
                 return;
             }
-            
+
             try {
                 const response = await fetchAPI(`/fornecedores/buscar-cep/${cep}`);
-                
+
                 if (response && response.ok) {
                     const data = await response.json();
-                    
+
                     document.getElementById('rua').value = data.rua || '';
                     document.getElementById('bairro').value = data.bairro || '';
                     document.getElementById('cidade').value = data.cidade || '';
                     document.getElementById('estado').value = data.estado || '';
                     document.getElementById('cep').value = data.cep || '';
-                    
+
                     // Verificar conflito de endereço após preencher
                     await verificarConflitoEndereco();
-                    
+
                     showAlert('Endereço preenchido com sucesso!', 'success');
                 } else {
                     const error = await response.json();
@@ -769,7 +792,7 @@
             const id = document.getElementById('fornecedorId').value;
             const tipoDocumento = document.querySelector('input[name="tipoDocumento"]:checked').value;
             const documentoValor = document.getElementById('cnpj').value || null;
-            
+
             const data = {
                 nome: document.getElementById('nome').value,
                 tipo_documento: tipoDocumento,
@@ -801,7 +824,7 @@
                 if (tabelaSelect) {
                     data.tabela_preco_id = parseInt(tabelaSelect.value);
                 }
-                
+
                 const compradorSelect = document.getElementById('compradorResponsavelId');
                 if (compradorSelect && compradorSelect.value) {
                     data.comprador_responsavel_id = parseInt(compradorSelect.value);
@@ -809,35 +832,36 @@
             }
 
             try {
-                let response;
-                if (id) {
-                    response = await fetchAPI(`/fornecedores/${id}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(data)
-                    });
-                } else {
-                    response = await fetchAPI('/fornecedores', {
-                        method: 'POST',
-                        body: JSON.stringify(data)
-                    });
+                const url = id ? `/fornecedores/${id}` : '/fornecedores';
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetchAPI(url, { method, body: JSON.stringify(data) });
+
+                // Tratar erro 409 (conflito de endereço)
+                if (response && response.status === 409) {
+                    const errorData = await response.json();
+
+                    // Verificar se é conflito de endereço
+                    if (errorData.conflito_endereco) {
+                        showAlert(errorData.erro || errorData.conflito_endereco.mensagem, 'error');
+                        return;
+                    }
+
+                    // Outro tipo de conflito (CNPJ, CPF, etc)
+                    showAlert(errorData.erro || 'Conflito ao cadastrar fornecedor', 'error');
+                    return;
                 }
 
-                if (response && response.ok) {
-                    showAlert(id ? 'Fornecedor atualizado com sucesso!' : 'Fornecedor criado com sucesso!', 'success');
-                    fecharModal();
-                    await carregarFornecedores();
-                } else {
-                    const error = await response.json();
-                    // Se for conflito de endereço, mostrar como warning
-                    if (response.status === 409 && error.conflito_endereco) {
-                        showAlert(error.erro, 'warning');
-                    } else {
-                        showAlert(error.erro || 'Erro ao salvar fornecedor', 'error');
-                    }
+                if (!response || !response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.erro || 'Erro ao salvar fornecedor');
                 }
+
+                showAlert(id ? 'Fornecedor atualizado com sucesso!' : 'Fornecedor cadastrado com sucesso!', 'success');
+                fecharModal();
+                await carregarFornecedores();
             } catch (error) {
                 console.error('Erro ao salvar fornecedor:', error);
-                showAlert('Erro ao salvar fornecedor', 'error');
+                showAlert(error.message || 'Erro ao salvar fornecedor', 'error');
             }
         });
 
@@ -853,7 +877,7 @@
                 document.getElementById('tituloModal').textContent = 'Editar Fornecedor';
                 document.getElementById('fornecedorId').value = fornecedorAtual.id;
                 document.getElementById('nome').value = fornecedorAtual.nome || '';
-                
+
                 // Restaurar tipo de documento e valor correto
                 const tipoDoc = fornecedorAtual.tipo_documento || (fornecedorAtual.cpf ? 'cpf' : 'cnpj');
                 const radioTipo = document.querySelector(`input[name="tipoDocumento"][value="${tipoDoc}"]`);
@@ -862,7 +886,7 @@
                     alterarTipoDocumento(); // Atualizar UI
                 }
                 document.getElementById('cnpj').value = fornecedorAtual.cpf || fornecedorAtual.cnpj || '';
-                
+
                 document.getElementById('rua').value = fornecedorAtual.rua || '';
                 document.getElementById('numero').value = fornecedorAtual.numero || '';
                 document.getElementById('cidade').value = fornecedorAtual.cidade || '';
@@ -872,19 +896,19 @@
                 document.getElementById('telefone').value = fornecedorAtual.telefone || '';
                 document.getElementById('email').value = fornecedorAtual.email || '';
                 document.getElementById('observacoes').value = fornecedorAtual.observacoes || '';
-                
+
                 // Carregar tabela de preços (apenas admin vê e pode editar)
                 const tabelaSelect = document.getElementById('tabelaPrecoId');
                 if (tabelaSelect && fornecedorAtual.tabela_preco_id) {
                     tabelaSelect.value = fornecedorAtual.tabela_preco_id.toString();
                 }
-                
+
                 // Carregar comprador responsável (apenas admin vê e pode editar)
                 const compradorSelect = document.getElementById('compradorResponsavelId');
                 if (compradorSelect) {
                     compradorSelect.value = fornecedorAtual.comprador_responsavel_id || '';
                 }
-                
+
                 // Carregar endereço alternativo se existir
                 if (fornecedorAtual.tem_outro_endereco) {
                     document.getElementById('temOutroEndereco').checked = true;
@@ -900,7 +924,7 @@
                     document.getElementById('temOutroEndereco').checked = false;
                     document.getElementById('camposEnderecoVisita').style.display = 'none';
                 }
-                
+
                 document.getElementById('dadosCNPJ').style.display = 'block';
                 document.getElementById('modalFornecedor').classList.add('active');
             } catch (error) {
@@ -936,15 +960,15 @@
         async function configurarPrecos(fornecedorId, fornecedorNome) {
             fornecedorAtual = { id: fornecedorId, nome: fornecedorNome };
             precosConfigurados = {};
-            
+
             document.getElementById('tituloModalPrecos').textContent = `Configurar Preços - ${fornecedorNome}`;
-            
+
             await carregarTiposLote();
             await carregarPrecosExistentes(fornecedorId);
-            
+
             renderizarListaTiposLote();
             atualizarResumoPrecos();
-            
+
             document.getElementById('modalPrecos').classList.add('active');
         }
 
@@ -979,7 +1003,7 @@
 
         function renderizarListaTiposLote(filtro = '') {
             const container = document.getElementById('listaTiposLote');
-            
+
             let tiposFiltrados = todosTiposLote;
             if (filtro) {
                 tiposFiltrados = todosTiposLote.filter(t => 
@@ -987,12 +1011,12 @@
                     (t.codigo && t.codigo.toLowerCase().includes(filtro.toLowerCase()))
                 );
             }
-            
+
             if (tiposFiltrados.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #666;">Nenhum tipo de lote encontrado</p>';
                 return;
             }
-            
+
             container.innerHTML = tiposFiltrados.map(tipo => {
                 const temPreco = [1,2,3,4,5].some(e => precosConfigurados[`${tipo.id}_${e}`]);
                 return `
@@ -1002,7 +1026,7 @@
                             ${tipo.codigo ? `<span style="color: #666; font-size: 0.85rem; margin-left: 0.5rem;">(${tipo.codigo})</span>` : ''}
                             ${tipo.descricao ? `<br><small style="color: #666;">${tipo.descricao}</small>` : ''}
                         </div>
-                        
+
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
                             ${[1,2,3,4,5].map(estrelas => {
                                 const key = `${tipo.id}_${estrelas}`;
@@ -1046,7 +1070,7 @@
         function atualizarResumoPrecos() {
             const total = Object.keys(precosConfigurados).length;
             const tiposConfigurados = new Set(Object.keys(precosConfigurados).map(k => k.split('_')[0])).size;
-            
+
             document.getElementById('resumoPrecos').textContent = 
                 total > 0 
                 ? `${total} preço(s) configurado(s) para ${tiposConfigurados} tipo(s) de lote` 

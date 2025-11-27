@@ -55,34 +55,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchAPI(endpoint, options = {}) {
     const token = getToken();
-    const headers = {
-        ...options.headers
+
+    const config = {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        ...options
     };
 
-    if (!(options.body instanceof FormData)) {
-        headers['Content-Type'] = 'application/json';
-    }
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
     try {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            ...options,
-            headers
-        });
+        const response = await fetch(`/api${endpoint}`, config);
 
         if (response.status === 401) {
-            removeToken();
-            window.location.href = '/';
+            logout();
             return null;
+        }
+
+        // Retornar response diretamente para status 409 (conflito) ser tratado pelo caller
+        if (response.status === 409) {
+            return response;
+        }
+
+        if (!response.ok && response.status !== 404) {
+            const error = await response.json();
+            throw new Error(error.erro || error.message || 'Erro na requisição');
         }
 
         return response;
     } catch (error) {
-        console.error('Erro ao fazer requisição:', error);
-        return null;
+        console.error('Erro na API:', error);
+        throw error;
     }
 }
 
