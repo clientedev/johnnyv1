@@ -766,10 +766,12 @@
                     document.getElementById('estado').value = data.estado || '';
                     document.getElementById('cep').value = data.cep || '';
 
-                    // Verificar conflito de endereço após preencher
-                    await verificarConflitoEndereco();
-
                     showAlert('Endereço preenchido com sucesso!', 'success');
+                } else if (response && response.status === 409) {
+                    const error = await response.json();
+                    const mensagemErro = error.erro || error.conflito_endereco?.mensagem || 'Endereço já cadastrado';
+                    
+                    mostrarAlertaConflito(mensagemErro);
                 } else {
                     const error = await response.json();
                     showAlert(error.erro || 'CEP não encontrado', 'error');

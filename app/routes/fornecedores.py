@@ -186,6 +186,21 @@ def buscar_cep(cep):
         if 'erro' in dados and dados['erro']:
             return jsonify({'erro': 'CEP não encontrado.'}), 404
         
+        # Verificar conflito de endereço após buscar CEP
+        conflito = verificar_conflito_endereco(
+            rua=dados.get('logradouro'),
+            numero='',  # Não temos número ainda
+            cidade=dados.get('localidade'),
+            estado=dados.get('uf'),
+            cep=dados.get('cep')
+        )
+        
+        if conflito:
+            return jsonify({
+                'erro': conflito['mensagem'],
+                'conflito_endereco': conflito
+            }), 409
+        
         # Retorna dados formatados
         return jsonify({
             'cep': dados.get('cep'),
