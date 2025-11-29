@@ -344,7 +344,7 @@ def registrar_evento(id):
             return jsonify({'erro': 'Apenas o motorista atribuído pode registrar eventos'}), 403
         
         evento = data['evento'].upper()
-        eventos_validos = ['CHEGUEI', 'COLETEI', 'SAI', 'FINALIZEI', 'CHEGUEI_MRX']
+        eventos_validos = ['CHEGUEI', 'COLETEI', 'SAI', 'FINALIZEI', 'CHEGUEI_MRX', 'FORNECEDOR_FECHADO', 'FORNECEDOR_NAO_ENCONTRADO']
         
         if evento not in eventos_validos:
             return jsonify({'erro': f'Evento inválido. Valores aceitos: {", ".join(eventos_validos)}'}), 400
@@ -359,7 +359,8 @@ def registrar_evento(id):
             ip=request.remote_addr,
             dados_adicionais={
                 'observacao': data.get('observacao'),
-                'foto': data.get('foto')
+                'foto': data.get('foto'),
+                'motivo': data.get('motivo')
             }
         )
         db.session.add(gps_log)
@@ -372,6 +373,40 @@ def registrar_evento(id):
             os.status = 'A_CAMINHO_MATRIZ'
         elif evento == 'CHEGUEI_MRX':
             os.status = 'ENTREGUE'
+        elif evento == 'FORNECEDOR_FECHADO':
+            os.status = 'IMPEDIDO'
+            admins = Usuario.query.filter(
+                db.or_(
+                    Usuario.tipo == 'admin',
+                    Usuario.perfil.has(nome='Administrador')
+                )
+            ).all()
+            for admin in admins:
+                notificacao = Notificacao(
+                    usuario_id=admin.id,
+                    titulo='Fornecedor Fechado',
+                    mensagem=f'OS {os.numero_os}: Motorista registrou que o fornecedor está fechado. Motivo: {data.get("motivo", "Não informado")}',
+                    tipo='alerta_motorista',
+                    lida=False
+                )
+                db.session.add(notificacao)
+        elif evento == 'FORNECEDOR_NAO_ENCONTRADO':
+            os.status = 'IMPEDIDO'
+            admins = Usuario.query.filter(
+                db.or_(
+                    Usuario.tipo == 'admin',
+                    Usuario.perfil.has(nome='Administrador')
+                )
+            ).all()
+            for admin in admins:
+                notificacao = Notificacao(
+                    usuario_id=admin.id,
+                    titulo='Fornecedor Não Encontrado',
+                    mensagem=f'OS {os.numero_os}: Motorista não conseguiu localizar o fornecedor. Motivo: {data.get("motivo", "Não informado")}',
+                    tipo='alerta_motorista',
+                    lida=False
+                )
+                db.session.add(notificacao)
         elif evento == 'FINALIZEI':
             os.status = 'FINALIZADA'
             

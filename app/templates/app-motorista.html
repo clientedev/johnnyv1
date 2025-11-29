@@ -110,6 +110,11 @@
         .status-agendada { background: #059669; color: #fff; }
         .status-em_rota { background: #0891b2; color: #fff; }
         .status-finalizada { background: #10b981; color: #fff; }
+        .status-impedido { background: #dc2626; color: #fff; }
+        .status-no_fornecedor { background: #f59e0b; color: #fff; }
+        .status-coletado { background: #8b5cf6; color: #fff; }
+        .status-a_caminho_matriz { background: #06b6d4; color: #fff; }
+        .status-entregue { background: #22c55e; color: #fff; }
 
         .os-info {
             margin: 10px 0;
@@ -264,8 +269,12 @@
 
     <div id="evento-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Registrar Evento</div>
+            <div class="modal-header" id="modal-titulo">Registrar Evento</div>
             <form id="form-evento">
+                <div class="form-group" id="motivo-group" style="display: none;">
+                    <label>Motivo *</label>
+                    <textarea id="evento-motivo" placeholder="Informe o motivo (obrigatório)"></textarea>
+                </div>
                 <div class="form-group">
                     <label>Observação</label>
                     <textarea id="evento-obs" placeholder="Adicione observações (opcional)"></textarea>
@@ -354,7 +363,7 @@
                 const os_list = await response.json();
 
                 const pendentes = os_list.filter(os => os.status === 'AGENDADA' || os.status === 'PENDENTE');
-                const emRota = os_list.filter(os => os.status === 'EM_ROTA' || os.status === 'NO_FORNECEDOR' || os.status === 'COLETADO' || os.status === 'A_CAMINHO_MATRIZ' || os.status === 'ENTREGUE');
+                const emRota = os_list.filter(os => os.status === 'EM_ROTA' || os.status === 'NO_FORNECEDOR' || os.status === 'COLETADO' || os.status === 'A_CAMINHO_MATRIZ' || os.status === 'ENTREGUE' || os.status === 'IMPEDIDO');
                 const finalizadas = os_list.filter(os => os.status === 'FINALIZADA');
 
                 document.getElementById('os-count').textContent = os_list.length;
@@ -395,15 +404,29 @@
             if (os.status === 'AGENDADA' || os.status === 'PENDENTE') {
                 acoes = `<button class="btn btn-primary" onclick="iniciarRota(${os.id})">Iniciar Rota</button>`;
             } else if (os.status === 'EM_ROTA') {
-                acoes = `<button class="btn btn-warning" onclick="registrarEvento(${os.id}, 'CHEGUEI')">Cheguei no Fornecedor</button>`;
+                acoes = `
+                    <button class="btn btn-warning" onclick="registrarEvento(${os.id}, 'CHEGUEI')">Cheguei no Fornecedor</button>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-danger" style="flex: 1;" onclick="registrarEvento(${os.id}, 'FORNECEDOR_FECHADO')">Fornecedor Fechado</button>
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="registrarEvento(${os.id}, 'FORNECEDOR_NAO_ENCONTRADO')">Não Encontrado</button>
+                    </div>
+                `;
             } else if (os.status === 'NO_FORNECEDOR') {
-                acoes = `<button class="btn btn-primary" onclick="registrarEvento(${os.id}, 'COLETEI')">Material Coletado</button>`;
+                acoes = `
+                    <button class="btn btn-primary" onclick="registrarEvento(${os.id}, 'COLETEI')">Material Coletado</button>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-danger" style="flex: 1;" onclick="registrarEvento(${os.id}, 'FORNECEDOR_FECHADO')">Fornecedor Fechado</button>
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="registrarEvento(${os.id}, 'FORNECEDOR_NAO_ENCONTRADO')">Não Encontrado</button>
+                    </div>
+                `;
             } else if (os.status === 'COLETADO') {
                 acoes = `<button class="btn btn-secondary" onclick="registrarEvento(${os.id}, 'SAI')">Saí do Fornecedor</button>`;
             } else if (os.status === 'A_CAMINHO_MATRIZ') {
                 acoes = `<button class="btn btn-primary" onclick="registrarEvento(${os.id}, 'CHEGUEI_MRX')">Cheguei na MRX</button>`;
             } else if (os.status === 'ENTREGUE') {
                 acoes = `<button class="btn btn-primary" onclick="registrarEvento(${os.id}, 'FINALIZEI')">Finalizar OS</button>`;
+            } else if (os.status === 'IMPEDIDO') {
+                acoes = `<div style="color: #dc2626; font-weight: 600; text-align: center; padding: 10px;">OS Impedida - Aguardando ação do administrador</div>`;
             }
 
             div.innerHTML = `
@@ -488,6 +511,23 @@
 
             currentOS = osId;
             currentEvento = evento;
+            
+            const motivoGroup = document.getElementById('motivo-group');
+            const modalTitulo = document.getElementById('modal-titulo');
+            
+            if (evento === 'FORNECEDOR_FECHADO') {
+                motivoGroup.style.display = 'block';
+                modalTitulo.textContent = 'Fornecedor Fechado';
+                document.getElementById('evento-motivo').placeholder = 'Ex: Estabelecimento fechado, sem expediente hoje...';
+            } else if (evento === 'FORNECEDOR_NAO_ENCONTRADO') {
+                motivoGroup.style.display = 'block';
+                modalTitulo.textContent = 'Fornecedor Não Encontrado';
+                document.getElementById('evento-motivo').placeholder = 'Ex: Endereço incorreto, local não existe...';
+            } else {
+                motivoGroup.style.display = 'none';
+                modalTitulo.textContent = 'Registrar Evento';
+            }
+            
             document.getElementById('evento-modal').style.display = 'block';
         }
 
@@ -498,6 +538,13 @@
                 const token = localStorage.getItem('token');
                 const deviceId = localStorage.getItem('device_id') || generateDeviceId();
                 const observacao = document.getElementById('evento-obs').value;
+                const motivo = document.getElementById('evento-motivo').value;
+                
+                const eventosQueRequeremMotivo = ['FORNECEDOR_FECHADO', 'FORNECEDOR_NAO_ENCONTRADO'];
+                if (eventosQueRequeremMotivo.includes(currentEvento) && !motivo.trim()) {
+                    alert('Por favor, informe o motivo.');
+                    return;
+                }
 
                 const response = await fetch(`/api/os/${currentOS}/evento`, {
                     method: 'POST',
@@ -509,12 +556,17 @@
                         evento: currentEvento,
                         gps: ultimaLocalizacao,
                         device_id: deviceId,
-                        observacao: observacao
+                        observacao: observacao,
+                        motivo: motivo
                     })
                 });
 
                 if (response.ok) {
-                    alert('Evento registrado com sucesso!');
+                    if (eventosQueRequeremMotivo.includes(currentEvento)) {
+                        alert('Registro enviado! O administrador foi notificado.');
+                    } else {
+                        alert('Evento registrado com sucesso!');
+                    }
                     fecharModal();
                     carregarMinhasOS();
                 } else {
@@ -530,6 +582,8 @@
         function fecharModal() {
             document.getElementById('evento-modal').style.display = 'none';
             document.getElementById('evento-obs').value = '';
+            document.getElementById('evento-motivo').value = '';
+            document.getElementById('motivo-group').style.display = 'none';
         }
 
         function trocarTab(tabName) {
