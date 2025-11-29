@@ -557,7 +557,7 @@ def aprovar_todos_precos(fornecedor_id):
 @bp.route('/fornecedor/<int:fornecedor_id>/template', methods=['GET'])
 @jwt_required()
 def download_template(fornecedor_id):
-    """Gera um template Excel para upload de preços"""
+    """Gera um template Excel para upload de preços - APENAS com estrutura, SEM materiais pré-carregados"""
     try:
         usuario_id = get_jwt_identity()
         
@@ -568,18 +568,10 @@ def download_template(fornecedor_id):
         if not fornecedor:
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
         
-        materiais = MaterialBase.query.filter_by(ativo=True).order_by(MaterialBase.nome).all()
-        
+        # Template vazio - apenas com cabeçalhos
         dados = []
-        for m in materiais:
-            dados.append({
-                'Material': m.nome,
-                'Código': m.codigo,
-                'Classificação': m.classificacao,
-                'Preço (R$/kg)': ''
-            })
         
-        df = pd.DataFrame(dados)
+        df = pd.DataFrame(dados, columns=['Material', 'Código', 'Classificação', 'Preço (R$/kg)'])
         
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:

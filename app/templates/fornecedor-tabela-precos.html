@@ -293,9 +293,15 @@
                 </div>
                 <input type="file" id="arquivoInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="processarArquivo(this.files[0])">
 
-                <div style="margin-top: 16px; display: flex; gap: 12px;">
+                <div style="margin-top: 16px;">
+                    <div style="background: #fef3c7; padding: 1rem; border-radius: 8px; border-left: 4px solid #f59e0b; margin-bottom: 1rem;">
+                        <p style="margin: 0; color: #92400e; font-size: 0.9rem;">
+                            <i class="fas fa-info-circle"></i> 
+                            O template será baixado vazio, contendo apenas os cabeçalhos. Você deve preencher manualmente os materiais e preços.
+                        </p>
+                    </div>
                     <button class="btn btn-secondary" onclick="baixarTemplate()">
-                        <i class="fas fa-download"></i> Baixar Template
+                        <i class="fas fa-download"></i> Baixar Template Vazio
                     </button>
                 </div>
 
@@ -388,7 +394,16 @@
             try {
                 const response = await fetchAPI('/materiais-base');
                 if (response.ok) {
-                    materiaisDisponiveis = await response.json();
+                    const materiais = await response.json();
+                    // Remover informações de preços/estrelas - comprador não deve ver
+                    materiaisDisponiveis = materiais.map(m => ({
+                        id: m.id,
+                        codigo: m.codigo,
+                        nome: m.nome,
+                        classificacao: m.classificacao,
+                        descricao: m.descricao,
+                        ativo: m.ativo
+                    }));
                 }
             } catch (error) {
                 console.error('Erro ao carregar materiais:', error);
