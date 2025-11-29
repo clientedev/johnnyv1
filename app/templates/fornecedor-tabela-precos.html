@@ -455,10 +455,10 @@
                     </td>
                     <td><span class="badge">${p.material_classificacao}</span></td>
                     <td><strong>R$ ${parseFloat(p.preco_fornecedor).toFixed(2)}</strong></td>
-                    <td><span class="status-badge status-${p.status === 'pendente_aprovacao' ? 'pendente' : p.status}">${formatarStatus(p.status)}</span></td>
+                    <td><span class="status-badge status-${p.status === 'pendente_aprovacao' || p.status === 'pendente_reenvio' ? 'pendente' : p.status}">${formatarStatus(p.status)}</span></td>
                     <td>v${p.versao}</td>
                     <td>
-                        ${p.status === 'pendente_aprovacao' ? `
+                        ${p.status === 'pendente_aprovacao' || p.status === 'pendente_reenvio' ? `
                             <button class="btn btn-sm" style="padding: 4px 8px;" onclick="editarPreco(${p.id}, ${p.preco_fornecedor})">
                                 <i class="fas fa-edit"></i>
                             </button>
@@ -475,14 +475,15 @@
             const statusMap = {
                 'ativo': 'Ativo',
                 'inativo': 'Inativo',
-                'pendente_aprovacao': 'Pendente'
+                'pendente_aprovacao': 'Pendente',
+                'pendente_reenvio': 'Aguardando Correção'
             };
             return statusMap[status] || status;
         }
 
         function atualizarContadores(precos) {
             const total = precos.length;
-            const pendentes = precos.filter(p => p.status === 'pendente_aprovacao').length;
+            const pendentes = precos.filter(p => p.status === 'pendente_aprovacao' || p.status === 'pendente_reenvio').length;
             const ativos = precos.filter(p => p.status === 'ativo').length;
 
             document.getElementById('totalMateriais').textContent = total;

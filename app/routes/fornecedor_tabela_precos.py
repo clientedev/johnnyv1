@@ -376,7 +376,7 @@ def atualizar_preco(preco_id):
         if not verificar_acesso_fornecedor(preco.fornecedor_id, usuario_id):
             return jsonify({'erro': 'Acesso negado'}), 403
         
-        if preco.status not in ['pendente_aprovacao']:
+        if preco.status not in ['pendente_aprovacao', 'pendente_reenvio']:
             return jsonify({'erro': 'Apenas preços pendentes podem ser editados'}), 400
         
         dados = request.get_json()
@@ -409,7 +409,7 @@ def excluir_preco(preco_id):
         if not verificar_acesso_fornecedor(preco.fornecedor_id, usuario_id):
             return jsonify({'erro': 'Acesso negado'}), 403
         
-        if preco.status not in ['pendente_aprovacao']:
+        if preco.status not in ['pendente_aprovacao', 'pendente_reenvio']:
             return jsonify({'erro': 'Apenas preços pendentes podem ser excluídos'}), 400
         
         preco.updated_by = usuario_id
