@@ -154,12 +154,17 @@ def listar_materiais_fornecedor(fornecedor_id):
     """
     Retorna todos os materiais disponíveis com preços da tabela vinculada ao fornecedor.
     Alinhado com o Fluxo_comprador.md - busca todos os produtos da tabela que o fornecedor está relacionado.
+    IMPORTANTE: Só retorna materiais se o fornecedor tiver tabela de preços APROVADA.
     """
     try:
         fornecedor = Fornecedor.query.get(fornecedor_id)
         
         if not fornecedor:
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        # Verificar se o fornecedor tem tabela de preços APROVADA
+        if fornecedor.tabela_preco_status != 'aprovada':
+            return jsonify({'erro': 'Este fornecedor não possui tabela de preços aprovada. Solicite ao administrador a aprovação da tabela.'}), 400
         
         if not fornecedor.tabela_preco_id:
             return jsonify({'erro': 'Fornecedor não possui tabela de preço vinculada'}), 400
