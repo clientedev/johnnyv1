@@ -638,7 +638,9 @@ def listar_pendentes():
                 resultado.append({
                     'fornecedor_id': fornecedor_id,
                     'fornecedor_nome': fornecedor.nome,
-                    'total_pendentes': total
+                    'total_pendentes': total,
+                    'tabela_preco_status': fornecedor.tabela_preco_status,
+                    'comprador_responsavel_nome': fornecedor.comprador_responsavel.nome if fornecedor.comprador_responsavel else None
                 })
         
         return jsonify(resultado), 200
@@ -646,3 +648,355 @@ def listar_pendentes():
     except Exception as e:
         logger.error(f'Erro ao listar pendentes: {str(e)}')
         return jsonify({'erro': f'Erro ao listar pendentes: {str(e)}'}), 500
+
+@bp.route('/admin/revisao/<int:fornecedor_id>', methods=['GET'])
+@jwt_required()
+@admin_required
+def revisar_tabela_fornecedor(fornecedor_id):
+    """Retorna tabela de preços do fornecedor com comparação de médias para revisão do admin"""
+    try:
+        fornecedor = Fornecedor.query.get(fornecedor_id)
+        if not fornecedor:
+            return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        precos_pendentes = FornecedorTabelaPrecos.query.filter_by(
+            fornecedor_id=fornecedor_id,
+            status='pendente_aprovacao'
+        ).all()
+        
+        if not precos_pendentes:
+            precos_pendentes = FornecedorTabelaPrecos.query.filter_by(
+                fornecedor_id=fornecedor_id,
+                status='ativo'
+            ).all()
+        
+        material_ids = [p.material_id for p in precos_pendentes]
+        
+        medias_globais = {}
+        for material_id in material_ids:
+            precos_ativos = FornecedorTabelaPrecos.query.filter(
+                FornecedorTabelaPrecos.material_id == material_id,
+                FornecedorTabelaPrecos.status == 'ativo'
+            ).all()
+            
+            if precos_ativos:
+                valores = [float(p.preco_fornecedor) for p in precos_ativos if p.preco_fornecedor]
+                if valores:
+                    medias_globais[material_id] = {
+                        'media': round(sum(valores) / len(valores), 2),
+                        'total_fornecedores': len(valores),
+                        'min': min(valores),
+                        'max': max(valores)
+                    }
+        
+        resultado_itens = []
+        for preco in precos_pendentes:
+            preco_valor = float(preco.preco_fornecedor) if preco.preco_fornecedor else 0
+            media_info = medias_globais.get(preco.material_id, {})
+            media_valor = media_info.get('media', 0)
+            
+            diferenca_percentual = 0
+            status_comparacao = 'na_media'
+            if media_valor > 0:
+                diferenca_percentual = round(((preco_valor - media_valor) / media_valor) * 100, 2)
+                if diferenca_percentual > 5:
+                    status_comparacao = 'acima'
+                elif diferenca_percentual < -5:
+                    status_comparacao = 'abaixo'
+            
+            valor_35_acima = round(media_valor * 1.35, 2) if media_valor > 0 else 0
+            
+            estrelas = 3
+            if diferenca_percentual <= -20:
+                estrelas = 5
+            elif diferenca_percentual <= -10:
+                estrelas = 4
+            elif diferenca_percentual <= 5:
+                estrelas = 3
+            elif diferenca_percentual <= 15:
+                estrelas = 2
+            else:
+                estrelas = 1
+            
+            resultado_itens.append({
+                'id': preco.id,
+                'material_id': preco.material_id,
+                'material_nome': preco.material.nome if preco.material else None,
+                'material_codigo': preco.material.codigo if preco.material else None,
+                'material_classificacao': preco.material.classificacao if preco.material else None,
+                'preco_fornecedor': preco_valor,
+                'media_mercado': media_valor,
+                'valor_35_acima': valor_35_acima,
+                'diferenca_percentual': diferenca_percentual,
+                'status_comparacao': status_comparacao,
+                'estrelas_qualidade': estrelas,
+                'total_fornecedores_media': media_info.get('total_fornecedores', 0),
+                'preco_min_mercado': media_info.get('min', 0),
+                'preco_max_mercado': media_info.get('max', 0),
+                'status': preco.status,
+                'versao': preco.versao,
+                'criador_nome': preco.criador.nome if preco.criador else None,
+                'created_at': preco.created_at.isoformat() if preco.created_at else None
+            })
+        
+        resultado_itens.sort(key=lambda x: x.get('diferenca_percentual', 0), reverse=True)
+        
+        return jsonify({
+            'fornecedor': {
+                'id': fornecedor.id,
+                'nome': fornecedor.nome,
+                'cnpj': fornecedor.cnpj,
+                'cpf': fornecedor.cpf,
+                'tabela_preco_status': fornecedor.tabela_preco_status,
+                'comprador_responsavel_nome': fornecedor.comprador_responsavel.nome if fornecedor.comprador_responsavel else None
+            },
+            'itens': resultado_itens,
+            'resumo': {
+                'total_itens': len(resultado_itens),
+                'itens_acima_media': len([i for i in resultado_itens if i['status_comparacao'] == 'acima']),
+                'itens_abaixo_media': len([i for i in resultado_itens if i['status_comparacao'] == 'abaixo']),
+                'itens_na_media': len([i for i in resultado_itens if i['status_comparacao'] == 'na_media'])
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Erro ao revisar tabela: {str(e)}')
+        return jsonify({'erro': f'Erro ao revisar tabela: {str(e)}'}), 500
+
+@bp.route('/admin/<int:preco_id>/editar', methods=['PUT'])
+@jwt_required()
+@admin_required
+def admin_editar_preco(preco_id):
+    """Admin edita um preço e notifica o comprador sobre a alteração"""
+    try:
+        usuario_id = get_jwt_identity()
+        admin = Usuario.query.get(usuario_id)
+        
+        preco = FornecedorTabelaPrecos.query.get(preco_id)
+        if not preco:
+            return jsonify({'erro': 'Preço não encontrado'}), 404
+        
+        dados = request.get_json()
+        novo_preco = dados.get('preco_fornecedor')
+        
+        if novo_preco is None:
+            return jsonify({'erro': 'Novo preço é obrigatório'}), 400
+        
+        preco_anterior = float(preco.preco_fornecedor) if preco.preco_fornecedor else 0
+        preco.preco_fornecedor = float(novo_preco)
+        preco.updated_by = usuario_id
+        preco.updated_at = datetime.utcnow()
+        
+        auditoria = AuditoriaFornecedorTabelaPrecos(
+            preco_id=preco.id,
+            usuario_id=usuario_id,
+            acao='atualizacao',
+            dados_anteriores={'preco_fornecedor': preco_anterior},
+            dados_novos={'preco_fornecedor': float(novo_preco)}
+        )
+        db.session.add(auditoria)
+        
+        comprador = preco.fornecedor.comprador_responsavel
+        if comprador:
+            notificacao = Notificacao(
+                usuario_id=comprador.id,
+                titulo='Preço Alterado pelo Admin',
+                mensagem=f'O preço do material "{preco.material.nome}" foi alterado de R$ {preco_anterior:.2f} para R$ {float(novo_preco):.2f} pelo administrador {admin.nome}',
+                tipo='preco_alterado'
+            )
+            db.session.add(notificacao)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'Preço atualizado com sucesso',
+            'preco': preco.to_dict(),
+            'alteracao': {
+                'material': preco.material.nome if preco.material else None,
+                'anterior': preco_anterior,
+                'novo': float(novo_preco)
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erro ao editar preço: {str(e)}')
+        return jsonify({'erro': f'Erro ao editar preço: {str(e)}'}), 500
+
+@bp.route('/admin/fornecedor/<int:fornecedor_id>/aprovar-tabela', methods=['PUT'])
+@jwt_required()
+@admin_required
+def aprovar_tabela_completa(fornecedor_id):
+    """Aprova toda a tabela de preços de um fornecedor"""
+    try:
+        usuario_id = get_jwt_identity()
+        
+        fornecedor = Fornecedor.query.get(fornecedor_id)
+        if not fornecedor:
+            return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        precos_pendentes = FornecedorTabelaPrecos.query.filter_by(
+            fornecedor_id=fornecedor_id,
+            status='pendente_aprovacao'
+        ).all()
+        
+        if not precos_pendentes:
+            return jsonify({'erro': 'Nenhum preço pendente para aprovar'}), 400
+        
+        criadores_ids = set()
+        for preco in precos_pendentes:
+            preco.status = 'ativo'
+            preco.updated_by = usuario_id
+            preco.updated_at = datetime.utcnow()
+            if preco.created_by:
+                criadores_ids.add(preco.created_by)
+        
+        fornecedor.tabela_preco_status = 'aprovada'
+        fornecedor.tabela_preco_aprovada_em = datetime.utcnow()
+        fornecedor.tabela_preco_aprovada_por_id = usuario_id
+        
+        db.session.commit()
+        
+        for criador_id in criadores_ids:
+            criador = Usuario.query.get(criador_id)
+            if criador:
+                notificacao = Notificacao(
+                    usuario_id=criador.id,
+                    titulo='Tabela de Preços Aprovada',
+                    mensagem=f'Sua tabela de preços para o fornecedor {fornecedor.nome} foi aprovada. O fornecedor já pode ser utilizado em solicitações.',
+                    tipo='tabela_precos_aprovada'
+                )
+                db.session.add(notificacao)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': f'Tabela de preços aprovada com sucesso. {len(precos_pendentes)} itens aprovados.',
+            'fornecedor': fornecedor.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erro ao aprovar tabela: {str(e)}')
+        return jsonify({'erro': f'Erro ao aprovar tabela: {str(e)}'}), 500
+
+@bp.route('/admin/fornecedor/<int:fornecedor_id>/rejeitar-tabela', methods=['PUT'])
+@jwt_required()
+@admin_required
+def rejeitar_tabela_completa(fornecedor_id):
+    """Rejeita a tabela de preços e solicita reenvio"""
+    try:
+        usuario_id = get_jwt_identity()
+        admin = Usuario.query.get(usuario_id)
+        
+        fornecedor = Fornecedor.query.get(fornecedor_id)
+        if not fornecedor:
+            return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        dados = request.get_json() or {}
+        motivo = dados.get('motivo', 'Tabela de preços precisa ser revisada')
+        
+        precos_pendentes = FornecedorTabelaPrecos.query.filter_by(
+            fornecedor_id=fornecedor_id,
+            status='pendente_aprovacao'
+        ).all()
+        
+        criadores_ids = set()
+        for preco in precos_pendentes:
+            preco.status = 'pendente_reenvio'
+            preco.updated_by = usuario_id
+            preco.updated_at = datetime.utcnow()
+            if preco.created_by:
+                criadores_ids.add(preco.created_by)
+        
+        fornecedor.tabela_preco_status = 'pendente_reenvio'
+        
+        db.session.commit()
+        
+        for criador_id in criadores_ids:
+            criador = Usuario.query.get(criador_id)
+            if criador:
+                notificacao = Notificacao(
+                    usuario_id=criador.id,
+                    titulo='Tabela de Preços Rejeitada - Reenvio Necessário',
+                    mensagem=f'A tabela de preços do fornecedor {fornecedor.nome} foi rejeitada pelo administrador {admin.nome}. Motivo: {motivo}. Por favor, revise e reenvie.',
+                    tipo='tabela_precos_rejeitada'
+                )
+                db.session.add(notificacao)
+        
+        comprador = fornecedor.comprador_responsavel
+        if comprador and comprador.id not in criadores_ids:
+            notificacao = Notificacao(
+                usuario_id=comprador.id,
+                titulo='Tabela de Preços Rejeitada - Reenvio Necessário',
+                mensagem=f'A tabela de preços do fornecedor {fornecedor.nome} foi rejeitada. Motivo: {motivo}. Por favor, revise e reenvie.',
+                tipo='tabela_precos_rejeitada'
+            )
+            db.session.add(notificacao)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'Tabela rejeitada. Notificação enviada ao comprador para reenvio.',
+            'fornecedor': fornecedor.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erro ao rejeitar tabela: {str(e)}')
+        return jsonify({'erro': f'Erro ao rejeitar tabela: {str(e)}'}), 500
+
+@bp.route('/fornecedores-aprovados', methods=['GET'])
+@jwt_required()
+def listar_fornecedores_aprovados():
+    """Lista apenas fornecedores com tabela de preços aprovada"""
+    try:
+        fornecedores = Fornecedor.query.filter_by(
+            ativo=True,
+            tabela_preco_status='aprovada'
+        ).all()
+        
+        return jsonify([f.to_dict() for f in fornecedores]), 200
+        
+    except Exception as e:
+        logger.error(f'Erro ao listar fornecedores aprovados: {str(e)}')
+        return jsonify({'erro': f'Erro ao listar fornecedores aprovados: {str(e)}'}), 500
+
+@bp.route('/fornecedor/<int:fornecedor_id>/itens-aprovados', methods=['GET'])
+@jwt_required()
+def listar_itens_aprovados_fornecedor(fornecedor_id):
+    """Lista os itens da tabela de preços aprovada de um fornecedor para uso em solicitações"""
+    try:
+        fornecedor = Fornecedor.query.get(fornecedor_id)
+        if not fornecedor:
+            return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        if fornecedor.tabela_preco_status != 'aprovada':
+            return jsonify({'erro': 'Este fornecedor não possui tabela de preços aprovada'}), 400
+        
+        precos_ativos = FornecedorTabelaPrecos.query.filter_by(
+            fornecedor_id=fornecedor_id,
+            status='ativo'
+        ).all()
+        
+        itens = []
+        for preco in precos_ativos:
+            itens.append({
+                'material_id': preco.material_id,
+                'material_nome': preco.material.nome if preco.material else None,
+                'material_codigo': preco.material.codigo if preco.material else None,
+                'material_classificacao': preco.material.classificacao if preco.material else None,
+                'preco_fornecedor': float(preco.preco_fornecedor) if preco.preco_fornecedor else 0
+            })
+        
+        return jsonify({
+            'fornecedor': {
+                'id': fornecedor.id,
+                'nome': fornecedor.nome
+            },
+            'itens': itens
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Erro ao listar itens aprovados: {str(e)}')
+        return jsonify({'erro': f'Erro ao listar itens: {str(e)}'}), 500

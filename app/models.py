@@ -288,6 +288,10 @@ class Fornecedor(db.Model):  # type: ignore
 
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
+    
+    tabela_preco_status = db.Column(db.String(30), default='sem_tabela', nullable=False)
+    tabela_preco_aprovada_em = db.Column(db.DateTime, nullable=True)
+    tabela_preco_aprovada_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
 
     precos = db.relationship('FornecedorTipoLotePreco', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
     solicitacoes = db.relationship('Solicitacao', backref='fornecedor', lazy=True, cascade='all, delete-orphan')
@@ -297,6 +301,7 @@ class Fornecedor(db.Model):  # type: ignore
     criado_por = db.relationship('Usuario', foreign_keys=[criado_por_id], backref='fornecedores_criados')
     tabela_preco = db.relationship('TabelaPreco', foreign_keys=[tabela_preco_id], backref='fornecedores')
     comprador_responsavel = db.relationship('Usuario', foreign_keys=[comprador_responsavel_id], backref='fornecedores_sob_responsabilidade')
+    tabela_preco_aprovada_por = db.relationship('Usuario', foreign_keys=[tabela_preco_aprovada_por_id], backref='tabelas_preco_aprovadas')
     autorizacoes_preco = db.relationship('SolicitacaoAutorizacaoPreco', backref='fornecedor', lazy=True)
 
     def __init__(self, **kwargs: Any) -> None:
@@ -346,7 +351,11 @@ class Fornecedor(db.Model):  # type: ignore
             'latitude': self.latitude,
             'longitude': self.longitude,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
-            'ativo': self.ativo
+            'ativo': self.ativo,
+            'tabela_preco_status': self.tabela_preco_status,
+            'tabela_preco_aprovada_em': self.tabela_preco_aprovada_em.isoformat() if self.tabela_preco_aprovada_em else None,
+            'tabela_preco_aprovada_por_id': self.tabela_preco_aprovada_por_id,
+            'tabela_preco_aprovada_por_nome': self.tabela_preco_aprovada_por.nome if self.tabela_preco_aprovada_por else None
         }
 
 class FornecedorFuncionarioAtribuicao(db.Model):  # type: ignore

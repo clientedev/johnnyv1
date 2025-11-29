@@ -86,6 +86,9 @@ def criar_solicitacao():
         if not fornecedor:
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
         
+        if fornecedor.tabela_preco_status != 'aprovada':
+            return jsonify({'erro': 'Este fornecedor não possui tabela de preços aprovada. Solicite ao administrador a aprovação da tabela antes de criar solicitações.'}), 400
+        
         solicitacao = Solicitacao(
             funcionario_id=usuario_id,
             fornecedor_id=fornecedor_id,

@@ -121,6 +121,15 @@
                     </div>
                 </div>
 
+                <div class="card" style="cursor: pointer; transition: transform 0.2s; position: relative;" onclick="window.location.href='/revisao-tabelas-admin.html'">
+                    <div id="badgeTabelasPendentes" style="display: none; position: absolute; top: 10px; right: 10px; background: #ef4444; color: white; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 9999px; min-width: 24px; text-align: center;"></div>
+                    <div style="text-align: center; padding: var(--spacing-lg);">
+                        <i class="fas fa-file-invoice-dollar" style="font-size: 3rem; color: #f97316;"></i>
+                        <h3 style="margin-top: var(--spacing-md); font-size: 1.1rem;">Tabelas de Precos</h3>
+                        <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">Revisar tabelas de fornecedores</p>
+                    </div>
+                </div>
+
                 <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="abrirModalEmDesenvolvimento('RH')">
                     <div style="text-align: center; padding: var(--spacing-lg);">
                         <i class="fas fa-users" style="font-size: 3rem; color: #8b5cf6;"></i>
@@ -363,7 +372,26 @@
             await carregarFuncionarios();
             await carregarCompradores();
             await carregarAtribuicoes();
+            await carregarTabelasPendentes();
             await atualizarNotificacoes();
+        }
+
+        async function carregarTabelasPendentes() {
+            try {
+                const response = await fetchAPI('/fornecedor-tabela-precos/pendentes');
+                if (response.ok) {
+                    const pendentes = await response.json();
+                    const badge = document.getElementById('badgeTabelasPendentes');
+                    if (pendentes && pendentes.length > 0) {
+                        badge.textContent = pendentes.length;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar tabelas pendentes:', error);
+            }
         }
 
         async function carregarCompradores() {
