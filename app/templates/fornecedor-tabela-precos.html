@@ -420,7 +420,19 @@
                 return;
             }
 
-            tbody.innerHTML = precos.map(p => `
+            // Agrupar por material_id e pegar apenas a versão mais recente
+            const precosPorMaterial = {};
+            precos.forEach(p => {
+                const materialId = p.material_id;
+                if (!precosPorMaterial[materialId] || p.versao > precosPorMaterial[materialId].versao) {
+                    precosPorMaterial[materialId] = p;
+                }
+            });
+
+            // Converter de volta para array
+            const precosUnicos = Object.values(precosPorMaterial);
+
+            tbody.innerHTML = precosUnicos.map(p => `
                 <tr>
                     <td>
                         <strong>${p.material_nome}</strong>
