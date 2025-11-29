@@ -758,11 +758,10 @@
 
                     dados.materiais.forEach(material => {
                         console.log(`  Processando material: ${material.nome} (ID: ${material.id})`);
-                        console.log(`  Preço: R$ ${material.preco_unitario}/kg (${material.nivel_estrelas} estrelas)`);
+                        console.log(`  Preço: R$ ${material.preco_unitario}/kg`);
 
                         precosFornecedorSelecionado[material.id] = {
                             preco_por_kg: material.preco_unitario,
-                            estrelas: material.nivel_estrelas,
                             codigo: material.codigo,
                             nome: material.nome
                         };
@@ -931,7 +930,6 @@
                 peso_kg: 0,
                 observacoes: '',
                 valor_calculado: 0,
-                estrelas_final: 3,
                 preco_customizado: false,
                 preco_oferecido: null
             };
@@ -1003,7 +1001,7 @@
                                     required>
                                 <small style="color: #666; display: block; margin-top: 0.25rem;">
                                     ${item.material_id && precosFornecedorSelecionado[item.material_id] ? `
-                                        Preço da tabela (${precosFornecedorSelecionado[item.material_id].estrelas}★): R$ ${precosFornecedorSelecionado[item.material_id].preco_por_kg.toFixed(2)}/kg
+                                        Preço da tabela: R$ ${precosFornecedorSelecionado[item.material_id].preco_por_kg.toFixed(2)}/kg
                                     ` : 'Selecione um material para ver o preço da tabela'}
                                 </small>
                             </div>
@@ -1047,7 +1045,6 @@
         function calcularValorItem(item) {
             if (!item.material_id || !item.peso_kg || item.peso_kg <= 0) {
                 item.valor_calculado = 0;
-                item.estrelas_final = 3;
                 return;
             }
 
@@ -1055,7 +1052,6 @@
 
             if (!precoInfo || !precoInfo.preco_por_kg) {
                 item.valor_calculado = 0;
-                item.estrelas_final = 3;
                 console.warn(`Preço não encontrado para material ID ${item.material_id}`);
                 return;
             }
@@ -1063,11 +1059,9 @@
             // Se usar preço customizado e tiver preço oferecido, usar ele
             if (item.preco_customizado && item.preco_oferecido && item.preco_oferecido > 0) {
                 item.valor_calculado = item.peso_kg * item.preco_oferecido;
-                item.estrelas_final = precoInfo.estrelas; // Manter estrelas da tabela para referência
             } else {
-                // Usar preço da tabela
+                // Usar preço da tabela do fornecedor
                 item.valor_calculado = item.peso_kg * precoInfo.preco_por_kg;
-                item.estrelas_final = precoInfo.estrelas;
             }
         }
 
@@ -1334,13 +1328,12 @@
                                     ${item.material_codigo ? `<p><strong>Código:</strong> ${item.material_codigo}</p>` : ''}
                                     <p><strong>Classificação:</strong> ${item.classificacao ? item.classificacao.toUpperCase() : 'N/A'}</p>
                                     <p><strong>Peso:</strong> ${item.peso_kg} kg</p>
-                                    <p><strong>Estrelas:</strong> ${'⭐'.repeat(item.estrelas_final)}</p>
                                     ${temPrecoCustomizado ? `
                                         <div style="background: #fff3e0; padding: 0.75rem; border-radius: 6px; margin: 0.5rem 0;">
                                             <p style="margin: 0; font-weight: 600; color: #f57c00;">💰 Preço Diferente Oferecido</p>
                                             <p style="margin: 0.5rem 0 0 0;"><strong>Preço Oferecido:</strong> R$ ${item.preco_oferecido.toFixed(2)}/kg</p>
                                             <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: #666;">
-                                                <strong>Preço da Tabela (${item.estrelas_final}★):</strong> R$ ${item.preco_por_kg_snapshot.toFixed(2)}/kg
+                                                <strong>Preço da Tabela:</strong> R$ ${item.preco_por_kg_snapshot.toFixed(2)}/kg
                                             </p>
                                         </div>
                                     ` : `
@@ -1370,9 +1363,6 @@
                     acoesDiv.innerHTML = `
                         <button class="btn btn-success" onclick="aprovarSolicitacao()" style="flex: 1;">
                             <i class="fas fa-check"></i> Aceitar
-                        </button>
-                        <button class="btn btn-primary" onclick="aprovarEPromoverFornecedor()" style="flex: 1; background: linear-gradient(135deg, #f59e0b, #f97316); border: none;">
-                            <i class="fas fa-star"></i> Aceitar e Promover Fornecedor
                         </button>
                         <button class="btn btn-danger" onclick="rejeitarSolicitacao()" style="flex: 1;">
                             <i class="fas fa-times"></i> Recusar
@@ -1423,38 +1413,6 @@
             }
         }
 
-        async function aprovarEPromoverFornecedor() {
-            if (!confirm('Aprovar este pedido E promover o fornecedor (aumentar estrelas)?\n\nIsso aumentará o nível da tabela de preço do fornecedor em 1★.')) return;
-
-            try {
-                const response = await fetchAPI(`/solicitacoes/${solicitacaoAtual.id}/aprovar-e-promover`, {
-                    method: 'POST'
-                });
-
-                if (response && response.ok) {
-                    const data = await response.json();
-                    console.log(' Resposta da aprovação com promoção:', data);
-
-                    const promocao = data.promocao || {};
-                    const estrelasAnterior = promocao.estrelas_anterior || 0;
-                    const estrelasNova = promocao.estrelas_nova || 0;
-
-                    showAlert(`Pedido aprovado! Fornecedor promovido de ${estrelasAnterior}★ para ${estrelasNova}★`, 'success');
-                    fecharModalDetalhes();
-
-                    await carregarSolicitacoes();
-                    await carregarOCs();
-
-                    console.log(' Tabelas recarregadas com sucesso');
-                } else {
-                    const error = await response.json();
-                    showAlert(error.erro || 'Erro ao aprovar e promover', 'error');
-                }
-            } catch (error) {
-                console.error('Erro ao aprovar e promover:', error);
-                showAlert('Erro ao aprovar e promover fornecedor', 'error');
-            }
-        }
 
         async function rejeitarSolicitacao() {
             const motivo = prompt('Motivo da rejeição:');

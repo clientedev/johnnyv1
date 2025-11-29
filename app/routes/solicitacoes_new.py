@@ -152,11 +152,13 @@ def _criar_oc_e_lotes(solicitacao, usuario_id, data_request=None):
 @jwt_required()
 def listar_materiais_fornecedor(fornecedor_id):
     """
-    Retorna todos os materiais disponíveis com preços da tabela vinculada ao fornecedor.
-    Alinhado com o Fluxo_comprador.md - busca todos os produtos da tabela que o fornecedor está relacionado.
+    Retorna todos os materiais disponíveis com preços da tabela personalizada do fornecedor.
+    Busca os preços na tabela FornecedorTabelaPrecos (preços específicos por fornecedor/material).
     IMPORTANTE: Só retorna materiais se o fornecedor tiver tabela de preços APROVADA.
     """
     try:
+        from app.models import FornecedorTabelaPrecos
+        
         fornecedor = Fornecedor.query.get(fornecedor_id)
         
         if not fornecedor:
@@ -166,42 +168,30 @@ def listar_materiais_fornecedor(fornecedor_id):
         if fornecedor.tabela_preco_status != 'aprovada':
             return jsonify({'erro': 'Este fornecedor não possui tabela de preços aprovada. Solicite ao administrador a aprovação da tabela.'}), 400
         
-        if not fornecedor.tabela_preco_id:
-            return jsonify({'erro': 'Fornecedor não possui tabela de preço vinculada'}), 400
-        
-        tabela_preco = TabelaPreco.query.get(fornecedor.tabela_preco_id)
-        
-        if not tabela_preco:
-            return jsonify({'erro': 'Tabela de preço não encontrada'}), 404
-        
-        itens_preco = TabelaPrecoItem.query.filter_by(
-            tabela_preco_id=tabela_preco.id,
-            ativo=True
+        # Buscar preços ativos na tabela personalizada do fornecedor
+        precos_fornecedor = FornecedorTabelaPrecos.query.filter_by(
+            fornecedor_id=fornecedor_id,
+            status='ativo'
         ).join(MaterialBase).filter(MaterialBase.ativo == True).all()
         
+        if not precos_fornecedor:
+            return jsonify({'erro': 'Fornecedor não possui materiais com preços configurados'}), 400
+        
         materiais = []
-        for item in itens_preco:
+        for preco in precos_fornecedor:
             material_dict = {
-                'id': item.material_id,
-                'codigo': item.material.codigo,
-                'nome': item.material.nome,
-                'classificacao': item.material.classificacao,
-                'descricao': item.material.descricao,
-                'preco_unitario': float(item.preco_por_kg),
-                'tabela_preco_id': tabela_preco.id,
-                'tabela_preco_nome': tabela_preco.nome,
-                'nivel_estrelas': tabela_preco.nivel_estrelas
+                'id': preco.material_id,
+                'codigo': preco.material.codigo,
+                'nome': preco.material.nome,
+                'classificacao': preco.material.classificacao,
+                'descricao': preco.material.descricao,
+                'preco_unitario': float(preco.preco_fornecedor) if preco.preco_fornecedor else 0.0
             }
             materiais.append(material_dict)
         
         return jsonify({
             'fornecedor_id': fornecedor.id,
             'fornecedor_nome': fornecedor.nome,
-            'tabela_preco': {
-                'id': tabela_preco.id,
-                'nome': tabela_preco.nome,
-                'nivel_estrelas': tabela_preco.nivel_estrelas
-            },
             'materiais': materiais,
             'total': len(materiais)
         }), 200
@@ -211,8 +201,8 @@ def listar_materiais_fornecedor(fornecedor_id):
 
 def calcular_valor_item_novo(fornecedor_id, material_id, peso_kg):
     """
-    Nova função de cálculo simplificada: busca o preço do material na tabela vinculada ao fornecedor.
-    Alinhado com Fluxo_comprador.md - sem classificação, apenas material e tabela do fornecedor.
+    Função de cálculo que busca o preço do material na tabela personalizada do fornecedor.
+    Usa FornecedorTabelaPrecos - preços específicos por fornecedor/material, SEM estrelas.
     
     Args:
         fornecedor_id: ID do fornecedor
@@ -220,30 +210,33 @@ def calcular_valor_item_novo(fornecedor_id, material_id, peso_kg):
         peso_kg: Peso em kg
         
     Returns:
-        tuple: (valor_calculado, preco_por_kg, tabela_estrelas)
+        tuple: (valor_calculado, preco_por_kg, 0) - terceiro valor sempre 0 (sem estrelas)
     """
+    from app.models import FornecedorTabelaPrecos
+    
     fornecedor = Fornecedor.query.get(fornecedor_id)
     
-    if not fornecedor or not fornecedor.tabela_preco_id:
-        print(f"       Fornecedor sem tabela de preço vinculada")
+    if not fornecedor:
+        print(f"       Fornecedor não encontrado")
         return (0.0, 0.0, 0)
     
-    item_preco = TabelaPrecoItem.query.filter_by(
-        tabela_preco_id=fornecedor.tabela_preco_id,
+    # Buscar preço na tabela personalizada do fornecedor
+    preco_fornecedor = FornecedorTabelaPrecos.query.filter_by(
+        fornecedor_id=fornecedor_id,
         material_id=material_id,
-        ativo=True
+        status='ativo'
     ).first()
     
-    if not item_preco:
-        print(f"       Preço não encontrado para material {material_id} na tabela {fornecedor.tabela_preco_id}")
+    if not preco_fornecedor:
+        print(f"       Preço não encontrado para material {material_id} na tabela do fornecedor {fornecedor_id}")
         return (0.0, 0.0, 0)
     
-    valor = float(item_preco.preco_por_kg) * float(peso_kg)
-    tabela_estrelas = item_preco.tabela_preco.nivel_estrelas if item_preco.tabela_preco else 0
+    preco_kg = float(preco_fornecedor.preco_fornecedor) if preco_fornecedor.preco_fornecedor else 0.0
+    valor = preco_kg * float(peso_kg)
     
-    print(f"       Preço encontrado: R$ {item_preco.preco_por_kg}/kg × {peso_kg}kg = R$ {valor:.2f} (Tabela: {tabela_estrelas}★)")
+    print(f"       Preço encontrado: R$ {preco_kg}/kg × {peso_kg}kg = R$ {valor:.2f}")
     
-    return (valor, float(item_preco.preco_por_kg), tabela_estrelas)
+    return (valor, preco_kg, 0)
 
 def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, estrelas_from_frontend, peso_kg):
     """Calcula o valor de um item baseado no preço configurado
