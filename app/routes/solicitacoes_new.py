@@ -210,7 +210,7 @@ def calcular_valor_item_novo(fornecedor_id, material_id, peso_kg):
         peso_kg: Peso em kg
         
     Returns:
-        tuple: (valor_calculado, preco_por_kg, 0) - terceiro valor sempre 0 (sem estrelas)
+        tuple: (valor_calculado, preco_por_kg, estrelas) - estrelas sempre 3 (padrão válido)
     """
     from app.models import FornecedorTabelaPrecos
     
@@ -218,7 +218,7 @@ def calcular_valor_item_novo(fornecedor_id, material_id, peso_kg):
     
     if not fornecedor:
         print(f"       Fornecedor não encontrado")
-        return (0.0, 0.0, 0)
+        return (0.0, 0.0, 3)
     
     # Buscar preço na tabela personalizada do fornecedor
     preco_fornecedor = FornecedorTabelaPrecos.query.filter_by(
@@ -229,14 +229,14 @@ def calcular_valor_item_novo(fornecedor_id, material_id, peso_kg):
     
     if not preco_fornecedor:
         print(f"       Preço não encontrado para material {material_id} na tabela do fornecedor {fornecedor_id}")
-        return (0.0, 0.0, 0)
+        return (0.0, 0.0, 3)
     
     preco_kg = float(preco_fornecedor.preco_fornecedor) if preco_fornecedor.preco_fornecedor else 0.0
     valor = preco_kg * float(peso_kg)
     
     print(f"       Preço encontrado: R$ {preco_kg}/kg × {peso_kg}kg = R$ {valor:.2f}")
     
-    return (valor, preco_kg, 0)
+    return (valor, preco_kg, 3)
 
 def calcular_valor_item(fornecedor_id, tipo_lote_id, classificacao, estrelas_from_frontend, peso_kg):
     """Calcula o valor de um item baseado no preço configurado
@@ -445,7 +445,7 @@ def criar_solicitacao():
                         print(f"    ⚠️ Material sem preço configurado na tabela - REQUER APROVAÇÃO MANUAL")
                         requer_aprovacao_manual = True  # Flag latched - uma vez True, sempre True
                         preco_tabela = 0
-                        tabela_estrelas = 0
+                        tabela_estrelas = 3  # Valor padrão válido (entre 1 e 5)
                     
                     print(f"    Preço da tabela ({tabela_estrelas}★): R$ {preco_tabela}/kg")
                     print(f"    Preço oferecido: R$ {preco_oferecido}/kg")
@@ -492,7 +492,7 @@ def criar_solicitacao():
                         print(f"    ⚠️ Material sem preço configurado na tabela - REQUER APROVAÇÃO MANUAL")
                         requer_aprovacao_manual = True  # Flag latched - uma vez True, sempre True
                         preco_por_kg = 0
-                        tabela_estrelas = 0
+                        tabela_estrelas = 3  # Valor padrão válido (entre 1 e 5)
                         valor = 0
                     
                     print(f"    Valor final: R$ {valor:.2f} (Tabela: {tabela_estrelas}★)")
