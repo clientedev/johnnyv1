@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, FornecedorTabelaPrecos, AuditoriaFornecedorTabelaPrecos, Fornecedor, MaterialBase, Usuario, Notificacao
+from app.models import db, FornecedorTabelaPrecos, AuditoriaFornecedorTabelaPrecos, Fornecedor, MaterialBase, Usuario, Notificacao, TabelaPrecoItem, TabelaPreco
 from app.auth import admin_required
 import pandas as pd
 from io import BytesIO
@@ -672,28 +672,37 @@ def revisar_tabela_fornecedor(fornecedor_id):
         
         material_ids = [p.material_id for p in precos_pendentes]
         
-        medias_globais = {}
+        medias_sistema = {}
         for material_id in material_ids:
-            precos_ativos = FornecedorTabelaPrecos.query.filter(
-                FornecedorTabelaPrecos.material_id == material_id,
-                FornecedorTabelaPrecos.status == 'ativo'
+            precos_tabela = TabelaPrecoItem.query.filter(
+                TabelaPrecoItem.material_id == material_id,
+                TabelaPrecoItem.ativo == True
             ).all()
             
-            if precos_ativos:
-                valores = [float(p.preco_fornecedor) for p in precos_ativos if p.preco_fornecedor]
-                if valores:
-                    medias_globais[material_id] = {
-                        'media': round(sum(valores) / len(valores), 2),
-                        'total_fornecedores': len(valores),
-                        'min': min(valores),
-                        'max': max(valores)
+            if precos_tabela:
+                precos_por_estrela = {}
+                for item in precos_tabela:
+                    if item.tabela_preco:
+                        estrelas = item.tabela_preco.nivel_estrelas
+                        preco_kg = float(item.preco_por_kg) if item.preco_por_kg else 0
+                        if preco_kg > 0:
+                            precos_por_estrela[estrelas] = preco_kg
+                
+                if precos_por_estrela:
+                    valores = list(precos_por_estrela.values())
+                    media_3_estrelas = round(sum(valores) / len(valores), 2)
+                    medias_sistema[material_id] = {
+                        'media': media_3_estrelas,
+                        'precos_por_estrela': precos_por_estrela,
+                        'total_estrelas': len(valores)
                     }
         
         resultado_itens = []
         for preco in precos_pendentes:
             preco_valor = float(preco.preco_fornecedor) if preco.preco_fornecedor else 0
-            media_info = medias_globais.get(preco.material_id, {})
+            media_info = medias_sistema.get(preco.material_id, {})
             media_valor = media_info.get('media', 0)
+            precos_estrelas = media_info.get('precos_por_estrela', {})
             
             diferenca_percentual = 0
             status_comparacao = 'na_media'
@@ -704,19 +713,14 @@ def revisar_tabela_fornecedor(fornecedor_id):
                 elif diferenca_percentual < -5:
                     status_comparacao = 'abaixo'
             
-            valor_35_acima = round(media_valor * 1.35, 2) if media_valor > 0 else 0
-            
-            estrelas = 3
-            if diferenca_percentual <= -20:
-                estrelas = 5
-            elif diferenca_percentual <= -10:
-                estrelas = 4
-            elif diferenca_percentual <= 5:
-                estrelas = 3
-            elif diferenca_percentual <= 15:
-                estrelas = 2
-            else:
-                estrelas = 1
+            estrelas_calculadas = 0
+            if precos_estrelas:
+                estrelas_totais = 0
+                for nivel, preco_est in precos_estrelas.items():
+                    if preco_est > 0:
+                        estrelas_totais += nivel
+                if len(precos_estrelas) > 0:
+                    estrelas_calculadas = round(estrelas_totais / len(precos_estrelas), 1)
             
             resultado_itens.append({
                 'id': preco.id,
@@ -725,14 +729,11 @@ def revisar_tabela_fornecedor(fornecedor_id):
                 'material_codigo': preco.material.codigo if preco.material else None,
                 'material_classificacao': preco.material.classificacao if preco.material else None,
                 'preco_fornecedor': preco_valor,
-                'media_mercado': media_valor,
-                'valor_35_acima': valor_35_acima,
+                'media_sistema': media_valor,
+                'precos_por_estrela': precos_estrelas,
+                'estrelas_media': estrelas_calculadas,
                 'diferenca_percentual': diferenca_percentual,
                 'status_comparacao': status_comparacao,
-                'estrelas_qualidade': estrelas,
-                'total_fornecedores_media': media_info.get('total_fornecedores', 0),
-                'preco_min_mercado': media_info.get('min', 0),
-                'preco_max_mercado': media_info.get('max', 0),
                 'status': preco.status,
                 'versao': preco.versao,
                 'criador_nome': preco.criador.nome if preco.criador else None,

@@ -531,9 +531,8 @@
                     <tr>
                         <th>Material</th>
                         <th>Preco Fornecedor</th>
-                        <th>Media / Estrelas</th>
-                        <th>Valor 35% Acima</th>
-                        <th>Diferenca %</th>
+                        <th>Media Sistema / Estrelas</th>
+                        <th>Diferenca da Media</th>
                         <th>Acoes</th>
                     </tr>
                 </thead>
@@ -668,7 +667,7 @@
             if (!itens || itens.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6">
+                        <td colspan="5">
                             <div class="empty-state">
                                 <i class="fas fa-inbox"></i>
                                 <p>Nenhum item encontrado</p>
@@ -685,10 +684,22 @@
                 const diferencaClass = item.status_comparacao === 'acima' ? 'acima' :
                                       item.status_comparacao === 'abaixo' ? 'abaixo' : 'media';
                 
+                const estrelasMedia = item.estrelas_media || 0;
                 let estrelas = '';
-                for (let i = 1; i <= 5; i++) {
-                    estrelas += `<i class="fas fa-star estrela ${i <= item.estrelas_qualidade ? '' : 'vazia'}"></i>`;
+                for (let i = 1; i <= 3; i++) {
+                    if (i <= Math.floor(estrelasMedia)) {
+                        estrelas += `<i class="fas fa-star estrela"></i>`;
+                    } else if (i === Math.ceil(estrelasMedia) && estrelasMedia % 1 !== 0) {
+                        estrelas += `<i class="fas fa-star-half-alt estrela"></i>`;
+                    } else {
+                        estrelas += `<i class="fas fa-star estrela vazia"></i>`;
+                    }
                 }
+                
+                const statusTexto = item.status_comparacao === 'acima' ? 'acima da media' :
+                                   item.status_comparacao === 'abaixo' ? 'abaixo da media' : 'na media';
+                
+                const materialNomeEscaped = (item.material_nome || '').replace(/'/g, "\\'");
                 
                 return `
                     <tr data-id="${item.id}">
@@ -703,22 +714,19 @@
                         </td>
                         <td>
                             <div class="comparacao-cell">
-                                <span class="media-valor">R$ ${item.media_mercado.toFixed(2)}</span>
+                                <span class="media-valor">R$ ${(item.media_sistema || 0).toFixed(2)}</span>
                                 <div class="estrelas-cell">${estrelas}</div>
                             </div>
-                        </td>
-                        <td>
-                            <span class="media-valor">R$ ${item.valor_35_acima.toFixed(2)}</span>
-                            <div class="valor-35">35% acima da media</div>
                         </td>
                         <td>
                             <span class="diferenca-badge ${diferencaClass}">
                                 <i class="fas ${diferencaIcon}"></i>
                                 ${Math.abs(item.diferenca_percentual).toFixed(2)}%
                             </span>
+                            <div class="valor-35">${statusTexto}</div>
                         </td>
                         <td>
-                            <button class="btn-edit" onclick="abrirModalEditar(${item.id}, '${item.material_nome}', ${item.preco_fornecedor})" title="Editar preco">
+                            <button class="btn-edit" onclick="abrirModalEditar(${item.id}, '${materialNomeEscaped}', ${item.preco_fornecedor})" title="Editar preco">
                                 <i class="fas fa-edit"></i>
                             </button>
                         </td>
@@ -763,9 +771,12 @@
             try {
                 const response = await fetchAPI(`/fornecedor-tabela-precos/admin/${precoId}/editar`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ preco_fornecedor: novoPreco })
                 });
+                
+                if (!response) {
+                    return;
+                }
                 
                 if (!response.ok) {
                     const error = await response.json();
@@ -805,6 +816,10 @@
                     method: 'PUT'
                 });
                 
+                if (!response) {
+                    return;
+                }
+                
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.erro || 'Erro ao aprovar');
@@ -837,9 +852,12 @@
             try {
                 const response = await fetchAPI(`/fornecedor-tabela-precos/admin/fornecedor/${fornecedorId}/rejeitar-tabela`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ motivo: motivo })
                 });
+                
+                if (!response) {
+                    return;
+                }
                 
                 if (!response.ok) {
                     const error = await response.json();
