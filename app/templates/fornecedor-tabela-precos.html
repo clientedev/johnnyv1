@@ -106,7 +106,7 @@
             top: 100%;
             left: 0;
             right: 0;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             background: white;
             border: 1px solid #e5e7eb;
@@ -534,20 +534,16 @@
             const input = document.getElementById('novoMaterialBusca');
             const dropdown = document.getElementById('materialDropdown');
 
-            input.addEventListener('input', () => {
-                const busca = input.value.toLowerCase();
-                if (busca.length < 2) {
-                    dropdown.classList.remove('show');
-                    return;
-                }
-
-                const materiaisFiltrados = materiaisDisponiveis.filter(m => 
-                    m.nome.toLowerCase().includes(busca) || 
-                    m.codigo.toLowerCase().includes(busca)
-                ).slice(0, 10);
+            function mostrarMateriais(busca = '') {
+                const materiaisFiltrados = materiaisDisponiveis.filter(m => {
+                    if (!busca) return true;
+                    return m.nome.toLowerCase().includes(busca) || 
+                           m.codigo.toLowerCase().includes(busca);
+                }).slice(0, 50);
 
                 if (materiaisFiltrados.length === 0) {
-                    dropdown.classList.remove('show');
+                    dropdown.innerHTML = '<div style="padding: 12px; text-align: center; color: #6b7280;">Nenhum material encontrado</div>';
+                    dropdown.classList.add('show');
                     return;
                 }
 
@@ -568,6 +564,17 @@
                         document.getElementById('novoPreco').focus();
                     });
                 });
+            }
+
+            // Mostrar todos os materiais ao clicar no campo
+            input.addEventListener('focus', () => {
+                mostrarMateriais(input.value.toLowerCase());
+            });
+
+            // Filtrar enquanto digita
+            input.addEventListener('input', () => {
+                const busca = input.value.toLowerCase();
+                mostrarMateriais(busca);
             });
 
             document.addEventListener('click', (e) => {
