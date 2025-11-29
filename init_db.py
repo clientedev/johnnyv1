@@ -31,7 +31,26 @@ def init_database(drop_existing=False):
                 db.drop_all()
                 print("✅ Tabelas antigas removidas!")
 
+            # Criar tabelas
             print("📊 Criando tabelas no banco de dados...")
+
+            # Executar migração 020 se necessário
+            try:
+                from sqlalchemy import text
+                result = db.session.execute(text(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'fornecedores' AND column_name = 'tabela_preco_status'"
+                ))
+                if not result.fetchone():
+                    print("🔄 Aplicando migração 020...")
+                    with open('migrations/020_add_tabela_preco_columns.sql', 'r', encoding='utf-8') as f:
+                        sql = f.read()
+                    db.session.execute(text(sql))
+                    db.session.commit()
+                    print("✅ Migração 020 aplicada!")
+            except Exception as e:
+                print(f"⚠️  Aviso ao verificar migração: {e}")
+                db.session.rollback()
+
             db.create_all()
             print("✅ Tabelas criadas/verificadas com sucesso!")
 
