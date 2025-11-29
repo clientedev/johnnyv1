@@ -270,6 +270,29 @@
         .status-em-rota { background: #007bff; color: #fff; }
         .status-finalizada { background: #28a745; color: #fff; }
         .status-cancelada { background: #dc3545; color: #fff; }
+        .status-impedido { background: #dc3545; color: #fff; }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+            margin-left: 5px;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .btn-info {
+            background: #0891b2;
+            color: white;
+            margin-left: 5px;
+        }
+
+        .btn-info:hover {
+            background: #0e7490;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
 
         .btn {
             padding: 10px 20px;
@@ -691,6 +714,10 @@
                 <h3 id="stat-em-rota">0</h3>
                 <p>Em Rota</p>
             </div>
+            <div class="stat-card" style="border-left: 4px solid #dc3545;">
+                <h3 id="stat-impedidas" style="color: #dc3545;">0</h3>
+                <p>Impedidas</p>
+            </div>
             <div class="stat-card">
                 <h3 id="stat-finalizadas">0</h3>
                 <p>Finalizadas</p>
@@ -715,6 +742,7 @@
                         <option value="PENDENTE">Pendente</option>
                         <option value="AGENDADA">Agendada</option>
                         <option value="EM_ROTA">Em Rota</option>
+                        <option value="IMPEDIDO">Impedido</option>
                         <option value="FINALIZADA">Finalizada</option>
                         <option value="CANCELADA">Cancelada</option>
                     </select>
@@ -834,6 +862,7 @@
                 document.getElementById('stat-total').textContent = data.total_os;
                 document.getElementById('stat-pendentes').textContent = data.pendentes;
                 document.getElementById('stat-em-rota').textContent = data.em_rota;
+                document.getElementById('stat-impedidas').textContent = data.impedidas || 0;
                 document.getElementById('stat-finalizadas').textContent = data.finalizadas;
             } catch (error) {
                 console.error('Erro ao carregar estatísticas:', error);
@@ -889,6 +918,14 @@
                             ${os.status === 'PENDENTE' ? `<button class="btn btn-secondary btn-sm" onclick="abrirAtribuir(${os.id})">
                                 <i class="fas fa-user-plus"></i> Atribuir
                             </button>` : ''}
+                            ${os.status === 'IMPEDIDO' ? `
+                                <button class="btn btn-warning btn-sm" onclick="cancelarOS(${os.id})" title="Cancelar e reatribuir">
+                                    <i class="fas fa-times-circle"></i> Cancelar
+                                </button>
+                                <button class="btn btn-info btn-sm" onclick="retentarOS(${os.id})" title="Tentar novamente com mesmo motorista">
+                                    <i class="fas fa-redo"></i> Retentar
+                                </button>
+                            ` : ''}
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -934,6 +971,14 @@
                             ${os.status === 'PENDENTE' ? `
                                 <button class="btn btn-secondary btn-sm" onclick="abrirAtribuir(${os.id})">
                                     <i class="fas fa-user-plus"></i> Atribuir
+                                </button>
+                            ` : ''}
+                            ${os.status === 'IMPEDIDO' ? `
+                                <button class="btn btn-warning btn-sm" onclick="cancelarOS(${os.id})">
+                                    <i class="fas fa-times-circle"></i> Cancelar
+                                </button>
+                                <button class="btn btn-info btn-sm" onclick="retentarOS(${os.id})">
+                                    <i class="fas fa-redo"></i> Retentar
                                 </button>
                             ` : ''}
                         </div>
@@ -1052,6 +1097,64 @@
                 alert('Erro ao atribuir motorista');
             }
         });
+
+        async function cancelarOS(osId) {
+            if (!confirm('Cancelar esta OS e reatribuir para outro motorista?\n\nA OS voltará para status PENDENTE e você poderá escolher um novo motorista.')) {
+                return;
+            }
+
+            try {
+                const token = getToken();
+                const response = await fetch(`/api/os/${osId}/cancelar-impedido`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    alert('OS cancelada com sucesso! Você pode agora atribuir um novo motorista.');
+                    carregarOS();
+                    carregarEstatisticas();
+                } else {
+                    const error = await response.json();
+                    alert('Erro: ' + error.erro);
+                }
+            } catch (error) {
+                console.error('Erro ao cancelar OS:', error);
+                alert('Erro ao cancelar OS');
+            }
+        }
+
+        async function retentarOS(osId) {
+            if (!confirm('Tentar novamente com o mesmo motorista?\n\nA OS será reenviada para o motorista atualmente atribuído.')) {
+                return;
+            }
+
+            try {
+                const token = getToken();
+                const response = await fetch(`/api/os/${osId}/retentar`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    alert('OS reenviada para o motorista!');
+                    carregarOS();
+                    carregarEstatisticas();
+                } else {
+                    const error = await response.json();
+                    alert('Erro: ' + error.erro);
+                }
+            } catch (error) {
+                console.error('Erro ao retentar OS:', error);
+                alert('Erro ao retentar OS');
+            }
+        }
 
         function fecharModal(modalId) {
             document.getElementById(modalId).style.display = 'none';

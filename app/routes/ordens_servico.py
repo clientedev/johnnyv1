@@ -472,6 +472,108 @@ def registrar_evento(id):
         db.session.rollback()
         return jsonify({'erro': f'Erro ao registrar evento: {str(e)}'}), 500
 
+@bp.route('/<int:id>/cancelar-impedido', methods=['PUT'])
+@admin_required
+def cancelar_os_impedido(id):
+    """Cancela uma OS com status IMPEDIDO e a volta para PENDENTE para reatribuição"""
+    try:
+        usuario_id = get_jwt_identity()
+        
+        os = OrdemServico.query.get(id)
+        if not os:
+            return jsonify({'erro': 'Ordem de Serviço não encontrada'}), 404
+        
+        if os.status != 'IMPEDIDO':
+            return jsonify({'erro': f'Esta ação só é permitida para OS com status IMPEDIDO. Status atual: {os.status}'}), 400
+        
+        status_anterior = os.status
+        motorista_anterior_id = os.motorista_id
+        motorista_anterior_nome = os.motorista.usuario.nome if os.motorista and os.motorista.usuario else 'Não atribuído'
+        
+        os.status = 'PENDENTE'
+        os.motorista_id = None
+        os.veiculo_id = None
+        
+        registrar_auditoria_os(os, 'CANCELAR_IMPEDIDO', usuario_id, {
+            'status_anterior': status_anterior,
+            'motorista_anterior_id': motorista_anterior_id,
+            'motorista_anterior_nome': motorista_anterior_nome,
+            'acao': 'OS retornada para pendente para reatribuição'
+        })
+        
+        if motorista_anterior_id:
+            motorista = Motorista.query.get(motorista_anterior_id)
+            if motorista and motorista.usuario:
+                notificacao = Notificacao(
+                    usuario_id=motorista.usuario.id,
+                    titulo='OS Cancelada e Reatribuída',
+                    mensagem=f'A OS {os.numero_os} foi cancelada pelo administrador e será reatribuída a outro motorista.',
+                    tipo='os_cancelada',
+                    lida=False
+                )
+                db.session.add(notificacao)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'OS cancelada e disponível para reatribuição',
+            'os': os.to_dict()
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao cancelar OS impedida: {str(e)}'}), 500
+
+@bp.route('/<int:id>/retentar', methods=['PUT'])
+@admin_required
+def retentar_os(id):
+    """Reenvia uma OS com status IMPEDIDO para o mesmo motorista tentar novamente"""
+    try:
+        usuario_id = get_jwt_identity()
+        
+        os = OrdemServico.query.get(id)
+        if not os:
+            return jsonify({'erro': 'Ordem de Serviço não encontrada'}), 404
+        
+        if os.status != 'IMPEDIDO':
+            return jsonify({'erro': f'Esta ação só é permitida para OS com status IMPEDIDO. Status atual: {os.status}'}), 400
+        
+        if not os.motorista_id:
+            return jsonify({'erro': 'Não há motorista atribuído a esta OS'}), 400
+        
+        status_anterior = os.status
+        motorista = Motorista.query.get(os.motorista_id)
+        
+        os.status = 'AGENDADA'
+        
+        registrar_auditoria_os(os, 'RETENTAR_IMPEDIDO', usuario_id, {
+            'status_anterior': status_anterior,
+            'motorista_id': os.motorista_id,
+            'motorista_nome': motorista.usuario.nome if motorista and motorista.usuario else 'Desconhecido',
+            'acao': 'OS reenviada para o mesmo motorista tentar novamente'
+        })
+        
+        if motorista and motorista.usuario:
+            notificacao = Notificacao(
+                usuario_id=motorista.usuario.id,
+                titulo='Nova Tentativa - OS Reenviada',
+                mensagem=f'A OS {os.numero_os} foi reenviada para você. Por favor, tente realizar a coleta novamente.',
+                tipo='os_reenvio',
+                lida=False
+            )
+            db.session.add(notificacao)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'OS reenviada para o motorista',
+            'os': os.to_dict()
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao retentar OS: {str(e)}'}), 500
+
 @bp.route('/<int:id>/cancelar', methods=['PUT'])
 @admin_required
 def cancelar_os(id):
@@ -536,6 +638,7 @@ def obter_estatisticas():
         pendentes = query.filter_by(status='PENDENTE').count()
         agendadas = query.filter_by(status='AGENDADA').count()
         em_rota = query.filter_by(status='EM_ROTA').count()
+        impedidas = query.filter_by(status='IMPEDIDO').count()
         finalizadas = query.filter_by(status='FINALIZADA').count()
         canceladas = query.filter_by(status='CANCELADA').count()
         
@@ -544,6 +647,7 @@ def obter_estatisticas():
             'pendentes': pendentes,
             'agendadas': agendadas,
             'em_rota': em_rota,
+            'impedidas': impedidas,
             'finalizadas': finalizadas,
             'canceladas': canceladas
         }), 200
