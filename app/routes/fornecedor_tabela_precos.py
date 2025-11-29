@@ -423,6 +423,49 @@ def excluir_preco(preco_id):
         logger.error(f'Erro ao excluir preço: {str(e)}')
         return jsonify({'erro': f'Erro ao excluir preço: {str(e)}'}), 500
 
+@bp.route('/fornecedor/<int:fornecedor_id>/reenviar', methods=['PUT'])
+@jwt_required()
+def reenviar_tabela(fornecedor_id):
+    """Reenvia itens com status pendente_reenvio para aprovação"""
+    try:
+        usuario_id = get_jwt_identity()
+        
+        if not verificar_acesso_fornecedor(fornecedor_id, usuario_id):
+            return jsonify({'erro': 'Acesso negado'}), 403
+        
+        fornecedor = Fornecedor.query.get(fornecedor_id)
+        if not fornecedor:
+            return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+        
+        precos_reenvio = FornecedorTabelaPrecos.query.filter_by(
+            fornecedor_id=fornecedor_id,
+            status='pendente_reenvio'
+        ).all()
+        
+        if not precos_reenvio:
+            return jsonify({'erro': 'Não há itens para reenviar'}), 400
+        
+        for preco in precos_reenvio:
+            preco.status = 'pendente_aprovacao'
+            preco.updated_by = usuario_id
+        
+        fornecedor.tabela_preco_status = 'pendente_aprovacao'
+        
+        usuario = Usuario.query.get(usuario_id)
+        notificar_admins_nova_tabela(fornecedor, usuario)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': f'{len(precos_reenvio)} item(ns) reenviado(s) para aprovação',
+            'total': len(precos_reenvio)
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erro ao reenviar tabela: {str(e)}')
+        return jsonify({'erro': f'Erro ao reenviar tabela: {str(e)}'}), 500
+
 @bp.route('/<int:preco_id>/aprovar', methods=['PUT'])
 @jwt_required()
 @admin_required

@@ -311,13 +311,17 @@
             <div id="tab-visualizar" class="tab-content">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h3>Tabela de Preços Atual</h3>
-                    <div style="display: flex; gap: 8px;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
                         <select id="filtroStatus" class="form-control" style="width: auto;" onchange="carregarPrecos()">
                             <option value="">Todos os Status</option>
                             <option value="ativo">Ativos</option>
                             <option value="pendente_aprovacao">Pendentes</option>
+                            <option value="pendente_reenvio">Aguardando Correção</option>
                             <option value="inativo">Inativos</option>
                         </select>
+                        <button id="btnReenviar" class="btn btn-primary" style="display: none;" onclick="reenviarParaAprovacao()">
+                            <i class="fas fa-paper-plane"></i> Reenviar para Aprovação
+                        </button>
                     </div>
                 </div>
 
@@ -485,10 +489,43 @@
             const total = precos.length;
             const pendentes = precos.filter(p => p.status === 'pendente_aprovacao' || p.status === 'pendente_reenvio').length;
             const ativos = precos.filter(p => p.status === 'ativo').length;
+            const aguardandoCorrecao = precos.filter(p => p.status === 'pendente_reenvio').length;
 
             document.getElementById('totalMateriais').textContent = total;
             document.getElementById('totalPendentes').textContent = pendentes;
             document.getElementById('totalAtivos').textContent = ativos;
+            
+            const btnReenviar = document.getElementById('btnReenviar');
+            if (btnReenviar) {
+                btnReenviar.style.display = aguardandoCorrecao > 0 ? 'inline-flex' : 'none';
+            }
+        }
+        
+        async function reenviarParaAprovacao() {
+            if (!confirm('Deseja reenviar os itens corrigidos para aprovação do administrador?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetchAPI(`/fornecedor-tabela-precos/fornecedor/${fornecedorId}/reenviar`, {
+                    method: 'PUT'
+                });
+                
+                if (!response) return;
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.erro || 'Erro ao reenviar');
+                }
+                
+                const result = await response.json();
+                alert(result.mensagem || 'Tabela reenviada para aprovação com sucesso!');
+                carregarPrecos();
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                alert(error.message || 'Erro ao reenviar tabela');
+            }
         }
 
         function setupTabs() {
