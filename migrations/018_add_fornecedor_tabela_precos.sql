@@ -63,57 +63,50 @@ CREATE TRIGGER trigger_update_fornecedor_tabela_precos_updated_at
 CREATE OR REPLACE FUNCTION audit_fornecedor_tabela_precos()
 RETURNS TRIGGER AS $$
 DECLARE
+    usuario_acao INTEGER;
     acao_tipo VARCHAR(50);
     dados_ant JSONB;
     dados_nov JSONB;
-    usuario_acao INTEGER;
+    preco_id_ref INTEGER;
 BEGIN
+    usuario_acao := COALESCE(NEW.updated_by, NEW.created_by, OLD.updated_by);
+
     IF TG_OP = 'INSERT' THEN
         acao_tipo := 'criacao';
         dados_ant := NULL;
-        dados_nov := row_to_json(NEW)::JSONB;
-        usuario_acao := NEW.created_by;
-        
-        INSERT INTO auditoria_fornecedor_tabela_precos (preco_id, usuario_id, acao, dados_anteriores, dados_novos)
-        VALUES (NEW.id, usuario_acao, acao_tipo, dados_ant, dados_nov);
-        
-        RETURN NEW;
+        dados_nov := row_to_json(NEW)::jsonb;
+        preco_id_ref := NEW.id;
     ELSIF TG_OP = 'UPDATE' THEN
-        dados_ant := row_to_json(OLD)::JSONB;
-        dados_nov := row_to_json(NEW)::JSONB;
-        usuario_acao := COALESCE(NEW.updated_by, OLD.updated_by, NEW.created_by);
-        
         IF OLD.status != NEW.status THEN
-            IF NEW.status = 'ativo' THEN
-                acao_tipo := 'ativacao';
-            ELSIF NEW.status = 'inativo' THEN
-                acao_tipo := 'desativacao';
-            ELSE
-                acao_tipo := 'atualizacao';
-            END IF;
+            acao_tipo := CASE 
+                WHEN NEW.status = 'ativo' THEN 'ativacao'
+                WHEN NEW.status = 'inativo' THEN 'desativacao'
+                ELSE 'atualizacao'
+            END;
         ELSIF OLD.versao != NEW.versao THEN
             acao_tipo := 'nova_versao';
         ELSE
             acao_tipo := 'atualizacao';
         END IF;
-        
-        INSERT INTO auditoria_fornecedor_tabela_precos (preco_id, usuario_id, acao, dados_anteriores, dados_novos)
-        VALUES (NEW.id, usuario_acao, acao_tipo, dados_ant, dados_nov);
-        
-        RETURN NEW;
+        dados_ant := row_to_json(OLD)::jsonb;
+        dados_nov := row_to_json(NEW)::jsonb;
+        preco_id_ref := NEW.id;
     ELSIF TG_OP = 'DELETE' THEN
         acao_tipo := 'exclusao';
-        dados_ant := row_to_json(OLD)::JSONB;
+        dados_ant := row_to_json(OLD)::jsonb;
         dados_nov := NULL;
-        usuario_acao := COALESCE(OLD.updated_by, OLD.created_by);
-        
-        INSERT INTO auditoria_fornecedor_tabela_precos (preco_id, usuario_id, acao, dados_anteriores, dados_novos)
-        VALUES (OLD.id, usuario_acao, acao_tipo, dados_ant, dados_nov);
-        
-        RETURN OLD;
+        usuario_acao := OLD.updated_by;
+        preco_id_ref := OLD.id;
     END IF;
-    
-    RETURN NULL;
+
+    INSERT INTO auditoria_fornecedor_tabela_precos (preco_id, usuario_id, acao, dados_anteriores, dados_novos, data_acao)
+        VALUES (preco_id_ref, usuario_acao, acao_tipo, dados_ant, dados_nov, CURRENT_TIMESTAMP);
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
