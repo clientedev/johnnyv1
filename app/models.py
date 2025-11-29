@@ -288,8 +288,8 @@ class Fornecedor(db.Model):  # type: ignore
 
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
-    
-    tabela_preco_status = db.Column(db.String(30), default='sem_tabela', nullable=False)
+
+    tabela_preco_status = db.Column(db.String(50), default='pendente', nullable=True)
     tabela_preco_aprovada_em = db.Column(db.DateTime, nullable=True)
     tabela_preco_aprovada_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
 
@@ -843,7 +843,7 @@ class Lote(db.Model):  # type: ignore
                 data['fornecedor_nome'] = None
         except Exception:
             data['fornecedor_nome'] = None
-        
+
         if hasattr(self, 'solicitacao_origem') and self.solicitacao_origem:
             data['solicitacao_origem'] = {
                 'id': self.solicitacao_origem.id,
