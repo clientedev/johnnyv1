@@ -420,7 +420,7 @@
                                 </span>
                             </div>
                         </div>
-                        ${statusClass === 'pendente_aprovacao' || statusClass === 'pendente' ? `
+                        ${f.total_pendentes > 0 || statusClass === 'pendente_aprovacao' || statusClass === 'pendente' ? `
                             <button class="btn-revisar" onclick="abrirRevisao(${f.id})">
                                 <i class="fas fa-search"></i> Revisar
                             </button>
