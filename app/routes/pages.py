@@ -71,3 +71,7 @@ def motoristas():
 @bp.route('/veiculos.html')
 def veiculos():
     return render_template('veiculos.html')
+
+@bp.route('/fornecedor-tabela-precos.html')
+def fornecedor_tabela_precos():
+    return render_template('fornecedor-tabela-precos.html')
