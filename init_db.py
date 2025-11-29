@@ -33,26 +33,60 @@ def init_database(drop_existing=False):
 
             # Criar tabelas
             print("📊 Criando tabelas no banco de dados...")
+            db.create_all()
+            print("✅ Tabelas criadas/verificadas com sucesso!")
 
-            # Executar migração 020 se necessário
+            # Executar migração 020 se necessário (inline, sem arquivo)
             try:
                 from sqlalchemy import text
                 result = db.session.execute(text(
                     "SELECT column_name FROM information_schema.columns WHERE table_name = 'fornecedores' AND column_name = 'tabela_preco_status'"
                 ))
                 if not result.fetchone():
-                    print("🔄 Aplicando migração 020...")
-                    with open('migrations/020_add_tabela_preco_columns.sql', 'r', encoding='utf-8') as f:
-                        sql = f.read()
-                    db.session.execute(text(sql))
+                    print("🔄 Aplicando migração 020 (colunas de tabela de preço)...")
+                    migration_sql = """
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'fornecedores' 
+                            AND column_name = 'tabela_preco_status'
+                        ) THEN
+                            ALTER TABLE fornecedores 
+                            ADD COLUMN tabela_preco_status VARCHAR(20) DEFAULT 'pendente';
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'fornecedores' 
+                            AND column_name = 'tabela_preco_aprovada_em'
+                        ) THEN
+                            ALTER TABLE fornecedores 
+                            ADD COLUMN tabela_preco_aprovada_em TIMESTAMP;
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'fornecedores' 
+                            AND column_name = 'tabela_preco_aprovada_por_id'
+                        ) THEN
+                            ALTER TABLE fornecedores 
+                            ADD COLUMN tabela_preco_aprovada_por_id INTEGER REFERENCES usuarios(id);
+                        END IF;
+                    END $$;
+
+                    CREATE INDEX IF NOT EXISTS idx_fornecedores_tabela_preco_status 
+                    ON fornecedores(tabela_preco_status);
+
+                    CREATE INDEX IF NOT EXISTS idx_fornecedores_tabela_preco_aprovada_por 
+                    ON fornecedores(tabela_preco_aprovada_por_id);
+                    """
+                    db.session.execute(text(migration_sql))
                     db.session.commit()
                     print("✅ Migração 020 aplicada!")
             except Exception as e:
                 print(f"⚠️  Aviso ao verificar migração: {e}")
                 db.session.rollback()
-
-            db.create_all()
-            print("✅ Tabelas criadas/verificadas com sucesso!")
 
             # Lista as tabelas criadas
             from sqlalchemy import inspect
