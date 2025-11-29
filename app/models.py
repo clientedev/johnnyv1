@@ -413,6 +413,104 @@ class FornecedorTipoLotePreco(db.Model):  # type: ignore
             'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
         }
 
+class FornecedorTabelaPrecos(db.Model):  # type: ignore
+    """Tabela de preços personalizada por fornecedor e material"""
+    __tablename__ = 'fornecedor_tabela_precos'
+    __table_args__ = (
+        db.UniqueConstraint('fornecedor_id', 'material_id', 'versao', name='uq_fornecedor_material_versao'),
+        db.Index('idx_fornecedor_material_preco', 'fornecedor_id', 'material_id'),
+        db.Index('idx_fornecedor_preco_status', 'status'),
+        db.Index('idx_fornecedor_preco_versao', 'versao'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=False)
+    material_id = db.Column(db.Integer, db.ForeignKey('materiais_base.id'), nullable=False)
+    preco_fornecedor = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
+    status = db.Column(db.String(20), default='ativo', nullable=False)
+    versao = db.Column(db.Integer, nullable=False, default=1)
+    created_by = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    updated_by = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    arquivo_origem_id = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    fornecedor = db.relationship('Fornecedor', backref='tabela_precos_materiais')
+    material = db.relationship('MaterialBase', backref='precos_fornecedores')
+    criador = db.relationship('Usuario', foreign_keys=[created_by], backref='precos_fornecedor_criados')
+    atualizador = db.relationship('Usuario', foreign_keys=[updated_by], backref='precos_fornecedor_atualizados')
+    auditorias = db.relationship('AuditoriaFornecedorTabelaPrecos', backref='preco', lazy=True, cascade='all, delete-orphan')
+
+    def __init__(self, **kwargs: Any) -> None:
+        if 'status' in kwargs and kwargs['status'] not in ['ativo', 'inativo', 'pendente_aprovacao']:
+            raise ValueError('Status deve ser: ativo, inativo ou pendente_aprovacao')
+        if 'preco_fornecedor' in kwargs and kwargs['preco_fornecedor'] < 0:
+            raise ValueError('Preço do fornecedor deve ser maior ou igual a zero')
+        if 'versao' in kwargs and kwargs['versao'] < 1:
+            raise ValueError('Versão deve ser maior ou igual a 1')
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'fornecedor_id': self.fornecedor_id,
+            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
+            'material_id': self.material_id,
+            'material_nome': self.material.nome if self.material else None,
+            'material_codigo': self.material.codigo if self.material else None,
+            'material_classificacao': self.material.classificacao if self.material else None,
+            'preco_fornecedor': float(self.preco_fornecedor) if self.preco_fornecedor else 0.00,
+            'status': self.status,
+            'versao': self.versao,
+            'created_by': self.created_by,
+            'criador_nome': self.criador.nome if self.criador else None,
+            'updated_by': self.updated_by,
+            'atualizador_nome': self.atualizador.nome if self.atualizador else None,
+            'arquivo_origem_id': self.arquivo_origem_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+class AuditoriaFornecedorTabelaPrecos(db.Model):  # type: ignore
+    """Auditoria de alterações na tabela fornecedor_tabela_precos"""
+    __tablename__ = 'auditoria_fornecedor_tabela_precos'
+    __table_args__ = (
+        db.Index('idx_auditoria_ftp_preco', 'preco_id'),
+        db.Index('idx_auditoria_ftp_usuario', 'usuario_id'),
+        db.Index('idx_auditoria_ftp_data', 'data_acao'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    preco_id = db.Column(db.Integer, db.ForeignKey('fornecedor_tabela_precos.id', ondelete='CASCADE'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    acao = db.Column(db.String(50), nullable=False)
+    dados_anteriores = db.Column(db.JSON, nullable=True)
+    dados_novos = db.Column(db.JSON, nullable=True)
+    ip_address = db.Column(db.String(50), nullable=True)
+    user_agent = db.Column(db.String(500), nullable=True)
+    data_acao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    usuario = db.relationship('Usuario', backref='auditorias_tabela_precos')
+
+    def __init__(self, **kwargs: Any) -> None:
+        if 'acao' in kwargs and kwargs['acao'] not in ['criacao', 'atualizacao', 'exclusao', 'ativacao', 'desativacao', 'nova_versao']:
+            raise ValueError('Ação deve ser: criacao, atualizacao, exclusao, ativacao, desativacao ou nova_versao')
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'preco_id': self.preco_id,
+            'usuario_id': self.usuario_id,
+            'usuario_nome': self.usuario.nome if self.usuario else 'Sistema',
+            'acao': self.acao,
+            'dados_anteriores': self.dados_anteriores,
+            'dados_novos': self.dados_novos,
+            'ip_address': self.ip_address,
+            'user_agent': self.user_agent,
+            'data_acao': self.data_acao.isoformat() if self.data_acao else None
+        }
+
 class FornecedorTipoLoteClassificacao(db.Model):  # type: ignore
     __tablename__ = 'fornecedor_tipo_lote_classificacao'
     __table_args__ = (
