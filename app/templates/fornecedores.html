@@ -398,28 +398,6 @@
                     </div>
                 </div>
 
-                <!-- Tabela de Preços do Fornecedor (Apenas Administrador) -->
-                <div data-perfil="Administrador" style="background: #fef3c7; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid #f59e0b;">
-                    <h4 style="margin: 0 0 1rem 0; color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-star"></i> Tabela de Preços do Fornecedor
-                    </h4>
-                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #78350f;">
-                        Define qual tabela de preços será usada para este fornecedor. Novos fornecedores iniciam com 1★.
-                    </p>
-
-                    <div class="form-group">
-                        <label><strong>Tabela de Preços</strong></label>
-                        <select id="tabelaPrecoId" style="padding: 0.75rem; border: 2px solid #d97706; border-radius: 8px; font-size: 1rem;">
-                            <option value="1">⭐ 1 Estrela (Padrão)</option>
-                            <option value="2">⭐⭐ 2 Estrelas</option>
-                            <option value="3">⭐⭐⭐ 3 Estrelas</option>
-                        </select>
-                        <small style="color: #92400e; display: block; margin-top: 0.5rem;">
-                            <i class="fas fa-info-circle"></i> Apenas administradores podem promover ou despromover fornecedores entre tabelas.
-                        </small>
-                    </div>
-                </div>
-
                 <button type="submit" class="btn btn-primary w-full"> Salvar Fornecedor</button>
             </form>
         </div>
@@ -528,11 +506,6 @@
                                     <i class="fas fa-table"></i> Tabela
                                 </button>
                                 ${isAdmin ? `
-                                    <button class="btn btn-primary" onclick="editarFornecedor(${f.id})">
-                                        <i class="fas fa-star"></i> Estrelas
-                                    </button>
-                                ` : ''}
-                                ${isAdmin ? `
                                     <button class="btn btn-danger" onclick="deletarFornecedor(${f.id}, '${f.nome.replace(/'/g, "\\'")}')">
                                         <i class="fas fa-trash"></i> Excluir
                                     </button>
@@ -568,12 +541,6 @@
             document.getElementById('dadosCNPJ').style.display = 'block';
             document.getElementById('camposEnderecoVisita').style.display = 'none';
             document.getElementById('temOutroEndereco').checked = false;
-
-            // Definir tabela padrão como 1 estrela para novos fornecedores
-            const tabelaSelect = document.getElementById('tabelaPrecoId');
-            if (tabelaSelect) {
-                tabelaSelect.value = '1';
-            }
 
             // Limpar seleção de comprador
             const compradorSelect = document.getElementById('compradorResponsavelId');
@@ -665,15 +632,25 @@
                     }
 
                     // Se chegou aqui, não há conflito - preencher os campos normalmente
-                    document.getElementById('nome').value = dadosReceita.nome || dadosReceita.razao_social || '';
-                    document.getElementById('rua').value = dadosReceita.logradouro || '';
-                    document.getElementById('numero').value = dadosReceita.numero || '';
-                    document.getElementById('cidade').value = dadosReceita.municipio || '';
-                    document.getElementById('estado').value = dadosReceita.uf || '';
-                    document.getElementById('cep').value = dadosReceita.cep || '';
-                    document.getElementById('bairro').value = dadosReceita.bairro || '';
-                    document.getElementById('telefone').value = dadosReceita.telefone || '';
-                    document.getElementById('email').value = dadosReceita.email || '';
+                    const nomeValue = dadosReceita.nome || dadosReceita.nome_fantasia || dadosReceita.razao_social || '';
+                    const ruaValue = dadosReceita.rua || dadosReceita.logradouro || '';
+                    const numeroValue = dadosReceita.numero || '';
+                    const cidadeValue = dadosReceita.cidade || dadosReceita.municipio || '';
+                    const estadoValue = dadosReceita.estado || dadosReceita.uf || '';
+                    const cepValue = (dadosReceita.cep || '').replace(/\D/g, '');
+                    const bairroValue = dadosReceita.bairro || '';
+                    const telefoneValue = dadosReceita.telefone || dadosReceita.ddd_telefone_1 || '';
+                    const emailValue = dadosReceita.email || '';
+                    
+                    document.getElementById('nome').value = nomeValue;
+                    document.getElementById('rua').value = ruaValue;
+                    document.getElementById('numero').value = numeroValue;
+                    document.getElementById('cidade').value = cidadeValue;
+                    document.getElementById('estado').value = estadoValue;
+                    document.getElementById('cep').value = cepValue;
+                    document.getElementById('bairro').value = bairroValue;
+                    document.getElementById('telefone').value = telefoneValue;
+                    document.getElementById('email').value = emailValue;
 
                     document.getElementById('dadosCNPJ').style.display = 'block';
 
@@ -816,14 +793,9 @@
                 outro_complemento: document.getElementById('outroComplemento').value || null
             };
 
-            // Apenas admin pode definir/alterar a tabela de preços e comprador responsável
+            // Apenas admin pode definir/alterar comprador responsável
             const isAdmin = currentUserData && (currentUserData.tipo === 'admin' || currentUserData.perfil === 'Administrador');
             if (isAdmin) {
-                const tabelaSelect = document.getElementById('tabelaPrecoId');
-                if (tabelaSelect) {
-                    data.tabela_preco_id = parseInt(tabelaSelect.value);
-                }
-
                 const compradorSelect = document.getElementById('compradorResponsavelId');
                 if (compradorSelect && compradorSelect.value) {
                     data.comprador_responsavel_id = parseInt(compradorSelect.value);
@@ -890,12 +862,6 @@
                 document.getElementById('telefone').value = fornecedorAtual.telefone || '';
                 document.getElementById('email').value = fornecedorAtual.email || '';
                 document.getElementById('observacoes').value = fornecedorAtual.observacoes || '';
-
-                // Carregar tabela de preços (apenas admin vê e pode editar)
-                const tabelaSelect = document.getElementById('tabelaPrecoId');
-                if (tabelaSelect && fornecedorAtual.tabela_preco_id) {
-                    tabelaSelect.value = fornecedorAtual.tabela_preco_id.toString();
-                }
 
                 // Carregar comprador responsável (apenas admin vê e pode editar)
                 const compradorSelect = document.getElementById('compradorResponsavelId');
