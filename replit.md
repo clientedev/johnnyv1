@@ -1,19 +1,7 @@
 # MRX System - Gestão de Compras de Sucata Eletrônica
 
 ### Overview
-The MRX System is a comprehensive platform for managing electronic scrap purchases. Its core functionalities include a star-based pricing system (1★, 2★, 3★), price authorization workflows for negotiations exceeding standard rates, and geolocation tracking for suppliers. The system aims to streamline the procurement process for electronic scrap, enhance pricing control, and improve supplier management.
-
-### Recent Changes
--   **Floating AI Chat Widget (December 1, 2025)**: Completely redesigned the AI assistant as a floating chat widget accessible from all pages. Key improvements: (1) Fixed logout issue by replacing admin-only access with any-user access via `verificar_usuario`; (2) Created floating balloon widget in bottom-right corner (`chat-widget.js`) that appears only for logged-in users; (3) Enhanced AI intelligence with `obter_contexto_sistema_completo()` providing comprehensive database context (fornecedores, solicitações, lotes, ordens de compra, materiais) to Perplexity AI; (4) Uses Perplexity API exclusively (not Gemini) with `llama-3.1-sonar-small-128k-online` model; (5) Widget integrated across 29+ system pages with minimize/maximize functionality and session-based chat history; (6) Backend routes at `/api/assistente/*` now accessible to all authenticated users.
--   **Achievement Planning Feature (December 1, 2025)**: Implemented "Planejamento de Conquistas Futuras" (Future Achievements Planning) page for administrators. Features include: (1) New `Conquista` and `AporteConquista` database models for tracking financial goals; (2) Complete API routes for CRUD operations, contribution tracking, summaries, and AI-powered recommendations; (3) Interactive dashboard with progress charts, category distribution, and smart recommendations; (4) Support for 7 goal categories (imovel, veiculo, viagem, reserva, educacao, aposentadoria, outros); (5) Priority-based goal management with visual progress indicators; (6) Admin-only access via RBAC configuration. API routes: `/api/conquistas/*`.
--   **Metal Quotation Page Fix (December 1, 2025)**: Fixed URL routing issue for `/cotacoes-metais.html` page. Corrected the card link in administracao.html from `/cotacoes-metais` to `/cotacoes-metais.html`. Added proper route in pages.py and RBAC admin permissions.
--   **Supplier Price Table Correction Workflow (November 29, 2025)**: Implemented the ability for suppliers to edit and resubmit rejected price table items. Features include: (1) Edit/delete buttons now visible for items with 'pendente_reenvio' status in `/fornecedor-tabela-precos.html`; (2) "Reenviar para Aprovação" button appears when there are items awaiting correction; (3) New filter option "Aguardando Correção" for pendente_reenvio status; (4) Backend allows editing/deleting items with pendente_reenvio status; (5) New API endpoint `/api/fornecedor-tabela-precos/fornecedor/<id>/reenviar` to resubmit corrected items for admin approval with automatic admin notifications.
--   **Admin Price Table Review Screen (November 29, 2025)**: Implemented comprehensive admin review interface for supplier price tables. Features include: (1) Side-by-side comparison with internal material averages at `/revisao-tabela-precos.html`; (2) Percentage differences with visual indicators (▼/▲); (3) Inline editing with buyer notifications (element X changed from A → B); (4) Bulk approval/rejection actions; (5) Workflow enforcement preventing unapproved suppliers from being used in solicitations; (6) "Revisao de Tabelas de Precos" card in admin panel with pending count badge; (7) Status-based filtering (Pendentes, Aprovadas, Aguardando Reenvio). Extended Fornecedor model with tabela_preco_status field. API routes: `/api/fornecedor-tabela-precos/pendentes`, `/api/fornecedor-tabela-precos/<id>/revisar`, `/api/fornecedor-tabela-precos/<id>/aprovar`, `/api/fornecedor-tabela-precos/<id>/rejeitar`, `/api/fornecedor-tabela-precos/<id>/atualizar-item`.
--   **Supplier Price Table Dashboard (November 29, 2025)**: Implemented complete dashboard for supplier-specific price table management at `/fornecedor-tabela-precos.html`. Features include: (1) Manual material/price entry with searchable dropdown; (2) CSV/XLSX file upload with automatic parsing and validation; (3) Excel template download pre-populated with all active materials; (4) Status-based filtering (Ativo, Pendente, Inativo); (5) Inline edit/delete for pending prices; (6) Admin notifications when new prices are added; (7) Admin approval workflow for pending prices. The "Tabela" button is now visible on all supplier cards in `/fornecedores.html`. API routes: `/api/fornecedor-tabela-precos/*`.
--   **Supplier Price Table DB (November 29, 2025)**: Created `fornecedor_tabela_precos` table for customized supplier pricing per material. Features include: versioning support for price history, status tracking (ativo/inativo/pendente_aprovacao), automatic audit logging via PostgreSQL triggers for all INSERT/UPDATE/DELETE operations, created_by and updated_by tracking for user attribution. Includes `auditoria_fornecedor_tabela_precos` table for complete audit trail with JSON storage of before/after data states. Migration: `018_add_fornecedor_tabela_precos.sql`.
--   **WMS Dynamic Filters Enhancement (November 24, 2025)**: Implemented dynamic loading for Status and Location filters in the "Lotes Ativos" (Active Lots) tab. Created two new metadata endpoints (`/api/wms/status-opcoes` and `/api/wms/localizacao-opcoes`) that return comprehensive lists by merging default system vocabularies with DISTINCT values from the database (Lote and MovimentacaoEstoque tables). This ensures filters display ALL possible values from the system, not just those currently in use. The frontend carregarFiltros() function now fetches these values dynamically on page load, with proper formatting for status display. This replaces hardcoded filter options and provides a more accurate, maintainable filtering experience.
--   **Motorista OS Filter Fix (November 24, 2025)**: Fixed critical security issue where motoristas (drivers) could view all OS (Service Orders) in the system instead of only their assigned ones. Updated `app/routes/ordens_servico.py` to enforce motorista scoping across 3 endpoints (`listar_os`, `obter_os`, `obter_estatisticas`). Added support for both `perfil.nome == 'Motorista'` and `tipo == 'motorista'` for compatibility with different registration methods. Also fixed JavaScript duplication issue in `app/static/js/layout.js` that was causing "Identifier 'API_URL' has already been declared" errors.
--   **Automatic OC Generation Fix (November 24, 2025)**: Fixed critical bug where Purchase Orders (OC - Ordem de Compra) and inventory lots were not being created automatically when a purchase request was auto-approved (price within table limits). Created `_criar_oc_e_lotes()` helper function to centralize OC/lot creation logic, used by both automatic approval flow and manual admin approval. This ensures consistent behavior: when a request is approved (either automatically or manually), the corresponding OC and lots are immediately generated in the same transaction.
+The MRX System is a comprehensive platform designed to manage electronic scrap purchases. Its primary purpose is to streamline procurement, enhance pricing control, and improve supplier management within the electronic scrap industry. Key capabilities include a star-based pricing system, a price authorization workflow for negotiations, and geolocation tracking for suppliers. The system also integrates an AI-powered PCB scanner for material classification, an AI chatbot for system interaction, and a financial achievement planning tool for administrators.
 
 ### User Preferences
 I want iterative development.
@@ -25,42 +13,45 @@ Do not make changes to the file `Y`.
 ### System Architecture
 
 #### UI/UX Decisions
-The frontend utilizes Vanilla JavaScript and Tailwind CSS for a modern and responsive user interface, with Service Workers enabling PWA capabilities. The design emphasizes clarity and efficiency for managing materials, prices, and authorizations.
+The frontend uses Vanilla JavaScript and Tailwind CSS, providing a modern, responsive interface with PWA capabilities via Service Workers. The design focuses on clarity and efficiency for managing materials, prices, and authorizations.
 
 #### Technical Implementations
-The system is built with a Flask backend (Python 3.12) using SQLAlchemy for ORM and PostgreSQL (Neon-backed) as the database. Real-time notifications are handled via Socket.IO, and authentication is managed using JWT.
+The system is built on a Flask backend (Python 3.12) with SQLAlchemy for ORM and PostgreSQL (Neon-backed) as the database. Real-time notifications are managed via Socket.IO, and JWT handles authentication.
 
 #### Feature Specifications
--   **Material Management**: Supports over 50 types of electronic scrap, including detailed classification and descriptions.
--   **Star-Based Pricing**: Three fixed price tables (1★, 2★, 3★) correspond to supplier quality/reliability. Each material has a specific price per table (R$/kg).
--   **Price Authorization Workflow**: Automatically triggers a request when a negotiated price exceeds the supplier's star-level price table. This workflow includes status tracking (pending, approved, rejected), percentage difference calculation, and the ability to promote suppliers to higher star levels upon approval.
--   **Supplier Geolocalization**: Stores latitude/longitude for suppliers, with new suppliers defaulting to 1★.
--   **Supplier Tax ID Flexibility**: Suppliers can be registered with either CPF (individual) or CNPJ (business) tax IDs. The system includes radio button selection in the registration form, backend validation to ensure the correct document type is provided, and proper storage of the document type alongside the tax ID value. (Implemented November 18, 2025)
--   **Freight Modality**: Purchase requests now include a freight modality field (FOB or CIF) to specify shipping responsibility and cost allocation. The field is required during purchase creation and displayed in request details. (Implemented November 18, 2025)
--   **Excel Import/Export**: Functionality for mass import and export of materials and price tables.
--   **Purchase Wizard**: A multi-step wizard for new purchases, handling supplier selection/registration, collection/delivery details, item scanning, value input, and final confirmation. It integrates with material and pricing data and triggers authorization requests when necessary.
--   **WMS (Warehouse Management System)**: Comprehensive inventory lot management with optimized performance. Features include lot details viewing with eager loading to prevent N+1 queries, direct lot number search with indexed lookup, null-safe user validations across all operations (blocking, reserving, moving inventory), and real-time status tracking. The lot detail modal displays Material and Fornecedor (Supplier) information correctly with robust serialization that handles both eager-loaded and lazy-loaded relationships. Action buttons (Movimentar/Move, Reservar/Reserve, Bloquear/Block, Desbloquear/Unblock, Liberar Reserva/Release Reserve) are fully functional with proper API endpoint routing. (Performance optimizations implemented November 22, 2025; modal display and action button fixes implemented November 22, 2025)
--   **CEP (Postal Code) Lookup Integration**: Automatic address population using ViaCEP API (free Brazilian postal code service). Features include: (1) CEP search field in supplier registration form positioned below CPF field that auto-populates address fields (rua, número, cidade, estado, bairro, complemento); (2) Automatic loading of supplier location data when selecting supplier in solicitation form with all fields remaining editable; (3) Manual CEP search capability in solicitation form for address editing; (4) Robust error handling to prevent DOM failures from breaking price/material loading functionality; (5) Isolated try-catch blocks ensuring address filling failures don't interrupt critical business logic. (Implemented November 23, 2025)
+-   **Material Management**: Supports over 50 types of electronic scrap with detailed classification.
+-   **Star-Based Pricing**: Utilizes three fixed price tables (1★, 2★, 3★) linked to supplier quality, with specific prices per material.
+-   **Price Authorization Workflow**: Triggers an authorization request for negotiated prices exceeding standard star-level rates, including status tracking and percentage difference calculation.
+-   **Supplier Geolocalization**: Stores supplier location data, with new suppliers defaulting to 1★.
+-   **Supplier Tax ID Flexibility**: Supports both CPF (individual) and CNPJ (business) tax IDs with validation.
+-   **Freight Modality**: Includes FOB or CIF freight options in purchase requests.
+-   **Excel Import/Export**: Functionality for bulk import and export of materials and price tables.
+-   **Purchase Wizard**: A multi-step wizard for new purchases, integrating supplier selection, collection/delivery details, item scanning, value input, and authorization requests.
+-   **WMS (Warehouse Management System)**: Manages inventory lots with features like lot details viewing, direct search, null-safe user validations, and real-time status tracking.
+-   **PCB Scanner with AI Vision**: Implements intelligent electronic board scanning using AI for classification (LOW/MEDIUM/HIGH grade), price suggestions, component detection, and customizable AI prompts.
+-   **AI Chatbot with System Actions**: An enhanced AI assistant (floating widget) capable of executing system actions via natural language, such as creating suppliers, sending notifications, listing data, and generating summaries, with comprehensive database context provided by Perplexity AI.
+-   **Achievement Planning**: An admin-only feature for tracking financial goals across various categories, with CRUD operations, progress charts, and AI-powered recommendations.
+-   **Supplier Price Table Management**: Allows suppliers to submit and correct price tables, with an admin review interface for side-by-side comparison, inline editing, and bulk approval/rejection.
 
 #### System Design Choices
--   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, and an extended `Fornecedor` model (with `tipo_documento`, `cpf`, and `cnpj` fields) to link suppliers to price tables, responsible buyers, and geolocation. The `Solicitacao` model includes `modalidade_frete` to track shipping terms.
--   **API Endpoints**: Structured RESTful APIs for managing materials (`/api/materiais-base`), price tables (`/api/tabelas-preco`), price authorizations (`/api/autorizacoes-preco`), and suppliers (`/api/fornecedores`) including support for CRUD operations, bulk updates, and Excel integrations. A dedicated endpoint for purchase creation (`/api/compras`) handles complex transaction logic. CEP lookup is available via `/api/fornecedores/buscar-cep/<cep>` endpoint that integrates with ViaCEP API for Brazilian postal code validation and address retrieval.
--   **Security**: Implements JWT for authentication (`@jwt_required`), role-based authorization (`@admin_required`), robust input validation (e.g., non-negative prices, positive weights, negotiated price vs. table price, CPF/CNPJ format and uniqueness validation), and database integrity checks (UNIQUE constraints, foreign keys).
--   **Seed Data**: An idempotent seed script (`seed_modulo_comprador.py`) initializes essential data like price tables, base materials, and initial pricing.
--   **Database Migrations**: Migration scripts handle schema changes safely, including `add_tipo_documento_fornecedor.py` (adds CPF/CNPJ support) and `add_modalidade_frete.py` (adds freight modality tracking).
+-   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, `Fornecedor` (extended with `tipo_documento`, `cpf`, `cnpj`), `Solicitacao` (with `modalidade_frete`), `ScannerConfig`, `ScannerAnalysis`, `Conquista`, and `AporteConquista`.
+-   **API Endpoints**: Structured RESTful APIs for managing materials, price tables, authorizations, suppliers, purchases, and the AI scanner, including CRUD, bulk updates, and Excel integrations. Specific endpoints for CEP lookup and AI assistant actions are also present.
+-   **Security**: Employs JWT for authentication, role-based authorization (`@admin_required`), robust input validation (e.g., prices, weights, CPF/CNPJ format/uniqueness), and database integrity checks.
+-   **Seed Data**: An idempotent seed script initializes essential system data.
+-   **Database Migrations**: Handles schema changes including additions for CPF/CNPJ support and freight modality tracking.
 
 ### External Dependencies
 
 #### Backend
--   Flask 3.0.0
+-   Flask
 -   Flask-SQLAlchemy
 -   Flask-JWT-Extended
 -   Flask-SocketIO
--   psycopg2-binary (for PostgreSQL connectivity)
--   pandas (for data manipulation, likely in Excel operations)
--   openpyxl (for Excel file handling)
+-   psycopg2-binary
+-   pandas
+-   openpyxl
 
 #### Frontend
 -   Tailwind CSS
--   Chart.js (for data visualization, likely in dashboards)
--   Socket.IO Client (for real-time communication)
+-   Chart.js
+-   Socket.IO Client
