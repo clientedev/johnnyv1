@@ -11,8 +11,19 @@ from app.models import (
     Fornecedor, Solicitacao, Lote, EntradaEstoque
 )
 from app.routes.metais import fetch_metals_data, METAL_SYMBOLS
+from app.auth import admin_required
 
 bp = Blueprint('assistente', __name__, url_prefix='/api/assistente')
+
+
+def verificar_admin(usuario_id):
+    """Verifica se o usuario e administrador"""
+    usuario = Usuario.query.get(usuario_id)
+    if not usuario:
+        return None, jsonify({'erro': 'Usuario nao encontrado'}), 404
+    if usuario.tipo != 'admin':
+        return None, jsonify({'erro': 'Acesso restrito a administradores'}), 403
+    return usuario, None, None
 
 PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY')
 PERPLEXITY_MODEL = 'llama-3.1-sonar-small-128k-online'
@@ -238,10 +249,10 @@ Forneca insights sobre mercado de metais, melhores praticas de investimento e an
 def chat():
     try:
         usuario_id = get_jwt_identity()
-        usuario = Usuario.query.get(usuario_id)
+        usuario, erro_response, status_code = verificar_admin(usuario_id)
         
-        if not usuario:
-            return jsonify({'erro': 'Usuario nao encontrado'}), 404
+        if erro_response:
+            return erro_response, status_code
         
         data = request.get_json()
         
@@ -252,7 +263,9 @@ def chat():
         if not mensagem:
             return jsonify({'erro': 'Mensagem vazia'}), 400
         
-        sessao_id = data.get('sessao_id') or str(uuid.uuid4())
+        sessao_id = data.get('sessao_id')
+        if not sessao_id or not sessao_id.strip():
+            sessao_id = str(uuid.uuid4())
         
         resultado = processar_mensagem(mensagem, int(usuario_id), sessao_id)
         resultado['sessao_id'] = sessao_id
@@ -268,6 +281,11 @@ def chat():
 def historico():
     try:
         usuario_id = get_jwt_identity()
+        usuario, erro_response, status_code = verificar_admin(usuario_id)
+        
+        if erro_response:
+            return erro_response, status_code
+        
         sessao_id = request.args.get('sessao_id')
         limite = request.args.get('limite', 50, type=int)
         
@@ -288,6 +306,10 @@ def historico():
 def listar_sessoes():
     try:
         usuario_id = get_jwt_identity()
+        usuario, erro_response, status_code = verificar_admin(usuario_id)
+        
+        if erro_response:
+            return erro_response, status_code
         
         sessoes = db.session.query(
             ConversaBot.sessao_id,
@@ -315,6 +337,11 @@ def listar_sessoes():
 @bp.route('/sugestoes', methods=['GET'])
 @jwt_required()
 def sugestoes():
+    usuario_id = get_jwt_identity()
+    usuario, erro_response, status_code = verificar_admin(usuario_id)
+    
+    if erro_response:
+        return erro_response, status_code
     sugestoes_lista = [
         {'texto': 'Cotacao do ouro hoje', 'icone': 'fa-coins', 'categoria': 'metais'},
         {'texto': 'Precos dos metais preciosos', 'icone': 'fa-chart-line', 'categoria': 'metais'},
@@ -335,6 +362,10 @@ def exportar_conversa(sessao_id):
     from flask import Response
     try:
         usuario_id = get_jwt_identity()
+        usuario, erro_response, status_code = verificar_admin(usuario_id)
+        
+        if erro_response:
+            return erro_response, status_code
         
         conversas = ConversaBot.query.filter_by(
             usuario_id=int(usuario_id),
