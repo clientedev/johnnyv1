@@ -8,7 +8,8 @@ import json
 
 from app.models import (
     db, Usuario, ConversaBot, Conquista, AporteConquista,
-    Fornecedor, Solicitacao, Lote, EntradaEstoque
+    Fornecedor, Solicitacao, Lote, EntradaEstoque, TipoLote,
+    OrdemCompra, ItemSolicitacao
 )
 from app.routes.metais import fetch_metals_data, METAL_SYMBOLS
 from app.auth import admin_required
@@ -16,13 +17,13 @@ from app.auth import admin_required
 bp = Blueprint('assistente', __name__, url_prefix='/api/assistente')
 
 
-def verificar_admin(usuario_id):
-    """Verifica se o usuario e administrador"""
+def verificar_usuario(usuario_id):
+    """Verifica se o usuario existe e esta ativo"""
     usuario = Usuario.query.get(usuario_id)
     if not usuario:
         return None, jsonify({'erro': 'Usuario nao encontrado'}), 404
-    if usuario.tipo != 'admin':
-        return None, jsonify({'erro': 'Acesso restrito a administradores'}), 403
+    if not usuario.ativo:
+        return None, jsonify({'erro': 'Usuario inativo'}), 403
     return usuario, None, None
 
 PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY')
@@ -244,12 +245,77 @@ Forneca insights sobre mercado de metais, melhores praticas de investimento e an
     }
 
 
+def obter_contexto_sistema_completo():
+    """Obtem dados completos do sistema para dar contexto a IA"""
+    try:
+        total_fornecedores = Fornecedor.query.filter_by(ativo=True).count()
+        total_solicitacoes = Solicitacao.query.count()
+        solicitacoes_pendentes = Solicitacao.query.filter_by(status='pendente').count()
+        solicitacoes_aprovadas = Solicitacao.query.filter_by(status='aprovado').count()
+        total_lotes = Lote.query.count()
+        total_entradas = EntradaEstoque.query.count()
+        
+        tipos_lote = TipoLote.query.filter_by(ativo=True).all()
+        tipos_lote_nomes = [t.nome for t in tipos_lote]
+        
+        fornecedores_recentes = Fornecedor.query.filter_by(ativo=True).order_by(
+            Fornecedor.data_cadastro.desc()
+        ).limit(5).all()
+        fornecedores_info = [f"{f.nome} ({f.cidade or 'sem cidade'})" for f in fornecedores_recentes]
+        
+        try:
+            total_ocs = OrdemCompra.query.count()
+            ocs_abertas = OrdemCompra.query.filter(OrdemCompra.status.in_(['pendente', 'em_transito'])).count()
+        except:
+            total_ocs = 0
+            ocs_abertas = 0
+        
+        contexto = f"""Voce e o assistente inteligente do sistema MRX Systems - um sistema ERP completo para gestao de compra e venda de materiais eletronicos para reciclagem de metais preciosos.
+
+DADOS ATUAIS DO SISTEMA (em tempo real):
+- Fornecedores ativos: {total_fornecedores}
+- Fornecedores recentes: {', '.join(fornecedores_info) if fornecedores_info else 'Nenhum'}
+- Total de solicitacoes: {total_solicitacoes}
+- Solicitacoes pendentes: {solicitacoes_pendentes}
+- Solicitacoes aprovadas: {solicitacoes_aprovadas}
+- Lotes registrados: {total_lotes}
+- Entradas no estoque: {total_entradas}
+- Ordens de compra: {total_ocs} (abertas: {ocs_abertas})
+- Tipos de lote disponiveis: {', '.join(tipos_lote_nomes) if tipos_lote_nomes else 'Nenhum cadastrado'}
+
+MODULOS DO SISTEMA QUE VOCE CONHECE:
+1. Fornecedores - Cadastro e gestao de fornecedores de material eletronico
+2. Solicitacoes - Pedidos de compra de materiais
+3. Lotes - Classificacao de materiais por tipo (leve, medio, pesado)
+4. Estoque - Controle de entradas e saidas
+5. Ordens de Compra - Gestao de OCs para fornecedores
+6. Dashboard - Metricas e indicadores do negocio
+7. Conferencias - Verificacao de materiais recebidos
+8. Logistica - Controle de veiculos e motoristas
+9. Metais - Cotacoes de metais preciosos (ouro, prata, cobre, etc)
+10. Financeiro - Controle de pagamentos
+
+COMO VOCE DEVE RESPONDER:
+- Sempre em portugues brasileiro
+- De forma clara, objetiva e profissional
+- Ofereca insights baseados nos dados do sistema
+- Ajude o usuario a entender melhor o negocio
+- Forneca recomendacoes quando apropriado
+- Se nao souber algo especifico, admita e sugira onde encontrar"""
+        
+        return contexto
+    except Exception as e:
+        print(f'Erro ao obter contexto: {e}')
+        return """Voce e o assistente inteligente do sistema MRX Systems para gestao de compra e venda de materiais eletronicos.
+Responda em portugues brasileiro de forma clara e objetiva."""
+
+
 @bp.route('/chat', methods=['POST'])
 @jwt_required()
 def chat():
     try:
         usuario_id = get_jwt_identity()
-        usuario, erro_response, status_code = verificar_admin(usuario_id)
+        usuario, erro_response, status_code = verificar_usuario(usuario_id)
         
         if erro_response:
             return erro_response, status_code
@@ -267,7 +333,7 @@ def chat():
         if not sessao_id or not sessao_id.strip():
             sessao_id = str(uuid.uuid4())
         
-        resultado = processar_mensagem(mensagem, int(usuario_id), sessao_id)
+        resultado = processar_mensagem_inteligente(mensagem, int(usuario_id), sessao_id)
         resultado['sessao_id'] = sessao_id
         
         return jsonify(resultado)
@@ -276,12 +342,97 @@ def chat():
         return jsonify({'erro': str(e)}), 500
 
 
+def processar_mensagem_inteligente(mensagem, usuario_id, sessao_id):
+    """Processa mensagem com contexto completo do sistema"""
+    intencao = identificar_intencao(mensagem)
+    fonte_dados = []
+    resposta_partes = []
+    dados_adicionais = {'intencao': intencao}
+    
+    if intencao == 'cotacao_metais' or 'metal' in mensagem.lower() or 'ouro' in mensagem.lower():
+        try:
+            metals_data = fetch_metals_data()
+            cotacoes_formatadas = formatar_cotacoes_metais(metals_data)
+            resposta_partes.append(cotacoes_formatadas)
+            fonte_dados.append('API de Metais')
+            dados_adicionais['cotacoes'] = metals_data
+        except Exception as e:
+            resposta_partes.append(f'Nao foi possivel obter cotacoes: {str(e)}')
+    
+    if intencao == 'metas':
+        dados_metas = obter_dados_metas(usuario_id)
+        if dados_metas:
+            resposta_partes.append(f"""**Resumo das suas Metas:**
+- Total de metas: {dados_metas['total_metas']}
+- Metas concluidas: {dados_metas['metas_concluidas']}
+- Em andamento: {dados_metas['metas_em_andamento']}
+- Valor total objetivo: R$ {dados_metas['total_objetivo']:,.2f}
+- Total investido: R$ {dados_metas['total_investido']:,.2f}
+- Progresso geral: {dados_metas['progresso_geral']:.1f}%""")
+            fonte_dados.append('Banco de Dados')
+            dados_adicionais['metas'] = dados_metas
+        else:
+            resposta_partes.append('Voce ainda nao possui metas cadastradas.')
+    
+    if intencao == 'dados_empresa':
+        dados = obter_dados_empresa()
+        resposta_partes.append(f"""**Dados da Empresa:**
+- Fornecedores ativos: {dados['total_fornecedores_ativos']}
+- Total de solicitacoes: {dados['total_solicitacoes']}
+- Solicitacoes pendentes: {dados['solicitacoes_pendentes']}
+- Total de lotes: {dados['total_lotes']}
+- Entradas no estoque: {dados['total_entradas_estoque']}""")
+        fonte_dados.append('Banco de Dados')
+        dados_adicionais['empresa'] = dados
+    
+    contexto_completo = obter_contexto_sistema_completo()
+    resultado_perplexity, erro = consultar_perplexity(mensagem, contexto_completo)
+    
+    if resultado_perplexity:
+        if resposta_partes:
+            resposta_partes.append("\n**Analise adicional:**")
+        resposta_partes.append(resultado_perplexity['resposta'])
+        if resultado_perplexity.get('citacoes'):
+            resposta_partes.append('\n**Fontes:**')
+            for citacao in resultado_perplexity['citacoes'][:3]:
+                resposta_partes.append(f'- {citacao}')
+        fonte_dados.append('IA Perplexity')
+        dados_adicionais['perplexity'] = {'citacoes': resultado_perplexity.get('citacoes', [])}
+    elif not resposta_partes:
+        resposta_partes.append('Desculpe, nao consegui processar sua solicitacao. Tente reformular sua pergunta.')
+    
+    resposta_final = '\n\n'.join(resposta_partes)
+    fontes_str = ', '.join(fonte_dados) if fonte_dados else 'Sistema'
+    
+    try:
+        conversa = ConversaBot(
+            usuario_id=usuario_id,
+            sessao_id=sessao_id,
+            mensagem_usuario=mensagem,
+            resposta_bot=resposta_final,
+            tipo_consulta=intencao,
+            fonte_dados=fontes_str,
+            dados_adicionais=dados_adicionais
+        )
+        db.session.add(conversa)
+        db.session.commit()
+    except Exception as e:
+        print(f'Erro ao salvar conversa: {e}')
+    
+    return {
+        'resposta': resposta_final,
+        'tipo_consulta': intencao,
+        'fonte_dados': fontes_str,
+        'timestamp': datetime.now().isoformat()
+    }
+
+
 @bp.route('/historico', methods=['GET'])
 @jwt_required()
 def historico():
     try:
         usuario_id = get_jwt_identity()
-        usuario, erro_response, status_code = verificar_admin(usuario_id)
+        usuario, erro_response, status_code = verificar_usuario(usuario_id)
         
         if erro_response:
             return erro_response, status_code
@@ -306,7 +457,7 @@ def historico():
 def listar_sessoes():
     try:
         usuario_id = get_jwt_identity()
-        usuario, erro_response, status_code = verificar_admin(usuario_id)
+        usuario, erro_response, status_code = verificar_usuario(usuario_id)
         
         if erro_response:
             return erro_response, status_code
@@ -338,7 +489,7 @@ def listar_sessoes():
 @jwt_required()
 def sugestoes():
     usuario_id = get_jwt_identity()
-    usuario, erro_response, status_code = verificar_admin(usuario_id)
+    usuario, erro_response, status_code = verificar_usuario(usuario_id)
     
     if erro_response:
         return erro_response, status_code
@@ -362,7 +513,7 @@ def exportar_conversa(sessao_id):
     from flask import Response
     try:
         usuario_id = get_jwt_identity()
-        usuario, erro_response, status_code = verificar_admin(usuario_id)
+        usuario, erro_response, status_code = verificar_usuario(usuario_id)
         
         if erro_response:
             return erro_response, status_code
