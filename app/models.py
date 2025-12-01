@@ -1838,3 +1838,36 @@ class AporteConquista(db.Model):  # type: ignore
             'observacao': self.observacao,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None
         }
+
+
+class ConversaBot(db.Model):  # type: ignore
+    """Modelo para armazenar conversas do bot inteligente"""
+    __tablename__ = 'conversas_bot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    sessao_id = db.Column(db.String(100), nullable=False)
+    mensagem_usuario = db.Column(db.Text, nullable=False)
+    resposta_bot = db.Column(db.Text, nullable=False)
+    tipo_consulta = db.Column(db.String(50), nullable=True)
+    fonte_dados = db.Column(db.String(100), nullable=True)
+    dados_adicionais = db.Column(db.JSON, nullable=True)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    usuario = db.relationship('Usuario', backref='conversas_bot', lazy=True)
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'usuario_id': self.usuario_id,
+            'sessao_id': self.sessao_id,
+            'mensagem_usuario': self.mensagem_usuario,
+            'resposta_bot': self.resposta_bot,
+            'tipo_consulta': self.tipo_consulta,
+            'fonte_dados': self.fonte_dados,
+            'dados_adicionais': self.dados_adicionais,
+            'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None
+        }

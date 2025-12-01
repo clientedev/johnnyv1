@@ -41,13 +41,15 @@ PERFIL_CONFIG = {
             '/notificacoes.html',
             '/funcionarios.html',
             '/cotacoes-metais.html',
-            '/planejamento-conquistas.html'
+            '/planejamento-conquistas.html',
+            '/assistente.html'
         ],
         'menus': [
             {'id': 'usuarios', 'nome': 'Administração', 'url': '/administracao.html', 'icone': 'settings'},
             {'id': 'dashboard', 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'dashboard'},
             {'id': 'solicitacoes', 'nome': 'Solicitações', 'url': '/solicitacoes.html', 'icone': 'request_quote'},
-            {'id': 'fornecedores', 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'business'}
+            {'id': 'fornecedores', 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'business'},
+            {'id': 'assistente', 'nome': 'Assistente IA', 'url': '/assistente.html', 'icone': 'smart_toy'}
         ]
     },
     'Comprador (PJ)': {

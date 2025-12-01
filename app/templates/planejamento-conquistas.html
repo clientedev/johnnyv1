@@ -1063,13 +1063,21 @@
                     body: JSON.stringify(data)
                 });
                 
-                if (response && response.ok) {
+                if (!response) {
+                    return;
+                }
+                
+                if (response.ok) {
                     showSuccess(id ? 'Meta atualizada com sucesso!' : 'Meta criada com sucesso!');
                     fecharModalConquista();
                     await Promise.all([carregarConquistas(), carregarResumo(), carregarRecomendacoes()]);
                 } else {
-                    const error = await response.json();
-                    showAlert(error.erro || 'Erro ao salvar meta');
+                    try {
+                        const error = await response.json();
+                        showAlert(error.erro || 'Erro ao salvar meta');
+                    } catch (e) {
+                        showAlert('Erro ao salvar meta');
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao salvar conquista:', error);
@@ -1106,11 +1114,20 @@
                     method: 'DELETE'
                 });
                 
-                if (response && response.ok) {
+                if (!response) {
+                    return;
+                }
+                
+                if (response.ok) {
                     showSuccess('Meta excluida com sucesso!');
                     await Promise.all([carregarConquistas(), carregarResumo(), carregarRecomendacoes()]);
                 } else {
-                    showAlert('Erro ao excluir meta');
+                    try {
+                        const error = await response.json();
+                        showAlert(error.erro || 'Erro ao excluir meta');
+                    } catch (e) {
+                        showAlert('Erro ao excluir meta');
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao excluir conquista:', error);
@@ -1146,13 +1163,21 @@
                     body: JSON.stringify(data)
                 });
                 
-                if (response && response.ok) {
+                if (!response) {
+                    return;
+                }
+                
+                if (response.ok) {
                     showSuccess('Aporte registrado com sucesso!');
                     fecharModalAporte();
                     await Promise.all([carregarConquistas(), carregarResumo(), carregarRecomendacoes()]);
                 } else {
-                    const error = await response.json();
-                    showAlert(error.erro || 'Erro ao registrar aporte');
+                    try {
+                        const error = await response.json();
+                        showAlert(error.erro || 'Erro ao registrar aporte');
+                    } catch (e) {
+                        showAlert('Erro ao registrar aporte');
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao registrar aporte:', error);

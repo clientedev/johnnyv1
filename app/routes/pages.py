@@ -83,3 +83,7 @@ def cotacoes_metais():
 @bp.route('/planejamento-conquistas.html')
 def planejamento_conquistas():
     return render_template('planejamento-conquistas.html')
+
+@bp.route('/assistente.html')
+def assistente():
+    return render_template('assistente.html')
