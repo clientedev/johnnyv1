@@ -48,8 +48,7 @@ PERFIL_CONFIG = {
             {'id': 'usuarios', 'nome': 'Administração', 'url': '/administracao.html', 'icone': 'settings'},
             {'id': 'dashboard', 'nome': 'Dashboard', 'url': '/dashboard.html', 'icone': 'dashboard'},
             {'id': 'solicitacoes', 'nome': 'Solicitações', 'url': '/solicitacoes.html', 'icone': 'request_quote'},
-            {'id': 'fornecedores', 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'business'},
-            {'id': 'assistente', 'nome': 'Assistente IA', 'url': '/assistente.html', 'icone': 'smart_toy'}
+            {'id': 'fornecedores', 'nome': 'Fornecedores', 'url': '/fornecedores.html', 'icone': 'business'}
         ]
     },
     'Comprador (PJ)': {
