@@ -70,7 +70,7 @@ def create_app():
                                 perfis, veiculos, motoristas, auditoria, ordens_compra,
                                 ordens_servico, conferencias, estoque, separacao, wms, pages,
                                 materiais_base, tabelas_preco, autorizacoes_preco, compras,
-                                fornecedor_tabela_precos, metais, conquistas, assistente, scanner)
+                                fornecedor_tabela_precos, metais, conquistas, assistente, scanner, rh)
         from app.routes import solicitacoes_new as solicitacoes
         from app.routes import lotes_new as lotes
         from app.routes import entradas_new as entradas
@@ -108,7 +108,35 @@ def create_app():
         app.register_blueprint(conquistas.bp)
         app.register_blueprint(assistente.bp)
         app.register_blueprint(scanner.bp)
+        app.register_blueprint(rh.bp)
 
+        def run_hr_migration():
+            try:
+                from sqlalchemy import text
+                columns_to_add = [
+                    ("foto_path", "VARCHAR(255)"),
+                    ("percentual_comissao", "NUMERIC(5,2) DEFAULT 0"),
+                    ("telefone", "VARCHAR(20)"),
+                    ("cpf", "VARCHAR(14)"),
+                    ("data_atualizacao", "TIMESTAMP")
+                ]
+                
+                with db.engine.connect() as conn:
+                    for column_name, column_type in columns_to_add:
+                        result = conn.execute(text(f"""
+                            SELECT column_name 
+                            FROM information_schema.columns 
+                            WHERE table_name = 'usuarios' AND column_name = '{column_name}'
+                        """))
+                        
+                        if result.fetchone() is None:
+                            conn.execute(text(f"ALTER TABLE usuarios ADD COLUMN {column_name} {column_type}"))
+                            conn.commit()
+                            print(f"✓ Added column usuarios.{column_name}")
+            except Exception as e:
+                print(f"Migration check: {e}")
+
+        run_hr_migration()
         db.create_all()
 
         # Inicializar tabelas de preço

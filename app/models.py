@@ -47,6 +47,11 @@ class Usuario(db.Model):  # type: ignore
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    foto_path = db.Column(db.String(255), nullable=True)
+    percentual_comissao = db.Column(db.Float, nullable=True, default=0.0)
+    telefone = db.Column(db.String(20), nullable=True)
+    cpf = db.Column(db.String(14), nullable=True)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     solicitacoes = db.relationship('Solicitacao', backref='funcionario', lazy=True, cascade='all, delete-orphan', foreign_keys='Solicitacao.funcionario_id')
     notificacoes = db.relationship('Notificacao', backref='usuario', lazy=True, cascade='all, delete-orphan')
@@ -66,9 +71,14 @@ class Usuario(db.Model):  # type: ignore
             'perfil_id': self.perfil_id,
             'perfil_nome': self.perfil.nome if self.perfil else None,
             'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None,
             'ativo': self.ativo,
             'criado_por': self.criado_por,
-            'criador_nome': self.criador.nome if self.criador else None
+            'criador_nome': self.criador.nome if self.criador else None,
+            'foto_path': self.foto_path,
+            'percentual_comissao': self.percentual_comissao or 0.0,
+            'telefone': self.telefone,
+            'cpf': self.cpf
         }
 
     def has_permission(self, permission: str) -> bool:

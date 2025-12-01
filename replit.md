@@ -32,9 +32,16 @@ The system is built on a Flask backend (Python 3.12) with SQLAlchemy for ORM and
 -   **AI Chatbot with System Actions**: An enhanced AI assistant (floating widget) capable of executing system actions via natural language, such as creating suppliers, sending notifications, listing data, and generating summaries, with comprehensive database context provided by Perplexity AI.
 -   **Achievement Planning**: An admin-only feature for tracking financial goals across various categories, with CRUD operations, progress charts, and AI-powered recommendations.
 -   **Supplier Price Table Management**: Allows suppliers to submit and correct price tables, with an admin review interface for side-by-side comparison, inline editing, and bulk approval/rejection.
+-   **HR Module (RH)**: A comprehensive human resources module accessible at `/rh-admin.html` with the following features:
+    -   **User Management**: Full CRUD for employees with photo upload, profile assignment, contact information (phone, CPF), and status management.
+    -   **Commission System**: Percentage-based commission tracking tied to purchase solicitations (solicitações), with assignment of commission percentages per user.
+    -   **Commission Reports**: Detailed reporting with filtering by date range and user, showing total value of solicitations and calculated commissions.
+    -   **Export Functionality**: CSV and Excel export for commission reports using pandas/openpyxl.
+    -   **Audit Logging**: Complete audit trail for all HR operations using the existing AuditoriaLog system, tracking before/after changes.
+    -   **User Photo Uploads**: Photos stored in `uploads/usuarios/` directory with validation for image types and size limits.
 
 #### System Design Choices
--   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, `Fornecedor` (extended with `tipo_documento`, `cpf`, `cnpj`), `Solicitacao` (with `modalidade_frete`), `ScannerConfig`, `ScannerAnalysis`, `Conquista`, and `AporteConquista`.
+-   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, `Fornecedor` (extended with `tipo_documento`, `cpf`, `cnpj`), `Solicitacao` (with `modalidade_frete`), `ScannerConfig`, `ScannerAnalysis`, `Conquista`, `AporteConquista`, and `Usuario` (extended with `foto_path`, `percentual_comissao`, `telefone`, `cpf`, `data_atualizacao` for HR module).
 -   **API Endpoints**: Structured RESTful APIs for managing materials, price tables, authorizations, suppliers, purchases, and the AI scanner, including CRUD, bulk updates, and Excel integrations. Specific endpoints for CEP lookup and AI assistant actions are also present.
 -   **Security**: Employs JWT for authentication, role-based authorization (`@admin_required`), robust input validation (e.g., prices, weights, CPF/CNPJ format/uniqueness), and database integrity checks.
 -   **Seed Data**: An idempotent seed script initializes essential system data.
