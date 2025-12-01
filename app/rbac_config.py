@@ -39,7 +39,9 @@ PERFIL_CONFIG = {
             '/administracao.html',
             '/configuracoes.html',
             '/notificacoes.html',
-            '/funcionarios.html'
+            '/funcionarios.html',
+            '/cotacoes-metais.html',
+            '/planejamento-conquistas.html'
         ],
         'menus': [
             {'id': 'usuarios', 'nome': 'Administração', 'url': '/administracao.html', 'icone': 'settings'},

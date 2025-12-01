@@ -75,3 +75,4 @@ requests
 sqlalchemy
 werkzeug
 xlrd>=2.0.1
+python-dateutil

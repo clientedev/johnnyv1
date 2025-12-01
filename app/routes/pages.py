@@ -75,3 +75,11 @@ def veiculos():
 @bp.route('/fornecedor-tabela-precos.html')
 def fornecedor_tabela_precos():
     return render_template('fornecedor-tabela-precos.html')
+
+@bp.route('/cotacoes-metais.html')
+def cotacoes_metais():
+    return render_template('cotacoes-metais.html')
+
+@bp.route('/planejamento-conquistas.html')
+def planejamento_conquistas():
+    return render_template('planejamento-conquistas.html')

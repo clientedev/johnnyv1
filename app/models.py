@@ -1730,3 +1730,111 @@ class SolicitacaoAutorizacaoPreco(db.Model):  # type: ignore
             'data_solicitacao': self.data_solicitacao.isoformat() if self.data_solicitacao else None,
             'data_decisao': self.data_decisao.isoformat() if self.data_decisao else None
         }
+
+
+class Conquista(db.Model):  # type: ignore
+    """Modelo para planejamento de conquistas/metas financeiras"""
+    __tablename__ = 'conquistas'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    titulo = db.Column(db.String(200), nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    categoria = db.Column(db.String(50), nullable=False, default='outros')
+    valor_total = db.Column(db.Numeric(12, 2), nullable=False)
+    valor_investido = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    aporte_mensal = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    prazo_meses = db.Column(db.Integer, nullable=False)
+    data_inicio = db.Column(db.Date, nullable=False)
+    data_meta = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='em_andamento')
+    prioridade = db.Column(db.Integer, nullable=False, default=1)
+    cor = db.Column(db.String(7), nullable=True, default='#8b5cf6')
+    icone = db.Column(db.String(50), nullable=True, default='fa-trophy')
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    usuario = db.relationship('Usuario', backref='conquistas', lazy=True)
+    aportes = db.relationship('AporteConquista', backref='conquista', lazy=True, cascade='all, delete-orphan')
+
+    def __init__(self, **kwargs: Any) -> None:
+        if 'status' in kwargs and kwargs['status'] not in ['em_andamento', 'concluida', 'pausada', 'cancelada']:
+            raise ValueError('Status deve ser: em_andamento, concluida, pausada ou cancelada')
+        if 'categoria' in kwargs and kwargs['categoria'] not in ['imovel', 'veiculo', 'viagem', 'reserva', 'educacao', 'aposentadoria', 'outros']:
+            raise ValueError('Categoria invalida')
+        super().__init__(**kwargs)
+
+    @property
+    def progresso(self):
+        if self.valor_total and float(self.valor_total) > 0:
+            return min(100, (float(self.valor_investido or 0) / float(self.valor_total)) * 100)
+        return 0
+
+    @property
+    def valor_restante(self):
+        return float(self.valor_total or 0) - float(self.valor_investido or 0)
+
+    @property
+    def meses_restantes(self):
+        from datetime import date
+        if self.data_meta:
+            hoje = date.today()
+            delta = self.data_meta - hoje
+            return max(0, delta.days // 30)
+        return 0
+
+    @property
+    def aporte_necessario(self):
+        if self.meses_restantes > 0:
+            return self.valor_restante / self.meses_restantes
+        return self.valor_restante
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'usuario_id': self.usuario_id,
+            'titulo': self.titulo,
+            'descricao': self.descricao,
+            'categoria': self.categoria,
+            'valor_total': float(self.valor_total) if self.valor_total else 0,
+            'valor_investido': float(self.valor_investido) if self.valor_investido else 0,
+            'aporte_mensal': float(self.aporte_mensal) if self.aporte_mensal else 0,
+            'prazo_meses': self.prazo_meses,
+            'data_inicio': self.data_inicio.isoformat() if self.data_inicio else None,
+            'data_meta': self.data_meta.isoformat() if self.data_meta else None,
+            'status': self.status,
+            'prioridade': self.prioridade,
+            'cor': self.cor,
+            'icone': self.icone,
+            'progresso': round(self.progresso, 2),
+            'valor_restante': round(self.valor_restante, 2),
+            'meses_restantes': self.meses_restantes,
+            'aporte_necessario': round(self.aporte_necessario, 2),
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
+
+class AporteConquista(db.Model):  # type: ignore
+    """Modelo para registrar aportes realizados em uma conquista"""
+    __tablename__ = 'aportes_conquista'
+
+    id = db.Column(db.Integer, primary_key=True)
+    conquista_id = db.Column(db.Integer, db.ForeignKey('conquistas.id'), nullable=False)
+    valor = db.Column(db.Numeric(12, 2), nullable=False)
+    data_aporte = db.Column(db.Date, nullable=False)
+    observacao = db.Column(db.Text, nullable=True)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'conquista_id': self.conquista_id,
+            'valor': float(self.valor) if self.valor else 0,
+            'data_aporte': self.data_aporte.isoformat() if self.data_aporte else None,
+            'observacao': self.observacao,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None
+        }

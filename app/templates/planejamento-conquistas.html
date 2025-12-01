@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planejamento de Conquistas - MRX Systems</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#059669">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --conquista-purple: #8b5cf6;
+            --conquista-green: #10b981;
+            --conquista-blue: #3b82f6;
+            --conquista-orange: #f97316;
+            --conquista-pink: #ec4899;
+        }
+
+        .conquistas-dashboard {
+            padding: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .dashboard-header h1 {
+            font-size: 1.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .summary-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .summary-card-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .summary-card-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .conquistas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .conquista-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-top: 4px solid var(--conquista-purple);
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .conquista-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        .conquista-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .conquista-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            color: white;
+        }
+
+        .conquista-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .conquista-actions button {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f3f4f6;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+
+        .conquista-actions button:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .conquista-titulo {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+
+        .conquista-categoria {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            background: #f3f4f6;
+            color: #6b7280;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .conquista-valores {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .conquista-valor-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .conquista-valor-label {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-bottom: 0.25rem;
+        }
+
+        .conquista-valor-numero {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .conquista-progresso {
+            margin-bottom: 1rem;
+        }
+
+        .progresso-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .progresso-texto {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .progresso-percentual {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--conquista-green);
+        }
+
+        .progresso-barra {
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progresso-preenchido {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.5s ease;
+        }
+
+        .conquista-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .conquista-prazo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .conquista-prazo i {
+            color: #9ca3af;
+        }
+
+        .btn-aporte {
+            padding: 0.5rem 1rem;
+            background: var(--conquista-green);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-aporte:hover {
+            background: #059669;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .chart-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-wrapper {
+            height: 300px;
+            position: relative;
+        }
+
+        .recomendacoes-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .recomendacao-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid var(--conquista-blue);
+        }
+
+        .recomendacao-item.alta {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .recomendacao-item.media {
+            border-left-color: #f97316;
+            background: #fff7ed;
+        }
+
+        .recomendacao-item.baixa {
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .recomendacao-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .recomendacao-content {
+            flex: 1;
+        }
+
+        .recomendacao-titulo {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+
+        .recomendacao-mensagem {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #9ca3af;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state p {
+            font-size: 1.125rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-conquista .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 480px) {
+            .modal-conquista .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .conquistas-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .categoria-select-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .categoria-select-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .categoria-option {
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .categoria-option:hover {
+            border-color: var(--conquista-purple);
+        }
+
+        .categoria-option.selected {
+            border-color: var(--conquista-purple);
+            background: #f5f3ff;
+        }
+
+        .categoria-option i {
+            display: block;
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+            color: #6b7280;
+        }
+
+        .categoria-option.selected i {
+            color: var(--conquista-purple);
+        }
+
+        .categoria-option span {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-badge.em_andamento {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-badge.concluida {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .status-badge.pausada {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .status-badge.cancelada {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        @media (max-width: 767px) {
+            main.container {
+                padding-top: 60px !important;
+                padding-bottom: 80px !important;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            main.container {
+                padding-top: 50px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content" style="justify-content: space-between;">
+            <div class="logo">
+                <img src="/static/images/mrx-logo.png" alt="MRX">
+                <span>Planejamento de Conquistas</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="notification-badge" onclick="window.location.href='/notificacoes.html'">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-count" id="headerNotificationCount" style="display: none;">0</span>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()" style="font-size: 0.875rem; padding: 0.5rem 1rem;">Sair</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="bottom-nav" id="navMenuMobile"></nav>
+
+    <main class="container mt-4">
+        <div class="conquistas-dashboard">
+            <div class="dashboard-header">
+                <h1>
+                    <i class="fas fa-trophy" style="color: var(--conquista-purple);"></i>
+                    Minhas Conquistas
+                </h1>
+                <button class="btn btn-primary" onclick="abrirModalNovaConquista()">
+                    <i class="fas fa-plus"></i> Nova Meta
+                </button>
+            </div>
+
+            <div class="summary-cards" id="summaryCards">
+                <div class="summary-card">
+                    <div class="summary-card-icon" style="background: var(--conquista-purple);">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="summary-card-value" id="totalMetas">0</div>
+                    <div class="summary-card-label">Metas Cadastradas</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-icon" style="background: var(--conquista-green);">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="summary-card-value" id="metasConcluidas">0</div>
+                    <div class="summary-card-label">Metas Concluidas</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-icon" style="background: var(--conquista-blue);">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="summary-card-value" id="totalInvestido">R$ 0</div>
+                    <div class="summary-card-label">Total Investido</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-icon" style="background: var(--conquista-orange);">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="summary-card-value" id="progressoGeral">0%</div>
+                    <div class="summary-card-label">Progresso Geral</div>
+                </div>
+            </div>
+
+            <div class="recomendacoes-section" id="recomendacoesSection" style="display: none;">
+                <h2 class="chart-title">
+                    <i class="fas fa-lightbulb" style="color: #f59e0b;"></i>
+                    Recomendacoes Inteligentes
+                </h2>
+                <div id="recomendacoesList"></div>
+            </div>
+
+            <div class="charts-section">
+                <div class="chart-container">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-pie"></i>
+                        Distribuicao por Categoria
+                    </h3>
+                    <div class="chart-wrapper">
+                        <canvas id="categoriaChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-bar"></i>
+                        Progresso das Metas
+                    </h3>
+                    <div class="chart-wrapper">
+                        <canvas id="progressoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <h2 style="font-size: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-list-check"></i>
+                Suas Metas
+            </h2>
+
+            <div class="conquistas-grid" id="conquistasGrid">
+                <div class="empty-state">
+                    <i class="fas fa-trophy"></i>
+                    <p>Voce ainda nao tem metas cadastradas</p>
+                    <button class="btn btn-primary" onclick="abrirModalNovaConquista()">
+                        <i class="fas fa-plus"></i> Criar Primeira Meta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal modal-conquista" id="modalNovaConquista">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="modalConquistaTitle">Nova Meta</h2>
+                <span class="modal-close" onclick="fecharModalConquista()">&times;</span>
+            </div>
+            <form id="formConquista" onsubmit="salvarConquista(event)">
+                <input type="hidden" id="conquistaId">
+                
+                <div class="form-group">
+                    <label>Titulo da Meta *</label>
+                    <input type="text" id="conquistaTitulo" required placeholder="Ex: Comprar casa propria">
+                </div>
+
+                <div class="form-group">
+                    <label>Descricao</label>
+                    <textarea id="conquistaDescricao" rows="2" placeholder="Detalhes sobre sua meta..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <div class="categoria-select-container" id="categoriaContainer">
+                        <div class="categoria-option" data-value="imovel" onclick="selecionarCategoria('imovel')">
+                            <i class="fas fa-home"></i>
+                            <span>Imovel</span>
+                        </div>
+                        <div class="categoria-option" data-value="veiculo" onclick="selecionarCategoria('veiculo')">
+                            <i class="fas fa-car"></i>
+                            <span>Veiculo</span>
+                        </div>
+                        <div class="categoria-option" data-value="viagem" onclick="selecionarCategoria('viagem')">
+                            <i class="fas fa-plane"></i>
+                            <span>Viagem</span>
+                        </div>
+                        <div class="categoria-option" data-value="reserva" onclick="selecionarCategoria('reserva')">
+                            <i class="fas fa-piggy-bank"></i>
+                            <span>Reserva</span>
+                        </div>
+                        <div class="categoria-option" data-value="educacao" onclick="selecionarCategoria('educacao')">
+                            <i class="fas fa-graduation-cap"></i>
+                            <span>Educacao</span>
+                        </div>
+                        <div class="categoria-option" data-value="aposentadoria" onclick="selecionarCategoria('aposentadoria')">
+                            <i class="fas fa-umbrella-beach"></i>
+                            <span>Aposentadoria</span>
+                        </div>
+                        <div class="categoria-option selected" data-value="outros" onclick="selecionarCategoria('outros')">
+                            <i class="fas fa-star"></i>
+                            <span>Outros</span>
+                        </div>
+                    </div>
+                    <input type="hidden" id="conquistaCategoria" value="outros">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor Total da Meta *</label>
+                        <input type="number" id="conquistaValorTotal" required min="0" step="0.01" placeholder="0,00">
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Ja Investido</label>
+                        <input type="number" id="conquistaValorInvestido" min="0" step="0.01" value="0" placeholder="0,00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Aporte Mensal Previsto</label>
+                        <input type="number" id="conquistaAporteMensal" min="0" step="0.01" value="0" placeholder="0,00">
+                    </div>
+                    <div class="form-group">
+                        <label>Prazo (em meses) *</label>
+                        <input type="number" id="conquistaPrazo" required min="1" max="600" value="12" placeholder="12">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prioridade</label>
+                        <select id="conquistaPrioridade">
+                            <option value="1">Alta</option>
+                            <option value="2" selected>Media</option>
+                            <option value="3">Baixa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cor do Card</label>
+                        <input type="color" id="conquistaCor" value="#8b5cf6" style="height: 42px; width: 100%;">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full">
+                    <i class="fas fa-save"></i> Salvar Meta
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="modalAporte">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Registrar Aporte</h2>
+                <span class="modal-close" onclick="fecharModalAporte()">&times;</span>
+            </div>
+            <form id="formAporte" onsubmit="salvarAporte(event)">
+                <input type="hidden" id="aporteConquistaId">
+                
+                <div class="form-group">
+                    <label>Valor do Aporte *</label>
+                    <input type="number" id="aporteValor" required min="0.01" step="0.01" placeholder="0,00">
+                </div>
+
+                <div class="form-group">
+                    <label>Data do Aporte</label>
+                    <input type="date" id="aporteData">
+                </div>
+
+                <div class="form-group">
+                    <label>Observacao</label>
+                    <textarea id="aporteObservacao" rows="2" placeholder="Opcional..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full">
+                    <i class="fas fa-plus"></i> Registrar Aporte
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/rbac.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        let conquistas = [];
+        let resumo = null;
+        let categoriaChart = null;
+        let progressoChart = null;
+        let categoriaSelecionada = 'outros';
+
+        const categoriaConfig = {
+            'imovel': { icon: 'fa-home', label: 'Imovel', cor: '#8b5cf6' },
+            'veiculo': { icon: 'fa-car', label: 'Veiculo', cor: '#3b82f6' },
+            'viagem': { icon: 'fa-plane', label: 'Viagem', cor: '#f97316' },
+            'reserva': { icon: 'fa-piggy-bank', label: 'Reserva', cor: '#10b981' },
+            'educacao': { icon: 'fa-graduation-cap', label: 'Educacao', cor: '#ec4899' },
+            'aposentadoria': { icon: 'fa-umbrella-beach', label: 'Aposentadoria', cor: '#06b6d4' },
+            'outros': { icon: 'fa-star', label: 'Outros', cor: '#6366f1' }
+        };
+
+        async function carregarPagina() {
+            const user = await verificarAuth();
+            if (!user) return;
+            
+            if (user.tipo !== 'admin') {
+                showAlert('Acesso negado. Apenas administradores podem acessar esta pagina.');
+                window.location.href = '/dashboard.html';
+                return;
+            }
+            
+            await Promise.all([
+                carregarConquistas(),
+                carregarResumo(),
+                carregarRecomendacoes()
+            ]);
+        }
+
+        async function carregarConquistas() {
+            try {
+                const response = await fetchAPI('/conquistas');
+                if (response && response.ok) {
+                    conquistas = await response.json();
+                    renderConquistas();
+                    renderProgressoChart();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar conquistas:', error);
+            }
+        }
+
+        async function carregarResumo() {
+            try {
+                const response = await fetchAPI('/conquistas/resumo');
+                if (response && response.ok) {
+                    resumo = await response.json();
+                    renderResumo();
+                    renderCategoriaChart();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar resumo:', error);
+            }
+        }
+
+        async function carregarRecomendacoes() {
+            try {
+                const response = await fetchAPI('/conquistas/recomendacoes');
+                if (response && response.ok) {
+                    const recomendacoes = await response.json();
+                    renderRecomendacoes(recomendacoes);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar recomendacoes:', error);
+            }
+        }
+
+        function renderResumo() {
+            if (!resumo) return;
+            
+            document.getElementById('totalMetas').textContent = resumo.total_metas;
+            document.getElementById('metasConcluidas').textContent = resumo.metas_concluidas;
+            document.getElementById('totalInvestido').textContent = formatarMoeda(resumo.total_investido);
+            document.getElementById('progressoGeral').textContent = resumo.progresso_geral.toFixed(1) + '%';
+        }
+
+        function renderConquistas() {
+            const grid = document.getElementById('conquistasGrid');
+            
+            if (!conquistas || conquistas.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <i class="fas fa-trophy"></i>
+                        <p>Voce ainda nao tem metas cadastradas</p>
+                        <button class="btn btn-primary" onclick="abrirModalNovaConquista()">
+                            <i class="fas fa-plus"></i> Criar Primeira Meta
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = conquistas.map(c => {
+                const cat = categoriaConfig[c.categoria] || categoriaConfig['outros'];
+                const statusClass = c.status;
+                
+                return `
+                    <div class="conquista-card" style="border-top-color: ${c.cor || cat.cor}">
+                        <div class="conquista-header">
+                            <div class="conquista-icon" style="background: ${c.cor || cat.cor}">
+                                <i class="fas ${c.icone || cat.icon}"></i>
+                            </div>
+                            <div class="conquista-actions">
+                                <button onclick="editarConquista(${c.id})" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="excluirConquista(${c.id})" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <h3 class="conquista-titulo">${c.titulo}</h3>
+                        <span class="conquista-categoria">${cat.label}</span>
+                        <span class="status-badge ${statusClass}" style="margin-left: 0.5rem;">${formatarStatus(c.status)}</span>
+                        
+                        <div class="conquista-valores">
+                            <div class="conquista-valor-item">
+                                <div class="conquista-valor-label">Meta</div>
+                                <div class="conquista-valor-numero">${formatarMoeda(c.valor_total)}</div>
+                            </div>
+                            <div class="conquista-valor-item">
+                                <div class="conquista-valor-label">Investido</div>
+                                <div class="conquista-valor-numero" style="color: var(--conquista-green);">${formatarMoeda(c.valor_investido)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="conquista-progresso">
+                            <div class="progresso-header">
+                                <span class="progresso-texto">Progresso</span>
+                                <span class="progresso-percentual">${c.progresso.toFixed(1)}%</span>
+                            </div>
+                            <div class="progresso-barra">
+                                <div class="progresso-preenchido" style="width: ${c.progresso}%; background: ${c.cor || cat.cor}"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="conquista-footer">
+                            <div class="conquista-prazo">
+                                <i class="fas fa-calendar"></i>
+                                <span>${c.meses_restantes} meses restantes</span>
+                            </div>
+                            ${c.status === 'em_andamento' ? `
+                            <button class="btn-aporte" onclick="abrirModalAporte(${c.id})">
+                                <i class="fas fa-plus"></i> Aporte
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatarStatus(status) {
+            const statusMap = {
+                'em_andamento': 'Em Andamento',
+                'concluida': 'Concluida',
+                'pausada': 'Pausada',
+                'cancelada': 'Cancelada'
+            };
+            return statusMap[status] || status;
+        }
+
+        function renderRecomendacoes(recomendacoes) {
+            const section = document.getElementById('recomendacoesSection');
+            const list = document.getElementById('recomendacoesList');
+            
+            if (!recomendacoes || recomendacoes.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            
+            const iconMap = {
+                'aumento_aporte': 'fa-arrow-up',
+                'prazo_curto': 'fa-clock',
+                'quase_concluida': 'fa-trophy'
+            };
+            
+            const corMap = {
+                'alta': '#ef4444',
+                'media': '#f97316',
+                'baixa': '#10b981'
+            };
+            
+            list.innerHTML = recomendacoes.map(r => `
+                <div class="recomendacao-item ${r.prioridade}">
+                    <div class="recomendacao-icon" style="background: ${corMap[r.prioridade]}20; color: ${corMap[r.prioridade]};">
+                        <i class="fas ${iconMap[r.tipo] || 'fa-lightbulb'}"></i>
+                    </div>
+                    <div class="recomendacao-content">
+                        <div class="recomendacao-titulo">${r.titulo}</div>
+                        <div class="recomendacao-mensagem">${r.mensagem}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCategoriaChart() {
+            if (!resumo || !resumo.por_categoria) return;
+            
+            const ctx = document.getElementById('categoriaChart').getContext('2d');
+            
+            if (categoriaChart) {
+                categoriaChart.destroy();
+            }
+            
+            const categorias = Object.keys(resumo.por_categoria);
+            const valores = categorias.map(c => resumo.por_categoria[c].valor_total);
+            const cores = categorias.map(c => categoriaConfig[c]?.cor || '#6b7280');
+            const labels = categorias.map(c => categoriaConfig[c]?.label || c);
+            
+            if (categorias.length === 0) {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#9ca3af';
+                ctx.textAlign = 'center';
+                ctx.fillText('Nenhum dado disponivel', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+            
+            categoriaChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: cores,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderProgressoChart() {
+            if (!conquistas || conquistas.length === 0) return;
+            
+            const ctx = document.getElementById('progressoChart').getContext('2d');
+            
+            if (progressoChart) {
+                progressoChart.destroy();
+            }
+            
+            const metasEmAndamento = conquistas.filter(c => c.status === 'em_andamento').slice(0, 6);
+            
+            if (metasEmAndamento.length === 0) {
+                return;
+            }
+            
+            const labels = metasEmAndamento.map(c => c.titulo.length > 15 ? c.titulo.substring(0, 15) + '...' : c.titulo);
+            const progresso = metasEmAndamento.map(c => c.progresso);
+            const cores = metasEmAndamento.map(c => c.cor || '#8b5cf6');
+            
+            progressoChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Progresso %',
+                        data: progresso,
+                        backgroundColor: cores,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: value => value + '%'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function selecionarCategoria(categoria) {
+            categoriaSelecionada = categoria;
+            document.getElementById('conquistaCategoria').value = categoria;
+            
+            document.querySelectorAll('.categoria-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.querySelector(`.categoria-option[data-value="${categoria}"]`).classList.add('selected');
+        }
+
+        function abrirModalNovaConquista() {
+            document.getElementById('modalConquistaTitle').textContent = 'Nova Meta';
+            document.getElementById('formConquista').reset();
+            document.getElementById('conquistaId').value = '';
+            document.getElementById('conquistaCor').value = '#8b5cf6';
+            selecionarCategoria('outros');
+            document.getElementById('modalNovaConquista').style.display = 'flex';
+        }
+
+        function fecharModalConquista() {
+            document.getElementById('modalNovaConquista').style.display = 'none';
+        }
+
+        async function salvarConquista(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('conquistaId').value;
+            const data = {
+                titulo: document.getElementById('conquistaTitulo').value,
+                descricao: document.getElementById('conquistaDescricao').value,
+                categoria: document.getElementById('conquistaCategoria').value,
+                valor_total: parseFloat(document.getElementById('conquistaValorTotal').value),
+                valor_investido: parseFloat(document.getElementById('conquistaValorInvestido').value) || 0,
+                aporte_mensal: parseFloat(document.getElementById('conquistaAporteMensal').value) || 0,
+                prazo_meses: parseInt(document.getElementById('conquistaPrazo').value),
+                prioridade: parseInt(document.getElementById('conquistaPrioridade').value),
+                cor: document.getElementById('conquistaCor').value,
+                icone: categoriaConfig[categoriaSelecionada]?.icon || 'fa-trophy'
+            };
+            
+            try {
+                const url = id ? `/conquistas/${id}` : '/conquistas';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetchAPI(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response && response.ok) {
+                    showSuccess(id ? 'Meta atualizada com sucesso!' : 'Meta criada com sucesso!');
+                    fecharModalConquista();
+                    await Promise.all([carregarConquistas(), carregarResumo(), carregarRecomendacoes()]);
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || 'Erro ao salvar meta');
+                }
+            } catch (error) {
+                console.error('Erro ao salvar conquista:', error);
+                showAlert('Erro ao salvar meta');
+            }
+        }
+
+        async function editarConquista(id) {
+            const conquista = conquistas.find(c => c.id === id);
+            if (!conquista) return;
+            
+            document.getElementById('modalConquistaTitle').textContent = 'Editar Meta';
+            document.getElementById('conquistaId').value = conquista.id;
+            document.getElementById('conquistaTitulo').value = conquista.titulo;
+            document.getElementById('conquistaDescricao').value = conquista.descricao || '';
+            document.getElementById('conquistaValorTotal').value = conquista.valor_total;
+            document.getElementById('conquistaValorInvestido').value = conquista.valor_investido;
+            document.getElementById('conquistaAporteMensal').value = conquista.aporte_mensal;
+            document.getElementById('conquistaPrazo').value = conquista.prazo_meses;
+            document.getElementById('conquistaPrioridade').value = conquista.prioridade;
+            document.getElementById('conquistaCor').value = conquista.cor || '#8b5cf6';
+            selecionarCategoria(conquista.categoria);
+            
+            document.getElementById('modalNovaConquista').style.display = 'flex';
+        }
+
+        async function excluirConquista(id) {
+            const confirmado = await showConfirm('Tem certeza que deseja excluir esta meta? Esta acao nao pode ser desfeita.');
+            
+            if (!confirmado) return;
+            
+            try {
+                const response = await fetchAPI(`/conquistas/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response && response.ok) {
+                    showSuccess('Meta excluida com sucesso!');
+                    await Promise.all([carregarConquistas(), carregarResumo(), carregarRecomendacoes()]);
+                } else {
+                    showAlert('Erro ao excluir meta');
+                }
+            } catch (error) {
+                console.error('Erro ao excluir conquista:', error);
+                showAlert('Erro ao excluir meta');
+            }
+        }
+
+        function abrirModalAporte(conquistaId) {
+            document.getElementById('formAporte').reset();
+            document.getElementById('aporteConquistaId').value = conquistaId;
+            document.getElementById('aporteData').value = new Date().toISOString().split('T')[0];
+            document.getElementById('modalAporte').style.display = 'flex';
+        }
+
+        function fecharModalAporte() {
+            document.getElementById('modalAporte').style.display = 'none';
+        }
+
+        async function salvarAporte(event) {
+            event.preventDefault();
+            
+            const conquistaId = document.getElementById('aporteConquistaId').value;
+            const data = {
+                valor: parseFloat(document.getElementById('aporteValor').value),
+                data_aporte: document.getElementById('aporteData').value,
+                observacao: document.getElementById('aporteObservacao').value
+            };
+            
+            try {
+                const response = await fetchAPI(`/conquistas/${conquistaId}/aportes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response && response.ok) {
+                    showSuccess('Aporte registrado com sucesso!');
+                    fecharModalAporte();
+                    await Promise.all([carregarConquistas(), carregarResumo(), carregarRecomendacoes()]);
+                } else {
+                    const error = await response.json();
+                    showAlert(error.erro || 'Erro ao registrar aporte');
+                }
+            } catch (error) {
+                console.error('Erro ao registrar aporte:', error);
+                showAlert('Erro ao registrar aporte');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', carregarPagina);
+    </script>
+</body>
+</html>
