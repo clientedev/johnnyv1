@@ -118,10 +118,24 @@
             border-radius: 4px;
         }
 
-        .metal-price {
-            font-size: 1.75rem;
+        .metal-price-brl {
+            font-size: 2rem;
             font-weight: 700;
-            color: #1f2937;
+            color: #059669;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+        
+        .metal-price-brl .currency {
+            font-size: 1rem;
+            color: #10b981;
+        }
+        
+        .metal-price-usd {
+            font-size: 1rem;
+            color: #6b7280;
             margin-bottom: 0.5rem;
         }
 
@@ -131,6 +145,63 @@
             display: flex;
             gap: 1rem;
             flex-wrap: wrap;
+        }
+        
+        .ewaste-info {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e5e7eb;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .ewaste-info .fonte {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .ewaste-info .fonte i {
+            color: #059669;
+            margin-top: 2px;
+        }
+        
+        .ewaste-info .concentracao {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #9ca3af;
+            font-style: italic;
+        }
+        
+        .concentracao-badge {
+            display: inline-block;
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .concentracao-badge.alta {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .concentracao-badge.media {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+        
+        .concentracao-badge.baixa {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .concentracao-badge.muito-alta {
+            background: #bbf7d0;
+            color: #14532d;
         }
 
         .metal-variation {
@@ -595,14 +666,14 @@
                     <table class="metals-table">
                         <thead>
                             <tr>
-                                <th>Metal</th>
-                                <th class="tooltip-trigger" data-tooltip="Preco por onca troy">Preco (USD)</th>
-                                <th class="tooltip-trigger" data-tooltip="Preco por onca troy em Reais">Preco (BRL)</th>
-                                <th class="tooltip-trigger" data-tooltip="Preco por grama">USD/g</th>
-                                <th class="tooltip-trigger" data-tooltip="Preco por grama em Reais">BRL/g</th>
-                                <th class="tooltip-trigger" data-tooltip="Variacao percentual">Variacao</th>
-                                <th>Min (24h)</th>
-                                <th>Max (24h)</th>
+                                <th>Metal / Fonte E-Waste</th>
+                                <th class="tooltip-trigger" data-tooltip="Preco por quilograma em Reais" style="color: #059669; font-weight: 700;">BRL/kg</th>
+                                <th class="tooltip-trigger" data-tooltip="Preco por onca troy em Dolares">USD/oz</th>
+                                <th class="tooltip-trigger" data-tooltip="Preco por grama em Reais" style="color: #059669;">BRL/g</th>
+                                <th class="tooltip-trigger" data-tooltip="Preco por grama em Dolares">USD/g</th>
+                                <th class="tooltip-trigger" data-tooltip="Variacao percentual">Var %</th>
+                                <th style="color: #059669;">Min (24h)</th>
+                                <th style="color: #059669;">Max (24h)</th>
                             </tr>
                         </thead>
                         <tbody id="metalsTableBody">
@@ -629,18 +700,30 @@
                     <div class="calculator-items" id="calculatorItems">
                         <div class="calculator-item" data-index="0">
                             <select class="metal-select">
-                                <option value="XAU">Ouro (XAU)</option>
-                                <option value="XAG">Prata (XAG)</option>
-                                <option value="XPT">Platina (XPT)</option>
-                                <option value="XPD">Paladio (XPD)</option>
-                                <option value="XRH">Rodio (XRH)</option>
-                                <option value="XCU">Cobre (XCU)</option>
+                                <optgroup label="Metais Preciosos">
+                                    <option value="XAU">Ouro (XAU) - Placas, CPUs</option>
+                                    <option value="XAG">Prata (XAG) - Contatos</option>
+                                    <option value="XPT">Platina (XPT) - HDDs</option>
+                                    <option value="XPD">Paladio (XPD) - Capacitores</option>
+                                </optgroup>
+                                <optgroup label="Metais Base E-Waste">
+                                    <option value="XCU">Cobre (XCU) - Fios, PCBs</option>
+                                    <option value="SN">Estanho (SN) - Soldas</option>
+                                    <option value="AL">Aluminio (AL) - Dissipadores</option>
+                                    <option value="NI">Niquel (NI) - Baterias</option>
+                                </optgroup>
+                                <optgroup label="Metais Especiais">
+                                    <option value="CO">Cobalto (CO) - Baterias Li-ion</option>
+                                    <option value="TA">Tantalo (TA) - Capacitores</option>
+                                    <option value="IN">Indio (IN) - Telas LCD</option>
+                                    <option value="GA">Galio (GA) - LEDs, Chips</option>
+                                </optgroup>
                             </select>
                             <input type="number" class="quantity-input" placeholder="Quantidade" value="1" min="0" step="0.01">
                             <select class="unit-select">
                                 <option value="grams">Gramas</option>
-                                <option value="oz">Oncas</option>
                                 <option value="kg">Kg</option>
+                                <option value="oz">Oncas</option>
                             </select>
                             <button class="btn-remove-item" onclick="removeCalculatorItem(0)" title="Remover item">
                                 <i class="fas fa-times"></i>
@@ -807,6 +890,24 @@
                 `Atualizado: ${now.toLocaleTimeString('pt-BR')}`;
         }
 
+        function getConcentracaoBadge(concentracao) {
+            if (!concentracao) return '';
+            const lower = concentracao.toLowerCase();
+            let badgeClass = 'media';
+            let label = 'Media';
+            if (lower.includes('muito alta')) {
+                badgeClass = 'muito-alta';
+                label = 'Muito Alta';
+            } else if (lower.includes('alta')) {
+                badgeClass = 'alta';
+                label = 'Alta';
+            } else if (lower.includes('baixa')) {
+                badgeClass = 'baixa';
+                label = 'Baixa';
+            }
+            return `<span class="concentracao-badge ${badgeClass}">${label}</span>`;
+        }
+        
         function renderMetalCards() {
             if (!metalsData || !metalsData.metals) return;
             
@@ -817,35 +918,48 @@
                 const variationClass = data.variation >= 0 ? 'positive' : 'negative';
                 const variationIcon = data.variation >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
                 const metalClass = symbol.toLowerCase().replace('x', '');
+                const fonteEwaste = data.fonte_ewaste || '';
+                const concentracao = data.concentracao || '';
+                const priceKgBrl = data.price_kg_brl || (data.price_gram_brl * 1000);
                 
                 return `
-                    <div class="metal-card ${metalClass}">
+                    <div class="metal-card ${metalClass}" style="border-left-color: ${data.color || '#059669'}">
                         <div class="metal-card-header">
                             <span class="metal-name">${data.name}</span>
-                            <span class="metal-symbol">${symbol}</span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                ${getConcentracaoBadge(concentracao)}
+                                <span class="metal-symbol">${symbol}</span>
+                            </div>
                         </div>
-                        <div class="metal-price">$${data.price_usd.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-                        <div class="metal-price-secondary">
-                            <span>R$ ${data.price_brl.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                            <span class="metal-variation ${variationClass}">
+                        <div class="metal-price-brl">
+                            <span class="currency">R$</span>
+                            ${priceKgBrl.toLocaleString('pt-BR', {minimumFractionDigits: 2})}<span style="font-size: 0.875rem; color: #6b7280;">/kg</span>
+                        </div>
+                        <div class="metal-price-usd">
+                            $${data.price_usd.toLocaleString('en-US', {minimumFractionDigits: 2})}/oz
+                            <span class="metal-variation ${variationClass}" style="margin-left: 0.5rem;">
                                 <i class="fas ${variationIcon}"></i>
                                 ${Math.abs(data.variation).toFixed(2)}%
                             </span>
                         </div>
                         <div class="metal-stats">
                             <div class="metal-stat">
+                                <span class="metal-stat-label">BRL/g</span>
+                                <span class="metal-stat-value" style="color: #059669; font-weight: 600;">R$${data.price_gram_brl.toFixed(4)}</span>
+                            </div>
+                            <div class="metal-stat">
                                 <span class="metal-stat-label">USD/g</span>
                                 <span class="metal-stat-value">$${data.price_gram_usd.toFixed(4)}</span>
                             </div>
-                            <div class="metal-stat">
-                                <span class="metal-stat-label">BRL/g</span>
-                                <span class="metal-stat-value">R$${data.price_gram_brl.toFixed(4)}</span>
-                            </div>
-                            <div class="metal-stat">
-                                <span class="metal-stat-label">Fonte</span>
-                                <span class="metal-stat-value">${data.source}</span>
+                        </div>
+                        ${fonteEwaste ? `
+                        <div class="ewaste-info">
+                            <div class="fonte">
+                                <i class="fas fa-recycle"></i>
+                                <span>${fonteEwaste}</span>
                             </div>
                         </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('');
@@ -860,28 +974,33 @@
             tbody.innerHTML = Object.entries(metals).map(([symbol, data]) => {
                 const variationClass = data.variation >= 0 ? 'positive' : 'negative';
                 const variationIcon = data.variation >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                const priceKgBrl = data.price_kg_brl || (data.price_gram_brl * 1000);
                 
-                const min24h = (data.price_usd * 0.98).toFixed(2);
-                const max24h = (data.price_usd * 1.02).toFixed(2);
+                const min24h = (priceKgBrl * 0.98).toFixed(2);
+                const max24h = (priceKgBrl * 1.02).toFixed(2);
                 
                 return `
                     <tr>
                         <td>
-                            <strong>${data.name}</strong>
-                            <span style="color: #9ca3af; font-size: 0.75rem; margin-left: 0.5rem;">${symbol}</span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: ${data.color || '#059669'};"></div>
+                                <strong>${data.name}</strong>
+                                <span style="color: #9ca3af; font-size: 0.75rem;">${symbol}</span>
+                            </div>
+                            ${data.fonte_ewaste ? `<div style="font-size: 0.7rem; color: #9ca3af; margin-left: 1rem;"><i class="fas fa-recycle" style="color: #059669;"></i> ${data.fonte_ewaste.substring(0, 40)}${data.fonte_ewaste.length > 40 ? '...' : ''}</div>` : ''}
                         </td>
-                        <td>$${data.price_usd.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                        <td>R$ ${data.price_brl.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                        <td>$${data.price_gram_usd.toFixed(4)}</td>
-                        <td>R$${data.price_gram_brl.toFixed(4)}</td>
+                        <td style="font-weight: 700; color: #059669; font-size: 1.1rem;">R$ ${priceKgBrl.toLocaleString('pt-BR', {minimumFractionDigits: 2})}/kg</td>
+                        <td style="color: #6b7280;">$${data.price_usd.toLocaleString('en-US', {minimumFractionDigits: 2})}/oz</td>
+                        <td style="color: #059669; font-weight: 600;">R$${data.price_gram_brl.toFixed(4)}</td>
+                        <td style="color: #6b7280;">$${data.price_gram_usd.toFixed(4)}</td>
                         <td>
                             <span class="metal-variation ${variationClass}">
                                 <i class="fas ${variationIcon}"></i>
                                 ${Math.abs(data.variation).toFixed(2)}%
                             </span>
                         </td>
-                        <td>$${min24h}</td>
-                        <td>$${max24h}</td>
+                        <td style="color: #059669;">R$${min24h}</td>
+                        <td style="color: #059669;">R$${max24h}</td>
                     </tr>
                 `;
             }).join('');
@@ -1012,18 +1131,30 @@
             newItem.dataset.index = calculatorItemIndex;
             newItem.innerHTML = `
                 <select class="metal-select">
-                    <option value="XAU">Ouro (XAU)</option>
-                    <option value="XAG">Prata (XAG)</option>
-                    <option value="XPT">Platina (XPT)</option>
-                    <option value="XPD">Paladio (XPD)</option>
-                    <option value="XRH">Rodio (XRH)</option>
-                    <option value="XCU">Cobre (XCU)</option>
+                    <optgroup label="Metais Preciosos">
+                        <option value="XAU">Ouro (XAU) - Placas, CPUs</option>
+                        <option value="XAG">Prata (XAG) - Contatos</option>
+                        <option value="XPT">Platina (XPT) - HDDs</option>
+                        <option value="XPD">Paladio (XPD) - Capacitores</option>
+                    </optgroup>
+                    <optgroup label="Metais Base E-Waste">
+                        <option value="XCU">Cobre (XCU) - Fios, PCBs</option>
+                        <option value="SN">Estanho (SN) - Soldas</option>
+                        <option value="AL">Aluminio (AL) - Dissipadores</option>
+                        <option value="NI">Niquel (NI) - Baterias</option>
+                    </optgroup>
+                    <optgroup label="Metais Especiais">
+                        <option value="CO">Cobalto (CO) - Baterias Li-ion</option>
+                        <option value="TA">Tantalo (TA) - Capacitores</option>
+                        <option value="IN">Indio (IN) - Telas LCD</option>
+                        <option value="GA">Galio (GA) - LEDs, Chips</option>
+                    </optgroup>
                 </select>
                 <input type="number" class="quantity-input" placeholder="Quantidade" value="1" min="0" step="0.01">
                 <select class="unit-select">
                     <option value="grams">Gramas</option>
-                    <option value="oz">Oncas</option>
                     <option value="kg">Kg</option>
+                    <option value="oz">Oncas</option>
                 </select>
                 <button class="btn-remove-item" onclick="removeCalculatorItem(${calculatorItemIndex})" title="Remover item">
                     <i class="fas fa-times"></i>
@@ -1048,18 +1179,30 @@
             container.innerHTML = `
                 <div class="calculator-item" data-index="0">
                     <select class="metal-select">
-                        <option value="XAU">Ouro (XAU)</option>
-                        <option value="XAG">Prata (XAG)</option>
-                        <option value="XPT">Platina (XPT)</option>
-                        <option value="XPD">Paladio (XPD)</option>
-                        <option value="XRH">Rodio (XRH)</option>
-                        <option value="XCU">Cobre (XCU)</option>
+                        <optgroup label="Metais Preciosos">
+                            <option value="XAU">Ouro (XAU) - Placas, CPUs</option>
+                            <option value="XAG">Prata (XAG) - Contatos</option>
+                            <option value="XPT">Platina (XPT) - HDDs</option>
+                            <option value="XPD">Paladio (XPD) - Capacitores</option>
+                        </optgroup>
+                        <optgroup label="Metais Base E-Waste">
+                            <option value="XCU">Cobre (XCU) - Fios, PCBs</option>
+                            <option value="SN">Estanho (SN) - Soldas</option>
+                            <option value="AL">Aluminio (AL) - Dissipadores</option>
+                            <option value="NI">Niquel (NI) - Baterias</option>
+                        </optgroup>
+                        <optgroup label="Metais Especiais">
+                            <option value="CO">Cobalto (CO) - Baterias Li-ion</option>
+                            <option value="TA">Tantalo (TA) - Capacitores</option>
+                            <option value="IN">Indio (IN) - Telas LCD</option>
+                            <option value="GA">Galio (GA) - LEDs, Chips</option>
+                        </optgroup>
                     </select>
                     <input type="number" class="quantity-input" placeholder="Quantidade" value="1" min="0" step="0.01">
                     <select class="unit-select">
                         <option value="grams">Gramas</option>
-                        <option value="oz">Oncas</option>
                         <option value="kg">Kg</option>
+                        <option value="oz">Oncas</option>
                     </select>
                     <button class="btn-remove-item" onclick="removeCalculatorItem(0)" title="Remover item">
                         <i class="fas fa-times"></i>

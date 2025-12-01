@@ -18,12 +18,90 @@ METALS_CACHE = {
 CACHE_DURATION = 60
 
 METAL_SYMBOLS = {
-    'XAU': {'name': 'Ouro', 'icon': 'gold', 'color': '#FFD700'},
-    'XAG': {'name': 'Prata', 'icon': 'silver', 'color': '#C0C0C0'},
-    'XPT': {'name': 'Platina', 'icon': 'platinum', 'color': '#E5E4E2'},
-    'XPD': {'name': 'Paládio', 'icon': 'palladium', 'color': '#CED0DD'},
-    'XRH': {'name': 'Ródio', 'icon': 'rhodium', 'color': '#B0C4DE'},
-    'XCU': {'name': 'Cobre', 'icon': 'copper', 'color': '#B87333'}
+    'XAU': {
+        'name': 'Ouro', 
+        'icon': 'gold', 
+        'color': '#FFD700',
+        'fonte_ewaste': 'Placas de circuito, conectores, processadores, memoria RAM',
+        'concentracao': 'Alta em placas-mae e processadores'
+    },
+    'XAG': {
+        'name': 'Prata', 
+        'icon': 'silver', 
+        'color': '#C0C0C0',
+        'fonte_ewaste': 'Contatos eletricos, soldas, teclas de membrana, paineis solares',
+        'concentracao': 'Media em teclados e interruptores'
+    },
+    'XPT': {
+        'name': 'Platina', 
+        'icon': 'platinum', 
+        'color': '#E5E4E2',
+        'fonte_ewaste': 'Discos rigidos, termopares, sensores',
+        'concentracao': 'Baixa, principalmente em HDDs antigos'
+    },
+    'XPD': {
+        'name': 'Paladio', 
+        'icon': 'palladium', 
+        'color': '#CED0DD',
+        'fonte_ewaste': 'Capacitores ceramicos, conectores, reles',
+        'concentracao': 'Media em capacitores MLCC'
+    },
+    'XCU': {
+        'name': 'Cobre', 
+        'icon': 'copper', 
+        'color': '#B87333',
+        'fonte_ewaste': 'Fios, cabos, trilhas de PCB, motores, transformadores',
+        'concentracao': 'Muito alta em todos os eletronicos'
+    },
+    'SN': {
+        'name': 'Estanho', 
+        'icon': 'tin', 
+        'color': '#D3D3D3',
+        'fonte_ewaste': 'Soldas, revestimentos de componentes',
+        'concentracao': 'Alta em placas soldadas'
+    },
+    'NI': {
+        'name': 'Niquel', 
+        'icon': 'nickel', 
+        'color': '#848482',
+        'fonte_ewaste': 'Baterias NiMH/NiCd, revestimentos, acos inox',
+        'concentracao': 'Alta em baterias recarregaveis'
+    },
+    'CO': {
+        'name': 'Cobalto', 
+        'icon': 'cobalt', 
+        'color': '#0047AB',
+        'fonte_ewaste': 'Baterias de litio-ion, imas permanentes',
+        'concentracao': 'Alta em baterias de celulares e notebooks'
+    },
+    'AL': {
+        'name': 'Aluminio', 
+        'icon': 'aluminum', 
+        'color': '#A9A9A9',
+        'fonte_ewaste': 'Dissipadores de calor, carcacas, capacitores eletroliticos',
+        'concentracao': 'Muito alta em estruturas e refrigeracao'
+    },
+    'TA': {
+        'name': 'Tantalo', 
+        'icon': 'tantalum', 
+        'color': '#4A4A4A',
+        'fonte_ewaste': 'Capacitores de tantalo, celulares, notebooks',
+        'concentracao': 'Media em capacitores SMD'
+    },
+    'IN': {
+        'name': 'Indio', 
+        'icon': 'indium', 
+        'color': '#4B0082',
+        'fonte_ewaste': 'Telas LCD/LED, paineis touch, soldas especiais',
+        'concentracao': 'Media em displays'
+    },
+    'GA': {
+        'name': 'Galio', 
+        'icon': 'gallium', 
+        'color': '#6B8E23',
+        'fonte_ewaste': 'LEDs, semicondutores GaAs, celulares',
+        'concentracao': 'Baixa em chips especializados'
+    }
 }
 
 def get_metals_live_api():
@@ -87,17 +165,29 @@ def get_simulated_metals_data():
         'XAG': 31.5,
         'XPT': 1020.0,
         'XPD': 1050.0,
-        'XRH': 4500.0,
-        'XCU': 4.2
+        'XCU': 4.2,
+        'SN': 28.5,
+        'NI': 8.2,
+        'CO': 14.5,
+        'AL': 1.15,
+        'TA': 180.0,
+        'IN': 250.0,
+        'GA': 280.0
     }
     
     result = {}
     for symbol, base_price in base_prices.items():
+        if symbol not in METAL_SYMBOLS:
+            continue
         variation = random.uniform(-0.02, 0.02)
         price = base_price * (1 + variation)
+        metal_info = METAL_SYMBOLS[symbol]
         result[symbol] = {
             'price_usd': round(price, 2),
-            'name': METAL_SYMBOLS[symbol]['name'],
+            'name': metal_info['name'],
+            'color': metal_info.get('color', '#888888'),
+            'fonte_ewaste': metal_info.get('fonte_ewaste', ''),
+            'concentracao': metal_info.get('concentracao', ''),
             'source': 'simulated'
         }
     return result
@@ -124,12 +214,16 @@ def fetch_metals_data():
     previous_cache = METALS_CACHE.get('previous') or {}
     
     for symbol, data in metals_data.items():
+        metal_info = METAL_SYMBOLS.get(symbol, {})
         data['price_brl'] = round(data['price_usd'] * usd_brl, 2)
         data['price_oz'] = data['price_usd']
         data['price_gram_usd'] = round(data['price_usd'] / 31.1035, 4)
         data['price_gram_brl'] = round(data['price_brl'] / 31.1035, 4)
+        data['price_kg_brl'] = round(data['price_gram_brl'] * 1000, 2)
         data['symbol'] = symbol
-        data['color'] = METAL_SYMBOLS.get(symbol, {}).get('color', '#666')
+        data['color'] = metal_info.get('color', '#666')
+        data['fonte_ewaste'] = metal_info.get('fonte_ewaste', '')
+        data['concentracao'] = metal_info.get('concentracao', '')
         
         prev_metal = previous_cache.get(symbol) if isinstance(previous_cache, dict) else None
         prev_price = prev_metal.get('price_usd', data['price_usd']) if isinstance(prev_metal, dict) else data['price_usd']
@@ -169,8 +263,14 @@ def generate_historical_data(days=30):
         'XAG': 31.5,
         'XPT': 1020.0,
         'XPD': 1050.0,
-        'XRH': 4500.0,
-        'XCU': 4.2
+        'XCU': 4.2,
+        'SN': 28.5,
+        'NI': 8.2,
+        'CO': 14.5,
+        'AL': 1.15,
+        'TA': 180.0,
+        'IN': 250.0,
+        'GA': 280.0
     }
     
     for i in range(days, -1, -1):
