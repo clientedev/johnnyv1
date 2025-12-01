@@ -36,34 +36,38 @@ def analyze_pcb():
         if not config.enabled:
             return jsonify({'erro': 'Scanner desativado pelo administrador'}), 403
         
+        image_data = None
+        description = None
+        weight_kg = None
+        
         if 'image' in request.files:
             image_file = request.files['image']
             image_data = image_file.read()
-        elif request.is_json:
+        
+        if request.is_json:
             data = request.get_json()
             if 'image_base64' in data:
                 image_data = data['image_base64']
-            else:
-                return jsonify({'erro': 'Imagem não fornecida'}), 400
+            description = data.get('description')
+            weight_kg = data.get('weight_kg')
         else:
-            return jsonify({'erro': 'Imagem não fornecida'}), 400
-        
-        weight_kg = None
-        if request.is_json:
-            weight_kg = request.get_json().get('weight_kg')
-        elif 'weight_kg' in request.form:
-            try:
-                weight_kg = float(request.form.get('weight_kg'))
-            except:
-                pass
+            description = request.form.get('description')
+            if 'weight_kg' in request.form:
+                try:
+                    weight_kg = float(request.form.get('weight_kg'))
+                except:
+                    pass
         
         result, error = analyze_pcb_image(
             image_data,
             weight_kg=weight_kg,
-            prompt_rules=config.prompt_rules
+            prompt_rules=config.prompt_rules,
+            description=description
         )
         
         if error:
+            if 'não suporta' in error or 'não configurada' in error or 'description' in error.lower():
+                return jsonify({'erro': error}), 400
             return jsonify({'erro': error}), 500
         
         price_suggestion = None
@@ -105,6 +109,8 @@ def analyze_pcb():
             'type_guess': result.get('type_guess'),
             'explanation': result.get('explanation'),
             'confidence': result.get('confidence'),
+            'metal_value_comment': result.get('metal_value_comment'),
+            'notes': result.get('notes'),
             'components_detected': result.get('components_detected'),
             'precious_metals_likelihood': result.get('precious_metals_likelihood'),
             'price_suggestion': price_suggestion,
@@ -195,7 +201,7 @@ def update_admin_config():
 def scanner_status():
     try:
         config = get_scanner_config()
-        api_configured = bool(os.getenv('PERPLEXITY_API_KEY'))
+        api_configured = bool(os.getenv('PPLX_API_KEY') or os.getenv('PERPLEXITY_API_KEY'))
         
         return jsonify({
             'enabled': config.enabled,
