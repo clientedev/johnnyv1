@@ -66,7 +66,7 @@ def analyze_pcb():
         )
         
         if error:
-            if 'não suporta' in error or 'não configurada' in error or 'description' in error.lower():
+            if 'não configurada' in error or 'não fornecida' in error or 'inválido' in error.lower():
                 return jsonify({'erro': error}), 400
             return jsonify({'erro': error}), 500
         
@@ -107,6 +107,7 @@ def analyze_pcb():
         response = {
             'grade': result.get('grade'),
             'type_guess': result.get('type_guess'),
+            'visual_analysis': result.get('visual_analysis'),
             'explanation': result.get('explanation'),
             'confidence': result.get('confidence'),
             'metal_value_comment': result.get('metal_value_comment'),
@@ -201,12 +202,13 @@ def update_admin_config():
 def scanner_status():
     try:
         config = get_scanner_config()
-        api_configured = bool(os.getenv('PPLX_API_KEY') or os.getenv('PERPLEXITY_API_KEY'))
+        api_configured = bool(os.getenv('GEMINI_API_KEY'))
         
         return jsonify({
             'enabled': config.enabled,
             'api_configured': api_configured,
-            'ready': config.enabled and api_configured
+            'ready': config.enabled and api_configured,
+            'model': 'gemini'
         }), 200
     except Exception as e:
         return jsonify({'erro': str(e)}), 500

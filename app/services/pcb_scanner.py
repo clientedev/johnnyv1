@@ -1,15 +1,21 @@
 import os
 import base64
-import requests
 import json
 from datetime import datetime
 
-PPLX_API_KEY = os.getenv('PPLX_API_KEY') or os.getenv('PERPLEXITY_API_KEY')
-PPLX_MODEL = 'sonar-pro'
+from google import genai
+from google.genai import types
+
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+GEMINI_MODEL = "gemini-2.5-flash"
+
+client = None
+if GEMINI_API_KEY:
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
 def get_scanner_prompt(prompt_rules=None):
     base_prompt = """Você é um especialista em reciclagem de placas eletrônicas (PCBs) e recuperação de metais preciosos.
-Com base na descrição fornecida pelo usuário sobre a placa eletrônica, classifique-a para fins de reciclagem.
+Analise a imagem da placa eletrônica fornecida e classifique-a para fins de reciclagem de metais preciosos.
 
 CRITÉRIOS DE CLASSIFICAÇÃO:
 - LOW (Baixo valor): Placas simples, poucas camadas, poucos componentes, baixa densidade de conectores dourados (ex: fontes, impressoras, TVs antigas)
@@ -32,15 +38,20 @@ INDICADORES DE VALOR PARA METAIS PRECIOSOS:
 - Processadores e CPUs: ouro nos pinos e internamente
 - Memórias RAM: fingers dourados
 
-Use seu conhecimento sobre placas eletrônicas e datasets públicos de PCBs para fazer uma estimativa precisa.
+ANÁLISE VISUAL OBRIGATÓRIA:
+1. Identifique o tipo provável da placa
+2. Conte aproximadamente a quantidade de CIs/chips grandes
+3. Avalie se há muitos componentes SMD pequenos ou poucos componentes grandes
+4. Procure por conectores ou dedos dourados visíveis (slots, contatos de borda, pinos banhados)
 
 RESPONDA EXCLUSIVAMENTE EM JSON com este formato exato (sem markdown, sem código, apenas o JSON puro):
 {
   "grade": "LOW | MEDIUM | HIGH",
   "type_guess": "ex: placa de celular, motherboard de PC, fonte, telecom etc.",
-  "explanation": "texto curto explicando a classificação (densidade de componentes, conectores dourados, etc.)",
+  "visual_analysis": "resumo detalhado do que foi visto na imagem: quantidade de componentes, tipos de chips, conectores, fingers dourados, etc.",
+  "explanation": "por que essa placa foi classificada nessa grade, com base no que foi visto na imagem",
   "confidence": 0.0,
-  "metal_value_comment": "comentário curto sobre potencial de metais preciosos",
+  "metal_value_comment": "comentário curto sobre o potencial de metais preciosos baseado na análise visual",
   "notes": "observações adicionais opcionais"
 }"""
     
@@ -50,66 +61,71 @@ RESPONDA EXCLUSIVAMENTE EM JSON com este formato exato (sem markdown, sem códig
     return base_prompt
 
 def analyze_pcb_image(image_data, weight_kg=None, prompt_rules=None, description=None):
-    if not PPLX_API_KEY:
-        return None, 'Chave API do Perplexity não configurada. Configure PPLX_API_KEY ou PERPLEXITY_API_KEY.'
+    if not GEMINI_API_KEY:
+        return None, 'Chave API do Gemini não configurada. Configure GEMINI_API_KEY nas variáveis de ambiente.'
     
-    if not description or not description.strip():
-        return None, 'IMPORTANTE: A API Perplexity não suporta análise de imagens. Por favor, forneça uma descrição textual da placa (tipo, componentes visíveis, conectores, etc.) no campo "description" para que a análise possa ser realizada.'
+    if not client:
+        return None, 'Cliente Gemini não inicializado. Verifique a chave API.'
+    
+    if not image_data:
+        return None, 'Imagem não fornecida. Por favor, envie uma imagem da placa para análise.'
     
     try:
-        headers = {
-            'Authorization': f'Bearer {PPLX_API_KEY}',
-            'Content-Type': 'application/json'
-        }
+        if isinstance(image_data, bytes):
+            image_bytes = image_data
+        elif isinstance(image_data, str):
+            if image_data.startswith('data:image'):
+                base64_data = image_data.split(',')[1] if ',' in image_data else image_data
+                image_bytes = base64.b64decode(base64_data)
+            else:
+                image_bytes = base64.b64decode(image_data)
+        else:
+            return None, 'Formato de imagem inválido.'
         
         system_prompt = get_scanner_prompt(prompt_rules)
         
-        user_message = f"""Analise a seguinte placa eletrônica para reciclagem de metais preciosos.
-
-DESCRIÇÃO DA PLACA FORNECIDA PELO USUÁRIO:
-{description.strip()}
-
-Com base nesta descrição e seu conhecimento sobre PCBs para reciclagem, forneça uma classificação considerando:
-- Densidade de componentes mencionada ou típica para este tipo de placa
-- Presença de conectores dourados (fingers) mencionada ou típica
-- Tipo de placa identificado
-- Potencial de metais preciosos (ouro, prata, paládio)
-
-"""
-        
+        user_message = "Analise esta placa eletrônica para reciclagem de metais preciosos."
         if weight_kg:
-            user_message += f"Peso estimado da placa: {weight_kg} kg\n"
+            user_message += f" O peso estimado da placa é {weight_kg} kg."
+        if description:
+            user_message += f" Informação adicional do usuário: {description}"
+        user_message += "\n\nResponda SOMENTE com o JSON no formato especificado, sem markdown ou texto adicional."
         
-        user_message += "\nResponda SOMENTE com o JSON no formato especificado, sem markdown ou texto adicional."
+        mime_type = "image/jpeg"
+        if len(image_bytes) > 4:
+            if image_bytes[:4] == b'\x89PNG':
+                mime_type = "image/png"
+            elif image_bytes[:4] == b'GIF8':
+                mime_type = "image/gif"
+            elif image_bytes[:2] == b'\xff\xd8':
+                mime_type = "image/jpeg"
+            elif image_bytes[:4] == b'RIFF':
+                mime_type = "image/webp"
         
-        payload = {
-            'model': PPLX_MODEL,
-            'messages': [
-                {'role': 'system', 'content': system_prompt},
-                {'role': 'user', 'content': user_message}
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[
+                types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type=mime_type,
+                ),
+                f"{system_prompt}\n\n{user_message}",
             ],
-            'max_tokens': 1024,
-            'temperature': 0.3,
-            'top_p': 0.9,
-            'stream': False
-        }
-        
-        response = requests.post(
-            'https://api.perplexity.ai/chat/completions',
-            headers=headers,
-            json=payload,
-            timeout=60
         )
         
-        if response.status_code == 200:
-            data = response.json()
-            content = data['choices'][0]['message']['content']
+        if response and response.text:
+            content = response.text
             
             try:
                 if '```json' in content:
                     content = content.split('```json')[1].split('```')[0]
                 elif '```' in content:
-                    content = content.split('```')[1].split('```')[0]
+                    parts = content.split('```')
+                    for part in parts:
+                        stripped = part.strip()
+                        if stripped.startswith('{') and stripped.endswith('}'):
+                            content = stripped
+                            break
                 
                 content = content.strip()
                 if content.startswith('{'):
@@ -122,12 +138,14 @@ Com base nesta descrição e seu conhecimento sobre PCBs para reciclagem, forne�
                     result['grade'] = 'MEDIUM'
                 if 'type_guess' not in result:
                     result['type_guess'] = 'Placa eletrônica não identificada'
+                if 'visual_analysis' not in result:
+                    result['visual_analysis'] = 'Análise visual não disponível'
                 if 'explanation' not in result:
-                    result['explanation'] = 'Análise baseada em características típicas'
+                    result['explanation'] = 'Análise baseada em características visuais'
                 if 'confidence' not in result:
                     result['confidence'] = 0.5
                 if 'metal_value_comment' not in result:
-                    result['metal_value_comment'] = 'Avaliação baseada em padrões típicos de placas'
+                    result['metal_value_comment'] = 'Avaliação baseada na análise visual'
                 if 'notes' not in result:
                     result['notes'] = ''
                 
@@ -138,8 +156,8 @@ Com base nesta descrição e seu conhecimento sobre PCBs para reciclagem, forne�
                     'palladium': 'LOW'
                 })
                 
-                result['raw_response'] = data['choices'][0]['message']['content']
-                result['model'] = data.get('model', PPLX_MODEL)
+                result['raw_response'] = response.text
+                result['model'] = GEMINI_MODEL
                 result['timestamp'] = datetime.now().isoformat()
                 
                 return result, None
@@ -148,28 +166,25 @@ Com base nesta descrição e seu conhecimento sobre PCBs para reciclagem, forne�
                 return {
                     'grade': 'MEDIUM',
                     'type_guess': 'Não foi possível identificar',
-                    'explanation': content[:500] if content else 'Erro no processamento',
+                    'visual_analysis': content[:500] if content else 'Erro no processamento',
+                    'explanation': 'Erro ao processar resposta da IA',
                     'confidence': 0.3,
                     'metal_value_comment': 'Análise inconclusiva',
                     'notes': f'Erro de parse JSON: {str(e)}',
                     'raw_response': content,
-                    'parse_error': True
+                    'parse_error': True,
+                    'timestamp': datetime.now().isoformat()
                 }, None
         else:
-            error_msg = f'Erro na API Perplexity: {response.status_code}'
-            try:
-                error_detail = response.json()
-                error_msg += f' - {json.dumps(error_detail)}'
-            except:
-                error_msg += f' - {response.text}'
-            return None, error_msg
+            return None, 'Resposta vazia do Gemini. Tente novamente.'
             
-    except requests.exceptions.Timeout:
-        return None, 'Timeout ao conectar com a API Perplexity. Tente novamente.'
-    except requests.exceptions.RequestException as e:
-        return None, f'Erro de conexão com a API Perplexity: {str(e)}'
     except Exception as e:
-        return None, f'Erro ao analisar: {str(e)}'
+        error_msg = str(e)
+        if 'API key' in error_msg.lower() or 'authentication' in error_msg.lower():
+            return None, f'Erro de autenticação com Gemini: {error_msg}'
+        if 'quota' in error_msg.lower() or 'limit' in error_msg.lower():
+            return None, f'Limite de requisições excedido: {error_msg}'
+        return None, f'Erro ao analisar imagem com Gemini: {error_msg}'
 
 def calculate_price_suggestion(grade, weight_kg, config):
     if not config or not weight_kg:
