@@ -44,6 +44,10 @@ def conferencia_form(id):
 def conferencia_decisao_adm(id):
     return render_template('conferencia-decisao-adm.html')
 
+@app.route('/cotacoes-metais')
+def cotacoes_metais():
+    return render_template('cotacoes-metais.html')
+
 @app.route('/<path:path>')
 def serve_page(path):
     if path.startswith('api/'):

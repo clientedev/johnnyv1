@@ -70,7 +70,7 @@ def create_app():
                                 perfis, veiculos, motoristas, auditoria, ordens_compra,
                                 ordens_servico, conferencias, estoque, separacao, wms, pages,
                                 materiais_base, tabelas_preco, autorizacoes_preco, compras,
-                                fornecedor_tabela_precos)
+                                fornecedor_tabela_precos, metais)
         from app.routes import solicitacoes_new as solicitacoes
         from app.routes import lotes_new as lotes
         from app.routes import entradas_new as entradas
@@ -104,6 +104,7 @@ def create_app():
         app.register_blueprint(compras.bp)
         app.register_blueprint(fornecedor_tabela_precos.bp)
         app.register_blueprint(pages.bp)
+        app.register_blueprint(metais.bp)
 
         db.create_all()
 
