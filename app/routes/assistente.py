@@ -343,11 +343,24 @@ def chat():
 
 
 def processar_mensagem_inteligente(mensagem, usuario_id, sessao_id):
-    """Processa mensagem com contexto completo do sistema"""
+    """Processa mensagem com contexto completo do sistema e executa ações"""
+    from app.services.ai_actions import detectar_intencao_acao, executar_acao, obter_contexto_completo_ia
+    
     intencao = identificar_intencao(mensagem)
     fonte_dados = []
     resposta_partes = []
     dados_adicionais = {'intencao': intencao}
+    acao_executada = False
+    
+    intencao_acao = detectar_intencao_acao(mensagem)
+    if intencao_acao:
+        resultado_acao, resposta_acao = executar_acao(intencao_acao, mensagem, usuario_id)
+        if resposta_acao:
+            resposta_partes.append(resposta_acao)
+            fonte_dados.append('Ação do Sistema')
+            dados_adicionais['acao'] = intencao_acao
+            dados_adicionais['resultado_acao'] = resultado_acao
+            acao_executada = True
     
     if intencao == 'cotacao_metais' or 'metal' in mensagem.lower() or 'ouro' in mensagem.lower():
         try:
@@ -374,7 +387,7 @@ def processar_mensagem_inteligente(mensagem, usuario_id, sessao_id):
         else:
             resposta_partes.append('Voce ainda nao possui metas cadastradas.')
     
-    if intencao == 'dados_empresa':
+    if intencao == 'dados_empresa' and not acao_executada:
         dados = obter_dados_empresa()
         resposta_partes.append(f"""**Dados da Empresa:**
 - Fornecedores ativos: {dados['total_fornecedores_ativos']}
@@ -385,20 +398,22 @@ def processar_mensagem_inteligente(mensagem, usuario_id, sessao_id):
         fonte_dados.append('Banco de Dados')
         dados_adicionais['empresa'] = dados
     
-    contexto_completo = obter_contexto_sistema_completo()
-    resultado_perplexity, erro = consultar_perplexity(mensagem, contexto_completo)
+    if not acao_executada or intencao in ['recomendacao', 'geral']:
+        contexto_completo = obter_contexto_completo_ia()
+        resultado_perplexity, erro = consultar_perplexity(mensagem, contexto_completo)
+        
+        if resultado_perplexity:
+            if resposta_partes:
+                resposta_partes.append("\n**Análise da IA:**")
+            resposta_partes.append(resultado_perplexity['resposta'])
+            if resultado_perplexity.get('citacoes'):
+                resposta_partes.append('\n**Fontes:**')
+                for citacao in resultado_perplexity['citacoes'][:3]:
+                    resposta_partes.append(f'- {citacao}')
+            fonte_dados.append('IA Perplexity')
+            dados_adicionais['perplexity'] = {'citacoes': resultado_perplexity.get('citacoes', [])}
     
-    if resultado_perplexity:
-        if resposta_partes:
-            resposta_partes.append("\n**Analise adicional:**")
-        resposta_partes.append(resultado_perplexity['resposta'])
-        if resultado_perplexity.get('citacoes'):
-            resposta_partes.append('\n**Fontes:**')
-            for citacao in resultado_perplexity['citacoes'][:3]:
-                resposta_partes.append(f'- {citacao}')
-        fonte_dados.append('IA Perplexity')
-        dados_adicionais['perplexity'] = {'citacoes': resultado_perplexity.get('citacoes', [])}
-    elif not resposta_partes:
+    if not resposta_partes:
         resposta_partes.append('Desculpe, nao consegui processar sua solicitacao. Tente reformular sua pergunta.')
     
     resposta_final = '\n\n'.join(resposta_partes)
@@ -410,7 +425,7 @@ def processar_mensagem_inteligente(mensagem, usuario_id, sessao_id):
             sessao_id=sessao_id,
             mensagem_usuario=mensagem,
             resposta_bot=resposta_final,
-            tipo_consulta=intencao,
+            tipo_consulta=intencao_acao or intencao,
             fonte_dados=fontes_str,
             dados_adicionais=dados_adicionais
         )
@@ -421,8 +436,9 @@ def processar_mensagem_inteligente(mensagem, usuario_id, sessao_id):
     
     return {
         'resposta': resposta_final,
-        'tipo_consulta': intencao,
+        'tipo_consulta': intencao_acao or intencao,
         'fonte_dados': fontes_str,
+        'acao_executada': acao_executada,
         'timestamp': datetime.now().isoformat()
     }
 

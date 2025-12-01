@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+
+{% block title %}Scanner de Placas - MRX Systems{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-microchip me-2"></i>
+                        Scanner de Placas Eletrônicas
+                    </h4>
+                    <p class="mb-0 mt-2 opacity-75">Analise placas eletrônicas para reciclagem com IA</p>
+                </div>
+                <div class="card-body">
+                    <div id="scannerStatus" class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Verificando status do scanner...
+                    </div>
+                    
+                    <form id="scannerForm" enctype="multipart/form-data">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-camera me-2"></i>Imagem da Placa
+                            </label>
+                            <div class="upload-area" id="uploadArea">
+                                <input type="file" id="imageInput" name="image" accept="image/*" class="d-none">
+                                <div class="upload-placeholder" id="uploadPlaceholder">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                    <p class="mb-2">Arraste uma imagem ou clique para selecionar</p>
+                                    <small class="text-muted">Formatos aceitos: JPG, PNG, WEBP</small>
+                                </div>
+                                <img id="imagePreview" class="img-fluid d-none" style="max-height: 400px;">
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="captureBtn">
+                                    <i class="fas fa-camera me-1"></i> Usar Câmera
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="clearImageBtn">
+                                    <i class="fas fa-times me-1"></i> Limpar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="weightInput" class="form-label fw-bold">
+                                <i class="fas fa-weight me-2"></i>Peso Estimado (kg) - Opcional
+                            </label>
+                            <input type="number" class="form-control" id="weightInput" name="weight_kg" 
+                                   step="0.01" min="0" placeholder="Ex: 0.5">
+                            <small class="text-muted">Informe o peso para receber sugestão de preço</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100" id="analyzeBtn" disabled>
+                            <i class="fas fa-search me-2"></i>Analisar Placa
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div id="resultCard" class="card shadow-lg mt-4 d-none">
+                <div class="card-header" id="resultHeader">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Resultado da Análise
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="grade-badge" id="gradeBadge">
+                                <span id="gradeText">-</span>
+                            </div>
+                            <p class="mt-2 mb-0 text-muted">Classificação</p>
+                        </div>
+                        <div class="col-md-8">
+                            <h6><i class="fas fa-microchip me-2"></i>Tipo Identificado</h6>
+                            <p id="typeGuess" class="text-muted">-</p>
+                            
+                            <h6><i class="fas fa-info-circle me-2"></i>Explicação</h6>
+                            <p id="explanation" class="text-muted">-</p>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="me-2">Confiança:</span>
+                                <div class="progress flex-grow-1" style="height: 20px;">
+                                    <div class="progress-bar" id="confidenceBar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <span class="ms-2" id="confidenceText">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="priceSection" class="d-none mt-4">
+                        <hr>
+                        <h6><i class="fas fa-dollar-sign me-2"></i>Sugestão de Preço</h6>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="bg-light rounded p-3">
+                                    <small class="text-muted d-block">Mínimo</small>
+                                    <span class="h5 text-danger" id="priceMin">R$ 0,00</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-success bg-opacity-10 rounded p-3">
+                                    <small class="text-muted d-block">Médio</small>
+                                    <span class="h5 text-success" id="priceAvg">R$ 0,00</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-light rounded p-3">
+                                    <small class="text-muted d-block">Máximo</small>
+                                    <span class="h5 text-primary" id="priceMax">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-muted text-center mt-2 mb-0">
+                            <small>Valores calculados para <span id="weightDisplay">0</span> kg</small>
+                        </p>
+                    </div>
+                    
+                    <div id="componentsSection" class="d-none mt-4">
+                        <hr>
+                        <h6><i class="fas fa-puzzle-piece me-2"></i>Componentes Detectados</h6>
+                        <div id="componentsList" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+                    
+                    <div id="metalsSection" class="d-none mt-4">
+                        <hr>
+                        <h6><i class="fas fa-gem me-2"></i>Probabilidade de Metais Preciosos</h6>
+                        <div class="row" id="metalsList"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="historyCard" class="card shadow-lg mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Histórico de Análises
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="historyList" class="list-group list-group-flush">
+                        <p class="text-muted text-center">Carregando histórico...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fafafa;
+}
+
+.upload-area:hover {
+    border-color: #0d6efd;
+    background: #f0f7ff;
+}
+
+.upload-area.dragover {
+    border-color: #0d6efd;
+    background: #e7f1ff;
+}
+
+.grade-badge {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+}
+
+.grade-badge.low { background: linear-gradient(135deg, #6c757d, #495057); }
+.grade-badge.medium { background: linear-gradient(135deg, #ffc107, #e0a800); }
+.grade-badge.high { background: linear-gradient(135deg, #28a745, #1e7e34); }
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #0d6efd, #0056b3);
+}
+
+.card {
+    border: none;
+    border-radius: 16px;
+}
+
+.card-header {
+    border-radius: 16px 16px 0 0 !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const token = getToken();
+    if (!token) {
+        window.location.href = '/';
+        return;
+    }
+    
+    checkScannerStatus();
+    loadHistory();
+    setupUploadArea();
+});
+
+function checkScannerStatus() {
+    fetch('/api/scanner/status')
+        .then(r => r.json())
+        .then(data => {
+            const status = document.getElementById('scannerStatus');
+            if (data.ready) {
+                status.className = 'alert alert-success mb-4';
+                status.innerHTML = '<i class="fas fa-check-circle me-2"></i>Scanner pronto para uso!';
+            } else if (!data.api_configured) {
+                status.className = 'alert alert-warning mb-4';
+                status.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>API do Perplexity não configurada. Contate o administrador.';
+            } else if (!data.enabled) {
+                status.className = 'alert alert-warning mb-4';
+                status.innerHTML = '<i class="fas fa-pause-circle me-2"></i>Scanner desativado pelo administrador.';
+            }
+        })
+        .catch(err => {
+            document.getElementById('scannerStatus').className = 'alert alert-danger mb-4';
+            document.getElementById('scannerStatus').innerHTML = '<i class="fas fa-times-circle me-2"></i>Erro ao verificar status do scanner.';
+        });
+}
+
+function setupUploadArea() {
+    const uploadArea = document.getElementById('uploadArea');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+    const clearBtn = document.getElementById('clearImageBtn');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    
+    uploadArea.addEventListener('click', () => imageInput.click());
+    
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            imageInput.files = e.dataTransfer.files;
+            handleImageSelect();
+        }
+    });
+    
+    imageInput.addEventListener('change', handleImageSelect);
+    
+    clearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        imageInput.value = '';
+        imagePreview.classList.add('d-none');
+        uploadPlaceholder.classList.remove('d-none');
+        clearBtn.classList.add('d-none');
+        analyzeBtn.disabled = true;
+    });
+    
+    captureBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            imageInput.setAttribute('capture', 'environment');
+            imageInput.click();
+        } else {
+            alert('Câmera não disponível neste dispositivo.');
+        }
+    });
+    
+    document.getElementById('scannerForm').addEventListener('submit', handleSubmit);
+}
+
+function handleImageSelect() {
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+    const clearBtn = document.getElementById('clearImageBtn');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    
+    if (imageInput.files && imageInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.src = e.target.result;
+            imagePreview.classList.remove('d-none');
+            uploadPlaceholder.classList.add('d-none');
+            clearBtn.classList.remove('d-none');
+            analyzeBtn.disabled = false;
+        };
+        reader.readAsDataURL(imageInput.files[0]);
+    }
+}
+
+async function handleSubmit(e) {
+    e.preventDefault();
+    
+    const token = getToken();
+    if (!token) {
+        alert('Sessão expirada. Faça login novamente.');
+        return;
+    }
+    
+    const imageInput = document.getElementById('imageInput');
+    const weightInput = document.getElementById('weightInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    
+    if (!imageInput.files || !imageInput.files[0]) {
+        alert('Selecione uma imagem da placa.');
+        return;
+    }
+    
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analisando...';
+    
+    const formData = new FormData();
+    formData.append('image', imageInput.files[0]);
+    if (weightInput.value) {
+        formData.append('weight_kg', weightInput.value);
+    }
+    
+    try {
+        const response = await fetch('/api/scanner/analyze', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayResult(data);
+            loadHistory();
+        } else {
+            alert(data.erro || 'Erro ao analisar imagem.');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro de conexão. Tente novamente.');
+    } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerHTML = '<i class="fas fa-search me-2"></i>Analisar Placa';
+    }
+}
+
+function displayResult(data) {
+    const resultCard = document.getElementById('resultCard');
+    const gradeBadge = document.getElementById('gradeBadge');
+    const gradeText = document.getElementById('gradeText');
+    const resultHeader = document.getElementById('resultHeader');
+    
+    resultCard.classList.remove('d-none');
+    
+    gradeBadge.className = 'grade-badge ' + (data.grade || 'medium').toLowerCase();
+    gradeText.textContent = data.grade || '-';
+    
+    const gradeColors = {
+        'LOW': '#6c757d',
+        'MEDIUM': '#ffc107',
+        'HIGH': '#28a745'
+    };
+    resultHeader.style.background = gradeColors[data.grade] || gradeColors['MEDIUM'];
+    resultHeader.style.color = data.grade === 'MEDIUM' ? '#000' : '#fff';
+    
+    document.getElementById('typeGuess').textContent = data.type_guess || 'Não identificado';
+    document.getElementById('explanation').textContent = data.explanation || 'Sem explicação disponível';
+    
+    const confidence = Math.round((data.confidence || 0) * 100);
+    document.getElementById('confidenceBar').style.width = confidence + '%';
+    document.getElementById('confidenceText').textContent = confidence + '%';
+    
+    if (data.price_suggestion) {
+        document.getElementById('priceSection').classList.remove('d-none');
+        document.getElementById('priceMin').textContent = 'R$ ' + (data.price_suggestion.total_min || 0).toFixed(2);
+        document.getElementById('priceAvg').textContent = 'R$ ' + (data.price_suggestion.total_avg || 0).toFixed(2);
+        document.getElementById('priceMax').textContent = 'R$ ' + (data.price_suggestion.total_max || 0).toFixed(2);
+        document.getElementById('weightDisplay').textContent = data.price_suggestion.weight_kg || 0;
+    } else {
+        document.getElementById('priceSection').classList.add('d-none');
+    }
+    
+    if (data.components_detected && data.components_detected.length > 0) {
+        document.getElementById('componentsSection').classList.remove('d-none');
+        document.getElementById('componentsList').innerHTML = data.components_detected
+            .map(c => `<span class="badge bg-secondary">${c}</span>`)
+            .join('');
+    } else {
+        document.getElementById('componentsSection').classList.add('d-none');
+    }
+    
+    if (data.precious_metals_likelihood) {
+        document.getElementById('metalsSection').classList.remove('d-none');
+        const metals = data.precious_metals_likelihood;
+        let html = '';
+        const metalNames = { gold: 'Ouro', silver: 'Prata', palladium: 'Paládio' };
+        const metalColors = { 'LOW': 'secondary', 'MEDIUM': 'warning', 'HIGH': 'success' };
+        
+        for (const [metal, level] of Object.entries(metals)) {
+            html += `
+                <div class="col-4 text-center">
+                    <span class="badge bg-${metalColors[level] || 'secondary'} p-2">
+                        ${metalNames[metal] || metal}: ${level}
+                    </span>
+                </div>
+            `;
+        }
+        document.getElementById('metalsList').innerHTML = html;
+    } else {
+        document.getElementById('metalsSection').classList.add('d-none');
+    }
+    
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function loadHistory() {
+    const token = getToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch('/api/scanner/history?limit=10', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const historyList = document.getElementById('historyList');
+            
+            if (data.length === 0) {
+                historyList.innerHTML = '<p class="text-muted text-center">Nenhuma análise realizada ainda.</p>';
+                return;
+            }
+            
+            const gradeColors = { 'LOW': 'secondary', 'MEDIUM': 'warning', 'HIGH': 'success' };
+            
+            historyList.innerHTML = data.map(item => `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-${gradeColors[item.grade] || 'secondary'} me-2">${item.grade || '-'}</span>
+                            <strong>${item.type_guess || 'Não identificado'}</strong>
+                        </div>
+                        <small class="text-muted">${new Date(item.created_at).toLocaleString('pt-BR')}</small>
+                    </div>
+                    ${item.price_suggestion ? `<small class="text-success">R$ ${item.price_suggestion.total_avg?.toFixed(2) || '0.00'} (${item.weight_kg || 0} kg)</small>` : ''}
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+    }
+}
+</script>
+{% endblock %}

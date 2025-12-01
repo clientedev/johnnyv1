@@ -1871,3 +1871,78 @@ class ConversaBot(db.Model):  # type: ignore
             'dados_adicionais': self.dados_adicionais,
             'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None
         }
+
+
+class ScannerConfig(db.Model):  # type: ignore
+    """Configurações do scanner de placas eletrônicas"""
+    __tablename__ = 'scanner_config'
+
+    id = db.Column(db.Integer, primary_key=True)
+    enabled = db.Column(db.Boolean, default=True, nullable=False)
+    price_low_min = db.Column(db.Float, default=5.0, nullable=False)
+    price_low_max = db.Column(db.Float, default=15.0, nullable=False)
+    price_medium_min = db.Column(db.Float, default=20.0, nullable=False)
+    price_medium_max = db.Column(db.Float, default=50.0, nullable=False)
+    price_high_min = db.Column(db.Float, default=60.0, nullable=False)
+    price_high_max = db.Column(db.Float, default=150.0, nullable=False)
+    prompt_rules = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'enabled': self.enabled,
+            'price_low_min': self.price_low_min,
+            'price_low_max': self.price_low_max,
+            'price_medium_min': self.price_medium_min,
+            'price_medium_max': self.price_medium_max,
+            'price_high_min': self.price_high_min,
+            'price_high_max': self.price_high_max,
+            'prompt_rules': self.prompt_rules,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'updated_by': self.updated_by
+        }
+
+
+class ScannerAnalysis(db.Model):  # type: ignore
+    """Histórico de análises do scanner de placas"""
+    __tablename__ = 'scanner_analyses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    grade = db.Column(db.String(10), nullable=True)
+    type_guess = db.Column(db.String(200), nullable=True)
+    explanation = db.Column(db.Text, nullable=True)
+    confidence = db.Column(db.Float, nullable=True)
+    weight_kg = db.Column(db.Float, nullable=True)
+    price_suggestion = db.Column(db.JSON, nullable=True)
+    components_detected = db.Column(db.JSON, nullable=True)
+    precious_metals = db.Column(db.JSON, nullable=True)
+    raw_response = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    usuario = db.relationship('Usuario', backref='scanner_analyses', lazy=True)
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'usuario_id': self.usuario_id,
+            'grade': self.grade,
+            'type_guess': self.type_guess,
+            'explanation': self.explanation,
+            'confidence': self.confidence,
+            'weight_kg': self.weight_kg,
+            'price_suggestion': self.price_suggestion,
+            'components_detected': self.components_detected,
+            'precious_metals': self.precious_metals,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }

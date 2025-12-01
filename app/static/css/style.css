@@ -1596,3 +1596,200 @@ main.container > *:first-child {
         font-size: 22px;
     }
 }
+
+/* ========== PCB SCANNER WIDGET ========== */
+
+.scanner-widget-container {
+    position: fixed;
+    bottom: 100px;
+    left: 24px;
+    z-index: 9998;
+}
+
+.scanner-widget-bubble {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.scanner-widget-bubble:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 28px rgba(5, 150, 105, 0.5);
+}
+
+.scanner-widget-bubble.active {
+    transform: scale(0.95);
+}
+
+.scanner-widget-bubble i {
+    color: white;
+    font-size: 24px;
+}
+
+.scanner-widget-popup {
+    position: absolute;
+    bottom: 70px;
+    left: 0;
+    width: 320px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scanner-widget-popup.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.scanner-widget-header {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.scanner-widget-header-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.scanner-widget-header-info i {
+    font-size: 24px;
+}
+
+.scanner-widget-title {
+    font-weight: 600;
+    font-size: 15px;
+    display: block;
+}
+
+.scanner-widget-status {
+    font-size: 11px;
+    opacity: 0.85;
+}
+
+.scanner-widget-header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.scanner-widget-header-actions button,
+.scanner-widget-header-actions a {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background 0.2s;
+    text-decoration: none;
+}
+
+.scanner-widget-header-actions button:hover,
+.scanner-widget-header-actions a:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.scanner-widget-body {
+    padding: 16px;
+}
+
+.scanner-upload-area {
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #fafafa;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.scanner-upload-area:hover,
+.scanner-upload-area.dragover {
+    border-color: #10b981;
+    background: #ecfdf5;
+}
+
+.scanner-preview {
+    max-width: 100%;
+    max-height: 120px;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+.scanner-widget-result {
+    padding: 16px;
+}
+
+.scanner-result-grade {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: white;
+}
+
+.scanner-result-grade.low { background: linear-gradient(135deg, #6c757d, #495057); }
+.scanner-result-grade.medium { background: linear-gradient(135deg, #ffc107, #e0a800); color: #000; }
+.scanner-result-grade.high { background: linear-gradient(135deg, #28a745, #1e7e34); }
+
+.scanner-result-info {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.scanner-price-info {
+    text-align: center;
+    padding: 8px;
+    background: #ecfdf5;
+    border-radius: 8px;
+}
+
+@media (max-width: 480px) {
+    .scanner-widget-container {
+        bottom: 90px;
+        left: 16px;
+    }
+    
+    .scanner-widget-popup {
+        width: calc(100vw - 32px);
+        left: 0;
+    }
+    
+    .scanner-widget-bubble {
+        width: 54px;
+        height: 54px;
+    }
+}
