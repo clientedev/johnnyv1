@@ -10,6 +10,41 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
+        /* Ajustes de espaçamento para header fixo e bottom nav */
+        body {
+            padding-bottom: 95px; /* Espaço para bottom nav */
+        }
+
+        main.container {
+            padding-top: 80px; /* Espaço para header fixo */
+            padding-bottom: 100px; /* Espaço para bottom nav */
+        }
+
+        /* Ajuste específico para o título no mobile */
+        @media (max-width: 768px) {
+            main.container > .btn-voltar {
+                margin-top: 25px !important;
+            }
+            
+            main.container > .page-header {
+                margin-top: 10px !important;
+            }
+        }
+
+        /* Ajustes específicos para desktop */
+        @media (min-width: 1024px) {
+            main.container {
+                padding-top: 90px; /* Header um pouco maior no desktop */
+                padding-bottom: 100px; /* Mantém espaço para bottom nav */
+            }
+        }
+
+        /* Garantir que cards não fiquem atrás da navbar */
+        .fornecedor-card {
+            position: relative;
+            z-index: 1;
+        }
+
         .page-header {
             background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
             color: white;
@@ -250,7 +285,7 @@
         </div>
     </header>
 
-    <main class="container" style="padding-top: 80px; padding-bottom: 2rem;">
+    <main class="container">
         <button class="btn-voltar" onclick="window.location.href='/administracao.html'">
             <i class="fas fa-arrow-left"></i> Voltar ao Painel
         </button>
