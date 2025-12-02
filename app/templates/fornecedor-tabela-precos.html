@@ -145,6 +145,19 @@
         .item-row:hover { background: #f3f4f6; }
         .item-row input[type="number"] {
             text-align: right;
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            background: white;
+        }
+        .item-row input[type="number"]:focus {
+            outline: none;
+            border-color: #059669;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
         }
         .item-row .btn-icon {
             width: 36px;
@@ -156,9 +169,25 @@
         }
         .search-select-container {
             position: relative;
+            width: 100%;
         }
         .search-select-input {
             width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            background: white;
+        }
+        .search-select-input:focus {
+            outline: none;
+            border-color: #059669;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+        }
+        .search-select-input::placeholder {
+            color: #9ca3af;
         }
         .search-select-dropdown {
             position: absolute;
@@ -314,6 +343,45 @@
             font-size: 14px;
             color: #6b7280;
         }
+        
+        /* Melhorias de responsividade mobile */
+        @media (max-width: 768px) {
+            .search-select-input,
+            .item-row input[type="number"],
+            #filtroStatus {
+                font-size: 16px !important; /* Previne zoom no iOS */
+                padding: 12px !important;
+                min-height: 44px; /* Touch target mínimo */
+            }
+            
+            .btn {
+                min-height: 44px;
+                padding: 12px 16px;
+            }
+            
+            .btn-text {
+                display: inline;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #filtroStatus {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            #btnReenviar {
+                width: 100%;
+            }
+            
+            .btn-text {
+                display: none;
+            }
+            
+            .item-row input[type="number"] {
+                margin-bottom: 8px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -424,18 +492,18 @@
             </div>
 
             <div id="tab-visualizar" class="tab-content">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h3>Tabela de Preços Atual</h3>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <select id="filtroStatus" class="form-control" style="width: auto;" onchange="carregarPrecos()">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                    <h3 style="margin: 0;">Tabela de Preços Atual</h3>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; width: 100%; max-width: 500px;">
+                        <select id="filtroStatus" class="form-control" style="flex: 1; min-width: 160px; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; background: white;" onchange="carregarPrecos()">
                             <option value="">Todos os Status</option>
                             <option value="ativo">Ativos</option>
                             <option value="pendente_aprovacao">Pendentes</option>
                             <option value="pendente_reenvio">Aguardando Correção</option>
                             <option value="inativo">Inativos</option>
                         </select>
-                        <button id="btnReenviar" class="btn btn-primary" style="display: none;" onclick="reenviarParaAprovacao()">
-                            <i class="fas fa-paper-plane"></i> Reenviar para Aprovação
+                        <button id="btnReenviar" class="btn btn-primary" style="display: none; white-space: nowrap;" onclick="reenviarParaAprovacao()">
+                            <i class="fas fa-paper-plane"></i> <span class="btn-text">Reenviar</span>
                         </button>
                     </div>
                 </div>
