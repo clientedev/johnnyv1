@@ -925,45 +925,40 @@
             e.preventDefault();
             
             const id = document.getElementById('usuarioId').value;
-            const data = {
-                nome: document.getElementById('nomeUsuario').value,
-                email: document.getElementById('emailUsuario').value,
-                cpf: document.getElementById('cpfUsuario').value,
-                telefone: document.getElementById('telefoneUsuario').value,
-                perfil_id: parseInt(document.getElementById('perfilUsuario').value),
-                percentual_comissao: parseFloat(document.getElementById('comissaoUsuario').value) || 0,
-                ativo: document.getElementById('statusUsuario').value === 'true'
-            };
+            const formData = new FormData();
+            
+            formData.append('nome', document.getElementById('nomeUsuario').value);
+            formData.append('email', document.getElementById('emailUsuario').value);
+            formData.append('cpf', document.getElementById('cpfUsuario').value || '');
+            formData.append('telefone', document.getElementById('telefoneUsuario').value || '');
+            formData.append('perfil_id', document.getElementById('perfilUsuario').value);
+            formData.append('percentual_comissao', document.getElementById('comissaoUsuario').value || '0');
+            formData.append('ativo', document.getElementById('statusUsuario').value);
             
             const senha = document.getElementById('senhaUsuario').value;
             if (senha) {
-                data.senha = senha;
+                formData.append('senha', senha);
+            }
+            
+            const fotoInput = document.getElementById('fotoInput');
+            if (fotoInput.files.length > 0) {
+                formData.append('foto', fotoInput.files[0]);
             }
             
             try {
-                const url = id ? `/rh/usuarios/${id}` : '/rh/usuarios';
+                const url = id ? `/api/rh/usuarios/${id}` : '/api/rh/usuarios';
                 const method = id ? 'PUT' : 'POST';
+                const token = localStorage.getItem('token');
                 
-                const response = await fetchAPI(url, {
+                const response = await fetch(url, {
                     method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
                 });
                 
                 if (response.ok) {
-                    const usuario = await response.json();
-                    
-                    const fotoInput = document.getElementById('fotoInput');
-                    if (fotoInput.files.length > 0) {
-                        const formData = new FormData();
-                        formData.append('foto', fotoInput.files[0]);
-                        
-                        await fetchAPI(`/rh/usuarios/${usuario.id}/foto`, {
-                            method: 'POST',
-                            body: formData
-                        });
-                    }
-                    
                     showAlert(id ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!', 'success');
                     fecharModalUsuario();
                     await carregarUsuarios();
@@ -973,6 +968,7 @@
                     showAlert(error.erro || 'Erro ao salvar usuário');
                 }
             } catch (error) {
+                console.error('Erro ao salvar usuário:', error);
                 showAlert('Erro ao salvar usuário');
             }
         }

@@ -39,7 +39,11 @@ def obter_usuario_rh(id):
 @admin_required
 def criar_usuario_rh():
     admin_id = get_jwt_identity()
-    data = request.get_json()
+    
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        data = request.form.to_dict()
+    else:
+        data = request.get_json() or {}
     
     if not data or not data.get('nome') or not data.get('email'):
         return jsonify({'erro': 'Nome e email são obrigatórios'}), 400
@@ -51,7 +55,7 @@ def criar_usuario_rh():
     if usuario_existente:
         return jsonify({'erro': 'Email já cadastrado'}), 400
     
-    perfil = Perfil.query.get(data['perfil_id'])
+    perfil = Perfil.query.get(int(data['perfil_id']))
     if not perfil:
         return jsonify({'erro': 'Perfil não encontrado'}), 404
     
@@ -62,20 +66,42 @@ def criar_usuario_rh():
         cpf = data.get('cpf', '')
         senha = cpf[-4:] if len(cpf) >= 4 else '123456'
     
+    ativo = data.get('ativo', True)
+    if isinstance(ativo, str):
+        ativo = ativo.lower() in ('true', '1', 'yes', 'on')
+    
+    percentual = data.get('percentual_comissao', 0.0)
+    if isinstance(percentual, str):
+        try:
+            percentual = float(percentual) if percentual else 0.0
+        except ValueError:
+            percentual = 0.0
+    
     usuario = Usuario(
         nome=data['nome'],
         email=data['email'],
         senha_hash=hash_senha(senha),
         tipo=tipo,
-        perfil_id=data['perfil_id'],
-        ativo=data.get('ativo', True),
+        perfil_id=int(data['perfil_id']),
+        ativo=ativo,
         telefone=data.get('telefone'),
         cpf=data.get('cpf'),
-        percentual_comissao=data.get('percentual_comissao', 0.0),
+        percentual_comissao=percentual,
         criado_por=admin_id
     )
     
     db.session.add(usuario)
+    db.session.flush()
+    
+    if 'foto' in request.files:
+        file = request.files['foto']
+        if file and file.filename and allowed_file(file.filename):
+            ensure_upload_folder()
+            filename = secure_filename(f"usuario_{usuario.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+            usuario.foto_path = filepath
+    
     db.session.commit()
     
     registrar_criacao(admin_id, 'Usuario', usuario.id, {
@@ -83,7 +109,8 @@ def criar_usuario_rh():
         'email': usuario.email,
         'perfil': perfil.nome,
         'percentual_comissao': usuario.percentual_comissao,
-        'ativo': usuario.ativo
+        'ativo': usuario.ativo,
+        'foto_path': usuario.foto_path
     })
     
     return jsonify(usuario.to_dict()), 201
@@ -97,7 +124,11 @@ def atualizar_usuario_rh(id):
     if not usuario:
         return jsonify({'erro': 'Usuário não encontrado'}), 404
     
-    data = request.get_json()
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        data = request.form.to_dict()
+    else:
+        data = request.get_json() or {}
+    
     alteracoes = {'antes': {}, 'depois': {}}
     
     if data.get('nome'):
@@ -119,19 +150,22 @@ def atualizar_usuario_rh(id):
         alteracoes['depois']['senha_alterada'] = True
     
     if data.get('perfil_id'):
-        perfil = Perfil.query.get(data['perfil_id'])
+        perfil = Perfil.query.get(int(data['perfil_id']))
         if not perfil:
             return jsonify({'erro': 'Perfil não encontrado'}), 404
         
         alteracoes['antes']['perfil'] = usuario.perfil.nome if usuario.perfil else None
-        usuario.perfil_id = data['perfil_id']
+        usuario.perfil_id = int(data['perfil_id'])
         usuario.tipo = 'admin' if perfil.nome == 'Administrador' else 'funcionario'
         alteracoes['depois']['perfil'] = perfil.nome
     
     if 'ativo' in data:
+        ativo = data['ativo']
+        if isinstance(ativo, str):
+            ativo = ativo.lower() in ('true', '1', 'yes', 'on')
         alteracoes['antes']['ativo'] = usuario.ativo
-        usuario.ativo = data['ativo']
-        alteracoes['depois']['ativo'] = data['ativo']
+        usuario.ativo = ativo
+        alteracoes['depois']['ativo'] = ativo
     
     if 'telefone' in data:
         alteracoes['antes']['telefone'] = usuario.telefone
@@ -144,9 +178,34 @@ def atualizar_usuario_rh(id):
         alteracoes['depois']['cpf'] = data['cpf']
     
     if 'percentual_comissao' in data:
+        percentual = data['percentual_comissao']
+        if isinstance(percentual, str):
+            try:
+                percentual = float(percentual) if percentual else 0.0
+            except ValueError:
+                percentual = 0.0
         alteracoes['antes']['percentual_comissao'] = usuario.percentual_comissao
-        usuario.percentual_comissao = float(data['percentual_comissao'])
-        alteracoes['depois']['percentual_comissao'] = float(data['percentual_comissao'])
+        usuario.percentual_comissao = percentual
+        alteracoes['depois']['percentual_comissao'] = percentual
+    
+    if 'foto' in request.files:
+        file = request.files['foto']
+        if file and file.filename and allowed_file(file.filename):
+            ensure_upload_folder()
+            
+            if usuario.foto_path and os.path.exists(usuario.foto_path):
+                try:
+                    os.remove(usuario.foto_path)
+                except Exception:
+                    pass
+            
+            filename = secure_filename(f"usuario_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+            
+            alteracoes['antes']['foto_path'] = usuario.foto_path
+            usuario.foto_path = filepath
+            alteracoes['depois']['foto_path'] = filepath
     
     db.session.commit()
     
@@ -293,7 +352,14 @@ def calcular_comissao_usuario(usuario_id):
     total_comissao = 0.0
     
     for sol in solicitacoes:
-        valor_solicitacao = sum(item.valor_calculado for item in sol.itens) if sol.itens else 0
+        valor_solicitacao = 0.0
+        if sol.itens:
+            for item in sol.itens:
+                valor_item = item.valor_calculado if item.valor_calculado else 0.0
+                if valor_item == 0 and item.peso_kg and item.preco_por_kg_snapshot:
+                    valor_item = float(item.peso_kg) * float(item.preco_por_kg_snapshot)
+                valor_solicitacao += valor_item
+        
         comissao = valor_solicitacao * (percentual / 100)
         
         total_valor += valor_solicitacao
@@ -353,7 +419,13 @@ def resumo_comissoes():
         
         total_valor = 0.0
         for sol in solicitacoes:
-            valor_solicitacao = sum(item.valor_calculado for item in sol.itens) if sol.itens else 0
+            valor_solicitacao = 0.0
+            if sol.itens:
+                for item in sol.itens:
+                    valor_item = item.valor_calculado if item.valor_calculado else 0.0
+                    if valor_item == 0 and item.peso_kg and item.preco_por_kg_snapshot:
+                        valor_item = float(item.peso_kg) * float(item.preco_por_kg_snapshot)
+                    valor_solicitacao += valor_item
             total_valor += valor_solicitacao
         
         comissao = total_valor * (usuario.percentual_comissao / 100)
@@ -414,7 +486,13 @@ def exportar_comissoes():
     for sol in solicitacoes:
         usuario = sol.funcionario
         percentual = usuario.percentual_comissao or 0.0
-        valor_total = sum(item.valor_calculado for item in sol.itens) if sol.itens else 0
+        valor_total = 0.0
+        if sol.itens:
+            for item in sol.itens:
+                valor_item = item.valor_calculado if item.valor_calculado else 0.0
+                if valor_item == 0 and item.peso_kg and item.preco_por_kg_snapshot:
+                    valor_item = float(item.peso_kg) * float(item.preco_por_kg_snapshot)
+                valor_total += valor_item
         comissao = valor_total * (percentual / 100)
         
         dados.append({
@@ -515,7 +593,13 @@ def dashboard_rh():
     total_comissao_mes = 0.0
     
     for sol in solicitacoes_mes:
-        valor = sum(item.valor_calculado for item in sol.itens) if sol.itens else 0
+        valor = 0.0
+        if sol.itens:
+            for item in sol.itens:
+                valor_item = item.valor_calculado if item.valor_calculado else 0.0
+                if valor_item == 0 and item.peso_kg and item.preco_por_kg_snapshot:
+                    valor_item = float(item.peso_kg) * float(item.preco_por_kg_snapshot)
+                valor += valor_item
         total_valor_mes += valor
         if sol.funcionario and sol.funcionario.percentual_comissao:
             total_comissao_mes += valor * (sol.funcionario.percentual_comissao / 100)
