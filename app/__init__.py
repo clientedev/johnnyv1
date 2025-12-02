@@ -116,6 +116,8 @@ def create_app():
                 from sqlalchemy import text
                 columns_to_add = [
                     ("foto_path", "VARCHAR(255)"),
+                    ("foto_data", "BYTEA"),
+                    ("foto_mimetype", "VARCHAR(50)"),
                     ("percentual_comissao", "NUMERIC(5,2) DEFAULT 0"),
                     ("telefone", "VARCHAR(20)"),
                     ("cpf", "VARCHAR(14)"),

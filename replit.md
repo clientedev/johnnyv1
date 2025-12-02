@@ -38,7 +38,7 @@ The system is built on a Flask backend (Python 3.12) with SQLAlchemy for ORM and
     -   **Commission Reports**: Detailed reporting with filtering by date range and user, showing total value of solicitations and calculated commissions.
     -   **Export Functionality**: CSV and Excel export for commission reports using pandas/openpyxl.
     -   **Audit Logging**: Complete audit trail for all HR operations using the existing AuditoriaLog system, tracking before/after changes.
-    -   **User Photo Uploads**: Photos stored in `uploads/usuarios/` directory with validation for image types and size limits.
+    -   **User Photo Uploads**: Photos stored in the database as binary data (`foto_data` column) for Railway compatibility, with validation for image types and size limits. The system uses BYTEA columns to persist photos across container restarts.
 -   **Supplier Visits Module (Visitas)**: A complete visit tracking system integrated into the suppliers page (`/fornecedores.html`) with the following features:
     -   **Visit Registration**: Create visits with supplier name, contact info (name, email, phone), observations, and automatic GPS geolocation capture.
     -   **Tab-Based Interface**: Toggle between "Fornecedores" and "Visitas" tabs within the same page.
