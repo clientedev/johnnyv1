@@ -11,7 +11,9 @@ from werkzeug.utils import secure_filename
 
 bp = Blueprint('rh', __name__, url_prefix='/api/rh')
 
-UPLOAD_FOLDER = 'uploads/usuarios'
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads', 'usuarios')
+UPLOAD_PATH_PREFIX = 'usuarios'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def allowed_file(filename):
@@ -19,7 +21,7 @@ def allowed_file(filename):
 
 def ensure_upload_folder():
     if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @bp.route('/usuarios', methods=['GET'])
 @admin_required
@@ -100,7 +102,7 @@ def criar_usuario_rh():
             filename = secure_filename(f"usuario_{usuario.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
-            usuario.foto_path = filepath
+            usuario.foto_path = f"{UPLOAD_PATH_PREFIX}/{filename}"
     
     db.session.commit()
     
@@ -193,19 +195,21 @@ def atualizar_usuario_rh(id):
         if file and file.filename and allowed_file(file.filename):
             ensure_upload_folder()
             
-            if usuario.foto_path and os.path.exists(usuario.foto_path):
-                try:
-                    os.remove(usuario.foto_path)
-                except Exception:
-                    pass
+            if usuario.foto_path:
+                old_filepath = os.path.join(BASE_DIR, 'uploads', usuario.foto_path)
+                if os.path.exists(old_filepath):
+                    try:
+                        os.remove(old_filepath)
+                    except Exception:
+                        pass
             
             filename = secure_filename(f"usuario_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
             
             alteracoes['antes']['foto_path'] = usuario.foto_path
-            usuario.foto_path = filepath
-            alteracoes['depois']['foto_path'] = filepath
+            usuario.foto_path = f"{UPLOAD_PATH_PREFIX}/{filename}"
+            alteracoes['depois']['foto_path'] = usuario.foto_path
     
     db.session.commit()
     
@@ -260,28 +264,30 @@ def upload_foto_usuario(id):
     
     ensure_upload_folder()
     
-    if usuario.foto_path and os.path.exists(usuario.foto_path):
-        try:
-            os.remove(usuario.foto_path)
-        except Exception:
-            pass
+    if usuario.foto_path:
+        old_filepath = os.path.join(BASE_DIR, 'uploads', usuario.foto_path)
+        if os.path.exists(old_filepath):
+            try:
+                os.remove(old_filepath)
+            except Exception:
+                pass
     
     filename = secure_filename(f"usuario_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
     
     foto_anterior = usuario.foto_path
-    usuario.foto_path = filepath
+    usuario.foto_path = f"{UPLOAD_PATH_PREFIX}/{filename}"
     db.session.commit()
     
     registrar_atualizacao(admin_id, 'Usuario', usuario.id, {
         'antes': {'foto_path': foto_anterior},
-        'depois': {'foto_path': filepath}
+        'depois': {'foto_path': usuario.foto_path}
     })
     
     return jsonify({
         'mensagem': 'Foto atualizada com sucesso',
-        'foto_path': filepath
+        'foto_path': usuario.foto_path
     }), 200
 
 @bp.route('/usuarios/<int:id>/foto', methods=['DELETE'])
@@ -293,11 +299,13 @@ def remover_foto_usuario(id):
     if not usuario:
         return jsonify({'erro': 'Usuário não encontrado'}), 404
     
-    if usuario.foto_path and os.path.exists(usuario.foto_path):
-        try:
-            os.remove(usuario.foto_path)
-        except Exception:
-            pass
+    if usuario.foto_path:
+        old_filepath = os.path.join(BASE_DIR, 'uploads', usuario.foto_path)
+        if os.path.exists(old_filepath):
+            try:
+                os.remove(old_filepath)
+            except Exception:
+                pass
     
     foto_anterior = usuario.foto_path
     usuario.foto_path = None

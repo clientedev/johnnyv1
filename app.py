@@ -1,5 +1,5 @@
 from app import create_app, socketio
-from flask import send_from_directory, render_template
+from flask import send_from_directory, render_template, make_response
 from flask_socketio import join_room
 from flask_jwt_extended import decode_token
 from app.models import Usuario
@@ -8,9 +8,17 @@ import os
 application = create_app()
 app = application
 
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+
 @app.route('/uploads/<path:filename>')
 def serve_upload(filename):
-    return send_from_directory('uploads', filename)
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+    response = make_response(send_from_directory(UPLOAD_FOLDER, filename))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/')
 def index():

@@ -602,7 +602,8 @@
                 <tr>
                     <td>
                         ${u.foto_path ? 
-                            `<img src="/${u.foto_path}" class="user-photo">` : 
+                            `<img src="/uploads/${u.foto_path}" class="user-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                             <div class="user-photo" style="display:none;"><i class="fas fa-user"></i></div>` : 
                             `<div class="user-photo"><i class="fas fa-user"></i></div>`
                         }
                     </td>
@@ -902,7 +903,7 @@
                     document.getElementById('senhaUsuario').value = '';
                     
                     if (usuarioAtual.foto_path) {
-                        document.getElementById('fotoPreview').innerHTML = `<img src="/${usuarioAtual.foto_path}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                        document.getElementById('fotoPreview').innerHTML = `<img src="/uploads/${usuarioAtual.foto_path}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-camera\\'></i><div style=\\'font-size: 0.75rem;\\'>Adicionar foto</div>'; this.parentElement.classList.add('placeholder');">`;
                         document.getElementById('fotoPreview').classList.remove('placeholder');
                     } else {
                         document.getElementById('fotoPreview').innerHTML = '<i class="fas fa-camera"></i><div style="font-size: 0.75rem;">Adicionar foto</div>';
