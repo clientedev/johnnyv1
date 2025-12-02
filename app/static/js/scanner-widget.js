@@ -2,7 +2,6 @@ let scannerWidgetOpen = false;
 let scannerEnabled = true;
 let scannerWidgetInitialized = false;
 let scannerInitAttempts = 0;
-const MAX_SCANNER_INIT_ATTEMPTS = 10;
 
 function isUserAdmin() {
     if (typeof currentUser !== 'undefined' && currentUser) {
@@ -19,12 +18,9 @@ function initScannerWidget() {
     
     if (typeof currentUser === 'undefined' || !currentUser) {
         scannerInitAttempts++;
-        if (scannerInitAttempts < MAX_SCANNER_INIT_ATTEMPTS) {
-            console.log('Scanner widget: aguardando currentUser... tentativa ' + scannerInitAttempts);
-            setTimeout(initScannerWidget, 500);
-            return;
-        }
-        console.log('Scanner widget: currentUser nao disponivel apos tentativas');
+        const delay = Math.min(500 * Math.pow(1.5, scannerInitAttempts - 1), 5000);
+        console.log('Scanner widget: aguardando currentUser... tentativa ' + scannerInitAttempts + ' (proximo em ' + delay + 'ms)');
+        setTimeout(initScannerWidget, delay);
         return;
     }
     
