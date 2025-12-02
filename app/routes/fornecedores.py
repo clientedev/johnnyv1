@@ -43,6 +43,7 @@ def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
     if not usuario:
         return False
     
+    # Admin tem acesso total
     if usuario.tipo == 'admin':
         return True
     
@@ -54,9 +55,16 @@ def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
     if not fornecedor:
         return False
     
-    # Comprador tem acesso se for o comprador responsável OU se foi quem criou o fornecedor
-    return (fornecedor.comprador_responsavel_id == usuario_id or 
-            fornecedor.criado_por_id == usuario_id)
+    # Comprador tem acesso se:
+    # 1. For o comprador responsável (comprador_responsavel_id)
+    # 2. Foi quem criou o fornecedor (criado_por_id)
+    # 3. Tem tabela de preços aprovada (para criar solicitações)
+    tem_acesso = (
+        fornecedor.comprador_responsavel_id == usuario_id or 
+        fornecedor.criado_por_id == usuario_id
+    )
+    
+    return tem_acesso
 
 def verificar_conflito_endereco(rua, numero, cidade, estado, cep, fornecedor_id_excluir=None):
     """
@@ -283,16 +291,36 @@ def obter_fornecedor(id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        print(f"\n{'='*60}")
+        print(f" ENDPOINT: GET /fornecedores/{id}")
+        print(f"{'='*60}")
+        print(f"   Usuário ID: {usuario_id}")
+        print(f"   Usuário: {usuario.nome if usuario else 'N/A'}")
+        print(f"   Tipo: {usuario.tipo if usuario else 'N/A'}")
+        
         if not usuario:
+            print(f"   ❌ Usuário não encontrado")
             return jsonify({'erro': 'Usuário não encontrado'}), 404
         
         fornecedor = Fornecedor.query.get(id)
         
         if not fornecedor:
+            print(f"   ❌ Fornecedor não encontrado")
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
         
-        if not verificar_acesso_fornecedor(id, usuario_id):
+        print(f"   Fornecedor: {fornecedor.nome}")
+        print(f"   Criado por ID: {fornecedor.criado_por_id}")
+        print(f"   Comprador responsável ID: {fornecedor.comprador_responsavel_id}")
+        
+        # Verificar acesso
+        tem_acesso = verificar_acesso_fornecedor(id, usuario_id)
+        print(f"   Tem acesso: {tem_acesso}")
+        
+        if not tem_acesso:
+            print(f"   ❌ Acesso negado - Usuário {usuario_id} não tem permissão")
             return jsonify({'erro': 'Você não tem permissão para acessar este fornecedor'}), 403
+        
+        print(f"   ✅ Acesso permitido")
         
         fornecedor_dict = fornecedor.to_dict()
         fornecedor_dict['classificacoes'] = [classif.to_dict() for classif in fornecedor.classificacoes_tipo_lote]
@@ -300,9 +328,16 @@ def obter_fornecedor(id):
         fornecedor_dict['total_solicitacoes'] = len(fornecedor.solicitacoes)
         fornecedor_dict['total_lotes'] = len(fornecedor.lotes)
         
+        print(f"   ✅ Dados do fornecedor retornados com sucesso")
+        print(f"{'='*60}\n")
+        
         return jsonify(fornecedor_dict), 200
     
     except Exception as e:
+        print(f"   ❌ ERRO: {str(e)}")
+        print(f"{'='*60}\n")
+        import traceback
+        traceback.print_exc()
         return jsonify({'erro': f'Erro ao obter fornecedor: {str(e)}'}), 500
 
 @bp.route('', methods=['POST'])

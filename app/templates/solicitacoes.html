@@ -711,50 +711,42 @@
                 return;
             }
 
-            // Auto-preencher endereço do fornecedor (sem bloquear carregamento de preços)
+            // Auto-preencher endereço do fornecedor
+            // Busca na lista de fornecedores já carregados (não precisa de nova requisição)
             try {
-                console.log('📡 Buscando dados do fornecedor ID:', fornecedorId);
-                const fornecedorResponse = await fetchAPI(`/fornecedores/${fornecedorId}`);
+                console.log('📍 Buscando dados de localização para fornecedor ID:', fornecedorId);
                 
-                if (!fornecedorResponse) {
-                    console.error('❌ Sem resposta ao buscar fornecedor');
-                    showAlert('Erro ao carregar dados do fornecedor', 'error');
-                    return;
-                }
+                // Buscar fornecedor na lista já carregada
+                const fornecedor = todosFornecedores.find(f => f.id === parseInt(fornecedorId));
                 
-                if (!fornecedorResponse.ok) {
-                    const errorData = await fornecedorResponse.json();
-                    console.error('❌ Erro ao buscar fornecedor:', errorData);
-                    showAlert(errorData.erro || 'Erro ao carregar dados do fornecedor', 'error');
-                    return;
-                }
-                
-                const fornecedor = await fornecedorResponse.json();
-                console.log('📍 Dados do fornecedor para localização:', fornecedor);
-                
-                // Preencher campos de localização se existirem
-                const ruaEl = document.getElementById('rua');
-                const numeroEl = document.getElementById('numero');
-                const cepEl = document.getElementById('cep');
-                
-                if (ruaEl && numeroEl && cepEl) {
-                    // Priorizar outro_endereco se existir, senão usar endereço principal
-                    const rua = fornecedor.outro_rua || fornecedor.rua || '';
-                    const numero = fornecedor.outro_numero || fornecedor.numero || '';
-                    const cep = fornecedor.outro_cep || fornecedor.cep || '';
-                    
-                    ruaEl.value = rua;
-                    numeroEl.value = numero;
-                    cepEl.value = cep;
-                    
-                    console.log('✅ Campos de localização preenchidos:', { rua, numero, cep });
+                if (!fornecedor) {
+                    console.warn('⚠️ Fornecedor não encontrado na lista carregada');
                 } else {
-                    console.warn('⚠️ Campos de localização não encontrados no DOM');
+                    console.log('📍 Dados do fornecedor para localização:', fornecedor);
+                    
+                    // Preencher campos de localização se existirem
+                    const ruaEl = document.getElementById('rua');
+                    const numeroEl = document.getElementById('numero');
+                    const cepEl = document.getElementById('cep');
+                    
+                    if (ruaEl && numeroEl && cepEl) {
+                        // Priorizar outro_endereco se existir, senão usar endereço principal
+                        const rua = fornecedor.outro_rua || fornecedor.rua || '';
+                        const numero = fornecedor.outro_numero || fornecedor.numero || '';
+                        const cep = fornecedor.outro_cep || fornecedor.cep || '';
+                        
+                        ruaEl.value = rua;
+                        numeroEl.value = numero;
+                        cepEl.value = cep;
+                        
+                        console.log('✅ Campos de localização preenchidos:', { rua, numero, cep });
+                    } else {
+                        console.warn('⚠️ Campos de localização não encontrados no DOM');
+                    }
                 }
             } catch (error) {
-                console.error('❌ Erro ao carregar endereço do fornecedor:', error);
-                showAlert('Erro ao carregar endereço do fornecedor: ' + error.message, 'error');
-                // Continua para carregar preços mesmo se falhar o preenchimento de endereço
+                console.error('❌ Erro ao preencher endereço:', error);
+                // Não bloqueia o fluxo - continua para carregar preços
             }
 
             // Carregar preços e materiais do fornecedor
