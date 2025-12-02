@@ -48,6 +48,8 @@ class Usuario(db.Model):  # type: ignore
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     foto_path = db.Column(db.String(255), nullable=True)
+    foto_data = db.Column(db.LargeBinary, nullable=True)  # Armazena imagem como bytes
+    foto_mimetype = db.Column(db.String(50), nullable=True)  # Tipo MIME da imagem
     percentual_comissao = db.Column(db.Float, nullable=True, default=0.0)
     telefone = db.Column(db.String(20), nullable=True)
     cpf = db.Column(db.String(14), nullable=True)

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import db, Usuario, Solicitacao, Fornecedor, AuditoriaLog, Perfil
 from app.auth import admin_required, hash_senha
@@ -10,6 +10,25 @@ import io
 from werkzeug.utils import secure_filename
 
 bp = Blueprint('rh', __name__, url_prefix='/api/rh')
+
+
+@bp.route('/usuarios/<int:id>/foto', methods=['GET'])
+@jwt_required()
+def obter_foto_usuario(id):
+    """Retorna a foto do usuário armazenada no banco de dados"""
+    usuario = Usuario.query.get(id)
+    if not usuario or not usuario.foto_data:
+        return jsonify({'erro': 'Foto não encontrada'}), 404
+    
+    return Response(
+        usuario.foto_data,
+        mimetype=usuario.foto_mimetype or 'image/jpeg',
+        headers={
+            'Cache-Control': 'public, max-age=31536000',
+            'Content-Disposition': f'inline; filename="{usuario.foto_path.split("/")[-1]}"'
+        }
+    )
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads', 'usuarios')
@@ -103,10 +122,11 @@ def criar_usuario_rh():
     if 'foto' in request.files:
         file = request.files['foto']
         if file and file.filename and allowed_file(file.filename):
-            ensure_upload_folder()
+            # Salvar imagem no banco de dados (Railway-friendly)
+            foto_bytes = file.read()
+            usuario.foto_data = foto_bytes
+            usuario.foto_mimetype = file.content_type or 'image/jpeg'
             filename = secure_filename(f"usuario_{usuario.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(filepath)
             usuario.foto_path = f"usuarios/{filename}"
     
     db.session.commit()
@@ -198,22 +218,16 @@ def atualizar_usuario_rh(id):
     if 'foto' in request.files:
         file = request.files['foto']
         if file and file.filename and allowed_file(file.filename):
-            ensure_upload_folder()
-            
-            if usuario.foto_path:
-                old_filepath = os.path.join(BASE_DIR, 'uploads', usuario.foto_path)
-                if os.path.exists(old_filepath):
-                    try:
-                        os.remove(old_filepath)
-                    except Exception:
-                        pass
-            
-            filename = secure_filename(f"usuario_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(filepath)
+            # Salvar imagem no banco de dados (Railway-friendly)
+            foto_bytes = file.read()
             
             alteracoes['antes']['foto_path'] = usuario.foto_path
+            
+            usuario.foto_data = foto_bytes
+            usuario.foto_mimetype = file.content_type or 'image/jpeg'
+            filename = secure_filename(f"usuario_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
             usuario.foto_path = f"usuarios/{filename}"
+            
             alteracoes['depois']['foto_path'] = usuario.foto_path
     
     db.session.commit()
@@ -267,22 +281,15 @@ def upload_foto_usuario(id):
     if not allowed_file(file.filename):
         return jsonify({'erro': 'Tipo de arquivo não permitido. Use PNG, JPG, JPEG, GIF ou WEBP'}), 400
     
-    ensure_upload_folder()
-    
-    if usuario.foto_path:
-        old_filepath = os.path.join(BASE_DIR, 'uploads', usuario.foto_path)
-        if os.path.exists(old_filepath):
-            try:
-                os.remove(old_filepath)
-            except Exception:
-                pass
-    
-    filename = secure_filename(f"usuario_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(filepath)
-    
+    # Salvar imagem no banco de dados (Railway-friendly)
+    foto_bytes = file.read()
     foto_anterior = usuario.foto_path
+    
+    usuario.foto_data = foto_bytes
+    usuario.foto_mimetype = file.content_type or 'image/jpeg'
+    filename = secure_filename(f"usuario_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
     usuario.foto_path = f"usuarios/{filename}"
+    
     db.session.commit()
     
     registrar_atualizacao(admin_id, 'Usuario', usuario.id, {
@@ -304,16 +311,10 @@ def remover_foto_usuario(id):
     if not usuario:
         return jsonify({'erro': 'Usuário não encontrado'}), 404
     
-    if usuario.foto_path:
-        old_filepath = os.path.join(BASE_DIR, 'uploads', usuario.foto_path)
-        if os.path.exists(old_filepath):
-            try:
-                os.remove(old_filepath)
-            except Exception:
-                pass
-    
     foto_anterior = usuario.foto_path
     usuario.foto_path = None
+    usuario.foto_data = None
+    usuario.foto_mimetype = None
     db.session.commit()
     
     registrar_atualizacao(admin_id, 'Usuario', usuario.id, {

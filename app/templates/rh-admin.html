@@ -1043,8 +1043,8 @@
                 return `
                 <tr>
                     <td>
-                        ${fotoUrl ? 
-                            `<img src="${fotoUrl}" class="user-photo" onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        ${u.foto_path ? 
+                            `<img src="/api/rh/usuarios/${u.id}/foto" class="user-photo" onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
                              <div class="user-photo" style="display:none;"><i class="fas fa-user"></i></div>` : 
                             `<div class="user-photo"><i class="fas fa-user"></i></div>`
                         }
@@ -1456,7 +1456,7 @@
                     document.getElementById('senhaUsuario').value = '';
                     
                     if (usuarioAtual.foto_path) {
-                        const fotoUrl = `/uploads/${usuarioAtual.foto_path}`;
+                        const fotoUrl = `/api/rh/usuarios/${usuarioAtual.id}/foto?_=${Date.now()}`;
                         console.log('Carregando foto:', fotoUrl);
                         document.getElementById('fotoPreview').innerHTML = `<img src="${fotoUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="console.error('Erro ao carregar foto no modal:', this.src); this.parentElement.innerHTML='<i class=\\'fas fa-camera\\'></i><div style=\\'font-size: 0.75rem;\\'>Adicionar foto</div>'; this.parentElement.classList.add('placeholder');">`;
                         document.getElementById('fotoPreview').classList.remove('placeholder');
