@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('fornecedor_tabela_precos', __name__, url_prefix='/api/fornecedor-tabela-precos')
 
 def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
-    """Verifica se o usuário tem acesso ao fornecedor (admin ou comprador responsável)"""
+    """Verifica se o usuário tem acesso ao fornecedor (admin, comprador responsável ou criador)"""
     usuario = Usuario.query.get(usuario_id)
     
     if not usuario:
@@ -25,7 +25,9 @@ def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
     if not fornecedor:
         return False
     
-    return fornecedor.comprador_responsavel_id == usuario_id
+    # Permitir acesso se for comprador responsável OU criador do fornecedor
+    return (fornecedor.comprador_responsavel_id == usuario_id or 
+            fornecedor.criado_por_id == usuario_id)
 
 def notificar_admins_nova_tabela(fornecedor, usuario_criador):
     """Cria notificação para todos os admins sobre nova tabela de preços"""
