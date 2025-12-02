@@ -45,19 +45,29 @@ def analyze_pcb():
             return jsonify({'erro': 'Scanner desativado pelo administrador'}), 403
         
         image_data = None
-        description = None
+        image_bytes = None
+        image_mimetype = None
         
         if 'image' in request.files:
             image_file = request.files['image']
-            image_data = image_file.read()
+            image_bytes = image_file.read()
+            image_data = image_bytes
+            image_mimetype = image_file.mimetype or 'image/jpeg'
         
         if request.is_json:
             data = request.get_json()
             if 'image_base64' in data:
-                image_data = data['image_base64']
-            description = data.get('description')
-        else:
-            description = request.form.get('description')
+                base64_str = data['image_base64']
+                if base64_str.startswith('data:image'):
+                    parts = base64_str.split(',')
+                    if len(parts) == 2:
+                        header = parts[0]
+                        image_mimetype = header.split(':')[1].split(';')[0] if ':' in header else 'image/jpeg'
+                        image_bytes = base64.b64decode(parts[1])
+                else:
+                    image_bytes = base64.b64decode(base64_str)
+                    image_mimetype = 'image/jpeg'
+                image_data = image_bytes
         
         if not image_data:
             return jsonify({'erro': 'Imagem nao fornecida. Por favor, envie uma imagem da placa para analise.'}), 400
@@ -75,8 +85,8 @@ def analyze_pcb():
                 'components_count': 0,
                 'density_score': 0.0,
                 'board_detected': False,
-                'type_guess': 'Placa não detectada',
-                'explanation': 'Placa eletrônica não detectada na imagem. Por favor, envie uma foto clara de uma placa de circuito impresso (PCB).',
+                'type_guess': 'Placa nao detectada',
+                'explanation': 'Placa eletronica nao detectada na imagem. Por favor, envie uma foto clara de uma placa de circuito impresso (PCB).',
                 'confidence': 0,
                 'timestamp': datetime.now().isoformat(),
                 'analysis_method': 'opencv',
@@ -96,6 +106,7 @@ def analyze_pcb():
         
         confidence = min(0.95, 0.5 + (min(density_score * 10000, 0.3)) + (min(components_count, 50) / 100))
         
+        analysis_id = None
         try:
             analysis = ScannerAnalysis(
                 usuario_id=int(usuario_id),
@@ -103,22 +114,21 @@ def analyze_pcb():
                 type_guess=type_guess,
                 explanation=explanation,
                 confidence=confidence,
-                weight_kg=None,
-                price_suggestion=None,
-                components_detected=[],
-                precious_metals={
-                    'gold': 'HIGH' if grade == 'HIGH' else ('MEDIUM' if grade == 'MEDIUM' else 'LOW'),
-                    'silver': 'MEDIUM' if grade in ['HIGH', 'MEDIUM'] else 'LOW',
-                    'palladium': 'LOW'
-                },
+                components_count=components_count,
+                density_score=density_score,
+                image_data=image_bytes,
+                image_mimetype=image_mimetype,
                 raw_response=str(analysis_result)
             )
             db.session.add(analysis)
             db.session.commit()
+            analysis_id = analysis.id
         except Exception as e:
             print(f'Erro ao salvar analise: {e}')
+            db.session.rollback()
         
         response = {
+            'id': analysis_id,
             'grade': grade,
             'components_count': components_count,
             'density_score': density_score,
@@ -126,11 +136,6 @@ def analyze_pcb():
             'type_guess': type_guess,
             'explanation': explanation,
             'confidence': round(confidence, 2),
-            'precious_metals_likelihood': {
-                'gold': 'HIGH' if grade == 'HIGH' else ('MEDIUM' if grade == 'MEDIUM' else 'LOW'),
-                'silver': 'MEDIUM' if grade in ['HIGH', 'MEDIUM'] else 'LOW',
-                'palladium': 'LOW'
-            },
             'timestamp': datetime.now().isoformat(),
             'analysis_method': 'opencv',
             'perplexity_used': is_perplexity_configured()
@@ -189,18 +194,6 @@ def update_admin_config():
         
         if 'enabled' in data:
             config.enabled = bool(data['enabled'])
-        if 'price_low_min' in data:
-            config.price_low_min = float(data['price_low_min'])
-        if 'price_low_max' in data:
-            config.price_low_max = float(data['price_low_max'])
-        if 'price_medium_min' in data:
-            config.price_medium_min = float(data['price_medium_min'])
-        if 'price_medium_max' in data:
-            config.price_medium_max = float(data['price_medium_max'])
-        if 'price_high_min' in data:
-            config.price_high_min = float(data['price_high_min'])
-        if 'price_high_max' in data:
-            config.price_high_max = float(data['price_high_max'])
         if 'prompt_rules' in data:
             config.prompt_rules = str(data['prompt_rules'])
         
@@ -238,6 +231,7 @@ def scanner_history():
     try:
         usuario_id = get_jwt_identity()
         limit = request.args.get('limit', 20, type=int)
+        include_images = request.args.get('include_images', 'false').lower() == 'true'
         
         analyses = ScannerAnalysis.query.filter_by(
             usuario_id=int(usuario_id)
@@ -245,7 +239,50 @@ def scanner_history():
             ScannerAnalysis.created_at.desc()
         ).limit(limit).all()
         
-        return jsonify([a.to_dict() for a in analyses]), 200
+        return jsonify([a.to_dict(include_image=include_images) for a in analyses]), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+@bp.route('/api/scanner/analysis/<int:analysis_id>', methods=['GET'])
+@jwt_required()
+def get_analysis(analysis_id):
+    try:
+        usuario_id = get_jwt_identity()
+        include_image = request.args.get('include_image', 'true').lower() == 'true'
+        
+        analysis = ScannerAnalysis.query.filter_by(
+            id=analysis_id,
+            usuario_id=int(usuario_id)
+        ).first()
+        
+        if not analysis:
+            return jsonify({'erro': 'Analise nao encontrada'}), 404
+        
+        return jsonify(analysis.to_dict(include_image=include_image)), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+@bp.route('/api/scanner/analysis/<int:analysis_id>/image', methods=['GET'])
+@jwt_required()
+def get_analysis_image(analysis_id):
+    try:
+        usuario_id = get_jwt_identity()
+        
+        analysis = ScannerAnalysis.query.filter_by(
+            id=analysis_id,
+            usuario_id=int(usuario_id)
+        ).first()
+        
+        if not analysis or not analysis.image_data:
+            return jsonify({'erro': 'Imagem nao encontrada'}), 404
+        
+        from flask import Response
+        return Response(
+            analysis.image_data,
+            mimetype=analysis.image_mimetype or 'image/jpeg'
+        )
         
     except Exception as e:
         return jsonify({'erro': str(e)}), 500

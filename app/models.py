@@ -1928,10 +1928,10 @@ class ScannerAnalysis(db.Model):  # type: ignore
     type_guess = db.Column(db.String(200), nullable=True)
     explanation = db.Column(db.Text, nullable=True)
     confidence = db.Column(db.Float, nullable=True)
-    weight_kg = db.Column(db.Float, nullable=True)
-    price_suggestion = db.Column(db.JSON, nullable=True)
-    components_detected = db.Column(db.JSON, nullable=True)
-    precious_metals = db.Column(db.JSON, nullable=True)
+    components_count = db.Column(db.Integer, nullable=True)
+    density_score = db.Column(db.Float, nullable=True)
+    image_data = db.Column(db.LargeBinary, nullable=True)
+    image_mimetype = db.Column(db.String(50), nullable=True)
     raw_response = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -1940,20 +1940,24 @@ class ScannerAnalysis(db.Model):  # type: ignore
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_image: bool = False):
+        result = {
             'id': self.id,
             'usuario_id': self.usuario_id,
             'grade': self.grade,
             'type_guess': self.type_guess,
             'explanation': self.explanation,
             'confidence': self.confidence,
-            'weight_kg': self.weight_kg,
-            'price_suggestion': self.price_suggestion,
-            'components_detected': self.components_detected,
-            'precious_metals': self.precious_metals,
+            'components_count': self.components_count,
+            'density_score': self.density_score,
+            'has_image': self.image_data is not None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+        if include_image and self.image_data:
+            import base64
+            result['image_base64'] = base64.b64encode(self.image_data).decode('utf-8')
+            result['image_mimetype'] = self.image_mimetype
+        return result
 
 
 class VisitaFornecedor(db.Model):  # type: ignore
