@@ -18,6 +18,57 @@ def executar_migracao():
     print("MIGRAÇÃO 021: Adicionar colunas foto_data e foto_mimetype")
     print("=" * 60)
     
+    # SQL da migração embutido no script
+    sql_migration = """
+-- Migração 021: Adicionar colunas foto_data e foto_mimetype à tabela usuarios
+-- Permite armazenar imagens diretamente no banco de dados (Railway-friendly)
+
+DO $$
+BEGIN
+    -- Adicionar coluna foto_data se não existir
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'usuarios' 
+        AND column_name = 'foto_data'
+    ) THEN
+        ALTER TABLE usuarios 
+        ADD COLUMN foto_data BYTEA;
+        RAISE NOTICE 'Coluna foto_data adicionada com sucesso';
+    ELSE
+        RAISE NOTICE 'Coluna foto_data já existe';
+    END IF;
+
+    -- Adicionar coluna foto_mimetype se não existir
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'usuarios' 
+        AND column_name = 'foto_mimetype'
+    ) THEN
+        ALTER TABLE usuarios 
+        ADD COLUMN foto_mimetype VARCHAR(50);
+        RAISE NOTICE 'Coluna foto_mimetype adicionada com sucesso';
+    ELSE
+        RAISE NOTICE 'Coluna foto_mimetype já existe';
+    END IF;
+END $$;
+
+-- Criar índice para melhor performance (opcional)
+CREATE INDEX IF NOT EXISTS idx_usuarios_foto_path ON usuarios(foto_path);
+
+-- Verificar se as colunas foram criadas
+DO $$
+DECLARE
+    col_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO col_count
+    FROM information_schema.columns 
+    WHERE table_name = 'usuarios' 
+    AND column_name IN ('foto_data', 'foto_mimetype');
+    
+    RAISE NOTICE 'Total de colunas de foto encontradas: %', col_count;
+END $$;
+"""
+    
     try:
         # Conectar ao banco
         print(f"\n🔗 Conectando ao banco de dados...")
@@ -25,20 +76,10 @@ def executar_migracao():
         
         engine = create_engine(database_url)
         
-        # Ler arquivo SQL
-        migration_file = 'migrations/021_add_foto_data_columns.sql'
-        
-        if not os.path.exists(migration_file):
-            print(f"❌ Arquivo de migração não encontrado: {migration_file}")
-            return False
-        
-        with open(migration_file, 'r', encoding='utf-8') as f:
-            sql = f.read()
-        
         # Executar migração
         print("\n📝 Executando SQL...")
         with engine.connect() as conn:
-            conn.execute(text(sql))
+            conn.execute(text(sql_migration))
             conn.commit()
         
         print("\n✅ Migração 021 executada com sucesso!")
