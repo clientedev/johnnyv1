@@ -1956,3 +1956,55 @@ class ScannerAnalysis(db.Model):  # type: ignore
             'precious_metals': self.precious_metals,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+
+class VisitaFornecedor(db.Model):  # type: ignore
+    """Registro de visitas a potenciais fornecedores"""
+    __tablename__ = 'visitas_fornecedor'
+    __table_args__ = (
+        db.Index('idx_visita_usuario_data', 'usuario_id', 'data_visita'),
+        db.Index('idx_visita_status', 'status'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome_fornecedor = db.Column(db.String(200), nullable=False)
+    contato_nome = db.Column(db.String(100), nullable=False)
+    contato_email = db.Column(db.String(120), nullable=True)
+    contato_telefone = db.Column(db.String(20), nullable=True)
+    latitude = db.Column(db.Numeric(10, 8), nullable=True)
+    longitude = db.Column(db.Numeric(11, 8), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(30), default='pendente', nullable=False)
+    data_visita = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=True)
+
+    usuario = db.relationship('Usuario', backref='visitas_fornecedor', lazy=True)
+    fornecedor = db.relationship('Fornecedor', backref='visitas', lazy=True)
+
+    def __init__(self, **kwargs: Any) -> None:
+        if 'status' in kwargs and kwargs['status'] not in ['pendente', 'nao_fechado', 'negociacao_fechada']:
+            raise ValueError('Status deve ser: pendente, nao_fechado ou negociacao_fechada')
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome_fornecedor': self.nome_fornecedor,
+            'contato_nome': self.contato_nome,
+            'contato_email': self.contato_email,
+            'contato_telefone': self.contato_telefone,
+            'latitude': float(self.latitude) if self.latitude else None,
+            'longitude': float(self.longitude) if self.longitude else None,
+            'observacoes': self.observacoes,
+            'status': self.status,
+            'data_visita': self.data_visita.isoformat() if self.data_visita else None,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None,
+            'usuario_id': self.usuario_id,
+            'usuario_nome': self.usuario.nome if self.usuario else None,
+            'fornecedor_id': self.fornecedor_id,
+            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None
+        }
