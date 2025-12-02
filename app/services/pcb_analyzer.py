@@ -1,10 +1,11 @@
 import cv2
 import numpy as np
 import base64
-from io import BytesIO
 
-LOW_THRESHOLD = 15
-HIGH_THRESHOLD = 45
+LOW_DENSITY_THRESHOLD = 0.00002
+HIGH_DENSITY_THRESHOLD = 0.00008
+
+MIN_BOARD_RATIO = 0.10
 
 MIN_COMPONENT_AREA = 50
 MAX_COMPONENT_AREA = 50000
@@ -14,8 +15,9 @@ def analyze_pcb_image(image_data) -> dict:
     Analisa uma imagem de placa eletrônica usando OpenCV.
     Retorna um dicionário com:
       - components_count: número aproximado de componentes detectados
-      - density_score: valor numérico de densidade (0.0 a 1.0)
-      - grade: 'LOW' | 'MEDIUM' | 'HIGH'
+      - density_score: densidade normalizada (componentes / área da placa)
+      - grade: 'LOW' | 'MEDIUM' | 'HIGH' ou None se placa não detectada
+      - board_detected: bool indicando se uma placa foi detectada
       - debug: campos auxiliares para depuração
     """
     try:
@@ -31,7 +33,8 @@ def analyze_pcb_image(image_data) -> dict:
             return {
                 'components_count': 0,
                 'density_score': 0.0,
-                'grade': 'LOW',
+                'grade': None,
+                'board_detected': False,
                 'error': 'Formato de imagem inválido'
             }
         
@@ -42,12 +45,13 @@ def analyze_pcb_image(image_data) -> dict:
             return {
                 'components_count': 0,
                 'density_score': 0.0,
-                'grade': 'LOW',
+                'grade': None,
+                'board_detected': False,
                 'error': 'Não foi possível decodificar a imagem'
             }
         
         height, width = img.shape[:2]
-        total_area = height * width
+        total_pixels = height * width
         
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         
@@ -60,18 +64,45 @@ def analyze_pcb_image(image_data) -> dict:
         lower_brown = np.array([10, 30, 30])
         upper_brown = np.array([30, 255, 200])
         
+        lower_blue = np.array([100, 30, 30])
+        upper_blue = np.array([130, 255, 255])
+        
         mask_green1 = cv2.inRange(hsv, lower_green1, upper_green1)
         mask_green2 = cv2.inRange(hsv, lower_green2, upper_green2)
         mask_brown = cv2.inRange(hsv, lower_brown, upper_brown)
+        mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
         
         pcb_mask = cv2.bitwise_or(mask_green1, mask_green2)
         pcb_mask = cv2.bitwise_or(pcb_mask, mask_brown)
+        pcb_mask = cv2.bitwise_or(pcb_mask, mask_blue)
+        
+        kernel = np.ones((5, 5), np.uint8)
+        pcb_mask = cv2.morphologyEx(pcb_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+        pcb_mask = cv2.morphologyEx(pcb_mask, cv2.MORPH_OPEN, kernel, iterations=1)
+        
+        board_pixels = float(np.sum(pcb_mask) / 255)
+        board_ratio = board_pixels / max(total_pixels, 1)
+        
+        if board_ratio < MIN_BOARD_RATIO:
+            return {
+                'grade': None,
+                'components_count': 0,
+                'density_score': 0.0,
+                'board_detected': False,
+                'debug': {
+                    'board_ratio': round(board_ratio, 4),
+                    'board_pixels': int(board_pixels),
+                    'total_pixels': total_pixels,
+                    'min_board_ratio': MIN_BOARD_RATIO,
+                    'image_size': f'{width}x{height}'
+                }
+            }
         
         components_mask = cv2.bitwise_not(pcb_mask)
         
-        kernel = np.ones((3, 3), np.uint8)
-        components_mask = cv2.morphologyEx(components_mask, cv2.MORPH_OPEN, kernel, iterations=2)
-        components_mask = cv2.morphologyEx(components_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+        kernel_small = np.ones((3, 3), np.uint8)
+        components_mask = cv2.morphologyEx(components_mask, cv2.MORPH_OPEN, kernel_small, iterations=2)
+        components_mask = cv2.morphologyEx(components_mask, cv2.MORPH_CLOSE, kernel_small, iterations=2)
         
         blurred = cv2.GaussianBlur(components_mask, (5, 5), 0)
         
@@ -88,11 +119,12 @@ def analyze_pcb_image(image_data) -> dict:
         
         components_count = len(valid_contours)
         
-        density_score = min(1.0, total_component_area / (total_area * 0.3))
+        board_area = max(board_pixels, 1.0)
+        density = components_count / board_area
         
-        if components_count < LOW_THRESHOLD:
+        if density < LOW_DENSITY_THRESHOLD:
             grade = 'LOW'
-        elif components_count < HIGH_THRESHOLD:
+        elif density < HIGH_DENSITY_THRESHOLD:
             grade = 'MEDIUM'
         else:
             grade = 'HIGH'
@@ -100,25 +132,24 @@ def analyze_pcb_image(image_data) -> dict:
         large_components = sum(1 for c in valid_contours if cv2.contourArea(c) > 1000)
         small_components = sum(1 for c in valid_contours if cv2.contourArea(c) <= 1000)
         
-        if large_components > 20:
-            grade = 'HIGH'
-        elif large_components > 10 and grade == 'LOW':
-            grade = 'MEDIUM'
-        
         return {
-            'components_count': components_count,
-            'density_score': round(density_score, 3),
             'grade': grade,
+            'components_count': int(components_count),
+            'density_score': float(density),
+            'board_detected': True,
             'debug': {
+                'board_ratio': round(board_ratio, 4),
+                'board_pixels': int(board_pixels),
+                'total_pixels': total_pixels,
                 'image_size': f'{width}x{height}',
                 'total_contours': len(contours),
                 'valid_contours': components_count,
                 'large_components': large_components,
                 'small_components': small_components,
-                'component_area_ratio': round(total_component_area / total_area, 4) if total_area > 0 else 0,
+                'component_area_ratio': round(total_component_area / total_pixels, 4) if total_pixels > 0 else 0,
                 'thresholds': {
-                    'low': LOW_THRESHOLD,
-                    'high': HIGH_THRESHOLD
+                    'low_density': LOW_DENSITY_THRESHOLD,
+                    'high_density': HIGH_DENSITY_THRESHOLD
                 }
             }
         }
@@ -127,7 +158,8 @@ def analyze_pcb_image(image_data) -> dict:
         return {
             'components_count': 0,
             'density_score': 0.0,
-            'grade': 'LOW',
+            'grade': None,
+            'board_detected': False,
             'error': str(e)
         }
 
@@ -136,14 +168,17 @@ def get_type_guess_from_analysis(analysis: dict) -> str:
     """
     Tenta adivinhar o tipo de placa com base na análise.
     """
+    if not analysis.get('board_detected', False):
+        return 'Placa não detectada'
+    
     components = analysis.get('components_count', 0)
     density = analysis.get('density_score', 0)
     debug = analysis.get('debug', {})
     large = debug.get('large_components', 0)
     
-    if components > 60 or (large > 25 and density > 0.5):
+    if components > 60 or (large > 25 and density > HIGH_DENSITY_THRESHOLD):
         return 'Placa de alta densidade (possivelmente motherboard, celular ou servidor)'
-    elif components > 35 or (large > 15 and density > 0.3):
+    elif components > 35 or (large > 15 and density > LOW_DENSITY_THRESHOLD):
         return 'Placa de média densidade (possivelmente roteador, HD ou placa de vídeo)'
     elif components > 20:
         return 'Placa de baixa-média densidade (possivelmente fonte, impressora ou periférico)'
@@ -151,10 +186,13 @@ def get_type_guess_from_analysis(analysis: dict) -> str:
         return 'Placa simples (possivelmente fonte de alimentação, controle remoto ou eletrônico básico)'
 
 
-def generate_local_explanation(grade: str, components_count: int, density_score: float) -> str:
+def generate_local_explanation(grade: str, components_count: int, density_score: float, board_detected: bool = True) -> str:
     """
     Gera uma explicação local (fallback) quando a API Perplexity não está disponível.
     """
+    if not board_detected or grade is None:
+        return 'Placa eletrônica não detectada na imagem. Por favor, envie uma foto clara de uma placa de circuito impresso (PCB).'
+    
     grade_labels = {
         'LOW': 'baixo valor',
         'MEDIUM': 'valor intermediário', 
@@ -163,22 +201,23 @@ def generate_local_explanation(grade: str, components_count: int, density_score:
     
     grade_label = grade_labels.get(grade, 'valor não determinado')
     
+    density_formatted = f'{density_score:.8f}'
+    
     if grade == 'HIGH':
         return (
             f'Esta placa foi classificada como de {grade_label} para reciclagem de metais preciosos. '
-            f'Foram detectados aproximadamente {components_count} componentes eletrônicos com uma '
-            f'densidade de {density_score:.1%}. A alta quantidade de componentes indica maior '
-            f'probabilidade de presença de ouro em conectores, chips BGA e processadores.'
+            f'Foram detectados aproximadamente {components_count} componentes eletrônicos. '
+            f'A alta densidade de componentes indica maior probabilidade de presença de ouro em conectores, chips BGA e processadores.'
         )
     elif grade == 'MEDIUM':
         return (
             f'Esta placa foi classificada como de {grade_label} para reciclagem. '
-            f'Foram detectados aproximadamente {components_count} componentes com densidade de {density_score:.1%}. '
+            f'Foram detectados aproximadamente {components_count} componentes. '
             f'A placa possui quantidade moderada de componentes que podem conter metais preciosos.'
         )
     else:
         return (
             f'Esta placa foi classificada como de {grade_label} para reciclagem. '
-            f'Foram detectados aproximadamente {components_count} componentes com densidade de {density_score:.1%}. '
+            f'Foram detectados aproximadamente {components_count} componentes. '
             f'Placas simples geralmente contêm menos metais preciosos, mas ainda podem ter valor em cobre e estanho.'
         )

@@ -34,44 +34,6 @@ def get_scanner_config():
         db.session.commit()
     return config
 
-def calculate_price_suggestion(grade, weight_kg, config):
-    if not config or not weight_kg:
-        return None
-    
-    try:
-        weight = float(weight_kg)
-        
-        if grade == 'LOW':
-            min_price = float(config.get('price_low_min', 0))
-            max_price = float(config.get('price_low_max', 0))
-        elif grade == 'MEDIUM':
-            min_price = float(config.get('price_medium_min', 0))
-            max_price = float(config.get('price_medium_max', 0))
-        elif grade == 'HIGH':
-            min_price = float(config.get('price_high_min', 0))
-            max_price = float(config.get('price_high_max', 0))
-        else:
-            return None
-        
-        if min_price == 0 and max_price == 0:
-            return None
-        
-        avg_price = (min_price + max_price) / 2
-        
-        return {
-            'price_per_kg_min': min_price,
-            'price_per_kg_max': max_price,
-            'price_per_kg_avg': avg_price,
-            'total_min': round(min_price * weight, 2),
-            'total_max': round(max_price * weight, 2),
-            'total_avg': round(avg_price * weight, 2),
-            'weight_kg': weight,
-            'grade': grade
-        }
-    except Exception as e:
-        print(f'Erro ao calcular preco: {e}')
-        return None
-
 @bp.route('/api/scanner/analyze', methods=['POST'])
 @jwt_required()
 def analyze_pcb():
@@ -84,7 +46,6 @@ def analyze_pcb():
         
         image_data = None
         description = None
-        weight_kg = None
         
         if 'image' in request.files:
             image_file = request.files['image']
@@ -95,14 +56,8 @@ def analyze_pcb():
             if 'image_base64' in data:
                 image_data = data['image_base64']
             description = data.get('description')
-            weight_kg = data.get('weight_kg')
         else:
             description = request.form.get('description')
-            if 'weight_kg' in request.form:
-                try:
-                    weight_kg = float(request.form.get('weight_kg'))
-                except:
-                    pass
         
         if not image_data:
             return jsonify({'erro': 'Imagem nao fornecida. Por favor, envie uma imagem da placa para analise.'}), 400
@@ -111,6 +66,22 @@ def analyze_pcb():
         
         if 'error' in analysis_result:
             return jsonify({'erro': analysis_result['error']}), 400
+        
+        board_detected = analysis_result.get('board_detected', False)
+        
+        if not board_detected:
+            return jsonify({
+                'grade': None,
+                'components_count': 0,
+                'density_score': 0.0,
+                'board_detected': False,
+                'type_guess': 'Placa não detectada',
+                'explanation': 'Placa eletrônica não detectada na imagem. Por favor, envie uma foto clara de uma placa de circuito impresso (PCB).',
+                'confidence': 0,
+                'timestamp': datetime.now().isoformat(),
+                'analysis_method': 'opencv',
+                'perplexity_used': False
+            }), 200
         
         grade = analysis_result['grade']
         components_count = analysis_result['components_count']
@@ -121,24 +92,9 @@ def analyze_pcb():
         explanation = build_explanation_with_perplexity(grade, components_count, density_score)
         
         if not explanation:
-            explanation = generate_local_explanation(grade, components_count, density_score)
+            explanation = generate_local_explanation(grade, components_count, density_score, board_detected)
         
-        price_suggestion = None
-        if weight_kg and grade:
-            price_suggestion = calculate_price_suggestion(
-                grade,
-                weight_kg,
-                {
-                    'price_low_min': config.price_low_min,
-                    'price_low_max': config.price_low_max,
-                    'price_medium_min': config.price_medium_min,
-                    'price_medium_max': config.price_medium_max,
-                    'price_high_min': config.price_high_min,
-                    'price_high_max': config.price_high_max
-                }
-            )
-        
-        confidence = min(0.95, 0.5 + (density_score * 0.3) + (min(components_count, 50) / 100))
+        confidence = min(0.95, 0.5 + (min(density_score * 10000, 0.3)) + (min(components_count, 50) / 100))
         
         try:
             analysis = ScannerAnalysis(
@@ -147,8 +103,8 @@ def analyze_pcb():
                 type_guess=type_guess,
                 explanation=explanation,
                 confidence=confidence,
-                weight_kg=weight_kg,
-                price_suggestion=price_suggestion,
+                weight_kg=None,
+                price_suggestion=None,
                 components_detected=[],
                 precious_metals={
                     'gold': 'HIGH' if grade == 'HIGH' else ('MEDIUM' if grade == 'MEDIUM' else 'LOW'),
@@ -166,18 +122,15 @@ def analyze_pcb():
             'grade': grade,
             'components_count': components_count,
             'density_score': density_score,
+            'board_detected': True,
             'type_guess': type_guess,
             'explanation': explanation,
             'confidence': round(confidence, 2),
-            'metal_value_comment': f'Analise baseada em {components_count} componentes detectados.',
-            'notes': '',
-            'components_detected': [],
             'precious_metals_likelihood': {
                 'gold': 'HIGH' if grade == 'HIGH' else ('MEDIUM' if grade == 'MEDIUM' else 'LOW'),
                 'silver': 'MEDIUM' if grade in ['HIGH', 'MEDIUM'] else 'LOW',
                 'palladium': 'LOW'
             },
-            'price_suggestion': price_suggestion,
             'timestamp': datetime.now().isoformat(),
             'analysis_method': 'opencv',
             'perplexity_used': is_perplexity_configured()
