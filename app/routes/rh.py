@@ -102,7 +102,7 @@ def criar_usuario_rh():
             filename = secure_filename(f"usuario_{usuario.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
-            usuario.foto_path = f"{UPLOAD_PATH_PREFIX}/{filename}"
+            usuario.foto_path = f"usuarios/{filename}"
     
     db.session.commit()
     
@@ -208,7 +208,7 @@ def atualizar_usuario_rh(id):
             file.save(filepath)
             
             alteracoes['antes']['foto_path'] = usuario.foto_path
-            usuario.foto_path = f"{UPLOAD_PATH_PREFIX}/{filename}"
+            usuario.foto_path = f"usuarios/{filename}"
             alteracoes['depois']['foto_path'] = usuario.foto_path
     
     db.session.commit()
@@ -277,7 +277,7 @@ def upload_foto_usuario(id):
     file.save(filepath)
     
     foto_anterior = usuario.foto_path
-    usuario.foto_path = f"{UPLOAD_PATH_PREFIX}/{filename}"
+    usuario.foto_path = f"usuarios/{filename}"
     db.session.commit()
     
     registrar_atualizacao(admin_id, 'Usuario', usuario.id, {
