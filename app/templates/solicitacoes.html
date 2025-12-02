@@ -1134,70 +1134,99 @@
                 return;
             }
 
-            showAlert('Capturando localização e endereço...', 'info');
+            showAlert('Capturando localização GPS...', 'info');
 
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
 
+                    // Armazenar coordenadas GPS
+                    document.getElementById('gpsInfo').dataset.lat = lat;
+                    document.getElementById('gpsInfo').dataset.lng = lng;
                     document.getElementById('gpsInfo').style.display = 'block';
+
+                    // Mostrar coordenadas imediatamente
                     document.getElementById('gpsInfo').innerHTML = `
-                        <i class="fas fa-spinner fa-spin"></i> Buscando endereço...
+                        <i class="fas fa-spinner fa-spin"></i> GPS capturado! Buscando endereço...<br>
+                        Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}
                     `;
 
+                    // Tentar buscar endereço usando OpenStreetMap Nominatim (sem autenticação)
                     try {
-                        // Buscar endereço via geocoding reverso
-                        const response = await fetchAPI('/solicitacao-lotes/geocode', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ latitude: lat, longitude: lng })
+                        const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
+                        
+                        const response = await fetch(nominatimUrl, {
+                            headers: {
+                                'User-Agent': 'MRX-System/1.0'
+                            }
                         });
 
-                        if (response && response.ok) {
-                            const endereco = await response.json();
+                        if (response.ok) {
+                            const data = await response.json();
+                            
+                            if (data && data.address) {
+                                const addr = data.address;
+                                const rua = addr.road || addr.street || addr.pedestrian || '';
+                                const numero = addr.house_number || '';
+                                const cep = addr.postcode || '';
 
-                            if (endereco.sucesso) {
                                 // Preencher campos (mas manter editáveis)
-                                document.getElementById('rua').value = endereco.rua || '';
-                                document.getElementById('numero').value = endereco.numero || '';
-                                document.getElementById('cep').value = endereco.cep || '';
+                                if (rua) document.getElementById('rua').value = rua;
+                                if (numero) document.getElementById('numero').value = numero;
+                                if (cep) document.getElementById('cep').value = cep;
 
-                                document.getElementById('gpsInfo').dataset.lat = lat;
-                                document.getElementById('gpsInfo').dataset.lng = lng;
+                                const enderecoCompleto = data.display_name || `${rua}, ${numero}`;
 
                                 document.getElementById('gpsInfo').innerHTML = `
-                                    <i class="fas fa-check-circle"></i> Endereço encontrado!<br>
-                                    ${endereco.endereco_completo || 'GPS: ' + lat.toFixed(6) + ', ' + lng.toFixed(6)}<br>
+                                    <i class="fas fa-check-circle"></i> Localização capturada!<br>
+                                    ${enderecoCompleto}<br>
                                     <small style="color: #666; margin-top: 0.5rem; display: block;">Você pode editar os campos se necessário</small>
                                 `;
 
-                                showAlert('Endereço capturado com sucesso!', 'success');
+                                showAlert('Localização e endereço capturados com sucesso!', 'success');
                             } else {
-                                // Falhou mas temos GPS
-                                document.getElementById('gpsInfo').dataset.lat = lat;
-                                document.getElementById('gpsInfo').dataset.lng = lng;
-
+                                // Sem endereço, mas GPS ok
                                 document.getElementById('gpsInfo').innerHTML = `
-                                    <i class="fas fa-exclamation-triangle"></i> GPS capturado, mas não foi possível buscar o endereço.<br>
+                                    <i class="fas fa-check-circle"></i> GPS capturado!<br>
                                     Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br>
-                                    <small>${endereco.erro || 'Erro desconhecido'}</small>
+                                    <small style="color: #666;">Preencha o endereço manualmente</small>
                                 `;
-
-                                showAlert('GPS capturado, mas endereço não encontrado. Preencha manualmente.', 'warning');
+                                showAlert('GPS capturado! Preencha o endereço manualmente.', 'success');
                             }
+                        } else {
+                            throw new Error('Erro ao buscar endereço');
                         }
                     } catch (error) {
                         console.error('Erro ao buscar endereço:', error);
+                        
+                        // Mesmo com erro no geocoding, mantemos o GPS
                         document.getElementById('gpsInfo').innerHTML = `
-                            <i class="fas fa-exclamation-circle"></i> Erro ao buscar endereço<br>
-                            Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}
+                            <i class="fas fa-check-circle"></i> GPS capturado!<br>
+                            Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br>
+                            <small style="color: #666;">Não foi possível buscar o endereço automaticamente. Preencha manualmente.</small>
                         `;
-                        showAlert('GPS capturado mas houve erro ao buscar endereço', 'warning');
+                        showAlert('GPS capturado! Preencha o endereço manualmente.', 'success');
                     }
                 },
                 (error) => {
-                    showAlert('Erro ao capturar localização: ' + error.message, 'error');
+                    console.error('Erro ao capturar GPS:', error);
+                    let errorMsg = 'Erro ao capturar localização';
+                    
+                    if (error.code === 1) {
+                        errorMsg = 'Permissão de localização negada. Ative a permissão no navegador.';
+                    } else if (error.code === 2) {
+                        errorMsg = 'Posição indisponível. Verifique se o GPS está ativo.';
+                    } else if (error.code === 3) {
+                        errorMsg = 'Timeout ao obter localização. Tente novamente.';
+                    }
+                    
+                    showAlert(errorMsg, 'error');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
                 }
             );
         }
