@@ -16,7 +16,8 @@ PERFIL_CONFIG = {
             '/api/auditoria',
             '/api/relatorios',
             '/api/tipos-lote',
-            '/api/precos'
+            '/api/precos',
+            '/api/rh'
         ],
         'paginas_permitidas': [
             '/dashboard.html',
@@ -42,7 +43,8 @@ PERFIL_CONFIG = {
             '/funcionarios.html',
             '/cotacoes-metais.html',
             '/planejamento-conquistas.html',
-            '/assistente.html'
+            '/assistente.html',
+            '/rh-admin.html'
         ],
         'menus': [
             {'id': 'usuarios', 'nome': 'Administração', 'url': '/administracao.html', 'icone': 'settings'},

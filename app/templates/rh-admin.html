@@ -786,8 +786,27 @@
             if (dataFim) url += `&data_fim=${dataFim}`;
             if (usuarioId) url += `&usuario_id=${usuarioId}`;
             
-            const token = localStorage.getItem('token');
-            window.open(`/api${url}`, '_blank');
+            try {
+                const response = await fetchAPI(url);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                    a.download = `relatorio_comissoes_${dateStr}.${formato === 'csv' ? 'csv' : 'xlsx'}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(downloadUrl);
+                    showAlert('Relatório exportado com sucesso!', 'success');
+                } else {
+                    showAlert('Erro ao exportar relatório');
+                }
+            } catch (error) {
+                console.error('Erro ao exportar:', error);
+                showAlert('Erro ao exportar relatório');
+            }
         }
 
         async function carregarAuditoria() {

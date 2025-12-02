@@ -48,6 +48,10 @@ def conferencia_decisao_adm(id):
 def cotacoes_metais():
     return render_template('cotacoes-metais.html')
 
+@app.route('/rh-admin')
+def rh_admin():
+    return render_template('rh-admin.html')
+
 @app.route('/<path:path>')
 def serve_page(path):
     if path.startswith('api/'):
