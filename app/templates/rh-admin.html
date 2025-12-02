@@ -863,13 +863,23 @@
             const compradorId = document.getElementById('selectCompradorModal').value;
             
             try {
-                const response = await fetchAPI(`/rh/fornecedores/${fornecedorId}/comprador`, {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/rh/fornecedores/${fornecedorId}/comprador`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ 
                         comprador_responsavel_id: compradorId ? parseInt(compradorId) : null 
                     })
                 });
+                
+                if (response.status === 401) {
+                    showAlert('Sessão expirada. Faça login novamente.');
+                    window.location.href = '/';
+                    return;
+                }
                 
                 if (response.ok) {
                     showAlert('Comprador atualizado com sucesso!', 'success');
@@ -892,11 +902,21 @@
             `;
             document.getElementById('btnConfirmar').onclick = async () => {
                 try {
-                    const response = await fetchAPI(`/rh/fornecedores/${fornecedorId}/comprador`, {
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(`/api/rh/fornecedores/${fornecedorId}/comprador`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({ comprador_responsavel_id: null })
                     });
+                    
+                    if (response.status === 401) {
+                        showAlert('Sessão expirada. Faça login novamente.');
+                        window.location.href = '/';
+                        return;
+                    }
                     
                     if (response.ok) {
                         showAlert('Comprador removido com sucesso!', 'success');
