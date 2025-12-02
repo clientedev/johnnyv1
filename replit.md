@@ -39,9 +39,16 @@ The system is built on a Flask backend (Python 3.12) with SQLAlchemy for ORM and
     -   **Export Functionality**: CSV and Excel export for commission reports using pandas/openpyxl.
     -   **Audit Logging**: Complete audit trail for all HR operations using the existing AuditoriaLog system, tracking before/after changes.
     -   **User Photo Uploads**: Photos stored in `uploads/usuarios/` directory with validation for image types and size limits.
+-   **Supplier Visits Module (Visitas)**: A complete visit tracking system integrated into the suppliers page (`/fornecedores.html`) with the following features:
+    -   **Visit Registration**: Create visits with supplier name, contact info (name, email, phone), observations, and automatic GPS geolocation capture.
+    -   **Tab-Based Interface**: Toggle between "Fornecedores" and "Visitas" tabs within the same page.
+    -   **Status Workflow**: Three states - pendente (pending), nao_fechado (not closed), negociacao_fechada (deal closed).
+    -   **Visit Cards**: Visual display of all visits with status badges, contact info preview, and action buttons.
+    -   **Detail Modal**: Full visit details including Google Maps link for GPS coordinates.
+    -   **Continuity Flow**: When marking a visit as "negociação fechada", the system pre-fills the supplier registration form with the visit's contact data.
 
 #### System Design Choices
--   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, `Fornecedor` (extended with `tipo_documento`, `cpf`, `cnpj`), `Solicitacao` (with `modalidade_frete`), `ScannerConfig`, `ScannerAnalysis`, `Conquista`, `AporteConquista`, and `Usuario` (extended with `foto_path`, `percentual_comissao`, `telefone`, `cpf`, `data_atualizacao` for HR module).
+-   **Database Models**: Key models include `MaterialBase`, `TabelaPreco`, `TabelaPrecoItem`, `SolicitacaoAutorizacaoPreco`, `Fornecedor` (extended with `tipo_documento`, `cpf`, `cnpj`), `Solicitacao` (with `modalidade_frete`), `ScannerConfig`, `ScannerAnalysis`, `Conquista`, `AporteConquista`, `Usuario` (extended with `foto_path`, `percentual_comissao`, `telefone`, `cpf`, `data_atualizacao` for HR module), and `VisitaFornecedor` (with GPS coordinates, contact info, status workflow, and foreign keys to Usuario and Fornecedor).
 -   **API Endpoints**: Structured RESTful APIs for managing materials, price tables, authorizations, suppliers, purchases, and the AI scanner, including CRUD, bulk updates, and Excel integrations. Specific endpoints for CEP lookup and AI assistant actions are also present.
 -   **Security**: Employs JWT for authentication, role-based authorization (`@admin_required`), robust input validation (e.g., prices, weights, CPF/CNPJ format/uniqueness), and database integrity checks.
 -   **Seed Data**: An idempotent seed script initializes essential system data.
