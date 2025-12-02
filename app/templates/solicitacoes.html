@@ -713,22 +713,47 @@
 
             // Auto-preencher endereço do fornecedor (sem bloquear carregamento de preços)
             try {
+                console.log('📡 Buscando dados do fornecedor ID:', fornecedorId);
                 const fornecedorResponse = await fetchAPI(`/fornecedores/${fornecedorId}`);
-                if (fornecedorResponse && fornecedorResponse.ok) {
-                    const fornecedor = await fornecedorResponse.json();
-                    console.log('📍 Dados do fornecedor para localização:', fornecedor);
+                
+                if (!fornecedorResponse) {
+                    console.error('❌ Sem resposta ao buscar fornecedor');
+                    showAlert('Erro ao carregar dados do fornecedor', 'error');
+                    return;
+                }
+                
+                if (!fornecedorResponse.ok) {
+                    const errorData = await fornecedorResponse.json();
+                    console.error('❌ Erro ao buscar fornecedor:', errorData);
+                    showAlert(errorData.erro || 'Erro ao carregar dados do fornecedor', 'error');
+                    return;
+                }
+                
+                const fornecedor = await fornecedorResponse.json();
+                console.log('📍 Dados do fornecedor para localização:', fornecedor);
+                
+                // Preencher campos de localização se existirem
+                const ruaEl = document.getElementById('rua');
+                const numeroEl = document.getElementById('numero');
+                const cepEl = document.getElementById('cep');
+                
+                if (ruaEl && numeroEl && cepEl) {
+                    // Priorizar outro_endereco se existir, senão usar endereço principal
+                    const rua = fornecedor.outro_rua || fornecedor.rua || '';
+                    const numero = fornecedor.outro_numero || fornecedor.numero || '';
+                    const cep = fornecedor.outro_cep || fornecedor.cep || '';
                     
-                    // Preencher campos de localização se existirem
-                    const ruaEl = document.getElementById('rua');
-                    const numeroEl = document.getElementById('numero');
-                    const cepEl = document.getElementById('cep');
+                    ruaEl.value = rua;
+                    numeroEl.value = numero;
+                    cepEl.value = cep;
                     
-                    if (ruaEl) ruaEl.value = fornecedor.outro_rua || fornecedor.rua || '';
-                    if (numeroEl) numeroEl.value = fornecedor.outro_numero || fornecedor.numero || '';
-                    if (cepEl) cepEl.value = fornecedor.outro_cep || fornecedor.cep || '';
+                    console.log('✅ Campos de localização preenchidos:', { rua, numero, cep });
+                } else {
+                    console.warn('⚠️ Campos de localização não encontrados no DOM');
                 }
             } catch (error) {
-                console.warn('Erro ao carregar endereço do fornecedor:', error);
+                console.error('❌ Erro ao carregar endereço do fornecedor:', error);
+                showAlert('Erro ao carregar endereço do fornecedor: ' + error.message, 'error');
                 // Continua para carregar preços mesmo se falhar o preenchimento de endereço
             }
 
