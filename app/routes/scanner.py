@@ -1,7 +1,15 @@
 from flask import Blueprint, request, jsonify, render_template
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import db, Usuario, ScannerConfig, ScannerAnalysis
-from app.services.pcb_scanner import analyze_pcb_image, calculate_price_suggestion
+from app.services.pcb_analyzer import (
+    analyze_pcb_image as opencv_analyze_pcb,
+    get_type_guess_from_analysis,
+    generate_local_explanation
+)
+from app.services.perplexity_formatter import (
+    build_explanation_with_perplexity,
+    is_perplexity_configured
+)
 from app.auth import admin_required
 from datetime import datetime
 import base64
@@ -25,6 +33,44 @@ def get_scanner_config():
         db.session.add(config)
         db.session.commit()
     return config
+
+def calculate_price_suggestion(grade, weight_kg, config):
+    if not config or not weight_kg:
+        return None
+    
+    try:
+        weight = float(weight_kg)
+        
+        if grade == 'LOW':
+            min_price = float(config.get('price_low_min', 0))
+            max_price = float(config.get('price_low_max', 0))
+        elif grade == 'MEDIUM':
+            min_price = float(config.get('price_medium_min', 0))
+            max_price = float(config.get('price_medium_max', 0))
+        elif grade == 'HIGH':
+            min_price = float(config.get('price_high_min', 0))
+            max_price = float(config.get('price_high_max', 0))
+        else:
+            return None
+        
+        if min_price == 0 and max_price == 0:
+            return None
+        
+        avg_price = (min_price + max_price) / 2
+        
+        return {
+            'price_per_kg_min': min_price,
+            'price_per_kg_max': max_price,
+            'price_per_kg_avg': avg_price,
+            'total_min': round(min_price * weight, 2),
+            'total_max': round(max_price * weight, 2),
+            'total_avg': round(avg_price * weight, 2),
+            'weight_kg': weight,
+            'grade': grade
+        }
+    except Exception as e:
+        print(f'Erro ao calcular preco: {e}')
+        return None
 
 @bp.route('/api/scanner/analyze', methods=['POST'])
 @jwt_required()
@@ -58,22 +104,29 @@ def analyze_pcb():
                 except:
                     pass
         
-        result, error = analyze_pcb_image(
-            image_data,
-            weight_kg=weight_kg,
-            prompt_rules=config.prompt_rules,
-            description=description
-        )
+        if not image_data:
+            return jsonify({'erro': 'Imagem nao fornecida. Por favor, envie uma imagem da placa para analise.'}), 400
         
-        if error:
-            if 'não configurada' in error or 'não fornecida' in error or 'inválido' in error.lower():
-                return jsonify({'erro': error}), 400
-            return jsonify({'erro': error}), 500
+        analysis_result = opencv_analyze_pcb(image_data)
+        
+        if 'error' in analysis_result:
+            return jsonify({'erro': analysis_result['error']}), 400
+        
+        grade = analysis_result['grade']
+        components_count = analysis_result['components_count']
+        density_score = analysis_result['density_score']
+        
+        type_guess = get_type_guess_from_analysis(analysis_result)
+        
+        explanation = build_explanation_with_perplexity(grade, components_count, density_score)
+        
+        if not explanation:
+            explanation = generate_local_explanation(grade, components_count, density_score)
         
         price_suggestion = None
-        if weight_kg and result.get('grade'):
+        if weight_kg and grade:
             price_suggestion = calculate_price_suggestion(
-                result['grade'],
+                grade,
                 weight_kg,
                 {
                     'price_low_min': config.price_low_min,
@@ -85,37 +138,49 @@ def analyze_pcb():
                 }
             )
         
+        confidence = min(0.95, 0.5 + (density_score * 0.3) + (min(components_count, 50) / 100))
+        
         try:
             analysis = ScannerAnalysis(
                 usuario_id=int(usuario_id),
-                grade=result.get('grade'),
-                type_guess=result.get('type_guess'),
-                explanation=result.get('explanation'),
-                confidence=result.get('confidence'),
+                grade=grade,
+                type_guess=type_guess,
+                explanation=explanation,
+                confidence=confidence,
                 weight_kg=weight_kg,
                 price_suggestion=price_suggestion,
-                components_detected=result.get('components_detected'),
-                precious_metals=result.get('precious_metals_likelihood'),
-                raw_response=result.get('raw_response')
+                components_detected=[],
+                precious_metals={
+                    'gold': 'HIGH' if grade == 'HIGH' else ('MEDIUM' if grade == 'MEDIUM' else 'LOW'),
+                    'silver': 'MEDIUM' if grade in ['HIGH', 'MEDIUM'] else 'LOW',
+                    'palladium': 'LOW'
+                },
+                raw_response=str(analysis_result)
             )
             db.session.add(analysis)
             db.session.commit()
-            result['analysis_id'] = analysis.id
         except Exception as e:
-            print(f'Erro ao salvar análise: {e}')
+            print(f'Erro ao salvar analise: {e}')
         
         response = {
-            'grade': result.get('grade'),
-            'type_guess': result.get('type_guess'),
-            'visual_analysis': result.get('visual_analysis'),
-            'explanation': result.get('explanation'),
-            'confidence': result.get('confidence'),
-            'metal_value_comment': result.get('metal_value_comment'),
-            'notes': result.get('notes'),
-            'components_detected': result.get('components_detected'),
-            'precious_metals_likelihood': result.get('precious_metals_likelihood'),
+            'grade': grade,
+            'components_count': components_count,
+            'density_score': density_score,
+            'type_guess': type_guess,
+            'explanation': explanation,
+            'confidence': round(confidence, 2),
+            'metal_value_comment': f'Analise baseada em {components_count} componentes detectados.',
+            'notes': '',
+            'components_detected': [],
+            'precious_metals_likelihood': {
+                'gold': 'HIGH' if grade == 'HIGH' else ('MEDIUM' if grade == 'MEDIUM' else 'LOW'),
+                'silver': 'MEDIUM' if grade in ['HIGH', 'MEDIUM'] else 'LOW',
+                'palladium': 'LOW'
+            },
             'price_suggestion': price_suggestion,
-            'timestamp': result.get('timestamp')
+            'timestamp': datetime.now().isoformat(),
+            'analysis_method': 'opencv',
+            'perplexity_used': is_perplexity_configured()
         }
         
         return jsonify(response), 200
@@ -191,7 +256,7 @@ def update_admin_config():
         db.session.commit()
         
         return jsonify({
-            'mensagem': 'Configurações atualizadas com sucesso',
+            'mensagem': 'Configuracoes atualizadas com sucesso',
             'config': config.to_dict()
         }), 200
         
@@ -202,13 +267,14 @@ def update_admin_config():
 def scanner_status():
     try:
         config = get_scanner_config()
-        api_configured = bool(os.getenv('GEMINI_API_KEY'))
+        perplexity_configured = is_perplexity_configured()
         
         return jsonify({
             'enabled': config.enabled,
-            'api_configured': api_configured,
-            'ready': config.enabled and api_configured,
-            'model': 'gemini'
+            'api_configured': True,
+            'ready': config.enabled,
+            'model': 'opencv+perplexity',
+            'perplexity_configured': perplexity_configured
         }), 200
     except Exception as e:
         return jsonify({'erro': str(e)}), 500

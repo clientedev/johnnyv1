@@ -1,9 +1,21 @@
 let scannerWidgetOpen = false;
 let scannerEnabled = true;
 
+function isUserAdmin() {
+    if (typeof currentUser !== 'undefined' && currentUser) {
+        return currentUser.tipo === 'admin' || currentUser.perfil_nome === 'Administrador';
+    }
+    return false;
+}
+
 function initScannerWidget() {
     const token = getToken();
     if (!token) return;
+    
+    if (!isUserAdmin()) {
+        console.log('Scanner widget: usuario nao e admin, ocultando widget');
+        return;
+    }
     
     checkScannerEnabled().then(enabled => {
         if (!enabled) return;

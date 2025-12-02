@@ -2,9 +2,21 @@ let chatWidgetOpen = false;
 let chatSessaoId = null;
 let chatConversas = [];
 
+function isChatUserAdmin() {
+    if (typeof currentUser !== 'undefined' && currentUser) {
+        return currentUser.tipo === 'admin' || currentUser.perfil_nome === 'Administrador';
+    }
+    return false;
+}
+
 function initChatWidget() {
     const token = getToken();
     if (!token) return;
+    
+    if (!isChatUserAdmin()) {
+        console.log('Chat widget: usuario nao e admin, ocultando widget');
+        return;
+    }
     
     const widgetHTML = `
         <div id="chatWidgetContainer" class="chat-widget-container">
