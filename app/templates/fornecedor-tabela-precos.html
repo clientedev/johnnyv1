@@ -705,27 +705,57 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
 
+            console.log('📤 Enviando itens para salvamento:', itensAdicionados);
+            console.log('🔗 URL:', `/fornecedor-tabela-precos/fornecedor/${fornecedorId}/lote`);
+
             try {
+                const payload = { itens: itensAdicionados };
+                console.log('📦 Payload completo:', JSON.stringify(payload, null, 2));
+                
                 const response = await fetchAPI(`/fornecedor-tabela-precos/fornecedor/${fornecedorId}/lote`, {
                     method: 'POST',
-                    body: JSON.stringify({ itens: itensAdicionados })
+                    body: JSON.stringify(payload)
                 });
 
+                console.log('📥 Resposta recebida - Status:', response.status, response.statusText);
+                
+                if (!response) {
+                    console.error('❌ Resposta vazia do servidor');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> Salvar Tabela';
+                    return;
+                }
+                
                 const result = await response.json();
+                console.log('📊 Resultado:', result);
 
                 if (response.ok) {
-                    alert(`${result.sucesso} preço(s) adicionado(s) com sucesso!`);
+                    console.log('✅ Salvamento bem-sucedido');
+                    const mensagem = `${result.sucesso} preço(s) adicionado(s) com sucesso!`;
+                    if (result.erros && result.erros.length > 0) {
+                        console.warn('⚠️ Alguns itens tiveram erros:', result.erros);
+                        alert(mensagem + '\n\nAlguns itens tiveram problemas:\n' + result.erros.join('\n'));
+                    } else {
+                        alert(mensagem);
+                    }
+                    
                     itensAdicionados = [];
                     renderizarItensAdicionados();
                     await carregarPrecos();
 
                     document.querySelector('[data-tab="visualizar"]').click();
                 } else {
-                    alert(result.erro || 'Erro ao salvar preços');
+                    console.error('❌ Erro na resposta:', result);
+                    const mensagemErro = result.erro || 'Erro ao salvar preços';
+                    if (result.erros && result.erros.length > 0) {
+                        alert(mensagemErro + '\n\nDetalhes:\n' + result.erros.join('\n'));
+                    } else {
+                        alert(mensagemErro);
+                    }
                 }
             } catch (error) {
-                console.error('Erro ao salvar:', error);
-                alert('Erro ao salvar preços');
+                console.error('❌ Erro ao salvar:', error);
+                alert('Erro ao salvar preços: ' + (error.message || 'Erro desconhecido'));
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-save"></i> Salvar Tabela';

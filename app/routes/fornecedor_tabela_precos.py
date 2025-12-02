@@ -153,7 +153,10 @@ def adicionar_precos_lote(fornecedor_id):
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
         
+        logger.info(f'🔍 Tentando adicionar preços em lote - Usuário: {usuario_id}, Fornecedor: {fornecedor_id}')
+        
         if not verificar_acesso_fornecedor(fornecedor_id, usuario_id):
+            logger.error(f'❌ Acesso negado - Usuário {usuario_id} não tem acesso ao fornecedor {fornecedor_id}')
             return jsonify({'erro': 'Acesso negado a este fornecedor'}), 403
         
         fornecedor = Fornecedor.query.get(fornecedor_id)
@@ -161,28 +164,40 @@ def adicionar_precos_lote(fornecedor_id):
             return jsonify({'erro': 'Fornecedor não encontrado'}), 404
         
         dados = request.get_json()
+        logger.info(f'📦 Dados recebidos: {dados}')
+        
         itens = dados.get('itens', [])
         
         if not itens:
+            logger.error('❌ Nenhum item para adicionar')
             return jsonify({'erro': 'Nenhum item para adicionar'}), 400
+        
+        logger.info(f'📝 Processando {len(itens)} itens')
         
         precos_criados = []
         erros = []
         
         for idx, item in enumerate(itens):
             try:
+                logger.info(f'🔍 Processando item {idx + 1}: {item}')
+                
                 if not item.get('material_id'):
                     erros.append(f'Item {idx + 1}: Material é obrigatório')
+                    logger.warning(f'⚠️ Item {idx + 1}: Material não informado')
                     continue
                 
                 if item.get('preco_fornecedor') is None:
                     erros.append(f'Item {idx + 1}: Preço é obrigatório')
+                    logger.warning(f'⚠️ Item {idx + 1}: Preço não informado')
                     continue
                 
                 material = MaterialBase.query.get(item['material_id'])
                 if not material:
                     erros.append(f'Item {idx + 1}: Material não encontrado')
+                    logger.warning(f'⚠️ Item {idx + 1}: Material {item["material_id"]} não encontrado')
                     continue
+                
+                logger.info(f'✅ Material encontrado: {material.nome}')
                 
                 preco_existente = FornecedorTabelaPrecos.query.filter_by(
                     fornecedor_id=fornecedor_id,
@@ -191,10 +206,12 @@ def adicionar_precos_lote(fornecedor_id):
                 ).first()
                 
                 if preco_existente:
+                    logger.info(f'📝 Atualizando preço existente (versão {preco_existente.versao})')
                     preco_existente.status = 'inativo'
                     preco_existente.updated_by = usuario_id
                     nova_versao = preco_existente.versao + 1
                 else:
+                    logger.info(f'✨ Criando novo preço (versão 1)')
                     nova_versao = 1
                 
                 novo_preco = FornecedorTabelaPrecos(
@@ -209,19 +226,33 @@ def adicionar_precos_lote(fornecedor_id):
                 
                 db.session.add(novo_preco)
                 precos_criados.append(novo_preco)
+                logger.info(f'✅ Preço adicionado: {material.nome} - R$ {item["preco_fornecedor"]:.2f}')
                 
             except Exception as e:
                 erros.append(f'Item {idx + 1}: {str(e)}')
+                logger.error(f'❌ Erro no item {idx + 1}: {str(e)}', exc_info=True)
         
         if precos_criados:
-            notificar_admins_nova_tabela(fornecedor, usuario)
-            db.session.commit()
+            logger.info(f'💾 Salvando {len(precos_criados)} preços no banco de dados')
+            try:
+                notificar_admins_nova_tabela(fornecedor, usuario)
+                db.session.commit()
+                logger.info(f'✅ Preços salvos com sucesso!')
+            except Exception as commit_error:
+                db.session.rollback()
+                logger.error(f'❌ Erro ao salvar no banco: {str(commit_error)}', exc_info=True)
+                return jsonify({'erro': f'Erro ao salvar no banco de dados: {str(commit_error)}'}), 500
+        else:
+            logger.warning(f'⚠️ Nenhum preço foi criado. Erros: {erros}')
         
-        return jsonify({
+        response_data = {
             'sucesso': len(precos_criados),
             'erros': erros,
             'precos': [p.to_dict() for p in precos_criados]
-        }), 201 if precos_criados else 400
+        }
+        logger.info(f'📤 Retornando resposta: {response_data}')
+        
+        return jsonify(response_data), 201 if precos_criados else 400
         
     except Exception as e:
         db.session.rollback()
