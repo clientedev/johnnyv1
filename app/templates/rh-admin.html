@@ -299,10 +299,27 @@
             align-items: center;
             gap: 0.35rem;
         }
+        /* Ajustes de espaçamento para header fixo e bottom nav */
+        body {
+            padding-bottom: 95px; /* Espaço para bottom nav */
+        }
+
+        main.container {
+            padding-top: 80px !important; /* Espaço para header fixo */
+            padding-bottom: 100px !important; /* Espaço para bottom nav */
+        }
+
+        /* Ajuste específico para mobile */
         @media (max-width: 767px) {
             main.container {
-                padding-top: 60px !important;
+                padding-top: 80px !important;
+                padding-bottom: 110px !important;
             }
+            
+            .stats-grid {
+                margin-top: 10px;
+            }
+            
             .filter-row {
                 flex-direction: column;
             }
@@ -310,10 +327,19 @@
                 min-width: 100%;
             }
         }
+        
+        /* Ajustes para desktop */
         @media (min-width: 768px) {
             main.container {
-                padding-top: 50px !important;
+                padding-top: 90px !important;
+                padding-bottom: 100px !important;
             }
+        }
+        
+        /* Garantir que cards e tabelas não fiquem atrás da navbar */
+        .card, .stats-grid, .tabs-container {
+            position: relative;
+            z-index: 1;
         }
     </style>
 </head>
