@@ -12,29 +12,34 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('fornecedor_tabela_precos', __name__, url_prefix='/api/fornecedor-tabela-precos')
 
 def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
-    """Verifica se o usuário tem acesso ao fornecedor (admin, comprador responsável, criador ou atribuído)"""
+    """Verifica se o usuário tem acesso ao fornecedor"""
     usuario = Usuario.query.get(usuario_id)
     
     if not usuario:
         return False
     
+    # Admin tem acesso total
     if usuario.tipo == 'admin':
         return True
     
-    # Auditor tem acesso total de leitura
+    # Auditor tem acesso de leitura
     if usuario.perfil and usuario.perfil.nome == 'Auditoria / BI':
         return True
     
+    # Verificar se o fornecedor existe
     fornecedor = Fornecedor.query.get(fornecedor_id)
     if not fornecedor:
         return False
     
-    # Permitir acesso se for comprador responsável OU criador do fornecedor
+    # Qualquer comprador (usuário com perfil "Comprador (PJ)") pode enviar tabela para aprovação
+    if usuario.perfil and usuario.perfil.nome == 'Comprador (PJ)':
+        return True
+    
+    # Caso não seja comprador, verificar se é o responsável ou criador
     if fornecedor.comprador_responsavel_id == usuario_id or fornecedor.criado_por_id == usuario_id:
         return True
     
     # Verificar se existe atribuição via FornecedorFuncionarioAtribuicao
-    from app.models import FornecedorFuncionarioAtribuicao
     atribuicao = FornecedorFuncionarioAtribuicao.query.filter_by(
         fornecedor_id=fornecedor_id,
         funcionario_id=usuario_id
