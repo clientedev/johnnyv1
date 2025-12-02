@@ -37,7 +37,7 @@ def validar_cpf(cpf):
     return True
 
 def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
-    """Verifica se o usuário tem acesso ao fornecedor (é comprador responsável)"""
+    """Verifica se o usuário tem acesso ao fornecedor (é comprador responsável ou criador)"""
     usuario = Usuario.query.get(usuario_id)
     
     if not usuario:
@@ -54,8 +54,9 @@ def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
     if not fornecedor:
         return False
     
-    # Comprador tem acesso se for o comprador responsável
-    return fornecedor.comprador_responsavel_id == usuario_id
+    # Comprador tem acesso se for o comprador responsável OU se foi quem criou o fornecedor
+    return (fornecedor.comprador_responsavel_id == usuario_id or 
+            fornecedor.criado_por_id == usuario_id)
 
 def verificar_conflito_endereco(rua, numero, cidade, estado, cep, fornecedor_id_excluir=None):
     """
