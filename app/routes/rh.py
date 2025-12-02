@@ -13,19 +13,19 @@ bp = Blueprint('rh', __name__, url_prefix='/api/rh')
 
 
 @bp.route('/usuarios/<int:id>/foto', methods=['GET'])
-@jwt_required()
 def obter_foto_usuario(id):
-    """Retorna a foto do usuário armazenada no banco de dados"""
+    """Retorna a foto do usuário armazenada no banco de dados (público para img tags)"""
     usuario = Usuario.query.get(id)
     if not usuario or not usuario.foto_data:
-        return jsonify({'erro': 'Foto não encontrada'}), 404
+        return '', 404
     
     return Response(
         usuario.foto_data,
         mimetype=usuario.foto_mimetype or 'image/jpeg',
         headers={
-            'Cache-Control': 'public, max-age=31536000',
-            'Content-Disposition': f'inline; filename="{usuario.foto_path.split("/")[-1]}"'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         }
     )
 
