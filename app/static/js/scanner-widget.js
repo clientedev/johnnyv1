@@ -1,5 +1,8 @@
 let scannerWidgetOpen = false;
 let scannerEnabled = true;
+let scannerWidgetInitialized = false;
+let scannerInitAttempts = 0;
+const MAX_SCANNER_INIT_ATTEMPTS = 10;
 
 function isUserAdmin() {
     if (typeof currentUser !== 'undefined' && currentUser) {
@@ -9,13 +12,29 @@ function isUserAdmin() {
 }
 
 function initScannerWidget() {
+    if (scannerWidgetInitialized) return;
+    
     const token = getToken();
     if (!token) return;
+    
+    if (typeof currentUser === 'undefined' || !currentUser) {
+        scannerInitAttempts++;
+        if (scannerInitAttempts < MAX_SCANNER_INIT_ATTEMPTS) {
+            console.log('Scanner widget: aguardando currentUser... tentativa ' + scannerInitAttempts);
+            setTimeout(initScannerWidget, 500);
+            return;
+        }
+        console.log('Scanner widget: currentUser nao disponivel apos tentativas');
+        return;
+    }
     
     if (!isUserAdmin()) {
         console.log('Scanner widget: usuario nao e admin, ocultando widget');
         return;
     }
+    
+    scannerWidgetInitialized = true;
+    console.log('Scanner widget: inicializando para admin');
     
     checkScannerEnabled().then(enabled => {
         if (!enabled) return;
@@ -24,10 +43,13 @@ function initScannerWidget() {
             <div id="scannerWidgetContainer" class="scanner-widget-container">
                 <div id="scannerWidgetBubble" class="scanner-widget-bubble" onclick="toggleScannerWidget()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="4" width="20" height="16" rx="2"/>
-                        <circle cx="8" cy="10" r="2"/>
-                        <circle cx="16" cy="10" r="2"/>
-                        <line x1="6" y1="16" x2="18" y2="16"/>
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                        <line x1="7" y1="12" x2="17" y2="12"/>
+                        <line x1="12" y1="7" x2="12" y2="7.01"/>
+                        <line x1="12" y1="17" x2="12" y2="17.01"/>
                     </svg>
                 </div>
                 <div id="scannerWidgetPopup" class="scanner-widget-popup">
@@ -35,9 +57,11 @@ function initScannerWidget() {
                         <div class="scanner-widget-header-info">
                             <div class="scanner-header-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="2" y="4" width="20" height="16" rx="2"/>
-                                    <circle cx="8" cy="10" r="2"/>
-                                    <circle cx="16" cy="10" r="2"/>
+                                    <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                                    <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                                    <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                                    <line x1="7" y1="12" x2="17" y2="12"/>
                                 </svg>
                             </div>
                             <div class="scanner-header-text">

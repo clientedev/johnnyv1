@@ -5,10 +5,10 @@ import base64
 LOW_DENSITY_THRESHOLD = 0.00002
 HIGH_DENSITY_THRESHOLD = 0.00008
 
-MIN_BOARD_RATIO = 0.10
+MIN_BOARD_RATIO = 0.05
 
-MIN_COMPONENT_AREA = 50
-MAX_COMPONENT_AREA = 50000
+MIN_COMPONENT_AREA = 30
+MAX_COMPONENT_AREA = 80000
 
 def analyze_pcb_image(image_data) -> dict:
     """
@@ -55,26 +55,40 @@ def analyze_pcb_image(image_data) -> dict:
         
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         
-        lower_green1 = np.array([35, 30, 30])
-        upper_green1 = np.array([85, 255, 255])
+        lower_green1 = np.array([35, 20, 20])
+        upper_green1 = np.array([90, 255, 255])
         
-        lower_green2 = np.array([75, 20, 20])
+        lower_green2 = np.array([70, 15, 15])
         upper_green2 = np.array([100, 255, 255])
         
-        lower_brown = np.array([10, 30, 30])
-        upper_brown = np.array([30, 255, 200])
+        lower_brown = np.array([8, 20, 20])
+        upper_brown = np.array([35, 255, 220])
         
-        lower_blue = np.array([100, 30, 30])
-        upper_blue = np.array([130, 255, 255])
+        lower_blue = np.array([95, 20, 20])
+        upper_blue = np.array([135, 255, 255])
+        
+        lower_yellow = np.array([15, 40, 40])
+        upper_yellow = np.array([40, 255, 255])
+        
+        lower_red1 = np.array([0, 30, 30])
+        upper_red1 = np.array([10, 255, 255])
+        lower_red2 = np.array([160, 30, 30])
+        upper_red2 = np.array([180, 255, 255])
         
         mask_green1 = cv2.inRange(hsv, lower_green1, upper_green1)
         mask_green2 = cv2.inRange(hsv, lower_green2, upper_green2)
         mask_brown = cv2.inRange(hsv, lower_brown, upper_brown)
         mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
+        mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
+        mask_red1 = cv2.inRange(hsv, lower_red1, upper_red1)
+        mask_red2 = cv2.inRange(hsv, lower_red2, upper_red2)
         
         pcb_mask = cv2.bitwise_or(mask_green1, mask_green2)
         pcb_mask = cv2.bitwise_or(pcb_mask, mask_brown)
         pcb_mask = cv2.bitwise_or(pcb_mask, mask_blue)
+        pcb_mask = cv2.bitwise_or(pcb_mask, mask_yellow)
+        pcb_mask = cv2.bitwise_or(pcb_mask, mask_red1)
+        pcb_mask = cv2.bitwise_or(pcb_mask, mask_red2)
         
         kernel = np.ones((5, 5), np.uint8)
         pcb_mask = cv2.morphologyEx(pcb_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
