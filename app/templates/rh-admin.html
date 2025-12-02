@@ -781,13 +781,20 @@
             const dataFim = document.getElementById('filtroDataFim').value;
             const usuarioId = document.getElementById('filtroUsuario').value;
             
-            let url = `/rh/comissoes/exportar?formato=${formato}`;
+            let url = `/api/rh/comissoes/exportar?formato=${formato}`;
             if (dataInicio) url += `&data_inicio=${dataInicio}`;
             if (dataFim) url += `&data_fim=${dataFim}`;
             if (usuarioId) url += `&usuario_id=${usuarioId}`;
             
             try {
-                const response = await fetchAPI(url);
+                const token = localStorage.getItem('token');
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
                 if (response.ok) {
                     const blob = await response.blob();
                     const downloadUrl = window.URL.createObjectURL(blob);
@@ -801,7 +808,8 @@
                     window.URL.revokeObjectURL(downloadUrl);
                     showAlert('Relatório exportado com sucesso!', 'success');
                 } else {
-                    showAlert('Erro ao exportar relatório');
+                    const error = await response.json();
+                    showAlert(error.erro || 'Erro ao exportar relatório');
                 }
             } catch (error) {
                 console.error('Erro ao exportar:', error);
