@@ -10,6 +10,30 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
+        /* Correção de responsividade e overlap */
+        body {
+            padding-top: 60px;
+        }
+        
+        main.container {
+            padding-top: 20px !important;
+            padding-bottom: 110px !important;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding-top: 70px;
+            }
+            
+            main.container {
+                padding-top: 25px !important;
+            }
+            
+            .fornecedor-header-info {
+                margin-top: 10px;
+            }
+        }
+        
         .upload-area {
             border: 2px dashed #d1d5db;
             border-radius: 12px;
@@ -46,6 +70,8 @@
             margin-bottom: 24px;
             border-bottom: 2px solid #e5e7eb;
             padding-bottom: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .tab {
             padding: 12px 24px;
@@ -57,6 +83,19 @@
             cursor: pointer;
             position: relative;
             transition: all 0.3s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        @media (max-width: 480px) {
+            .tab {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+            
+            .tab i {
+                display: none;
+            }
         }
         .tab:hover { color: #059669; }
         .tab.active {
@@ -82,6 +121,26 @@
             background: #f9fafb;
             border-radius: 8px;
             margin-bottom: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .item-row {
+                grid-template-columns: 1fr 120px 60px;
+                gap: 8px;
+                padding: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .item-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .item-row .btn-icon {
+                width: 100%;
+                height: 40px;
+            }
         }
         .item-row:hover { background: #f3f4f6; }
         .item-row input[type="number"] {
@@ -127,6 +186,7 @@
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
+            min-width: 600px;
         }
         .preco-table th {
             background: #f9fafb;
@@ -143,6 +203,21 @@
         }
         .preco-table tr:hover td {
             background: #f9fafb;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 0 -16px;
+            padding: 0 16px;
+        }
+        
+        @media (max-width: 768px) {
+            .preco-table th,
+            .preco-table td {
+                padding: 8px;
+                font-size: 12px;
+            }
         }
         .status-badge {
             display: inline-flex;
@@ -164,6 +239,27 @@
             border-radius: 12px;
             color: white;
             margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        
+        @media (max-width: 480px) {
+            .fornecedor-header-info {
+                padding: 16px;
+                gap: 12px;
+            }
+            
+            .fornecedor-header-info .icon {
+                width: 48px;
+                height: 48px;
+            }
+            
+            .fornecedor-header-info .icon i {
+                font-size: 24px;
+            }
+            
+            .fornecedor-header-info .info h2 {
+                font-size: 1.25rem;
+            }
         }
         .fornecedor-header-info .icon {
             width: 64px;
@@ -182,6 +278,25 @@
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
+        }
+        
+        @media (max-width: 480px) {
+            .summary-cards {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+            
+            .summary-card {
+                padding: 12px;
+            }
+            
+            .summary-card .number {
+                font-size: 1.5rem;
+            }
+            
+            .summary-card .label {
+                font-size: 0.75rem;
+            }
         }
         .summary-card {
             background: white;
