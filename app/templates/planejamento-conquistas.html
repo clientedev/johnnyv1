@@ -581,7 +581,7 @@
     </main>
 
     <div class="modal modal-conquista" id="modalNovaConquista">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width: 650px;">
             <div class="modal-header">
                 <h2 id="modalConquistaTitle">Nova Meta</h2>
                 <span class="modal-close" onclick="fecharModalConquista()">&times;</span>
@@ -636,27 +636,54 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Valor Total da Meta *</label>
-                        <input type="number" id="conquistaValorTotal" required min="0" step="0.01" placeholder="0,00">
+                        <label>Valor Total da Meta (R$) *</label>
+                        <input type="number" id="conquistaValorTotal" required min="0" step="0.01" placeholder="0,00" oninput="calcularPrazoSugerido()">
                     </div>
                     <div class="form-group">
-                        <label>Valor Ja Investido</label>
-                        <input type="number" id="conquistaValorInvestido" min="0" step="0.01" value="0" placeholder="0,00">
+                        <label>Valor Ja Investido (R$)</label>
+                        <input type="number" id="conquistaValorInvestido" min="0" step="0.01" value="0" placeholder="0,00" oninput="calcularPrazoSugerido()">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Aporte Mensal Previsto (R$)</label>
+                    <input type="number" id="conquistaAporteMensal" min="0" step="0.01" value="0" placeholder="0,00" oninput="calcularPrazoSugerido()" style="width: 100%;">
+                    <small style="color: #6b7280; font-size: 0.75rem;">Quanto voce pretende investir por mes nesta meta?</small>
+                </div>
+
+                <div class="form-group" id="sugestaoPrazoContainer" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; display: none;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div style="width: 40px; height: 40px; background: #3b82f6; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-calculator" style="color: white; font-size: 1.1rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #1e40af;">Sugestao Inteligente de Prazo</div>
+                            <div id="sugestaoTexto" style="font-size: 0.875rem; color: #3b82f6;"></div>
+                        </div>
+                    </div>
+                    <div id="sugestaoDetalhes" style="font-size: 0.8rem; color: #64748b; padding-left: 52px;"></div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; padding-left: 52px; flex-wrap: wrap;" id="botoesAplicarSugestao"></div>
+                </div>
+
+                <div class="form-group" id="dicaCategoriaContainer" style="background: #fef3c7; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; display: none;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-lightbulb" style="color: #d97706;"></i>
+                        <span id="dicaCategoriaTexto" style="font-size: 0.875rem; color: #92400e;"></span>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Aporte Mensal Previsto</label>
-                        <input type="number" id="conquistaAporteMensal" min="0" step="0.01" value="0" placeholder="0,00">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            Prazo (em meses) *
+                            <span id="prazoIndicador" style="font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; display: none;"></span>
+                        </label>
+                        <div style="position: relative;">
+                            <input type="number" id="conquistaPrazo" required min="1" max="600" value="12" placeholder="12" oninput="validarPrazoManual()">
+                            <div id="prazoEmAnos" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #6b7280; pointer-events: none;"></div>
+                        </div>
+                        <div id="prazoFeedback" style="font-size: 0.75rem; margin-top: 0.25rem; display: none;"></div>
                     </div>
-                    <div class="form-group">
-                        <label>Prazo (em meses) *</label>
-                        <input type="number" id="conquistaPrazo" required min="1" max="600" value="12" placeholder="12">
-                    </div>
-                </div>
-
-                <div class="form-row">
                     <div class="form-group">
                         <label>Prioridade</label>
                         <select id="conquistaPrioridade">
@@ -665,10 +692,11 @@
                             <option value="3">Baixa</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Cor do Card</label>
-                        <input type="color" id="conquistaCor" value="#8b5cf6" style="height: 42px; width: 100%;">
-                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Cor do Card</label>
+                    <input type="color" id="conquistaCor" value="#8b5cf6" style="height: 42px; width: 100%;">
                 </div>
 
                 <button type="submit" class="btn btn-primary w-full">
@@ -1014,6 +1042,269 @@
             });
         }
 
+        const prazoSugeridoPorCategoria = {
+            'imovel': { min: 60, max: 180, sugerido: 120, dica: 'Imoveis geralmente requerem prazos longos (5-15 anos) para acumular o valor necessario.' },
+            'veiculo': { min: 12, max: 60, sugerido: 36, dica: 'Para veiculos, prazos de 1 a 5 anos sao mais comuns.' },
+            'viagem': { min: 3, max: 24, sugerido: 12, dica: 'Viagens podem ser planejadas em prazos curtos, de 3 meses a 2 anos.' },
+            'reserva': { min: 6, max: 36, sugerido: 12, dica: 'Reservas de emergencia devem ser construidas em 6 meses a 3 anos.' },
+            'educacao': { min: 12, max: 60, sugerido: 24, dica: 'Cursos e educacao podem ser planejados em 1 a 5 anos.' },
+            'aposentadoria': { min: 120, max: 480, sugerido: 240, dica: 'Aposentadoria e um objetivo de longo prazo (10-40 anos).' },
+            'outros': { min: 6, max: 60, sugerido: 12, dica: 'Prazos tipicos variam de 6 meses a 5 anos.' }
+        };
+
+        function calcularPrazoSugerido() {
+            const valorTotal = parseFloat(document.getElementById('conquistaValorTotal').value) || 0;
+            const valorInvestido = parseFloat(document.getElementById('conquistaValorInvestido').value) || 0;
+            const aporteMensal = parseFloat(document.getElementById('conquistaAporteMensal').value) || 0;
+            const categoria = document.getElementById('conquistaCategoria').value;
+            
+            const container = document.getElementById('sugestaoPrazoContainer');
+            const textoEl = document.getElementById('sugestaoTexto');
+            const detalhesEl = document.getElementById('sugestaoDetalhes');
+            const botoesEl = document.getElementById('botoesAplicarSugestao');
+            const dicaContainer = document.getElementById('dicaCategoriaContainer');
+            const dicaTexto = document.getElementById('dicaCategoriaTexto');
+            
+            const valorRestante = Math.max(0, valorTotal - valorInvestido);
+            
+            if (valorTotal <= 0) {
+                container.style.display = 'none';
+                dicaContainer.style.display = 'none';
+                validarPrazoManual();
+                return;
+            }
+            
+            const catConfig = prazoSugeridoPorCategoria[categoria] || prazoSugeridoPorCategoria['outros'];
+            dicaContainer.style.display = 'block';
+            dicaTexto.textContent = catConfig.dica;
+            
+            if (aporteMensal > 0 && valorRestante > 0) {
+                const prazoCalculado = Math.ceil(valorRestante / aporteMensal);
+                const prazoMinimo = Math.max(1, prazoCalculado);
+                
+                container.style.display = 'block';
+                textoEl.innerHTML = `Com aporte de <strong>${formatarMoeda(aporteMensal)}/mes</strong>, voce alcanca sua meta em <strong>${prazoMinimo} meses</strong>`;
+                
+                const anos = Math.floor(prazoMinimo / 12);
+                const mesesRestantes = prazoMinimo % 12;
+                let tempoTexto = '';
+                if (anos > 0) {
+                    tempoTexto = `${anos} ano${anos > 1 ? 's' : ''}`;
+                    if (mesesRestantes > 0) {
+                        tempoTexto += ` e ${mesesRestantes} mes${mesesRestantes > 1 ? 'es' : ''}`;
+                    }
+                } else {
+                    tempoTexto = `${mesesRestantes} mes${mesesRestantes > 1 ? 'es' : ''}`;
+                }
+                
+                let avaliacaoTexto = '';
+                let avaliacaoCor = '';
+                if (prazoMinimo <= catConfig.min) {
+                    avaliacaoTexto = 'Meta agressiva - prazo curto para esta categoria';
+                    avaliacaoCor = '#f97316';
+                } else if (prazoMinimo <= catConfig.sugerido) {
+                    avaliacaoTexto = 'Prazo adequado e realista';
+                    avaliacaoCor = '#10b981';
+                } else if (prazoMinimo <= catConfig.max) {
+                    avaliacaoTexto = 'Prazo conservador - considere aumentar o aporte';
+                    avaliacaoCor = '#3b82f6';
+                } else {
+                    avaliacaoTexto = 'Prazo muito longo - recomendamos aumentar o aporte mensal';
+                    avaliacaoCor = '#ef4444';
+                }
+                
+                detalhesEl.innerHTML = `
+                    <div style="margin-bottom: 0.5rem;">
+                        <i class="fas fa-clock" style="margin-right: 0.25rem;"></i> ${tempoTexto}
+                        <span style="margin-left: 0.5rem; color: ${avaliacaoCor}; font-weight: 500;">
+                            <i class="fas fa-info-circle"></i> ${avaliacaoTexto}
+                        </span>
+                    </div>
+                    <div style="color: #475569;">
+                        Valor restante: ${formatarMoeda(valorRestante)} | Total investido ao final: ${formatarMoeda(valorTotal)}
+                    </div>
+                `;
+                
+                botoesEl.innerHTML = `
+                    <button type="button" onclick="aplicarPrazoSugerido(${prazoMinimo})" style="padding: 0.4rem 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
+                        <i class="fas fa-check"></i> Usar ${prazoMinimo} meses
+                    </button>
+                `;
+                
+                if (prazoMinimo > 12) {
+                    const prazoAgressivo = Math.ceil(prazoMinimo * 0.7);
+                    const aporteAgressivo = valorRestante / prazoAgressivo;
+                    botoesEl.innerHTML += `
+                        <button type="button" onclick="aplicarPrazoComAporte(${prazoAgressivo}, ${aporteAgressivo.toFixed(2)})" style="padding: 0.4rem 0.75rem; background: #f97316; color: white; border: none; border-radius: 6px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
+                            <i class="fas fa-bolt"></i> ${prazoAgressivo} meses (${formatarMoeda(aporteAgressivo)}/mes)
+                        </button>
+                    `;
+                }
+                
+            } else if (valorRestante > 0) {
+                container.style.display = 'block';
+                textoEl.innerHTML = 'Informe o <strong>aporte mensal</strong> para calcular o prazo ideal';
+                
+                const sugestoes = [
+                    { meses: catConfig.min, aporte: valorRestante / catConfig.min },
+                    { meses: catConfig.sugerido, aporte: valorRestante / catConfig.sugerido },
+                    { meses: catConfig.max, aporte: valorRestante / catConfig.max }
+                ];
+                
+                detalhesEl.innerHTML = `
+                    <div style="margin-bottom: 0.5rem;">Sugestoes baseadas na categoria <strong>${categoriaConfig[categoria]?.label || 'Outros'}</strong>:</div>
+                `;
+                
+                botoesEl.innerHTML = sugestoes.map(s => `
+                    <button type="button" onclick="aplicarPrazoComAporte(${s.meses}, ${s.aporte.toFixed(2)})" style="padding: 0.4rem 0.75rem; background: #e0e7ff; color: #4338ca; border: none; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">
+                        ${s.meses} meses (${formatarMoeda(s.aporte)}/mes)
+                    </button>
+                `).join('');
+            } else if (valorRestante <= 0 && valorTotal > 0) {
+                container.style.display = 'block';
+                textoEl.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> Voce ja atingiu ou ultrapassou o valor da meta!';
+                detalhesEl.innerHTML = '';
+                botoesEl.innerHTML = `
+                    <button type="button" onclick="aplicarPrazoSugerido(1)" style="padding: 0.4rem 0.75rem; background: #10b981; color: white; border: none; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+                        <i class="fas fa-trophy"></i> Definir como 1 mes (concluir)
+                    </button>
+                `;
+            }
+            
+            atualizarPrazoEmAnos();
+        }
+
+        function aplicarPrazoSugerido(meses) {
+            document.getElementById('conquistaPrazo').value = meses;
+            validarPrazoManual();
+            atualizarPrazoEmAnos();
+        }
+
+        function aplicarPrazoComAporte(meses, aporte) {
+            document.getElementById('conquistaPrazo').value = meses;
+            document.getElementById('conquistaAporteMensal').value = aporte;
+            validarPrazoManual();
+            atualizarPrazoEmAnos();
+            calcularPrazoSugerido();
+        }
+
+        function validarPrazoManual() {
+            const prazo = parseInt(document.getElementById('conquistaPrazo').value) || 0;
+            const valorTotal = parseFloat(document.getElementById('conquistaValorTotal').value) || 0;
+            const valorInvestido = parseFloat(document.getElementById('conquistaValorInvestido').value) || 0;
+            const aporteMensal = parseFloat(document.getElementById('conquistaAporteMensal').value) || 0;
+            const categoria = document.getElementById('conquistaCategoria').value;
+            
+            const indicador = document.getElementById('prazoIndicador');
+            const feedback = document.getElementById('prazoFeedback');
+            const catConfig = prazoSugeridoPorCategoria[categoria] || prazoSugeridoPorCategoria['outros'];
+            
+            indicador.style.background = '';
+            indicador.style.color = '';
+            indicador.textContent = '';
+            
+            if (prazo <= 0 || valorTotal <= 0) {
+                indicador.style.display = 'none';
+                feedback.style.display = 'none';
+                return;
+            }
+            
+            indicador.style.display = 'inline-block';
+            
+            const valorRestante = Math.max(0, valorTotal - valorInvestido);
+            const aporteNecessario = valorRestante > 0 && prazo > 0 ? valorRestante / prazo : 0;
+            
+            if (prazo < catConfig.min) {
+                indicador.textContent = 'Agressivo';
+                indicador.style.background = '#fef3c7';
+                indicador.style.color = '#b45309';
+            } else if (prazo <= catConfig.sugerido) {
+                indicador.textContent = 'Ideal';
+                indicador.style.background = '#dcfce7';
+                indicador.style.color = '#15803d';
+            } else if (prazo <= catConfig.max) {
+                indicador.textContent = 'Conservador';
+                indicador.style.background = '#dbeafe';
+                indicador.style.color = '#1d4ed8';
+            } else {
+                indicador.textContent = 'Muito longo';
+                indicador.style.background = '#fee2e2';
+                indicador.style.color = '#dc2626';
+            }
+            
+            if (aporteMensal > 0 && valorRestante > 0) {
+                feedback.style.display = 'block';
+                const prazoCalculado = Math.ceil(valorRestante / aporteMensal);
+                
+                if (prazo < prazoCalculado) {
+                    feedback.style.color = '#ef4444';
+                    feedback.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Com ${formatarMoeda(aporteMensal)}/mes, voce precisa de pelo menos ${prazoCalculado} meses. Aumente o aporte ou o prazo.`;
+                } else if (prazo > prazoCalculado * 1.5) {
+                    feedback.style.color = '#f97316';
+                    feedback.innerHTML = `<i class="fas fa-info-circle"></i> Com ${formatarMoeda(aporteMensal)}/mes, voce alcancara a meta em ${prazoCalculado} meses. Prazo definido e ${prazo - prazoCalculado} meses maior.`;
+                } else {
+                    feedback.style.color = '#10b981';
+                    feedback.innerHTML = `<i class="fas fa-check-circle"></i> Prazo adequado! Aporte necessario: ${formatarMoeda(aporteNecessario)}/mes`;
+                }
+            } else if (valorRestante > 0 && prazo > 0) {
+                feedback.style.display = 'block';
+                feedback.style.color = '#3b82f6';
+                feedback.innerHTML = `<i class="fas fa-calculator"></i> Para este prazo, voce precisara investir ${formatarMoeda(aporteNecessario)}/mes`;
+            } else {
+                feedback.style.display = 'none';
+            }
+            
+            atualizarPrazoEmAnos();
+        }
+        
+        function validarFormularioConquista() {
+            const valorTotal = parseFloat(document.getElementById('conquistaValorTotal').value) || 0;
+            const valorInvestido = parseFloat(document.getElementById('conquistaValorInvestido').value) || 0;
+            const aporteMensal = parseFloat(document.getElementById('conquistaAporteMensal').value) || 0;
+            const prazo = parseInt(document.getElementById('conquistaPrazo').value) || 0;
+            
+            if (valorTotal <= 0) {
+                showAlert('Informe o valor total da meta.');
+                return false;
+            }
+            
+            if (prazo <= 0) {
+                showAlert('Informe um prazo valido em meses.');
+                return false;
+            }
+            
+            const valorRestante = valorTotal - valorInvestido;
+            
+            if (valorRestante > 0 && aporteMensal > 0) {
+                const prazoNecessario = Math.ceil(valorRestante / aporteMensal);
+                if (prazo < prazoNecessario) {
+                    showAlert(`Com aporte de ${formatarMoeda(aporteMensal)}/mes, voce precisa de pelo menos ${prazoNecessario} meses para alcancar a meta. Aumente o prazo ou o aporte mensal.`);
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        function atualizarPrazoEmAnos() {
+            const prazo = parseInt(document.getElementById('conquistaPrazo').value) || 0;
+            const prazoEmAnosEl = document.getElementById('prazoEmAnos');
+            
+            if (prazo >= 12) {
+                const anos = Math.floor(prazo / 12);
+                const meses = prazo % 12;
+                if (meses > 0) {
+                    prazoEmAnosEl.textContent = `(${anos}a ${meses}m)`;
+                } else {
+                    prazoEmAnosEl.textContent = `(${anos} ano${anos > 1 ? 's' : ''})`;
+                }
+            } else if (prazo > 0) {
+                prazoEmAnosEl.textContent = '';
+            } else {
+                prazoEmAnosEl.textContent = '';
+            }
+        }
+
         function selecionarCategoria(categoria) {
             categoriaSelecionada = categoria;
             document.getElementById('conquistaCategoria').value = categoria;
@@ -1022,6 +1313,8 @@
                 opt.classList.remove('selected');
             });
             document.querySelector(`.categoria-option[data-value="${categoria}"]`).classList.add('selected');
+            
+            calcularPrazoSugerido();
         }
 
         function abrirModalNovaConquista() {
@@ -1039,6 +1332,10 @@
 
         async function salvarConquista(event) {
             event.preventDefault();
+            
+            if (!validarFormularioConquista()) {
+                return;
+            }
             
             const id = document.getElementById('conquistaId').value;
             const data = {
