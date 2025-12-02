@@ -213,7 +213,9 @@ def criar_perfis_padrao():
                 'visualizar_solicitacao': True,
                 'informar_entrega': True,
                 'registrar_preco': True,
-                'visualizar_fornecedores': True
+                'visualizar_fornecedores': True,
+                'gerenciar_tabela_precos': True,
+                'visualizar_materiais': True
             }
         },
         {

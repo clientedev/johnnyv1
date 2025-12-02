@@ -138,7 +138,7 @@ def get_current_user_endpoint():
         perfil_nome = claims.get('perfil', 'Sem perfil')
     
     permissoes = {}
-    permissoes_lista = claims.get('permissoes', [])
+    permissoes_lista = []
     
     if usuario.tipo == 'motorista':
         permissoes = {
@@ -148,6 +148,7 @@ def get_current_user_endpoint():
         permissoes_lista = list(permissoes.keys())
     elif usuario.perfil:
         permissoes = usuario.perfil.permissoes or {}
+        permissoes_lista = [k for k, v in permissoes.items() if v]
     elif usuario.tipo == 'admin':
         permissoes = {
             'gerenciar_usuarios': True,

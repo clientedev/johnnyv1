@@ -247,7 +247,7 @@ function aplicarControleAcesso(user) {
 
     const controlePorPerfil = {
         'Comprador (PJ)': {
-            paginasPermitidas: ['/fornecedores.html', '/solicitacoes.html', '/notificacoes.html', '/index.html', '/'],
+            paginasPermitidas: ['/fornecedores.html', '/fornecedores-lista.html', '/fornecedor-tabela-precos.html', '/solicitacoes.html', '/notificacoes.html', '/compras.html', '/index.html', '/'],
             modulosVisiveis: ['fornecedores', 'solicitacoes']
         },
         'Conferente / Estoque': {

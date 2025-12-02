@@ -59,14 +59,17 @@ PERFIL_CONFIG = {
             '/api/solicitacoes',
             '/api/fornecedores',
             '/api/tipos-lote',
-            '/api/notificacoes'
+            '/api/notificacoes',
+            '/api/fornecedor-tabela-precos',
+            '/api/materiais-base'
         ],
         'paginas_permitidas': [
             '/solicitacoes.html',
             '/fornecedores.html',
             '/fornecedores-lista.html',
             '/notificacoes.html',
-            '/compras.html'
+            '/compras.html',
+            '/fornecedor-tabela-precos.html'
         ],
         'menus': [
             {'id': 'solicitacoes', 'nome': 'Solicitações', 'url': '/solicitacoes.html', 'icone': 'request_quote'},
