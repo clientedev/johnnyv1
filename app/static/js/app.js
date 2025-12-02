@@ -56,12 +56,17 @@ document.addEventListener('DOMContentLoaded', () => {
 async function fetchAPI(endpoint, options = {}) {
     const token = getToken();
 
+    const defaultHeaders = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+
     const config = {
+        ...options,
         headers: {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        ...options
+            ...defaultHeaders,
+            ...(options.headers || {})
+        }
     };
 
     try {
