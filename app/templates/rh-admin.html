@@ -186,27 +186,118 @@
         .ranking-2 { background: #e5e7eb; color: #374151; }
         .ranking-3 { background: #fed7aa; color: #9a3412; }
         .auditoria-item {
-            padding: 1rem;
-            border-left: 3px solid var(--primary-color);
-            background: #f9fafb;
-            margin-bottom: 0.5rem;
-            border-radius: 0 8px 8px 0;
+            padding: 1.25rem;
+            border-left: 4px solid var(--primary-color);
+            background: white;
+            margin-bottom: 1rem;
+            border-radius: 0 12px 12px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.2s;
+        }
+        .auditoria-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateX(2px);
+        }
+        .auditoria-item.criar {
+            border-left-color: #10b981;
+        }
+        .auditoria-item.atualizar {
+            border-left-color: #f59e0b;
+        }
+        .auditoria-item.excluir {
+            border-left-color: #ef4444;
+        }
+        .auditoria-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
         }
         .auditoria-item .acao {
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.75rem;
-            color: var(--primary-color);
+            font-size: 0.8rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        .auditoria-item .detalhes {
+        .auditoria-item.criar .acao {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .auditoria-item.atualizar .acao {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .auditoria-item.excluir .acao {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .auditoria-item .entidade-info {
             font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .auditoria-detalhes {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 0.75rem;
+        }
+        .auditoria-detalhes-title {
+            font-weight: 600;
+            font-size: 0.8rem;
             color: #374151;
-            margin-top: 0.25rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+        .auditoria-campo {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.875rem;
+        }
+        .auditoria-campo:last-child {
+            border-bottom: none;
+        }
+        .auditoria-campo-label {
+            font-weight: 600;
+            color: #6b7280;
+        }
+        .auditoria-campo-valor {
+            color: #1f2937;
+        }
+        .auditoria-campo-alteracao {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .valor-antes {
+            color: #ef4444;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        .valor-depois {
+            color: #10b981;
+            font-weight: 600;
         }
         .auditoria-item .meta {
             font-size: 0.75rem;
             color: #9ca3af;
-            margin-top: 0.5rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
         }
         @media (max-width: 767px) {
             main.container {
@@ -840,27 +931,135 @@
                         return;
                     }
                     
-                    container.innerHTML = logs.map(log => `
-                        <div class="auditoria-item">
-                            <div class="acao">
-                                <i class="fas ${log.acao === 'criar' ? 'fa-plus-circle' : log.acao === 'atualizar' ? 'fa-edit' : 'fa-trash'}"></i>
-                                ${log.acao}
+                    container.innerHTML = logs.map(log => {
+                        const acaoIcon = log.acao === 'criar' ? 'fa-plus-circle' : log.acao === 'atualizar' ? 'fa-edit' : 'fa-trash';
+                        const detalhesHTML = formatarDetalhesAuditoria(log);
+                        
+                        return `
+                            <div class="auditoria-item ${log.acao}">
+                                <div class="auditoria-header">
+                                    <div class="acao">
+                                        <i class="fas ${acaoIcon}"></i>
+                                        ${log.acao}
+                                    </div>
+                                    <div class="entidade-info">
+                                        <i class="fas fa-user-circle"></i> Usuário ID #${log.entidade_id}
+                                    </div>
+                                </div>
+                                ${detalhesHTML}
+                                <div class="meta">
+                                    <div class="meta-item">
+                                        <i class="fas fa-user"></i>
+                                        <span>${log.usuario_nome || 'Sistema'}</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="fas fa-clock"></i>
+                                        <span>${log.data_acao ? new Date(log.data_acao).toLocaleString('pt-BR') : '-'}</span>
+                                    </div>
+                                    ${log.ip_address ? `
+                                        <div class="meta-item">
+                                            <i class="fas fa-globe"></i>
+                                            <span>${log.ip_address}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
                             </div>
-                            <div class="detalhes">
-                                <strong>Usuário afetado ID #${log.entidade_id}</strong>
-                                ${log.detalhes ? `<br><small>${JSON.stringify(log.detalhes)}</small>` : ''}
-                            </div>
-                            <div class="meta">
-                                <i class="fas fa-user"></i> ${log.usuario_nome || 'Sistema'} 
-                                &bull; <i class="fas fa-clock"></i> ${log.data_acao ? new Date(log.data_acao).toLocaleString('pt-BR') : '-'}
-                                ${log.ip_address ? `&bull; <i class="fas fa-globe"></i> ${log.ip_address}` : ''}
-                            </div>
-                        </div>
-                    `).join('');
+                        `;
+                    }).join('');
                 }
             } catch (error) {
                 console.error('Erro ao carregar auditoria:', error);
+                showAlert('Erro ao carregar auditoria');
             }
+        }
+        
+        function formatarDetalhesAuditoria(log) {
+            if (!log.detalhes) return '';
+            
+            let html = '<div class="auditoria-detalhes">';
+            
+            // Para ação de criar
+            if (log.acao === 'criar') {
+                html += '<div class="auditoria-detalhes-title"><i class="fas fa-info-circle"></i> Dados Criados</div>';
+                for (const [campo, valor] of Object.entries(log.detalhes)) {
+                    if (campo !== 'antes' && campo !== 'depois') {
+                        html += `
+                            <div class="auditoria-campo">
+                                <div class="auditoria-campo-label">${formatarNomeCampo(campo)}:</div>
+                                <div class="auditoria-campo-valor">${formatarValor(valor)}</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+            
+            // Para ação de atualizar
+            if (log.acao === 'atualizar' && log.detalhes.antes && log.detalhes.depois) {
+                html += '<div class="auditoria-detalhes-title"><i class="fas fa-exchange-alt"></i> Alterações</div>';
+                
+                const camposAlterados = new Set([
+                    ...Object.keys(log.detalhes.antes || {}),
+                    ...Object.keys(log.detalhes.depois || {})
+                ]);
+                
+                camposAlterados.forEach(campo => {
+                    const antes = log.detalhes.antes[campo];
+                    const depois = log.detalhes.depois[campo];
+                    
+                    if (antes !== depois) {
+                        html += `
+                            <div class="auditoria-campo">
+                                <div class="auditoria-campo-label">${formatarNomeCampo(campo)}:</div>
+                                <div class="auditoria-campo-alteracao">
+                                    <span class="valor-antes">${formatarValor(antes)}</span>
+                                    <i class="fas fa-arrow-right" style="color: #6b7280;"></i>
+                                    <span class="valor-depois">${formatarValor(depois)}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            // Para ação de excluir
+            if (log.acao === 'excluir') {
+                html += '<div class="auditoria-detalhes-title"><i class="fas fa-trash-alt"></i> Dados Excluídos</div>';
+                for (const [campo, valor] of Object.entries(log.detalhes)) {
+                    if (campo !== 'antes' && campo !== 'depois') {
+                        html += `
+                            <div class="auditoria-campo">
+                                <div class="auditoria-campo-label">${formatarNomeCampo(campo)}:</div>
+                                <div class="auditoria-campo-valor">${formatarValor(valor)}</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function formatarNomeCampo(campo) {
+            const nomes = {
+                'nome': 'Nome',
+                'email': 'Email',
+                'perfil': 'Perfil',
+                'ativo': 'Status',
+                'cpf': 'CPF',
+                'telefone': 'Telefone',
+                'percentual_comissao': '% Comissão',
+                'foto_path': 'Foto',
+                'senha_alterada': 'Senha'
+            };
+            return nomes[campo] || campo.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+        
+        function formatarValor(valor) {
+            if (valor === null || valor === undefined) return '-';
+            if (typeof valor === 'boolean') return valor ? 'Sim' : 'Não';
+            if (typeof valor === 'object') return JSON.stringify(valor);
+            return String(valor);
         }
 
         function showTab(tabName) {
