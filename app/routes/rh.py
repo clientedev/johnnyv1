@@ -580,6 +580,108 @@ def listar_fornecedores_rh():
     fornecedores = Fornecedor.query.filter_by(ativo=True).all()
     return jsonify([{'id': f.id, 'nome': f.nome} for f in fornecedores]), 200
 
+@bp.route('/fornecedores/compradores', methods=['GET'])
+@admin_required
+def listar_fornecedores_compradores():
+    busca = request.args.get('busca', '')
+    
+    query = Fornecedor.query.filter_by(ativo=True)
+    
+    if busca:
+        query = query.filter(
+            db.or_(
+                Fornecedor.nome.ilike(f'%{busca}%'),
+                Fornecedor.cnpj.ilike(f'%{busca}%'),
+                Fornecedor.cpf.ilike(f'%{busca}%')
+            )
+        )
+    
+    fornecedores = query.order_by(Fornecedor.nome).all()
+    
+    resultado = []
+    for f in fornecedores:
+        resultado.append({
+            'id': f.id,
+            'nome': f.nome,
+            'cnpj': f.cnpj,
+            'cpf': f.cpf,
+            'tipo_documento': f.tipo_documento,
+            'cidade': f.cidade,
+            'estado': f.estado,
+            'criado_por_id': f.criado_por_id,
+            'criado_por_nome': f.criado_por.nome if f.criado_por else None,
+            'comprador_responsavel_id': f.comprador_responsavel_id,
+            'comprador_responsavel_nome': f.comprador_responsavel.nome if f.comprador_responsavel else None,
+            'data_cadastro': f.data_cadastro.isoformat() if f.data_cadastro else None
+        })
+    
+    return jsonify(resultado), 200
+
+@bp.route('/fornecedores/<int:id>/comprador', methods=['PUT'])
+@admin_required
+def atualizar_comprador_fornecedor(id):
+    admin_id = get_jwt_identity()
+    
+    fornecedor = Fornecedor.query.get(id)
+    if not fornecedor:
+        return jsonify({'erro': 'Fornecedor não encontrado'}), 404
+    
+    data = request.get_json() or {}
+    comprador_id = data.get('comprador_responsavel_id')
+    
+    comprador_anterior = fornecedor.comprador_responsavel.nome if fornecedor.comprador_responsavel else None
+    comprador_anterior_id = fornecedor.comprador_responsavel_id
+    
+    if comprador_id is None or comprador_id == '' or comprador_id == 0:
+        fornecedor.comprador_responsavel_id = None
+        comprador_novo = None
+    else:
+        comprador = Usuario.query.get(comprador_id)
+        if not comprador:
+            return jsonify({'erro': 'Comprador não encontrado'}), 404
+        fornecedor.comprador_responsavel_id = comprador_id
+        comprador_novo = comprador.nome
+    
+    db.session.commit()
+    
+    registrar_atualizacao(admin_id, 'Fornecedor', fornecedor.id, {
+        'antes': {'comprador_responsavel': comprador_anterior, 'comprador_responsavel_id': comprador_anterior_id},
+        'depois': {'comprador_responsavel': comprador_novo, 'comprador_responsavel_id': fornecedor.comprador_responsavel_id}
+    })
+    
+    return jsonify({
+        'mensagem': 'Comprador atualizado com sucesso',
+        'fornecedor_id': fornecedor.id,
+        'comprador_responsavel_id': fornecedor.comprador_responsavel_id,
+        'comprador_responsavel_nome': comprador_novo
+    }), 200
+
+@bp.route('/compradores', methods=['GET'])
+@admin_required
+def listar_compradores():
+    perfil_comprador = Perfil.query.filter(Perfil.nome.ilike('%comprador%')).first()
+    
+    if perfil_comprador:
+        compradores = Usuario.query.filter(
+            Usuario.ativo == True,
+            db.or_(
+                Usuario.perfil_id == perfil_comprador.id,
+                Usuario.tipo == 'admin'
+            )
+        ).order_by(Usuario.nome).all()
+    else:
+        compradores = Usuario.query.filter(
+            Usuario.ativo == True,
+            Usuario.tipo.in_(['admin', 'funcionario'])
+        ).order_by(Usuario.nome).all()
+    
+    return jsonify([{
+        'id': c.id,
+        'nome': c.nome,
+        'email': c.email,
+        'perfil': c.perfil.nome if c.perfil else None
+    } for c in compradores]), 200
+
 @bp.route('/dashboard', methods=['GET'])
 @admin_required
 def dashboard_rh():
