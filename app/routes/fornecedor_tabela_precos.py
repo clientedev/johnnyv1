@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, FornecedorTabelaPrecos, AuditoriaFornecedorTabelaPrecos, Fornecedor, MaterialBase, Usuario, Notificacao, TabelaPrecoItem, TabelaPreco
+from app.models import db, FornecedorTabelaPrecos, AuditoriaFornecedorTabelaPrecos, Fornecedor, MaterialBase, Usuario, Notificacao, TabelaPrecoItem, TabelaPreco, FornecedorFuncionarioAtribuicao
 from app.auth import admin_required
 import pandas as pd
 from io import BytesIO
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('fornecedor_tabela_precos', __name__, url_prefix='/api/fornecedor-tabela-precos')
 
 def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
-    """Verifica se o usuário tem acesso ao fornecedor (admin, comprador responsável ou criador)"""
+    """Verifica se o usuário tem acesso ao fornecedor (admin, comprador responsável, criador ou atribuído)"""
     usuario = Usuario.query.get(usuario_id)
     
     if not usuario:
@@ -21,13 +21,26 @@ def verificar_acesso_fornecedor(fornecedor_id, usuario_id):
     if usuario.tipo == 'admin':
         return True
     
+    # Auditor tem acesso total de leitura
+    if usuario.perfil and usuario.perfil.nome == 'Auditoria / BI':
+        return True
+    
     fornecedor = Fornecedor.query.get(fornecedor_id)
     if not fornecedor:
         return False
     
     # Permitir acesso se for comprador responsável OU criador do fornecedor
-    return (fornecedor.comprador_responsavel_id == usuario_id or 
-            fornecedor.criado_por_id == usuario_id)
+    if fornecedor.comprador_responsavel_id == usuario_id or fornecedor.criado_por_id == usuario_id:
+        return True
+    
+    # Verificar se existe atribuição via FornecedorFuncionarioAtribuicao
+    from app.models import FornecedorFuncionarioAtribuicao
+    atribuicao = FornecedorFuncionarioAtribuicao.query.filter_by(
+        fornecedor_id=fornecedor_id,
+        funcionario_id=usuario_id
+    ).first()
+    
+    return atribuicao is not None
 
 def notificar_admins_nova_tabela(fornecedor, usuario_criador):
     """Cria notificação para todos os admins sobre nova tabela de preços"""
