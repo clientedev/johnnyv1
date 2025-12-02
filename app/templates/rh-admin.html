@@ -1006,6 +1006,12 @@
                 const response = await fetchAPI('/rh/usuarios');
                 if (response.ok) {
                     usuarios = await response.json();
+                    console.log('Usuários carregados:', usuarios);
+                    usuarios.forEach(u => {
+                        if (u.foto_path) {
+                            console.log(`Usuário ${u.nome} tem foto:`, u.foto_path);
+                        }
+                    });
                     renderizarUsuarios(usuarios);
                     
                     const selectFiltro = document.getElementById('filtroUsuario');
@@ -1030,11 +1036,15 @@
                 return;
             }
             
-            tbody.innerHTML = lista.map(u => `
+            tbody.innerHTML = lista.map(u => {
+                const fotoUrl = u.foto_path ? `/uploads/${u.foto_path}` : null;
+                console.log('Renderizando usuário:', u.nome, 'Foto path:', u.foto_path, 'URL:', fotoUrl);
+                
+                return `
                 <tr>
                     <td>
-                        ${u.foto_path ? 
-                            `<img src="/uploads/${u.foto_path}" class="user-photo" onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        ${fotoUrl ? 
+                            `<img src="${fotoUrl}" class="user-photo" onerror="console.error('Erro ao carregar imagem:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
                              <div class="user-photo" style="display:none;"><i class="fas fa-user"></i></div>` : 
                             `<div class="user-photo"><i class="fas fa-user"></i></div>`
                         }
@@ -1057,7 +1067,8 @@
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function filtrarUsuarios() {

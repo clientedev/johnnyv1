@@ -68,17 +68,13 @@ class Usuario(db.Model):  # type: ignore
             'nome': self.nome,
             'email': self.email,
             'tipo': self.tipo,
+            'ativo': self.ativo,
             'perfil_id': self.perfil_id,
             'perfil_nome': self.perfil.nome if self.perfil else None,
-            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
-            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None,
-            'ativo': self.ativo,
-            'criado_por': self.criado_por,
-            'criador_nome': self.criador.nome if self.criador else None,
-            'foto_path': self.foto_path,
-            'percentual_comissao': self.percentual_comissao or 0.0,
             'telefone': self.telefone,
-            'cpf': self.cpf
+            'cpf': self.cpf,
+            'percentual_comissao': float(self.percentual_comissao) if self.percentual_comissao else 0.0,
+            'foto_path': self.foto_path
         }
 
     def has_permission(self, permission: str) -> bool:

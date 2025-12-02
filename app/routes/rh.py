@@ -27,7 +27,12 @@ def ensure_upload_folder():
 @admin_required
 def listar_usuarios_rh():
     usuarios = Usuario.query.all()
-    return jsonify([u.to_dict() for u in usuarios]), 200
+    usuarios_dict = [u.to_dict() for u in usuarios]
+    print(f"📋 Retornando {len(usuarios_dict)} usuários")
+    for u in usuarios_dict:
+        if u.get('foto_path'):
+            print(f"  👤 {u['nome']}: foto_path = {u['foto_path']}")
+    return jsonify(usuarios_dict), 200
 
 @bp.route('/usuarios/<int:id>', methods=['GET'])
 @admin_required
