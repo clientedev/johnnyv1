@@ -28,7 +28,7 @@ The system is built on a Flask backend (Python 3.12) with SQLAlchemy for ORM and
 -   **Excel Import/Export**: Functionality for bulk import and export of materials and price tables.
 -   **Purchase Wizard**: A multi-step wizard for new purchases, integrating supplier selection, collection/delivery details, item scanning, value input, and authorization requests.
 -   **WMS (Warehouse Management System)**: Manages inventory lots with features like lot details viewing, direct search, null-safe user validations, and real-time status tracking.
--   **PCB Scanner with AI Vision**: Implements intelligent electronic board scanning using AI for classification (LOW/MEDIUM/HIGH grade), price suggestions, component detection, and customizable AI prompts.
+-   **PCB Scanner with OpenCV + Perplexity**: Implements intelligent electronic board scanning using OpenCV for local image analysis (component detection, density calculation) and Perplexity AI for generating user-friendly explanations. Classification (LOW/MEDIUM/HIGH grade) is based on component count and density analysis. Price suggestions are calculated based on grade and weight. The scanner and chatbot widgets are restricted to admin users only.
 -   **AI Chatbot with System Actions**: An enhanced AI assistant (floating widget) capable of executing system actions via natural language, such as creating suppliers, sending notifications, listing data, and generating summaries, with comprehensive database context provided by Perplexity AI.
 -   **Achievement Planning**: An admin-only feature for tracking financial goals across various categories, with CRUD operations, progress charts, and AI-powered recommendations.
 -   **Supplier Price Table Management**: Allows suppliers to submit and correct price tables, with an admin review interface for side-by-side comparison, inline editing, and bulk approval/rejection.
@@ -64,6 +64,9 @@ The system is built on a Flask backend (Python 3.12) with SQLAlchemy for ORM and
 -   psycopg2-binary
 -   pandas
 -   openpyxl
+-   OpenCV (opencv-python-headless)
+-   NumPy
+-   Perplexity AI API (for text explanations)
 
 #### Frontend
 -   Tailwind CSS
