@@ -59,7 +59,8 @@ def notificar_admins_nova_tabela(fornecedor, usuario_criador):
             usuario_id=admin.id,
             titulo='Nova Tabela de Preços',
             mensagem=f'Tabela de preços adicionada para o fornecedor {fornecedor.nome} por {usuario_criador.nome}',
-            tipo='tabela_precos'
+            tipo='tabela_precos',
+            url='/revisao-tabelas-admin.html'
         )
         db.session.add(notificacao)
 
@@ -543,7 +544,8 @@ def aprovar_preco(preco_id):
                 usuario_id=criador.id,
                 titulo='Tabela de Preços Aprovada',
                 mensagem=f'Sua tabela de preços para o fornecedor {preco.fornecedor.nome} foi aprovada',
-                tipo='tabela_precos_aprovada'
+                tipo='tabela_precos_aprovada',
+                url=f'/fornecedor-tabela-precos.html?id={preco.fornecedor_id}'
             )
             db.session.add(notificacao)
             db.session.commit()
@@ -584,7 +586,8 @@ def rejeitar_preco(preco_id):
                 usuario_id=criador.id,
                 titulo='Tabela de Preços Rejeitada',
                 mensagem=f'Sua tabela de preços para o fornecedor {preco.fornecedor.nome} foi rejeitada. Motivo: {motivo}',
-                tipo='tabela_precos_rejeitada'
+                tipo='tabela_precos_rejeitada',
+                url=f'/fornecedor-tabela-precos.html?id={preco.fornecedor_id}'
             )
             db.session.add(notificacao)
             db.session.commit()
@@ -632,7 +635,8 @@ def aprovar_todos_precos(fornecedor_id):
                     usuario_id=criador.id,
                     titulo='Tabela de Preços Aprovada',
                     mensagem=f'Sua tabela de preços para o fornecedor {fornecedor.nome} foi aprovada',
-                    tipo='tabela_precos_aprovada'
+                    tipo='tabela_precos_aprovada',
+                    url=f'/fornecedor-tabela-precos.html?id={fornecedor_id}'
                 )
                 db.session.add(notificacao)
         
@@ -897,7 +901,8 @@ def admin_editar_preco(preco_id):
                 usuario_id=comprador.id,
                 titulo='Preço Alterado pelo Admin',
                 mensagem=f'O preço do material "{preco.material.nome}" foi alterado de R$ {preco_anterior:.2f} para R$ {float(novo_preco):.2f} pelo administrador {admin.nome}',
-                tipo='preco_alterado'
+                tipo='preco_alterado',
+                url=f'/fornecedor-tabela-precos.html?id={preco.fornecedor_id}'
             )
             db.session.add(notificacao)
         
@@ -959,7 +964,8 @@ def aprovar_tabela_completa(fornecedor_id):
                     usuario_id=criador.id,
                     titulo='Tabela de Preços Aprovada',
                     mensagem=f'Sua tabela de preços para o fornecedor {fornecedor.nome} foi aprovada. O fornecedor já pode ser utilizado em solicitações.',
-                    tipo='tabela_precos_aprovada'
+                    tipo='tabela_precos_aprovada',
+                    url=f'/fornecedor-tabela-precos.html?id={fornecedor_id}'
                 )
                 db.session.add(notificacao)
         
@@ -1015,7 +1021,8 @@ def rejeitar_tabela_completa(fornecedor_id):
                     usuario_id=criador.id,
                     titulo='Tabela de Preços Rejeitada - Reenvio Necessário',
                     mensagem=f'A tabela de preços do fornecedor {fornecedor.nome} foi rejeitada pelo administrador {admin.nome}. Motivo: {motivo}. Por favor, revise e reenvie.',
-                    tipo='tabela_precos_rejeitada'
+                    tipo='tabela_precos_rejeitada',
+                    url=f'/fornecedor-tabela-precos.html?id={fornecedor_id}'
                 )
                 db.session.add(notificacao)
         
@@ -1025,7 +1032,8 @@ def rejeitar_tabela_completa(fornecedor_id):
                 usuario_id=comprador.id,
                 titulo='Tabela de Preços Rejeitada - Reenvio Necessário',
                 mensagem=f'A tabela de preços do fornecedor {fornecedor.nome} foi rejeitada. Motivo: {motivo}. Por favor, revise e reenvie.',
-                tipo='tabela_precos_rejeitada'
+                tipo='tabela_precos_rejeitada',
+                url=f'/fornecedor-tabela-precos.html?id={fornecedor_id}'
             )
             db.session.add(notificacao)
         

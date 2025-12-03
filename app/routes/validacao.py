@@ -63,7 +63,8 @@ def aprovar_solicitacao(id):
     notificacao = Notificacao(
         usuario_id=solicitacao.funcionario_id,
         titulo='Solicitação Validada',
-        mensagem=f'Sua solicitação #{solicitacao.id} foi validada e aprovada. Total de {len(solicitacao.placas)} placas inseridas no sistema.'
+        mensagem=f'Sua solicitação #{solicitacao.id} foi validada e aprovada. Total de {len(solicitacao.placas)} placas inseridas no sistema.',
+        url=f'/solicitacoes.html?id={solicitacao.id}'
     )
     db.session.add(notificacao)
     
@@ -121,7 +122,8 @@ def reprovar_solicitacao(id):
     notificacao = Notificacao(
         usuario_id=solicitacao.funcionario_id,
         titulo='Solicitação Reprovada',
-        mensagem=f'Sua solicitação #{solicitacao.id} foi reprovada. Motivo: {observacoes}'
+        mensagem=f'Sua solicitação #{solicitacao.id} foi reprovada. Motivo: {observacoes}',
+        url=f'/solicitacoes.html?id={solicitacao.id}'
     )
     db.session.add(notificacao)
     

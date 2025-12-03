@@ -97,7 +97,8 @@ def aprovar_entrada(id):
     notificacao = Notificacao(
         usuario_id=entrada.solicitacao.funcionario_id,
         titulo='Entrada Aprovada',
-        mensagem=f'A entrada referente à solicitação #{entrada.solicitacao_id} foi aprovada. Todas as {len(entrada.solicitacao.placas)} placas foram aprovadas e {len(lotes_criados)} lote(s) criado(s): {", ".join(lotes_criados)}.'
+        mensagem=f'A entrada referente à solicitação #{entrada.solicitacao_id} foi aprovada. Todas as {len(entrada.solicitacao.placas)} placas foram aprovadas e {len(lotes_criados)} lote(s) criado(s): {", ".join(lotes_criados)}.',
+        url='/entradas.html'
     )
     db.session.add(notificacao)
     
@@ -131,7 +132,8 @@ def reprovar_entrada(id):
     notificacao = Notificacao(
         usuario_id=entrada.solicitacao.funcionario_id,
         titulo='Entrada Reprovada',
-        mensagem=f'A entrada referente à solicitação #{entrada.solicitacao_id} foi reprovada. Motivo: {entrada.observacoes}'
+        mensagem=f'A entrada referente à solicitação #{entrada.solicitacao_id} foi reprovada. Motivo: {entrada.observacoes}',
+        url='/entradas.html'
     )
     db.session.add(notificacao)
     

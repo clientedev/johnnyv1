@@ -208,6 +208,7 @@ def atribuir_motorista(id):
             usuario_id=motorista.usuario_id,
             titulo='Nova Ordem de Serviço Atribuída',
             mensagem=f'Você foi atribuído à OS {os.numero_os}. Fornecedor: {os.fornecedor_snapshot.get("nome", "N/A")}',
+            url='/logistica.html',
             lida=False
         )
         db.session.add(notificacao)
@@ -257,6 +258,7 @@ def reagendar_os(id):
                 usuario_id=os.motorista.usuario_id,
                 titulo='OS Reagendada',
                 mensagem=f'A OS {os.numero_os} foi reagendada. Motivo: {data["motivo"]}',
+                url='/logistica.html',
                 lida=False
             )
             db.session.add(notificacao)
@@ -387,6 +389,7 @@ def registrar_evento(id):
                     titulo='Fornecedor Fechado',
                     mensagem=f'OS {os.numero_os}: Motorista registrou que o fornecedor está fechado. Motivo: {data.get("motivo", "Não informado")}',
                     tipo='alerta_motorista',
+                    url='/logistica.html',
                     lida=False
                 )
                 db.session.add(notificacao)
@@ -404,6 +407,7 @@ def registrar_evento(id):
                     titulo='Fornecedor Não Encontrado',
                     mensagem=f'OS {os.numero_os}: Motorista não conseguiu localizar o fornecedor. Motivo: {data.get("motivo", "Não informado")}',
                     tipo='alerta_motorista',
+                    url='/logistica.html',
                     lida=False
                 )
                 db.session.add(notificacao)
@@ -452,6 +456,7 @@ def registrar_evento(id):
                             titulo='Nova Conferência Pendente',
                             mensagem=f'OS {os.numero_os} foi finalizada. Conferência #{conferencia.id if conferencia.id else "nova"} criada e aguardando processamento.',
                             tipo='nova_conferencia',
+                            url='/conferencias.html',
                             lida=False
                         )
                         db.session.add(notificacao)
@@ -509,6 +514,7 @@ def cancelar_os_impedido(id):
                     titulo='OS Cancelada e Reatribuída',
                     mensagem=f'A OS {os.numero_os} foi cancelada pelo administrador e será reatribuída a outro motorista.',
                     tipo='os_cancelada',
+                    url='/logistica.html',
                     lida=False
                 )
                 db.session.add(notificacao)
@@ -559,6 +565,7 @@ def retentar_os(id):
                 titulo='Nova Tentativa - OS Reenviada',
                 mensagem=f'A OS {os.numero_os} foi reenviada para você. Por favor, tente realizar a coleta novamente.',
                 tipo='os_reenvio',
+                url='/logistica.html',
                 lida=False
             )
             db.session.add(notificacao)
@@ -604,6 +611,7 @@ def cancelar_os(id):
                 usuario_id=os.motorista.usuario_id,
                 titulo='OS Cancelada',
                 mensagem=f'A OS {os.numero_os} foi cancelada. Motivo: {data["motivo"]}',
+                url='/logistica.html',
                 lida=False
             )
             db.session.add(notificacao)

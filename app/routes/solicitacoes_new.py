@@ -698,7 +698,8 @@ def aprovar_solicitacao(id):
         notificacao_funcionario = Notificacao(
             usuario_id=solicitacao.funcionario_id,
             titulo='Solicitação Aprovada',
-            mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada! OC #{oc.id} criada (R$ {oc.valor_total:.2f}) e {len(lotes_criados)} lote(s) gerado(s).'
+            mensagem=f'Sua solicitação #{solicitacao.id} foi aprovada! OC #{oc.id} criada (R$ {oc.valor_total:.2f}) e {len(lotes_criados)} lote(s) gerado(s).',
+            url=f'/solicitacoes.html?id={solicitacao.id}'
         )
         db.session.add(notificacao_funcionario)
         print(f"    Notificação para funcionário criada")
@@ -719,7 +720,8 @@ def aprovar_solicitacao(id):
                 notificacao_financeiro = Notificacao(
                     usuario_id=usuario_fin.id,
                     titulo='Nova Ordem de Compra - Aprovação Pendente',
-                    mensagem=f'OC #{oc.id} gerada (R$ {oc.valor_total:.2f}) da Solicitação #{solicitacao.id} - Fornecedor: {solicitacao.fornecedor.nome}. Aguardando sua aprovação!'
+                    mensagem=f'OC #{oc.id} gerada (R$ {oc.valor_total:.2f}) da Solicitação #{solicitacao.id} - Fornecedor: {solicitacao.fornecedor.nome}. Aguardando sua aprovação!',
+                    url='/compras.html'
                 )
                 db.session.add(notificacao_financeiro)
                 usuarios_ids_notificados.add(usuario_fin.id)

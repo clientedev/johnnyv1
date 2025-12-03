@@ -341,6 +341,7 @@ def criar_residuo(id):
                 titulo='Novo Resíduo Aguardando Aprovação',
                 mensagem=f'Resíduo de {data["peso"]}kg ({data["material"]}) precisa de aprovação para descarte',
                 tipo='residuo_aprovacao',
+                url='/residuos-aprovacao.html',
                 lida=False
             )
             db.session.add(notificacao)
@@ -478,6 +479,7 @@ def aprovar_residuo(id):
                 titulo=f'Resíduo {decisao.title()}',
                 mensagem=f'O resíduo de {residuo.peso}kg ({residuo.material}) foi {decisao.lower()} pelo administrador',
                 tipo='residuo_decisao',
+                url='/residuos-aprovacao.html',
                 lida=False
             )
             db.session.add(notificacao)

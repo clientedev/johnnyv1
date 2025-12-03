@@ -470,6 +470,7 @@ def enviar_para_adm(id):
                 titulo='Divergência em Conferência',
                 mensagem=f'Conferência #{conferencia.id} com divergência de {conferencia.percentual_diferenca:.2f}% precisa de análise',
                 tipo='divergencia_conferencia',
+                url=f'/conferencia.html?id={conferencia.id}',
                 lida=False
             )
             db.session.add(notificacao)
@@ -550,6 +551,7 @@ def decisao_adm(id):
                 titulo=f'Conferência {decisao.title()}',
                 mensagem=f'A conferência #{conferencia.id} foi {decisao.lower()} pelo administrador',
                 tipo='decisao_conferencia',
+                url=f'/conferencia.html?id={conferencia.id}',
                 lida=False
             )
             db.session.add(notificacao)
