@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, FornecedorTabelaPrecos, AuditoriaFornecedorTabelaPrecos, Fornecedor, MaterialBase, Usuario, Notificacao, TabelaPrecoItem, TabelaPreco, FornecedorFuncionarioAtribuicao
+from app.models import db, Fornecedor, FornecedorTabelaPrecos, MaterialBase, Usuario, AuditoriaFornecedorTabelaPrecos, Notificacao, Perfil
 from app.auth import admin_required
 import pandas as pd
 from io import BytesIO
