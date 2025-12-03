@@ -581,6 +581,30 @@ def criar_solicitacao():
             print(f" Motivo: Um ou mais itens têm preço oferecido acima da tabela")
             print(f"{'='*60}")
             
+            db.session.flush()
+            
+            # Criar notificações para administradores sobre pedido pendente
+            usuarios_admin = Usuario.query.filter(
+                db.and_(
+                    Usuario.ativo == True,
+                    db.or_(
+                        Usuario.tipo == 'admin',
+                        Usuario.perfil.has(Perfil.nome.in_(['Administrador', 'Financeiro']))
+                    )
+                )
+            ).all()
+            
+            for admin in usuarios_admin:
+                if admin.id != usuario_id:  # Não notificar o próprio criador se for admin
+                    notificacao = Notificacao(
+                        usuario_id=admin.id,
+                        titulo='Pedido de Compra Pendente de Aprovação',
+                        mensagem=f'Pedido #{solicitacao.id} criado por {usuario.nome} - Fornecedor: {fornecedor.nome} (R$ {sum(item.valor_calculado for item in solicitacao.itens):.2f}) - Requer aprovação por preço customizado.',
+                        tipo='oc_pendente',
+                        url=f'/aprovar_solicitacoes.html?id={solicitacao.id}'
+                    )
+                    db.session.add(notificacao)
+            
             db.session.commit()
             
             sol_dict = solicitacao.to_dict()
