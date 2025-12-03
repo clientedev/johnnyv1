@@ -156,12 +156,20 @@
         }
 
         async function abrirNotificacao(id, url) {
-            await fetchAPI(`/notificacoes/${id}/marcar-lida`, {
-                method: 'PUT'
-            });
+            try {
+                const response = await fetchAPI(`/notificacoes/${id}/marcar-lida`, {
+                    method: 'PUT'
+                });
+                
+                if (response && response.ok) {
+                    await atualizarNotificacoes();
+                }
+            } catch (error) {
+                console.error('Erro ao marcar notificação como lida:', error);
+                // Continua mesmo se houver erro ao marcar como lida
+            }
             
-            await atualizarNotificacoes();
-            
+            // Redireciona para URL se existir, independente do resultado acima
             if (url && url !== 'null' && url !== 'undefined' && url !== '') {
                 window.location.href = url;
             } else {

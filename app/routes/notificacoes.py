@@ -7,11 +7,17 @@ bp = Blueprint('notificacoes', __name__, url_prefix='/api/notificacoes')
 @bp.route('', methods=['GET'])
 @jwt_required()
 def listar_notificacoes():
+    from app.models import Usuario
     usuario_id = get_jwt_identity()
+    usuario = Usuario.query.get(usuario_id)
     
-    notificacoes = Notificacao.query.filter_by(
-        usuario_id=usuario_id
-    ).order_by(Notificacao.data_envio.desc()).all()
+    # Admin vê todas as notificações, usuário normal vê apenas as suas
+    if usuario.tipo == 'admin':
+        notificacoes = Notificacao.query.order_by(Notificacao.data_envio.desc()).all()
+    else:
+        notificacoes = Notificacao.query.filter_by(
+            usuario_id=usuario_id
+        ).order_by(Notificacao.data_envio.desc()).all()
     
     return jsonify([notificacao.to_dict() for notificacao in notificacoes]), 200
 
@@ -30,14 +36,17 @@ def contar_nao_lidas():
 @bp.route('/<int:id>/marcar-lida', methods=['PUT'])
 @jwt_required()
 def marcar_como_lida(id):
+    from app.models import Usuario
     usuario_id = get_jwt_identity()
+    usuario = Usuario.query.get(usuario_id)
     
     notificacao = Notificacao.query.get(id)
     
     if not notificacao:
         return jsonify({'erro': 'Notificação não encontrada'}), 404
     
-    if notificacao.usuario_id != usuario_id:
+    # Permite admin marcar qualquer notificação, ou o próprio usuário marcar a sua
+    if notificacao.usuario_id != usuario_id and usuario.tipo != 'admin':
         return jsonify({'erro': 'Acesso negado'}), 403
     
     notificacao.lida = True
