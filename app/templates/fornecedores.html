@@ -925,7 +925,7 @@
                 container.innerHTML = fornecedores.map(f => {
                     const telefone = f.telefone || 'Não informado';
                     const cidade = f.cidade || 'Não informada';
-                    const cnpj = f.cnpj ? formatarCNPJ(f.cnpj) : 'Não informado';
+                    const documento = f.cnpj ? formatarCNPJ(f.cnpj) : (f.cpf ? formatarCPF(f.cpf) : 'Não informado');
 
                     return `
                         <div class="fornecedor-card">
@@ -935,7 +935,7 @@
                                 </div>
                                 <div class="fornecedor-title">
                                     <h3 class="fornecedor-nome">${f.nome}</h3>
-                                    <div class="fornecedor-cnpj">${cnpj}</div>
+                                    <div class="fornecedor-cnpj">${documento}</div>
                                 </div>
                             </div>
 
@@ -983,6 +983,12 @@
             if (!cnpj) return '';
             const numeros = cnpj.replace(/\D/g, '');
             return numeros.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        }
+
+        function formatarCPF(cpf) {
+            if (!cpf) return '';
+            const numeros = cpf.replace(/\D/g, '');
+            return numeros.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
         }
 
         async function abrirModalNovoFornecedor() {
