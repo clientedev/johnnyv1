@@ -901,6 +901,7 @@ class Notificacao(db.Model):  # type: ignore
     titulo = db.Column(db.String(200), nullable=False)
     mensagem = db.Column(db.Text, nullable=False)
     tipo = db.Column(db.String(50), nullable=True, default=None)
+    url = db.Column(db.String(500), nullable=True, default=None)
     lida = db.Column(db.Boolean, default=False, nullable=False)
     data_envio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -914,6 +915,7 @@ class Notificacao(db.Model):  # type: ignore
             'titulo': self.titulo,
             'mensagem': self.mensagem,
             'tipo': self.tipo,
+            'url': self.url,
             'lida': self.lida,
             'data_envio': self.data_envio.isoformat() if self.data_envio else None
         }
