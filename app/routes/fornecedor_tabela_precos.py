@@ -1046,10 +1046,21 @@ def rejeitar_tabela_completa(fornecedor_id):
 def listar_fornecedores_aprovados():
     """Lista apenas fornecedores com tabela de preços aprovada"""
     try:
-        fornecedores = Fornecedor.query.filter_by(
+        usuario_id = get_jwt_identity()
+        usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
+        query = Fornecedor.query.filter_by(
             ativo=True,
             tabela_preco_status='aprovada'
-        ).all()
+        )
+        
+        if usuario.tipo != 'admin':
+            query = query.filter(Fornecedor.comprador_responsavel_id == usuario_id)
+        
+        fornecedores = query.all()
         
         return jsonify([f.to_dict() for f in fornecedores]), 200
         
