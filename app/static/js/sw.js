@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gestao-placas-v4';
+const CACHE_NAME = 'gestao-placas-v5';
 const urlsToCache = [
   '/',
   '/static/css/style.css',
@@ -17,8 +17,9 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Nunca cachear chamadas de API, uploads ou requisições que não sejam GET
+  // Nunca cachear chamadas de API, auth, uploads ou requisições que não sejam GET
   if (event.request.url.includes('/api/') || 
+      event.request.url.includes('/auth/') ||
       event.request.url.includes('/uploads/') ||
       event.request.method !== 'GET') {
     event.respondWith(fetch(event.request));
