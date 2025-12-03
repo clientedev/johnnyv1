@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, OrdemCompra, Solicitacao, Fornecedor, Usuario, AuditoriaOC, Notificacao, Perfil, ItemSolicitacao, OrdemServico
+from app.models import OrdemCompra, AuditoriaOC, Solicitacao, Fornecedor, Usuario, ItemSolicitacao, OrdemServico, db
 from app.auth import admin_required
 from app.utils.auditoria import registrar_auditoria_oc
 from datetime import datetime
@@ -36,7 +36,7 @@ def registrar_auditoria_os(os, acao, usuario_id, detalhes=None):
         'ip': request.remote_addr,
         'user_agent': request.headers.get('User-Agent')
     }
-
+    
     if os.auditoria is None:
         os.auditoria = []
     os.auditoria.append(entrada_auditoria)
@@ -48,38 +48,38 @@ def listar_ocs():
         print(f"\n{'='*60}")
         print(f" LISTANDO ORDENS DE COMPRA")
         print(f"{'='*60}")
-
+        
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
-
+        
         print(f"   Usuário: {usuario.nome if usuario else 'N/A'} (ID: {usuario_id})")
-
+        
         if not usuario:
             return jsonify({'erro': 'Usuário não encontrado'}), 404
-
+        
         query = OrdemCompra.query
         print(f"   Query inicial criada")
-
+        
         if usuario.tipo != 'admin':
             perfil_nome = usuario.perfil.nome if usuario.perfil else None
             if perfil_nome == 'Comprador (PJ)':
                 query = query.join(Solicitacao).filter(Solicitacao.funcionario_id == usuario_id)
             elif perfil_nome not in ['Financeiro', 'Administrador']:
                 return jsonify({'erro': 'Acesso negado'}), 403
-
+        
         status = request.args.get('status')
         if status:
             query = query.filter_by(status=status)
             print(f"   Filtrando por status: {status}")
-
+        
         # Contar total de OCs no banco ANTES do filtro de perfil
         total_ocs_db = OrdemCompra.query.count()
         print(f"    Total de OCs no banco: {total_ocs_db}")
-
+        
         ocs = query.order_by(OrdemCompra.criado_em.desc()).all()
-
+        
         print(f"    {len(ocs)} OC(s) encontrada(s) após filtros")
-
+        
         resultado = []
         for oc in ocs:
             oc_dict = oc.to_dict()
@@ -91,13 +91,13 @@ def listar_ocs():
                 }
             resultado.append(oc_dict)
             print(f"      - OC #{oc.id}: SC #{oc.solicitacao_id}, Fornecedor: {oc.fornecedor.nome if oc.fornecedor else 'N/A'}, Valor: R$ {oc.valor_total:.2f}, Status: {oc.status}")
-
+        
         print(f"\n{'='*60}")
         print(f" Retornando {len(resultado)} OC(s)")
         print(f"{'='*60}\n")
-
+        
         return jsonify(resultado), 200
-
+    
     except Exception as e:
         print(f"\n ERRO ao listar OCs: {str(e)}")
         import traceback
@@ -110,28 +110,28 @@ def criar_oc(sc_id):
     try:
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
-
+        
         if not usuario:
             return jsonify({'erro': 'Usuário não encontrado'}), 404
-
+        
         if usuario.tipo != 'admin' and (not usuario.perfil or usuario.perfil.nome not in ['Administrador', 'Comprador (PJ)']):
             return jsonify({'erro': 'Apenas Administrador ou Comprador PJ podem criar ordens de compra'}), 403
-
+        
         solicitacao = Solicitacao.query.get(sc_id)
-
+        
         if not solicitacao:
             return jsonify({'erro': 'Solicitação não encontrada'}), 404
-
+        
         if solicitacao.status != 'aprovada':
             return jsonify({'erro': 'Apenas solicitações aprovadas podem gerar ordem de compra'}), 400
-
+        
         oc_existente = OrdemCompra.query.filter_by(solicitacao_id=sc_id).first()
         if oc_existente:
             return jsonify({'erro': 'Já existe uma ordem de compra para esta solicitação'}), 400
-
+        
         if not solicitacao.itens or len(solicitacao.itens) == 0:
             return jsonify({'erro': 'Solicitação não possui itens'}), 400
-
+        
         # Validar que todos os itens têm preços válidos (aceita zero, rejeita None e negativos)
         itens_invalidos = [item for item in solicitacao.itens if item.valor_calculado is None or item.valor_calculado < 0]
         if itens_invalidos:
@@ -139,15 +139,15 @@ def criar_oc(sc_id):
                 'erro': f'Existem {len(itens_invalidos)} itens sem preço configurado ou com valor inválido',
                 'itens_invalidos': len(itens_invalidos)
             }), 400
-
+        
         # Calcular valor total tratando None como 0.0
         valor_total = sum((item.valor_calculado or 0.0) for item in solicitacao.itens)
-
+        
         if valor_total < 0:
             return jsonify({'erro': 'Valor total da OC não pode ser negativo'}), 400
-
+        
         data = request.get_json() or {}
-
+        
         with db.session.begin_nested():
             oc = OrdemCompra(
                 solicitacao_id=sc_id,
@@ -157,14 +157,14 @@ def criar_oc(sc_id):
                 criado_por=usuario_id,
                 observacao=data.get('observacao', '')
             )
-
+            
             db.session.add(oc)
             db.session.flush()
-
+            
             ip = request.headers.get('X-Forwarded-For', request.remote_addr)
             gps = data.get('gps')
             dispositivo = request.headers.get('User-Agent', '')
-
+            
             registrar_auditoria_oc(
                 oc_id=oc.id,
                 usuario_id=usuario_id,
@@ -176,37 +176,15 @@ def criar_oc(sc_id):
                 gps=gps,
                 dispositivo=dispositivo
             )
-
-            # Criar notificações para administradores/financeiro
-            usuarios_admin = Usuario.query.filter(
-                db.and_(
-                    Usuario.ativo == True,
-                    db.or_(
-                        Usuario.tipo == 'admin',
-                        Usuario.perfil.has(Perfil.nome.in_(['Administrador', 'Financeiro']))
-                    )
-                )
-            ).all()
-
-            for admin in usuarios_admin:
-                if admin.id != usuario_id:  # Não notificar o próprio criador
-                    notificacao = Notificacao(
-                        usuario_id=admin.id,
-                        titulo='Nova Ordem de Compra - Aprovação Pendente',
-                        mensagem=f'OC #{oc.id} criada (R$ {oc.valor_total:.2f}) - Fornecedor: {solicitacao.fornecedor.nome}. Aguardando aprovação!',
-                        tipo='oc_pendente',
-                        url='/compras.html'
-                    )
-                    db.session.add(notificacao)
-
-            db.session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': 'Ordem de compra criada com sucesso',
-                'oc': oc.to_dict()
-            }), 201
-
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Ordem de compra criada com sucesso',
+            'oc': oc.to_dict()
+        }), 201
+    
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': f'Erro ao criar ordem de compra: {str(e)}'}), 500
@@ -217,33 +195,33 @@ def obter_oc(oc_id):
     try:
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
-
+        
         if not usuario:
             return jsonify({'erro': 'Usuário não encontrado'}), 404
-
+        
         oc = OrdemCompra.query.get(oc_id)
-
+        
         if not oc:
             return jsonify({'erro': 'Ordem de compra não encontrada'}), 404
-
+        
         if usuario.tipo != 'admin':
             perfil_nome = usuario.perfil.nome if usuario.perfil else None
             if perfil_nome == 'Comprador (PJ)' and oc.solicitacao.funcionario_id != usuario_id:
                 return jsonify({'erro': 'Acesso negado'}), 403
             elif perfil_nome not in ['Financeiro', 'Administrador', 'Comprador (PJ)']:
                 return jsonify({'erro': 'Acesso negado'}), 403
-
+        
         oc_dict = oc.to_dict()
-
+        
         if oc.solicitacao:
             solicitacao_dict = oc.solicitacao.to_dict()
             solicitacao_dict['itens'] = [item.to_dict() for item in oc.solicitacao.itens]
             oc_dict['solicitacao'] = solicitacao_dict
-
+        
         oc_dict['auditorias'] = [auditoria.to_dict() for auditoria in oc.auditorias]
-
+        
         return jsonify(oc_dict), 200
-
+    
     except Exception as e:
         return jsonify({'erro': f'Erro ao obter ordem de compra: {str(e)}'}), 500
 
@@ -253,28 +231,28 @@ def aprovar_oc(oc_id):
     try:
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
-
+        
         if not usuario:
             return jsonify({'erro': 'Usuário não encontrado'}), 404
-
+        
         if usuario.tipo != 'admin' and (not usuario.perfil or usuario.perfil.nome not in ['Administrador', 'Financeiro']):
             return jsonify({'erro': 'Apenas Administrador ou Financeiro podem aprovar ordens de compra'}), 403
-
+        
         oc = OrdemCompra.query.get(oc_id)
-
+        
         if not oc:
             return jsonify({'erro': 'Ordem de compra não encontrada'}), 404
-
+        
         if oc.status == 'aprovada':
             return jsonify({'erro': 'Ordem de compra já está aprovada'}), 400
-
+        
         if oc.status == 'cancelada':
             return jsonify({'erro': 'Ordem de compra cancelada não pode ser aprovada'}), 400
-
+        
         data = request.get_json() or {}
-
+        
         status_anterior = oc.status
-
+        
         with db.session.begin_nested():
             oc.status = 'aprovada'
             oc.aprovado_por = usuario_id
@@ -283,7 +261,7 @@ def aprovar_oc(oc_id):
             oc.ip_aprovacao = request.headers.get('X-Forwarded-For', request.remote_addr)
             oc.gps_aprovacao = data.get('gps')
             oc.device_info = request.headers.get('User-Agent', '')[:100]
-
+            
             registrar_auditoria_oc(
                 oc_id=oc.id,
                 usuario_id=usuario_id,
@@ -295,22 +273,22 @@ def aprovar_oc(oc_id):
                 gps=oc.gps_aprovacao,
                 dispositivo=oc.device_info
             )
-
+            
             # ========================================
             # GERAÇÃO AUTOMÁTICA DE OS
             # ========================================
             print(f"\n{'='*60}")
             print(f" OC #{oc.id} APROVADA - Criando OS automaticamente...")
             print(f"{'='*60}")
-
+            
             try:
                 # Buscar fornecedor para criar snapshot
                 fornecedor = Fornecedor.query.get(oc.fornecedor_id)
                 if not fornecedor:
                     raise Exception(f'Fornecedor {oc.fornecedor_id} não encontrado')
-
+                
                 print(f"   Fornecedor: {fornecedor.nome}")
-
+                
                 # Verificar se já existe OS para esta OC
                 os_existente = OrdemServico.query.filter_by(oc_id=oc.id).first()
                 if os_existente:
@@ -320,10 +298,10 @@ def aprovar_oc(oc_id):
                     # Gerar número único da OS
                     numero_os = gerar_numero_os()
                     fornecedor_snap = criar_snapshot_fornecedor(fornecedor)
-
+                    
                     print(f"   Número OS: {numero_os}")
                     print(f"   Status inicial: PENDENTE")
-
+                    
                     # Criar a Ordem de Serviço automaticamente
                     os = OrdemServico(
                         oc_id=oc.id,
@@ -334,16 +312,16 @@ def aprovar_oc(oc_id):
                         created_by=usuario_id
                     )
                     db.session.add(os)
-
+                    
                     # Registrar auditoria da OS
                     registrar_auditoria_os(os, 'CRIACAO', usuario_id, {
                         'oc_id': oc.id,
                         'criado_automaticamente': True,
                         'motivo': 'OC aprovada'
                     })
-
+                    
                     print(f"   ✅ OS criada com sucesso!")
-
+                
             except Exception as e:
                 print(f"   ❌ ERRO ao criar OS: {str(e)}")
                 db.session.rollback()
@@ -352,11 +330,11 @@ def aprovar_oc(oc_id):
                     'oc_aprovada': True,
                     'oc_id': oc.id
                 }), 500
-
+            
             print(f"{'='*60}\n")
-
+        
         db.session.commit()
-
+        
         return jsonify({
             'success': True,
             'message': 'Ordem de compra aprovada e OS gerada com sucesso',
@@ -367,7 +345,7 @@ def aprovar_oc(oc_id):
                 'status': os.status
             }
         }), 200
-
+    
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': f'Erro ao aprovar ordem de compra: {str(e)}'}), 500
@@ -378,31 +356,31 @@ def reprovar_oc(oc_id):
     try:
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
-
+        
         if not usuario:
             return jsonify({'erro': 'Usuário não encontrado'}), 404
-
+        
         if usuario.tipo != 'admin' and (not usuario.perfil or usuario.perfil.nome not in ['Administrador', 'Financeiro']):
             return jsonify({'erro': 'Apenas Administrador ou Financeiro podem reprovar ordens de compra'}), 403
-
+        
         oc = OrdemCompra.query.get(oc_id)
-
+        
         if not oc:
             return jsonify({'erro': 'Ordem de compra não encontrada'}), 404
-
+        
         if oc.status == 'rejeitada':
             return jsonify({'erro': 'Ordem de compra já está rejeitada'}), 400
-
+        
         if oc.status == 'cancelada':
             return jsonify({'erro': 'Ordem de compra cancelada não pode ser reprovada'}), 400
-
+        
         data = request.get_json() or {}
-
+        
         if not data.get('observacao'):
             return jsonify({'erro': 'Motivo da rejeição é obrigatório'}), 400
-
+        
         status_anterior = oc.status
-
+        
         with db.session.begin_nested():
             oc.status = 'rejeitada'
             oc.aprovado_por = usuario_id
@@ -411,7 +389,7 @@ def reprovar_oc(oc_id):
             oc.ip_aprovacao = request.headers.get('X-Forwarded-For', request.remote_addr)
             oc.gps_aprovacao = data.get('gps')
             oc.device_info = request.headers.get('User-Agent', '')[:100]
-
+            
             registrar_auditoria_oc(
                 oc_id=oc.id,
                 usuario_id=usuario_id,
@@ -423,15 +401,15 @@ def reprovar_oc(oc_id):
                 gps=oc.gps_aprovacao,
                 dispositivo=oc.device_info
             )
-
+        
         db.session.commit()
-
+        
         return jsonify({
             'success': True,
             'message': 'Ordem de compra rejeitada com sucesso',
             'oc': oc.to_dict()
         }), 200
-
+    
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': f'Erro ao reprovar ordem de compra: {str(e)}'}), 500
@@ -441,20 +419,20 @@ def reprovar_oc(oc_id):
 def cancelar_oc(oc_id):
     try:
         usuario_id = get_jwt_identity()
-
+        
         oc = OrdemCompra.query.get(oc_id)
-
+        
         if not oc:
             return jsonify({'erro': 'Ordem de compra não encontrada'}), 404
-
+        
         if oc.status == 'aprovada':
             return jsonify({'erro': 'Ordem de compra aprovada não pode ser cancelada'}), 400
-
+        
         status_anterior = oc.status
-
+        
         with db.session.begin_nested():
             oc.status = 'cancelada'
-
+            
             registrar_auditoria_oc(
                 oc_id=oc.id,
                 usuario_id=usuario_id,
@@ -465,14 +443,14 @@ def cancelar_oc(oc_id):
                 gps=None,
                 dispositivo=request.headers.get('User-Agent', '')[:100]
             )
-
+        
         db.session.commit()
-
+        
         return jsonify({
             'success': True,
             'message': 'Ordem de compra cancelada com sucesso'
         }), 200
-
+    
     except Exception as e:
         db.session.rollback()
         return jsonify({'erro': f'Erro ao cancelar ordem de compra: {str(e)}'}), 500
@@ -483,27 +461,27 @@ def obter_estatisticas():
     try:
         usuario_id = get_jwt_identity()
         usuario = Usuario.query.get(usuario_id)
-
+        
         if not usuario:
             return jsonify({'erro': 'Usuário não encontrado'}), 404
-
+        
         query = OrdemCompra.query
-
+        
         if usuario.tipo != 'admin':
             perfil_nome = usuario.perfil.nome if usuario.perfil else None
             if perfil_nome == 'Comprador (PJ)':
                 query = query.join(Solicitacao).filter(Solicitacao.funcionario_id == usuario_id)
             elif perfil_nome not in ['Financeiro', 'Administrador']:
                 return jsonify({'erro': 'Acesso negado'}), 403
-
+        
         total_ocs = query.count()
         em_analise = query.filter_by(status='em_analise').count()
         aprovadas = query.filter_by(status='aprovada').count()
         rejeitadas = query.filter_by(status='rejeitada').count()
         canceladas = query.filter_by(status='cancelada').count()
-
+        
         valor_total_aprovadas = db.session.query(db.func.sum(OrdemCompra.valor_total)).filter_by(status='aprovada').scalar() or 0
-
+        
         return jsonify({
             'total_ocs': total_ocs,
             'em_analise': em_analise,
@@ -512,6 +490,6 @@ def obter_estatisticas():
             'canceladas': canceladas,
             'valor_total_aprovadas': float(valor_total_aprovadas)
         }), 200
-
+    
     except Exception as e:
         return jsonify({'erro': f'Erro ao obter estatísticas: {str(e)}'}), 500
