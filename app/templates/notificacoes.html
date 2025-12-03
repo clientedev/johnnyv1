@@ -135,8 +135,11 @@
             }
 
             container.innerHTML = notificacoes.map(n => `
-                <div class="card" style="background: ${n.lida ? 'white' : 'var(--gray-100)'}; cursor: pointer;" onclick="marcarLida(${n.id})">
-                    <h3 style="margin-bottom: 0.5rem;">${n.titulo}</h3>
+                <div class="card" style="background: ${n.lida ? 'white' : 'var(--gray-100)'}; cursor: pointer; position: relative;" onclick="abrirNotificacao(${n.id}, '${n.url || ''}')">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <h3 style="margin-bottom: 0.5rem;">${n.titulo}</h3>
+                        ${n.url ? '<i class="fas fa-chevron-right" style="color: var(--primary-color); font-size: 0.875rem;"></i>' : ''}
+                    </div>
                     <p style="color: var(--gray-600);">${n.mensagem}</p>
                     <small style="color: var(--gray-400);">${formatDate(n.data_envio)}</small>
                 </div>
@@ -150,6 +153,20 @@
 
             await carregarNotificacoes();
             await atualizarNotificacoes();
+        }
+
+        async function abrirNotificacao(id, url) {
+            await fetchAPI(`/notificacoes/${id}/marcar-lida`, {
+                method: 'PUT'
+            });
+            
+            await atualizarNotificacoes();
+            
+            if (url && url !== 'null' && url !== 'undefined' && url !== '') {
+                window.location.href = url;
+            } else {
+                await carregarNotificacoes();
+            }
         }
 
         async function marcarTodasLidas() {
