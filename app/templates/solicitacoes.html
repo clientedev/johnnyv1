@@ -640,6 +640,11 @@
             }
         }
 
+        function getUrlParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
         async function carregarPagina() {
             const user = await verificarAuth();
             if (!user) return;
@@ -651,6 +656,20 @@
             await carregarSolicitacoes();
             await carregarOCs();
             await atualizarNotificacoes();
+            
+            const tabParam = getUrlParam('tab');
+            if (tabParam) {
+                changeTab(tabParam);
+            }
+            
+            const statusParam = getUrlParam('status');
+            if (statusParam) {
+                if (tabParam === 'ordens-compra') {
+                    filtrarOCStatus(statusParam);
+                } else {
+                    filtrarStatus(statusParam);
+                }
+            }
         }
 
         async function carregarFornecedores() {
