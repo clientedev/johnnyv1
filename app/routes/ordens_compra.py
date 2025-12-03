@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import OrdemCompra, AuditoriaOC, Solicitacao, Fornecedor, Usuario, ItemSolicitacao, OrdemServico, db
+from app.models import OrdemCompra, AuditoriaOC, Solicitacao, Fornecedor, Usuario, ItemSolicitacao, OrdemServico, Perfil, Notificacao, db
 from app.auth import admin_required
 from app.utils.auditoria import registrar_auditoria_oc
 from datetime import datetime
@@ -176,6 +176,31 @@ def criar_oc(sc_id):
                 gps=gps,
                 dispositivo=dispositivo
             )
+            
+            # Notificar financeiro/admins sobre nova OC pendente
+            usuarios_financeiro = Usuario.query.filter(
+                db.and_(
+                    Usuario.ativo == True,
+                    db.or_(
+                        Usuario.tipo == 'admin',
+                        Usuario.perfil.has(db.and_(
+                            Perfil.nome.in_(['Administrador', 'Financeiro']),
+                            Perfil.ativo == True
+                        ))
+                    )
+                )
+            ).all()
+            
+            for usuario_fin in usuarios_financeiro:
+                if usuario_fin.id != usuario_id:
+                    notificacao = Notificacao(
+                        usuario_id=usuario_fin.id,
+                        titulo='Nova Ordem de Compra - Aprovação Pendente',
+                        mensagem=f'OC #{oc.id} criada por {usuario.nome} (R$ {oc.valor_total:.2f}) - Fornecedor: {solicitacao.fornecedor.nome}. Aguardando sua aprovação!',
+                        tipo='oc_pendente',
+                        url='/compras.html'
+                    )
+                    db.session.add(notificacao)
         
         db.session.commit()
         

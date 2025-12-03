@@ -721,6 +721,7 @@ def aprovar_solicitacao(id):
                     usuario_id=usuario_fin.id,
                     titulo='Nova Ordem de Compra - Aprovação Pendente',
                     mensagem=f'OC #{oc.id} gerada (R$ {oc.valor_total:.2f}) da Solicitação #{solicitacao.id} - Fornecedor: {solicitacao.fornecedor.nome}. Aguardando sua aprovação!',
+                    tipo='oc_pendente',
                     url='/compras.html'
                 )
                 db.session.add(notificacao_financeiro)
