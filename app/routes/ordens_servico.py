@@ -627,6 +627,93 @@ def cancelar_os(id):
         db.session.rollback()
         return jsonify({'erro': f'Erro ao cancelar OS: {str(e)}'}), 500
 
+@bp.route('/<int:id>/marcar-recebido', methods=['PUT'])
+@admin_required
+def marcar_recebido(id):
+    """Marca uma OS como recebida quando o tipo de retirada é 'entregar' (Fornecedor Entrega)"""
+    try:
+        usuario_id = get_jwt_identity()
+        
+        os = OrdemServico.query.get(id)
+        if not os:
+            return jsonify({'erro': 'Ordem de Serviço não encontrada'}), 404
+        
+        if os.status != 'PENDENTE':
+            return jsonify({'erro': f'Esta ação só é permitida para OS com status PENDENTE. Status atual: {os.status}'}), 400
+        
+        oc = os.ordem_compra
+        if not oc or not oc.solicitacao:
+            return jsonify({'erro': 'Não foi possível verificar o tipo de retirada desta OS'}), 400
+        
+        tipo_retirada = oc.solicitacao.tipo_retirada
+        if tipo_retirada != 'entregar':
+            return jsonify({'erro': 'Esta ação só é permitida para pedidos com tipo de retirada "Fornecedor Entrega"'}), 400
+        
+        status_anterior = os.status
+        os.status = 'FINALIZADA'
+        
+        registrar_auditoria_os(os, 'RECEBIMENTO_FORNECEDOR_ENTREGA', usuario_id, {
+            'status_anterior': status_anterior,
+            'tipo_retirada': tipo_retirada,
+            'acao': 'Material recebido - Fornecedor realizou a entrega'
+        })
+        
+        conferencia_existente = ConferenciaRecebimento.query.filter_by(os_id=os.id).first()
+        if not conferencia_existente:
+            peso_previsto = 0
+            quantidade_prevista = 0
+            if oc.solicitacao and oc.solicitacao.itens:
+                for item in oc.solicitacao.itens:
+                    peso_kg = item.peso_kg or 0
+                    peso_previsto += peso_kg
+                    quantidade_prevista += 1
+            
+            conferencia = ConferenciaRecebimento(
+                os_id=os.id,
+                oc_id=os.oc_id,
+                peso_fornecedor=peso_previsto,
+                quantidade_prevista=quantidade_prevista,
+                conferencia_status='PENDENTE',
+                auditoria=[{
+                    'acao': 'CRIACAO_RECEBIMENTO_FORNECEDOR',
+                    'usuario_id': usuario_id,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'detalhes': {'os_id': os.id, 'oc_id': os.oc_id, 'criado_por': 'RECEBIMENTO_FORNECEDOR_ENTREGA'},
+                    'ip': request.remote_addr,
+                    'user_agent': request.headers.get('User-Agent')
+                }]
+            )
+            db.session.add(conferencia)
+            
+            conferentes = Usuario.query.join(Usuario.perfil).filter(
+                db.or_(
+                    db.text("perfis.nome = 'Conferente / Estoque'"),
+                    db.text("perfis.nome = 'Administrador'")
+                )
+            ).all()
+            
+            for conferente in conferentes:
+                notificacao = Notificacao(
+                    usuario_id=conferente.id,
+                    titulo='Nova Conferência - Entrega do Fornecedor',
+                    mensagem=f'OS {os.numero_os} foi recebida (entrega do fornecedor). Conferência criada e aguardando processamento.',
+                    tipo='nova_conferencia',
+                    url='/conferencias.html',
+                    lida=False
+                )
+                db.session.add(notificacao)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'mensagem': 'Material recebido com sucesso! OS finalizada.',
+            'os': os.to_dict()
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': f'Erro ao marcar como recebido: {str(e)}'}), 500
+
 @bp.route('/estatisticas', methods=['GET'])
 @jwt_required()
 def obter_estatisticas():

@@ -903,12 +903,13 @@
 
                 os_list.forEach(os => {
                     const statusClass = `status-${os.status.toLowerCase().replace('_', '-')}`;
+                    const isFornecedorEntrega = os.tipo_retirada === 'entregar';
                     
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><strong>${os.numero_os}</strong></td>
                         <td>${os.fornecedor_snapshot.nome}</td>
-                        <td>${os.tipo}</td>
+                        <td>${os.tipo}${isFornecedorEntrega ? ' <small style="color:#059669;">(Fornecedor Entrega)</small>' : ''}</td>
                         <td><span class="status-badge ${statusClass}">${os.status}</span></td>
                         <td>${os.motorista_nome || '-'}</td>
                         <td>${os.veiculo_placa || '-'}</td>
@@ -917,7 +918,10 @@
                             <button class="btn btn-primary btn-sm" onclick="verDetalhes(${os.id})">
                                 <i class="fas fa-eye"></i> Ver
                             </button>
-                            ${os.status === 'PENDENTE' ? `<button class="btn btn-secondary btn-sm" onclick="abrirAtribuir(${os.id})">
+                            ${os.status === 'PENDENTE' && isFornecedorEntrega ? `<button class="btn btn-success btn-sm" onclick="marcarRecebido(${os.id})" style="background: #28a745; margin-left: 5px;">
+                                <i class="fas fa-check-circle"></i> Recebido
+                            </button>` : ''}
+                            ${os.status === 'PENDENTE' && !isFornecedorEntrega ? `<button class="btn btn-secondary btn-sm" onclick="abrirAtribuir(${os.id})">
                                 <i class="fas fa-user-plus"></i> Atribuir
                             </button>` : ''}
                             ${os.status === 'IMPEDIDO' ? `
@@ -946,7 +950,7 @@
                             </div>
                             <div class="os-card-row">
                                 <div class="os-card-label">Tipo:</div>
-                                <div class="os-card-value">${os.tipo}</div>
+                                <div class="os-card-value">${os.tipo}${isFornecedorEntrega ? ' <small style="color:#059669;">(Forn. Entrega)</small>' : ''}</div>
                             </div>
                             <div class="os-card-row">
                                 <div class="os-card-label">Motorista:</div>
@@ -970,7 +974,12 @@
                             <button class="btn btn-primary btn-sm" onclick="verDetalhes(${os.id})">
                                 <i class="fas fa-eye"></i> Ver Detalhes
                             </button>
-                            ${os.status === 'PENDENTE' ? `
+                            ${os.status === 'PENDENTE' && isFornecedorEntrega ? `
+                                <button class="btn btn-success btn-sm" onclick="marcarRecebido(${os.id})" style="background: #28a745;">
+                                    <i class="fas fa-check-circle"></i> Recebido
+                                </button>
+                            ` : ''}
+                            ${os.status === 'PENDENTE' && !isFornecedorEntrega ? `
                                 <button class="btn btn-secondary btn-sm" onclick="abrirAtribuir(${os.id})">
                                     <i class="fas fa-user-plus"></i> Atribuir
                                 </button>
@@ -1155,6 +1164,35 @@
             } catch (error) {
                 console.error('Erro ao retentar OS:', error);
                 alert('Erro ao retentar OS');
+            }
+        }
+
+        async function marcarRecebido(osId) {
+            if (!confirm('Confirmar recebimento do material?\n\nO fornecedor realizou a entrega e o material foi recebido.\n\nA OS será finalizada automaticamente.')) {
+                return;
+            }
+
+            try {
+                const token = getToken();
+                const response = await fetch(`/api/os/${osId}/marcar-recebido`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Material recebido com sucesso! OS finalizada.');
+                    carregarOS();
+                    carregarEstatisticas();
+                } else {
+                    const error = await response.json();
+                    alert('Erro: ' + error.erro);
+                }
+            } catch (error) {
+                console.error('Erro ao marcar recebido:', error);
+                alert('Erro ao marcar como recebido');
             }
         }
 

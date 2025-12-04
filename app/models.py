@@ -1178,12 +1178,17 @@ class OrdemServico(db.Model):  # type: ignore
         super().__init__(**kwargs)
 
     def to_dict(self):
+        tipo_retirada = None
+        if self.ordem_compra and self.ordem_compra.solicitacao:
+            tipo_retirada = self.ordem_compra.solicitacao.tipo_retirada
+        
         return {
             'id': self.id,
             'oc_id': self.oc_id,
             'numero_os': self.numero_os,
             'fornecedor_snapshot': self.fornecedor_snapshot,
             'tipo': self.tipo,
+            'tipo_retirada': tipo_retirada,
             'janela_coleta_inicio': self.janela_coleta_inicio.isoformat() if self.janela_coleta_inicio else None,
             'janela_coleta_fim': self.janela_coleta_fim.isoformat() if self.janela_coleta_fim else None,
             'motorista_id': self.motorista_id,
