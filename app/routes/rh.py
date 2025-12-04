@@ -95,7 +95,8 @@ def criar_usuario_rh():
     senha = data.get('senha')
     if not senha:
         cpf = data.get('cpf', '')
-        senha = cpf[-4:] if len(cpf) >= 4 else '123456'
+        cpf_numeros = cpf.replace('.', '').replace('-', '')
+        senha = cpf_numeros[-4:] if len(cpf_numeros) >= 4 else '123456'
     
     ativo = data.get('ativo', True)
     if isinstance(ativo, str):
