@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Usuario, Solicitacao, Fornecedor, AuditoriaLog, Perfil
+from app.models import db, Usuario, Solicitacao, Fornecedor, AuditoriaLog, Perfil, Motorista
 from app.auth import admin_required, hash_senha
 from app.utils.auditoria import registrar_criacao, registrar_atualizacao, registrar_exclusao
 from datetime import datetime, timedelta
@@ -85,7 +85,12 @@ def criar_usuario_rh():
     if not perfil:
         return jsonify({'erro': 'Perfil não encontrado'}), 404
     
-    tipo = 'admin' if perfil.nome == 'Administrador' else 'funcionario'
+    if perfil.nome == 'Administrador':
+        tipo = 'admin'
+    elif perfil.nome == 'Motorista':
+        tipo = 'motorista'
+    else:
+        tipo = 'funcionario'
     
     senha = data.get('senha')
     if not senha:
@@ -122,12 +127,24 @@ def criar_usuario_rh():
     if 'foto' in request.files:
         file = request.files['foto']
         if file and file.filename and allowed_file(file.filename):
-            # Salvar imagem no banco de dados (Railway-friendly)
             foto_bytes = file.read()
             usuario.foto_data = foto_bytes
             usuario.foto_mimetype = file.content_type or 'image/jpeg'
             filename = secure_filename(f"usuario_{usuario.id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.{file.filename.rsplit('.', 1)[1].lower()}")
             usuario.foto_path = f"usuarios/{filename}"
+    
+    if perfil.nome == 'Motorista':
+        cpf_limpo = (data.get('cpf') or '').replace('.', '').replace('-', '')
+        motorista = Motorista(
+            usuario_id=usuario.id,
+            nome=usuario.nome,
+            cpf=cpf_limpo,
+            telefone=data.get('telefone'),
+            email=usuario.email,
+            ativo=usuario.ativo,
+            criado_por=admin_id
+        )
+        db.session.add(motorista)
     
     db.session.commit()
     
@@ -176,6 +193,7 @@ def atualizar_usuario_rh(id):
         usuario.senha_hash = hash_senha(data['senha'])
         alteracoes['depois']['senha_alterada'] = True
     
+    novo_perfil = None
     if data.get('perfil_id'):
         perfil = Perfil.query.get(int(data['perfil_id']))
         if not perfil:
@@ -183,8 +201,16 @@ def atualizar_usuario_rh(id):
         
         alteracoes['antes']['perfil'] = usuario.perfil.nome if usuario.perfil else None
         usuario.perfil_id = int(data['perfil_id'])
-        usuario.tipo = 'admin' if perfil.nome == 'Administrador' else 'funcionario'
+        
+        if perfil.nome == 'Administrador':
+            usuario.tipo = 'admin'
+        elif perfil.nome == 'Motorista':
+            usuario.tipo = 'motorista'
+        else:
+            usuario.tipo = 'funcionario'
+        
         alteracoes['depois']['perfil'] = perfil.nome
+        novo_perfil = perfil
     
     if 'ativo' in data:
         ativo = data['ativo']
@@ -229,6 +255,28 @@ def atualizar_usuario_rh(id):
             usuario.foto_path = f"usuarios/{filename}"
             
             alteracoes['depois']['foto_path'] = usuario.foto_path
+    
+    if novo_perfil and novo_perfil.nome == 'Motorista':
+        motorista_existente = Motorista.query.filter_by(usuario_id=usuario.id).first()
+        if not motorista_existente:
+            cpf_limpo = (usuario.cpf or '').replace('.', '').replace('-', '')
+            motorista = Motorista(
+                usuario_id=usuario.id,
+                nome=usuario.nome,
+                cpf=cpf_limpo,
+                telefone=usuario.telefone,
+                email=usuario.email,
+                ativo=usuario.ativo,
+                criado_por=admin_id
+            )
+            db.session.add(motorista)
+        else:
+            motorista_existente.nome = usuario.nome
+            motorista_existente.email = usuario.email
+            motorista_existente.telefone = usuario.telefone
+            motorista_existente.ativo = usuario.ativo
+            if usuario.cpf:
+                motorista_existente.cpf = usuario.cpf.replace('.', '').replace('-', '')
     
     db.session.commit()
     
