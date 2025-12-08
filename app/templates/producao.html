@@ -430,14 +430,32 @@
 
         async function carregarFornecedoresELotes() {
             try {
+                console.log('🔄 Carregando fornecedores e lotes...');
+                
                 const [respForn, respLotes] = await Promise.all([
                     fetchAPI('/producao/fornecedores'),
                     fetchAPI('/producao/lotes-estoque')
                 ]);
-                if (respForn.ok) fornecedores = await respForn.json();
-                if (respLotes.ok) lotesEstoque = await respLotes.json();
+                
+                if (respForn && respForn.ok) {
+                    fornecedores = await respForn.json();
+                    console.log(`✅ ${fornecedores.length} fornecedores carregados`);
+                } else {
+                    console.error('❌ Erro ao carregar fornecedores');
+                    fornecedores = [];
+                }
+                
+                if (respLotes && respLotes.ok) {
+                    lotesEstoque = await respLotes.json();
+                    console.log(`✅ ${lotesEstoque.length} lotes carregados`);
+                } else {
+                    console.error('❌ Erro ao carregar lotes');
+                    lotesEstoque = [];
+                }
             } catch (error) {
-                console.error('Erro ao carregar dados:', error);
+                console.error('❌ Erro ao carregar dados:', error);
+                fornecedores = [];
+                lotesEstoque = [];
             }
         }
 
@@ -449,12 +467,36 @@
             if (tab === 'bags') carregarBags();
         }
 
-        function abrirModalNovaOP() {
+        async function abrirModalNovaOP() {
             document.getElementById('formNovaOP').reset();
             document.getElementById('grupoFornecedor').style.display = 'none';
             document.getElementById('grupoLote').style.display = 'none';
-            document.getElementById('opFornecedor').innerHTML = '<option value="">Selecione...</option>' + fornecedores.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
-            document.getElementById('opLote').innerHTML = '<option value="">Selecione...</option>' + lotesEstoque.map(l => `<option value="${l.id}">${l.numero_lote} (${l.peso_liquido} kg)</option>`).join('');
+            
+            // Recarregar dados antes de abrir o modal
+            await carregarFornecedoresELotes();
+            
+            // Popular select de fornecedores
+            const selectFornecedor = document.getElementById('opFornecedor');
+            if (fornecedores && fornecedores.length > 0) {
+                selectFornecedor.innerHTML = '<option value="">Selecione...</option>' + 
+                    fornecedores.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+                console.log(`✅ Select de fornecedor populado com ${fornecedores.length} opções`);
+            } else {
+                selectFornecedor.innerHTML = '<option value="">Nenhum fornecedor disponível</option>';
+                console.warn('⚠️ Nenhum fornecedor disponível');
+            }
+            
+            // Popular select de lotes
+            const selectLote = document.getElementById('opLote');
+            if (lotesEstoque && lotesEstoque.length > 0) {
+                selectLote.innerHTML = '<option value="">Selecione...</option>' + 
+                    lotesEstoque.map(l => `<option value="${l.id}">${l.numero_lote} - ${l.tipo_lote_nome} (${parseFloat(l.peso_liquido).toFixed(2)} kg)</option>`).join('');
+                console.log(`✅ Select de lote populado com ${lotesEstoque.length} opções`);
+            } else {
+                selectLote.innerHTML = '<option value="">Nenhum lote disponível</option>';
+                console.warn('⚠️ Nenhum lote disponível');
+            }
+            
             document.getElementById('modalNovaOP').style.display = 'flex';
         }
 

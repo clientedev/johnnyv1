@@ -9,6 +9,9 @@ from datetime import datetime
 from decimal import Decimal
 from io import BytesIO
 import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
 
 MAX_EXPORT_LIMIT = 5000
 
@@ -26,13 +29,13 @@ def listar_classificacoes():
     try:
         categoria = request.args.get('categoria')
         ativo = request.args.get('ativo', 'true').lower() == 'true'
-        
+
         query = ClassificacaoGrade.query
         if categoria:
             query = query.filter(ClassificacaoGrade.categoria == categoria)
         if ativo is not None:
             query = query.filter(ClassificacaoGrade.ativo == ativo)
-        
+
         classificacoes = query.order_by(ClassificacaoGrade.categoria, ClassificacaoGrade.nome).all()
         return jsonify([c.to_dict() for c in classificacoes])
     except Exception as e:
@@ -59,13 +62,13 @@ def criar_classificacao():
         usuario = Usuario.query.get(current_user_id)
         if not usuario or usuario.tipo != 'admin':
             return jsonify({'erro': 'Acesso não autorizado'}), 403
-        
+
         dados = request.get_json()
-        
+
         existente = ClassificacaoGrade.query.filter_by(nome=dados.get('nome')).first()
         if existente:
             return jsonify({'erro': 'Classificação com este nome já existe'}), 400
-        
+
         classificacao = ClassificacaoGrade(
             nome=dados.get('nome'),
             categoria=dados.get('categoria', 'HIGH_GRADE'),
@@ -75,10 +78,10 @@ def criar_classificacao():
             is_teste=dados.get('is_teste', False),
             criado_por=current_user_id
         )
-        
+
         db.session.add(classificacao)
         db.session.commit()
-        
+
         return jsonify(classificacao.to_dict()), 201
     except ValueError as e:
         return jsonify({'erro': str(e)}), 400
@@ -96,10 +99,10 @@ def atualizar_classificacao(id):
         usuario = Usuario.query.get(current_user_id)
         if not usuario or usuario.tipo != 'admin':
             return jsonify({'erro': 'Acesso não autorizado'}), 403
-        
+
         classificacao = ClassificacaoGrade.query.get_or_404(id)
         dados = request.get_json()
-        
+
         if 'nome' in dados:
             existente = ClassificacaoGrade.query.filter(
                 ClassificacaoGrade.nome == dados['nome'],
@@ -108,7 +111,7 @@ def atualizar_classificacao(id):
             if existente:
                 return jsonify({'erro': 'Classificação com este nome já existe'}), 400
             classificacao.nome = dados['nome']
-        
+
         if 'categoria' in dados:
             classificacao.categoria = dados['categoria']
         if 'descricao' in dados:
@@ -121,7 +124,7 @@ def atualizar_classificacao(id):
             classificacao.ativo = dados['ativo']
         if 'is_teste' in dados:
             classificacao.is_teste = dados['is_teste']
-        
+
         db.session.commit()
         return jsonify(classificacao.to_dict())
     except Exception as e:
@@ -143,9 +146,9 @@ def listar_ordens():
         data_fim = request.args.get('data_fim')
         tipo_material = request.args.get('tipo_material')
         responsavel_id = request.args.get('responsavel_id')
-        
+
         query = OrdemProducao.query
-        
+
         if status:
             query = query.filter(OrdemProducao.status == status)
         if data_inicio:
@@ -156,7 +159,7 @@ def listar_ordens():
             query = query.filter(OrdemProducao.tipo_material.ilike(f'%{tipo_material}%'))
         if responsavel_id:
             query = query.filter(OrdemProducao.responsavel_id == int(responsavel_id))
-        
+
         ordens = query.order_by(OrdemProducao.data_abertura.desc()).all()
         return jsonify([op.to_dict() for op in ordens])
     except Exception as e:
@@ -183,9 +186,9 @@ def criar_ordem():
     try:
         current_user_id = get_jwt_identity()
         dados = request.get_json()
-        
+
         numero_op = OrdemProducao.gerar_numero_op()
-        
+
         ordem = OrdemProducao(
             numero_op=numero_op,
             origem_tipo=dados.get('origem_tipo'),
@@ -201,10 +204,10 @@ def criar_ordem():
             observacoes=dados.get('observacoes'),
             status='aberta'
         )
-        
+
         db.session.add(ordem)
         db.session.commit()
-        
+
         return jsonify(ordem.to_dict()), 201
     except ValueError as e:
         return jsonify({'erro': str(e)}), 400
@@ -221,22 +224,22 @@ def atualizar_ordem(id):
         current_user_id = get_jwt_identity()
         ordem = OrdemProducao.query.get_or_404(id)
         dados = request.get_json()
-        
+
         if ordem.status == 'finalizada':
             return jsonify({'erro': 'Ordem de produção já finalizada não pode ser alterada'}), 400
-        
+
         campos_atualizaveis = [
             'tipo_material', 'descricao_material', 'peso_entrada', 
             'quantidade_entrada', 'custo_total', 'custo_unitario', 'observacoes'
         ]
-        
+
         for campo in campos_atualizaveis:
             if campo in dados:
                 if campo in ['peso_entrada', 'custo_total', 'custo_unitario']:
                     setattr(ordem, campo, Decimal(str(dados[campo])))
                 else:
                     setattr(ordem, campo, dados[campo])
-        
+
         db.session.commit()
         return jsonify(ordem.to_dict())
     except Exception as e:
@@ -250,13 +253,13 @@ def iniciar_separacao(id):
     """Inicia o processo de separação de uma OP"""
     try:
         ordem = OrdemProducao.query.get_or_404(id)
-        
+
         if ordem.status != 'aberta':
             return jsonify({'erro': 'Apenas ordens abertas podem iniciar separação'}), 400
-        
+
         ordem.status = 'em_separacao'
         ordem.data_inicio_separacao = datetime.utcnow()
-        
+
         db.session.commit()
         return jsonify(ordem.to_dict())
     except Exception as e:
@@ -271,19 +274,19 @@ def finalizar_ordem(id):
     try:
         current_user_id = get_jwt_identity()
         ordem = OrdemProducao.query.get_or_404(id)
-        
+
         if ordem.status not in ['aberta', 'em_separacao']:
             return jsonify({'erro': 'Ordem não pode ser finalizada'}), 400
-        
+
         peso_total_separado = sum(float(item.peso_kg) for item in ordem.itens_separados)
         peso_entrada = float(ordem.peso_entrada) if ordem.peso_entrada else 0
         peso_perdas = peso_entrada - peso_total_separado
         percentual_perda = (peso_perdas / peso_entrada * 100) if peso_entrada > 0 else 0
-        
+
         valor_estimado_total = sum(float(item.valor_estimado or 0) for item in ordem.itens_separados)
         custo_total = float(ordem.custo_total) if ordem.custo_total else 0
         lucro_prejuizo = valor_estimado_total - custo_total
-        
+
         ordem.peso_total_separado = Decimal(str(peso_total_separado))
         ordem.peso_perdas = Decimal(str(max(0, peso_perdas)))
         ordem.percentual_perda = Decimal(str(max(0, percentual_perda)))
@@ -292,7 +295,7 @@ def finalizar_ordem(id):
         ordem.status = 'finalizada'
         ordem.finalizado_por_id = current_user_id
         ordem.data_finalizacao = datetime.utcnow()
-        
+
         db.session.commit()
         return jsonify(ordem.to_dict())
     except Exception as e:
@@ -309,15 +312,15 @@ def cancelar_ordem(id):
         usuario = Usuario.query.get(current_user_id)
         if not usuario or usuario.tipo != 'admin':
             return jsonify({'erro': 'Apenas administradores podem cancelar OPs'}), 403
-        
+
         ordem = OrdemProducao.query.get_or_404(id)
-        
+
         if ordem.status == 'finalizada':
             return jsonify({'erro': 'Ordem finalizada não pode ser cancelada'}), 400
-        
+
         ordem.status = 'cancelada'
         db.session.commit()
-        
+
         return jsonify(ordem.to_dict())
     except Exception as e:
         db.session.rollback()
@@ -346,24 +349,24 @@ def adicionar_item(op_id):
     try:
         current_user_id = get_jwt_identity()
         ordem = OrdemProducao.query.get_or_404(op_id)
-        
+
         if ordem.status not in ['aberta', 'em_separacao']:
             return jsonify({'erro': 'Não é possível adicionar itens a esta OP'}), 400
-        
+
         dados = request.get_json()
         classificacao = ClassificacaoGrade.query.get(dados.get('classificacao_grade_id'))
-        
+
         if not classificacao:
             return jsonify({'erro': 'Classificação não encontrada'}), 404
-        
+
         peso_kg = Decimal(str(dados.get('peso_kg', 0)))
         custo_total = float(ordem.custo_total) if ordem.custo_total else 0
         peso_entrada = float(ordem.peso_entrada) if ordem.peso_entrada else 1
         custo_proporcional = (float(peso_kg) / peso_entrada) * custo_total
-        
+
         preco_kg = float(classificacao.preco_estimado_kg) if classificacao.preco_estimado_kg else 0
         valor_estimado = float(peso_kg) * preco_kg
-        
+
         item = ItemSeparadoProducao(
             ordem_producao_id=op_id,
             classificacao_grade_id=dados.get('classificacao_grade_id'),
@@ -375,28 +378,28 @@ def adicionar_item(op_id):
             separado_por_id=current_user_id,
             observacoes=dados.get('observacoes')
         )
-        
+
         bag = encontrar_ou_criar_bag(classificacao, current_user_id)
         if bag:
             item.bag_id = bag.id
             bag.peso_acumulado = Decimal(str(float(bag.peso_acumulado or 0) + float(peso_kg)))
             bag.quantidade_itens = (bag.quantidade_itens or 0) + 1
-            
+
             if ordem.id not in (bag.lotes_origem or []):
                 lotes = bag.lotes_origem or []
                 lotes.append(ordem.id)
                 bag.lotes_origem = lotes
-            
+
             if float(bag.peso_acumulado) >= float(bag.peso_capacidade_max or 50):
                 bag.status = 'cheio'
-        
+
         if ordem.status == 'aberta':
             ordem.status = 'em_separacao'
             ordem.data_inicio_separacao = datetime.utcnow()
-        
+
         db.session.add(item)
         db.session.commit()
-        
+
         return jsonify(item.to_dict()), 201
     except ValueError as e:
         return jsonify({'erro': str(e)}), 400
@@ -412,23 +415,23 @@ def remover_item(id):
     try:
         current_user_id = get_jwt_identity()
         usuario = Usuario.query.get(current_user_id)
-        
+
         item = ItemSeparadoProducao.query.get_or_404(id)
         ordem = item.ordem_producao
-        
+
         if ordem.status == 'finalizada':
             return jsonify({'erro': 'Não é possível remover itens de OP finalizada'}), 400
-        
+
         if item.bag:
             bag = item.bag
             bag.peso_acumulado = Decimal(str(max(0, float(bag.peso_acumulado or 0) - float(item.peso_kg))))
             bag.quantidade_itens = max(0, (bag.quantidade_itens or 1) - 1)
             if bag.status == 'cheio':
                 bag.status = 'aberto'
-        
+
         db.session.delete(item)
         db.session.commit()
-        
+
         return jsonify({'mensagem': 'Item removido com sucesso'})
     except Exception as e:
         db.session.rollback()
@@ -445,7 +448,7 @@ def encontrar_ou_criar_bag(classificacao, usuario_id):
         BagProducao.classificacao_grade_id == classificacao.id,
         BagProducao.status == 'aberto'
     ).first()
-    
+
     if not bag:
         codigo = BagProducao.gerar_codigo_bag(classificacao.nome)
         bag = BagProducao(
@@ -456,7 +459,7 @@ def encontrar_ou_criar_bag(classificacao, usuario_id):
         )
         db.session.add(bag)
         db.session.flush()
-    
+
     return bag
 
 
@@ -468,16 +471,16 @@ def listar_bags():
         status = request.args.get('status')
         classificacao_id = request.args.get('classificacao_id')
         categoria = request.args.get('categoria')
-        
+
         query = BagProducao.query
-        
+
         if status:
             query = query.filter(BagProducao.status == status)
         if classificacao_id:
             query = query.filter(BagProducao.classificacao_grade_id == int(classificacao_id))
         if categoria:
             query = query.join(ClassificacaoGrade).filter(ClassificacaoGrade.categoria == categoria)
-        
+
         bags = query.order_by(BagProducao.data_criacao.desc()).all()
         return jsonify([bag.to_dict() for bag in bags])
     except Exception as e:
@@ -506,18 +509,18 @@ def enviar_bag_refinaria(id):
         usuario = Usuario.query.get(current_user_id)
         if not usuario or usuario.tipo != 'admin':
             return jsonify({'erro': 'Apenas administradores podem enviar bags para refinaria'}), 403
-        
+
         bag = BagProducao.query.get_or_404(id)
         dados = request.get_json() or {}
-        
+
         if bag.status == 'enviado_refinaria':
             return jsonify({'erro': 'Bag já foi enviado para refinaria'}), 400
-        
+
         bag.status = 'enviado_refinaria'
         bag.data_envio_refinaria = datetime.utcnow()
         bag.enviado_por_id = current_user_id
         bag.numero_remessa = dados.get('numero_remessa')
-        
+
         db.session.commit()
         return jsonify(bag.to_dict())
     except Exception as e:
@@ -536,28 +539,28 @@ def dashboard_producao():
     try:
         ops_abertas = OrdemProducao.query.filter(OrdemProducao.status.in_(['aberta', 'em_separacao'])).count()
         ops_finalizadas = OrdemProducao.query.filter(OrdemProducao.status == 'finalizada').count()
-        
+
         total_high_grade = db.session.query(
             db.func.sum(BagProducao.peso_acumulado)
         ).join(ClassificacaoGrade).filter(
             ClassificacaoGrade.categoria == 'HIGH_GRADE',
             BagProducao.status.in_(['aberto', 'cheio'])
         ).scalar() or 0
-        
+
         total_pronto_refinaria = db.session.query(
             db.func.sum(BagProducao.peso_acumulado)
         ).join(ClassificacaoGrade).filter(
             ClassificacaoGrade.categoria == 'HIGH_GRADE',
             BagProducao.status == 'cheio'
         ).scalar() or 0
-        
+
         lucro_medio = db.session.query(
             db.func.avg(OrdemProducao.lucro_prejuizo)
         ).filter(
             OrdemProducao.status == 'finalizada',
             OrdemProducao.lucro_prejuizo.isnot(None)
         ).scalar() or 0
-        
+
         bags_por_categoria = db.session.query(
             ClassificacaoGrade.categoria,
             db.func.count(BagProducao.id).label('quantidade'),
@@ -565,7 +568,7 @@ def dashboard_producao():
         ).join(ClassificacaoGrade).filter(
             BagProducao.status.in_(['aberto', 'cheio'])
         ).group_by(ClassificacaoGrade.categoria).all()
-        
+
         return jsonify({
             'ops_abertas': ops_abertas,
             'ops_finalizadas': ops_finalizadas,
@@ -578,6 +581,7 @@ def dashboard_producao():
             ]
         })
     except Exception as e:
+        logger.error(f'Erro ao obter dashboard: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -590,9 +594,9 @@ def relatorio_refinaria():
             ClassificacaoGrade.categoria == 'HIGH_GRADE',
             BagProducao.status.in_(['aberto', 'cheio'])
         ).order_by(ClassificacaoGrade.nome).all()
-        
+
         total_peso = sum(float(bag.peso_acumulado or 0) for bag in bags)
-        
+
         return jsonify({
             'bags': [bag.to_dict() for bag in bags],
             'total_bags': len(bags),
@@ -605,29 +609,45 @@ def relatorio_refinaria():
 
 @bp.route('/fornecedores', methods=['GET'])
 @jwt_required()
-def listar_fornecedores():
-    """Lista fornecedores ativos para seleção"""
+def listar_fornecedores_producao():
+    """Lista fornecedores ativos para seleção na criação de OP"""
     try:
         fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
-        return jsonify([{'id': f.id, 'nome': f.nome} for f in fornecedores])
+
+        return jsonify([{
+            'id': f.id,
+            'nome': f.nome,
+            'cnpj': f.cnpj,
+            'cpf': f.cpf
+        } for f in fornecedores]), 200
+
     except Exception as e:
+        logger.error(f'Erro ao listar fornecedores: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
 @bp.route('/lotes-estoque', methods=['GET'])
 @jwt_required()
 def listar_lotes_estoque():
-    """Lista lotes disponíveis no estoque para produção"""
+    """Lista lotes disponíveis em estoque para seleção na criação de OP"""
     try:
+        # Buscar lotes que estão em estoque e disponíveis
         lotes = Lote.query.filter(
-            Lote.status.in_(['em_estoque', 'conferido'])
-        ).order_by(Lote.data_cadastro.desc()).all()
+            Lote.status.in_(['em_estoque', 'disponivel', 'aprovado']),
+            Lote.bloqueado == False,
+            Lote.reservado == False
+        ).order_by(Lote.numero_lote.desc()).limit(100).all()
+
         return jsonify([{
-            'id': l.id, 
+            'id': l.id,
             'numero_lote': l.numero_lote,
-            'peso_liquido': float(l.peso_liquido) if l.peso_liquido else 0
-        } for l in lotes])
+            'tipo_lote_nome': l.tipo_lote.nome if l.tipo_lote else 'N/A',
+            'peso_liquido': float(l.peso_liquido or 0),
+            'fornecedor_nome': l.fornecedor.nome if l.fornecedor else 'N/A'
+        } for l in lotes]), 200
+
     except Exception as e:
+        logger.error(f'Erro ao listar lotes: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -662,17 +682,17 @@ def exportar_op_html(id):
     try:
         ordem = OrdemProducao.query.get_or_404(id)
         itens = ordem.itens_separados
-        
+
         responsavel = Usuario.query.get(ordem.responsavel_id) if ordem.responsavel_id else None
         fornecedor = Fornecedor.query.get(ordem.fornecedor_id) if ordem.fornecedor_id else None
         lote_origem = Lote.query.get(ordem.lote_origem_id) if ordem.lote_origem_id else None
-        
+
         itens_por_categoria = {}
         for item in itens:
             cat = item.classificacao_grade.categoria if item.classificacao_grade else 'SEM CATEGORIA'
             if cat not in itens_por_categoria:
                 itens_por_categoria[cat] = []
-            
+
             bag_codigo = item.bag.codigo if item.bag else 'N/A'
             itens_por_categoria[cat].append({
                 'nome': item.nome_item or (item.classificacao_grade.nome if item.classificacao_grade else 'N/A'),
@@ -683,9 +703,9 @@ def exportar_op_html(id):
                 'bag_codigo': bag_codigo,
                 'data_separacao': item.data_separacao.strftime('%d/%m/%Y %H:%M') if item.data_separacao else 'N/A'
             })
-        
+
         lote_info = f"Lote: {lote_origem.numero_lote}" if lote_origem else "Lote: N/A"
-        
+
         html_content = f'''
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -728,13 +748,13 @@ def exportar_op_html(id):
     <div class="no-print" style="text-align: center; margin-bottom: 20px;">
         <button class="print-btn" onclick="window.print()">Imprimir / Salvar como PDF</button>
     </div>
-    
+
     <div class="header">
         <h1>ORDEM DE PRODUÇÃO</h1>
         <p><strong>{ordem.numero_op}</strong></p>
         <p>Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
     </div>
-    
+
     <div class="info-grid">
         <div class="info-box">
             <h3>Informações Gerais</h3>
@@ -755,10 +775,10 @@ def exportar_op_html(id):
             <div class="info-row"><span class="info-label">Data Finalização:</span><span>{ordem.data_finalizacao.strftime('%d/%m/%Y %H:%M') if ordem.data_finalizacao else 'N/A'}</span></div>
         </div>
     </div>
-    
+
     <h3>Itens Separados</h3>
 '''
-        
+
         if itens_por_categoria:
             for categoria, lista_itens in itens_por_categoria.items():
                 html_content += f'<div class="categoria-header">{categoria}</div>'
@@ -792,14 +812,14 @@ def exportar_op_html(id):
                 html_content += '</tbody></table>'
         else:
             html_content += '<p style="color: #666; font-style: italic;">Nenhum item separado ainda.</p>'
-        
+
         peso_separado = float(ordem.peso_total_separado or 0)
         peso_perdas = float(ordem.peso_perdas or 0)
         percentual_perda = float(ordem.percentual_perda or 0)
         valor_estimado = float(ordem.valor_estimado_total or 0)
         custo_total = float(ordem.custo_total or 0)
         lucro = float(ordem.lucro_prejuizo or 0)
-        
+
         html_content += f'''
     <div class="totals">
         <h3>Resumo Financeiro</h3>
@@ -826,7 +846,7 @@ def exportar_op_html(id):
             </div>
         </div>
     </div>
-    
+
     <div class="footer">
         <p>MRX System - Gestão de Compras de Sucata Eletrônica</p>
         <p>Este documento foi gerado automaticamente pelo sistema.</p>
@@ -835,7 +855,7 @@ def exportar_op_html(id):
 </body>
 </html>
 '''
-        
+
         return Response(
             html_content,
             mimetype='text/html',
@@ -844,6 +864,7 @@ def exportar_op_html(id):
             }
         )
     except Exception as e:
+        logger.error(f'Erro ao exportar OP para HTML: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -857,24 +878,24 @@ def exportar_high_grade_excel():
     """
     try:
         limite = min(int(request.args.get('limite', MAX_EXPORT_LIMIT)), MAX_EXPORT_LIMIT)
-        
+
         bags = BagProducao.query.join(ClassificacaoGrade).filter(
             ClassificacaoGrade.categoria == 'HIGH_GRADE',
             BagProducao.status.in_(['aberto', 'cheio', 'enviado_refinaria'])
         ).order_by(ClassificacaoGrade.nome, BagProducao.data_criacao.desc()).limit(limite).all()
-        
+
         dados = []
         for bag in bags:
             classificacao = bag.classificacao_grade
             criado_por = Usuario.query.get(bag.criado_por_id) if bag.criado_por_id else None
             enviado_por = Usuario.query.get(bag.enviado_por_id) if bag.enviado_por_id else None
-            
+
             lotes_str = ''
             if bag.lotes_origem:
                 op_ids = bag.lotes_origem if isinstance(bag.lotes_origem, list) else []
                 ordens = OrdemProducao.query.filter(OrdemProducao.id.in_(op_ids)).all()
                 lotes_str = ', '.join([op.numero_op for op in ordens])
-            
+
             dados.append({
                 'Código Bag': bag.codigo,
                 'Classificação': classificacao.nome if classificacao else 'N/A',
@@ -892,16 +913,16 @@ def exportar_high_grade_excel():
                 'Enviado Por': enviado_por.nome if enviado_por else '',
                 'Número Remessa': bag.numero_remessa or ''
             })
-        
+
         df = pd.DataFrame(dados)
-        
+
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Inventário High Grade')
         output.seek(0)
-        
+
         filename = f'inventario_high_grade_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-        
+
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -909,6 +930,7 @@ def exportar_high_grade_excel():
             download_name=filename
         )
     except Exception as e:
+        logger.error(f'Erro ao exportar High Grade para Excel: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -922,23 +944,23 @@ def exportar_relatorio_refinaria_excel():
     """
     try:
         limite = min(int(request.args.get('limite', MAX_EXPORT_LIMIT)), MAX_EXPORT_LIMIT)
-        
+
         bags = BagProducao.query.join(ClassificacaoGrade).filter(
             ClassificacaoGrade.categoria == 'HIGH_GRADE',
             BagProducao.status.in_(['aberto', 'cheio'])
         ).order_by(ClassificacaoGrade.nome).limit(limite).all()
-        
+
         dados = []
         for bag in bags:
             classificacao = bag.classificacao_grade
             valor_estimado = float(bag.peso_acumulado or 0) * float(classificacao.preco_estimado_kg or 0) if classificacao else 0
-            
+
             lotes_str = ''
             if bag.lotes_origem:
                 op_ids = bag.lotes_origem if isinstance(bag.lotes_origem, list) else []
                 ordens = OrdemProducao.query.filter(OrdemProducao.id.in_(op_ids)).all()
                 lotes_str = ', '.join([op.numero_op for op in ordens])
-            
+
             dados.append({
                 'Código Bag': bag.codigo,
                 'Classificação': classificacao.nome if classificacao else 'N/A',
@@ -950,13 +972,13 @@ def exportar_relatorio_refinaria_excel():
                 'Lotes de Origem (OPs)': lotes_str,
                 'Data Criação': bag.data_criacao.strftime('%d/%m/%Y %H:%M') if bag.data_criacao else ''
             })
-        
+
         df = pd.DataFrame(dados)
-        
+
         total_peso = df['Peso (kg)'].sum() if len(df) > 0 else 0
         total_valor = df['Valor Estimado (R$)'].sum() if len(df) > 0 else 0
         total_itens = df['Quantidade Itens'].sum() if len(df) > 0 else 0
-        
+
         dados.append({
             'Código Bag': '',
             'Classificação': 'TOTAL',
@@ -968,16 +990,16 @@ def exportar_relatorio_refinaria_excel():
             'Lotes de Origem (OPs)': '',
             'Data Criação': f'Gerado em: {datetime.now().strftime("%d/%m/%Y %H:%M")}'
         })
-        
+
         df = pd.DataFrame(dados)
-        
+
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Pronto para Refinaria')
         output.seek(0)
-        
+
         filename = f'relatorio_refinaria_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-        
+
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -985,4 +1007,5 @@ def exportar_relatorio_refinaria_excel():
             download_name=filename
         )
     except Exception as e:
+        logger.error(f'Erro ao exportar relatório de refinaria para Excel: {str(e)}')
         return jsonify({'erro': str(e)}), 500
