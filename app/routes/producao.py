@@ -669,13 +669,13 @@ def exportar_op_html(id):
         
         itens_por_categoria = {}
         for item in itens:
-            cat = item.classificacao.categoria if item.classificacao else 'SEM CATEGORIA'
+            cat = item.classificacao_grade.categoria if item.classificacao_grade else 'SEM CATEGORIA'
             if cat not in itens_por_categoria:
                 itens_por_categoria[cat] = []
             
             bag_codigo = item.bag.codigo if item.bag else 'N/A'
             itens_por_categoria[cat].append({
-                'nome': item.nome_item or (item.classificacao.nome if item.classificacao else 'N/A'),
+                'nome': item.nome_item or (item.classificacao_grade.nome if item.classificacao_grade else 'N/A'),
                 'peso_kg': float(item.peso_kg or 0),
                 'quantidade': item.quantidade or 1,
                 'valor_estimado': float(item.valor_estimado or 0),
@@ -865,7 +865,7 @@ def exportar_high_grade_excel():
         
         dados = []
         for bag in bags:
-            classificacao = bag.classificacao
+            classificacao = bag.classificacao_grade
             criado_por = Usuario.query.get(bag.criado_por_id) if bag.criado_por_id else None
             enviado_por = Usuario.query.get(bag.enviado_por_id) if bag.enviado_por_id else None
             
@@ -930,7 +930,7 @@ def exportar_relatorio_refinaria_excel():
         
         dados = []
         for bag in bags:
-            classificacao = bag.classificacao
+            classificacao = bag.classificacao_grade
             valor_estimado = float(bag.peso_acumulado or 0) * float(classificacao.preco_estimado_kg or 0) if classificacao else 0
             
             lotes_str = ''
