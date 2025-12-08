@@ -2017,3 +2017,319 @@ class VisitaFornecedor(db.Model):  # type: ignore
             'fornecedor_id': self.fornecedor_id,
             'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None
         }
+
+
+# ============================
+# MÓDULO DE PRODUÇÃO
+# ============================
+
+class ClassificacaoGrade(db.Model):  # type: ignore
+    """Classificações de materiais (HIGH GRADE, MID GRADE, LOW GRADE, etc.)"""
+    __tablename__ = 'classificacoes_grade'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(200), unique=True, nullable=False)
+    categoria = db.Column(db.String(50), nullable=False, default='HIGH_GRADE')  # HIGH_GRADE, MID_GRADE, LOW_GRADE, RESIDUO
+    descricao = db.Column(db.Text, nullable=True)
+    codigo = db.Column(db.String(50), unique=True, nullable=True)
+    preco_estimado_kg = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    is_teste = db.Column(db.Boolean, default=False, nullable=False)  # Se é um nome de teste
+    criado_por = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    criador = db.relationship('Usuario', backref='classificacoes_grade_criadas')
+
+    def __init__(self, **kwargs: Any) -> None:
+        if 'categoria' in kwargs and kwargs['categoria'] not in ['HIGH_GRADE', 'MID_GRADE', 'LOW_GRADE', 'RESIDUO', 'OUTRO']:
+            raise ValueError('Categoria deve ser: HIGH_GRADE, MID_GRADE, LOW_GRADE, RESIDUO ou OUTRO')
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'categoria': self.categoria,
+            'descricao': self.descricao,
+            'codigo': self.codigo,
+            'preco_estimado_kg': float(self.preco_estimado_kg) if self.preco_estimado_kg else 0,
+            'ativo': self.ativo,
+            'is_teste': self.is_teste,
+            'criado_por': self.criado_por,
+            'criador_nome': self.criador.nome if self.criador else None,
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None
+        }
+
+
+class OrdemProducao(db.Model):  # type: ignore
+    """Ordem de Produção (OP) - controle de produção e separação de materiais"""
+    __tablename__ = 'ordens_producao'
+    __table_args__ = (
+        db.Index('idx_op_status', 'status'),
+        db.Index('idx_op_data', 'data_abertura'),
+        db.Index('idx_op_responsavel', 'responsavel_id'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    numero_op = db.Column(db.String(50), unique=True, nullable=False)
+    
+    # Origem do material
+    origem_tipo = db.Column(db.String(20), nullable=False)  # 'fornecedor' ou 'estoque'
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=True)
+    lote_origem_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=True)
+    
+    # Tipo de material processado
+    tipo_material = db.Column(db.String(100), nullable=False)  # celulares, placas, processadores, etc.
+    descricao_material = db.Column(db.Text, nullable=True)
+    
+    # Dados de entrada
+    peso_entrada = db.Column(db.Numeric(10, 3), nullable=False)
+    quantidade_entrada = db.Column(db.Integer, nullable=True, default=0)
+    custo_total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    custo_unitario = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    
+    # Dados de saída (atualizados ao finalizar)
+    peso_total_separado = db.Column(db.Numeric(10, 3), nullable=True, default=0)
+    peso_perdas = db.Column(db.Numeric(10, 3), nullable=True, default=0)
+    percentual_perda = db.Column(db.Numeric(5, 2), nullable=True, default=0)
+    
+    # Valores finais
+    valor_estimado_total = db.Column(db.Numeric(12, 2), nullable=True, default=0)
+    lucro_prejuizo = db.Column(db.Numeric(12, 2), nullable=True, default=0)
+    
+    # Status e controle
+    status = db.Column(db.String(30), default='aberta', nullable=False)  # aberta, em_separacao, finalizada, cancelada
+    responsavel_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    finalizado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    
+    # Datas
+    data_abertura = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_inicio_separacao = db.Column(db.DateTime, nullable=True)
+    data_finalizacao = db.Column(db.DateTime, nullable=True)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Observações e auditoria
+    observacoes = db.Column(db.Text, nullable=True)
+    auditoria = db.Column(db.JSON, default=lambda: [], nullable=True)
+
+    # Relacionamentos
+    fornecedor = db.relationship('Fornecedor', backref='ordens_producao', foreign_keys=[fornecedor_id])
+    lote_origem = db.relationship('Lote', backref='ordens_producao', foreign_keys=[lote_origem_id])
+    responsavel = db.relationship('Usuario', foreign_keys=[responsavel_id], backref='ops_responsavel')
+    finalizado_por = db.relationship('Usuario', foreign_keys=[finalizado_por_id], backref='ops_finalizadas')
+    itens_separados = db.relationship('ItemSeparadoProducao', backref='ordem_producao', lazy=True, cascade='all, delete-orphan')
+
+    def __init__(self, **kwargs: Any) -> None:
+        if 'status' in kwargs and kwargs['status'] not in ['aberta', 'em_separacao', 'finalizada', 'cancelada']:
+            raise ValueError('Status deve ser: aberta, em_separacao, finalizada ou cancelada')
+        if 'origem_tipo' in kwargs and kwargs['origem_tipo'] not in ['fornecedor', 'estoque']:
+            raise ValueError('Origem deve ser: fornecedor ou estoque')
+        super().__init__(**kwargs)
+
+    @staticmethod
+    def gerar_numero_op():
+        """Gera número único para OP no formato OP-YYYYMMDD-XXXX"""
+        from datetime import datetime
+        hoje = datetime.now().strftime('%Y%m%d')
+        ultima_op = OrdemProducao.query.filter(
+            OrdemProducao.numero_op.like(f'OP-{hoje}-%')
+        ).order_by(OrdemProducao.id.desc()).first()
+        
+        if ultima_op:
+            ultimo_seq = int(ultima_op.numero_op.split('-')[-1])
+            novo_seq = ultimo_seq + 1
+        else:
+            novo_seq = 1
+        
+        return f'OP-{hoje}-{novo_seq:04d}'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'numero_op': self.numero_op,
+            'origem_tipo': self.origem_tipo,
+            'fornecedor_id': self.fornecedor_id,
+            'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
+            'lote_origem_id': self.lote_origem_id,
+            'lote_origem_numero': self.lote_origem.numero_lote if self.lote_origem else None,
+            'tipo_material': self.tipo_material,
+            'descricao_material': self.descricao_material,
+            'peso_entrada': float(self.peso_entrada) if self.peso_entrada else 0,
+            'quantidade_entrada': self.quantidade_entrada or 0,
+            'custo_total': float(self.custo_total) if self.custo_total else 0,
+            'custo_unitario': float(self.custo_unitario) if self.custo_unitario else 0,
+            'peso_total_separado': float(self.peso_total_separado) if self.peso_total_separado else 0,
+            'peso_perdas': float(self.peso_perdas) if self.peso_perdas else 0,
+            'percentual_perda': float(self.percentual_perda) if self.percentual_perda else 0,
+            'valor_estimado_total': float(self.valor_estimado_total) if self.valor_estimado_total else 0,
+            'lucro_prejuizo': float(self.lucro_prejuizo) if self.lucro_prejuizo else 0,
+            'status': self.status,
+            'responsavel_id': self.responsavel_id,
+            'responsavel_nome': self.responsavel.nome if self.responsavel else None,
+            'finalizado_por_id': self.finalizado_por_id,
+            'finalizado_por_nome': self.finalizado_por.nome if self.finalizado_por else None,
+            'data_abertura': self.data_abertura.isoformat() if self.data_abertura else None,
+            'data_inicio_separacao': self.data_inicio_separacao.isoformat() if self.data_inicio_separacao else None,
+            'data_finalizacao': self.data_finalizacao.isoformat() if self.data_finalizacao else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None,
+            'observacoes': self.observacoes,
+            'total_itens_separados': len(self.itens_separados) if self.itens_separados else 0
+        }
+
+
+class ItemSeparadoProducao(db.Model):  # type: ignore
+    """Itens separados durante o processo de produção"""
+    __tablename__ = 'itens_separados_producao'
+    __table_args__ = (
+        db.Index('idx_item_separado_op', 'ordem_producao_id'),
+        db.Index('idx_item_separado_classificacao', 'classificacao_grade_id'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    ordem_producao_id = db.Column(db.Integer, db.ForeignKey('ordens_producao.id'), nullable=False)
+    classificacao_grade_id = db.Column(db.Integer, db.ForeignKey('classificacoes_grade.id'), nullable=False)
+    
+    # Dados do item
+    nome_item = db.Column(db.String(200), nullable=False)  # Ex: Carcaça, Bateria, Display, Placa A
+    peso_kg = db.Column(db.Numeric(10, 3), nullable=False)
+    quantidade = db.Column(db.Integer, nullable=True, default=1)
+    
+    # Custo distribuído proporcionalmente
+    custo_proporcional = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    valor_estimado = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    
+    # Bag associado (se aplicável)
+    bag_id = db.Column(db.Integer, db.ForeignKey('bags_producao.id'), nullable=True)
+    
+    # Rastreabilidade
+    separado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    data_separacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    observacoes = db.Column(db.Text, nullable=True)
+    
+    # Controle de estoque
+    entrada_estoque_id = db.Column(db.Integer, nullable=True)  # Referência à entrada no estoque
+
+    # Relacionamentos
+    classificacao_grade = db.relationship('ClassificacaoGrade', backref='itens_separados')
+    separado_por = db.relationship('Usuario', foreign_keys=[separado_por_id], backref='itens_separados')
+    bag = db.relationship('BagProducao', backref='itens', foreign_keys=[bag_id])
+
+    def __init__(self, **kwargs: Any) -> None:
+        if 'peso_kg' in kwargs and kwargs['peso_kg'] <= 0:
+            raise ValueError('Peso deve ser maior que zero')
+        super().__init__(**kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'ordem_producao_id': self.ordem_producao_id,
+            'ordem_producao_numero': self.ordem_producao.numero_op if self.ordem_producao else None,
+            'classificacao_grade_id': self.classificacao_grade_id,
+            'classificacao_nome': self.classificacao_grade.nome if self.classificacao_grade else None,
+            'classificacao_categoria': self.classificacao_grade.categoria if self.classificacao_grade else None,
+            'nome_item': self.nome_item,
+            'peso_kg': float(self.peso_kg) if self.peso_kg else 0,
+            'quantidade': self.quantidade or 1,
+            'custo_proporcional': float(self.custo_proporcional) if self.custo_proporcional else 0,
+            'valor_estimado': float(self.valor_estimado) if self.valor_estimado else 0,
+            'bag_id': self.bag_id,
+            'bag_codigo': self.bag.codigo if self.bag else None,
+            'separado_por_id': self.separado_por_id,
+            'separado_por_nome': self.separado_por.nome if self.separado_por else None,
+            'data_separacao': self.data_separacao.isoformat() if self.data_separacao else None,
+            'observacoes': self.observacoes,
+            'entrada_estoque_id': self.entrada_estoque_id
+        }
+
+
+class BagProducao(db.Model):  # type: ignore
+    """Bags para acumular materiais separados por categoria"""
+    __tablename__ = 'bags_producao'
+    __table_args__ = (
+        db.Index('idx_bag_classificacao', 'classificacao_grade_id'),
+        db.Index('idx_bag_status', 'status'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.String(50), unique=True, nullable=False)
+    classificacao_grade_id = db.Column(db.Integer, db.ForeignKey('classificacoes_grade.id'), nullable=False)
+    
+    # Peso e quantidade acumulados
+    peso_acumulado = db.Column(db.Numeric(10, 3), nullable=False, default=0)
+    quantidade_itens = db.Column(db.Integer, nullable=False, default=0)
+    peso_capacidade_max = db.Column(db.Numeric(10, 3), nullable=True, default=50)  # Peso máximo do bag
+    
+    # Lotes de origem (para rastreabilidade)
+    lotes_origem = db.Column(db.JSON, default=lambda: [], nullable=True)  # Lista de IDs das OPs
+    
+    # Status: aberto, cheio, enviado_refinaria
+    status = db.Column(db.String(30), default='aberto', nullable=False)
+    
+    # Envio para refinaria
+    data_envio_refinaria = db.Column(db.DateTime, nullable=True)
+    enviado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    numero_remessa = db.Column(db.String(100), nullable=True)
+    
+    # Controle
+    criado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    observacoes = db.Column(db.Text, nullable=True)
+
+    # Relacionamentos
+    classificacao_grade = db.relationship('ClassificacaoGrade', backref='bags')
+    criado_por = db.relationship('Usuario', foreign_keys=[criado_por_id], backref='bags_criados')
+    enviado_por = db.relationship('Usuario', foreign_keys=[enviado_por_id], backref='bags_enviados')
+
+    def __init__(self, **kwargs: Any) -> None:
+        if 'status' in kwargs and kwargs['status'] not in ['aberto', 'cheio', 'enviado_refinaria']:
+            raise ValueError('Status deve ser: aberto, cheio ou enviado_refinaria')
+        super().__init__(**kwargs)
+
+    @staticmethod
+    def gerar_codigo_bag(classificacao_nome):
+        """Gera código único para Bag no formato BAG-CATEGORIA-XXXX"""
+        categoria_cod = classificacao_nome[:10].upper().replace(' ', '_')
+        ultimo_bag = BagProducao.query.filter(
+            BagProducao.codigo.like(f'BAG-{categoria_cod}-%')
+        ).order_by(BagProducao.id.desc()).first()
+        
+        if ultimo_bag:
+            ultimo_seq = int(ultimo_bag.codigo.split('-')[-1])
+            novo_seq = ultimo_seq + 1
+        else:
+            novo_seq = 1
+        
+        return f'BAG-{categoria_cod}-{novo_seq:04d}'
+
+    @property
+    def percentual_ocupacao(self):
+        if self.peso_capacidade_max and float(self.peso_capacidade_max) > 0:
+            return min(100, (float(self.peso_acumulado or 0) / float(self.peso_capacidade_max)) * 100)
+        return 0
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'codigo': self.codigo,
+            'classificacao_grade_id': self.classificacao_grade_id,
+            'classificacao_nome': self.classificacao_grade.nome if self.classificacao_grade else None,
+            'classificacao_categoria': self.classificacao_grade.categoria if self.classificacao_grade else None,
+            'peso_acumulado': float(self.peso_acumulado) if self.peso_acumulado else 0,
+            'quantidade_itens': self.quantidade_itens or 0,
+            'peso_capacidade_max': float(self.peso_capacidade_max) if self.peso_capacidade_max else 50,
+            'percentual_ocupacao': round(self.percentual_ocupacao, 2),
+            'lotes_origem': self.lotes_origem or [],
+            'status': self.status,
+            'data_envio_refinaria': self.data_envio_refinaria.isoformat() if self.data_envio_refinaria else None,
+            'enviado_por_id': self.enviado_por_id,
+            'enviado_por_nome': self.enviado_por.nome if self.enviado_por else None,
+            'numero_remessa': self.numero_remessa,
+            'criado_por_id': self.criado_por_id,
+            'criado_por_nome': self.criado_por.nome if self.criado_por else None,
+            'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
+            'data_atualizacao': self.data_atualizacao.isoformat() if self.data_atualizacao else None,
+            'observacoes': self.observacoes
+        }

@@ -1,0 +1,642 @@
+from flask import Blueprint, jsonify, request, render_template
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.models import (
+    db, Usuario, Fornecedor, Lote, ClassificacaoGrade, 
+    OrdemProducao, ItemSeparadoProducao, BagProducao
+)
+from datetime import datetime
+from decimal import Decimal
+
+bp = Blueprint('producao', __name__, url_prefix='/api/producao')
+
+
+# ============================
+# CLASSIFICAÇÕES GRADE
+# ============================
+
+@bp.route('/classificacoes', methods=['GET'])
+@jwt_required()
+def listar_classificacoes():
+    """Lista todas as classificações de grade"""
+    try:
+        categoria = request.args.get('categoria')
+        ativo = request.args.get('ativo', 'true').lower() == 'true'
+        
+        query = ClassificacaoGrade.query
+        if categoria:
+            query = query.filter(ClassificacaoGrade.categoria == categoria)
+        if ativo is not None:
+            query = query.filter(ClassificacaoGrade.ativo == ativo)
+        
+        classificacoes = query.order_by(ClassificacaoGrade.categoria, ClassificacaoGrade.nome).all()
+        return jsonify([c.to_dict() for c in classificacoes])
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/classificacoes/<int:id>', methods=['GET'])
+@jwt_required()
+def obter_classificacao(id):
+    """Obtém uma classificação específica"""
+    try:
+        classificacao = ClassificacaoGrade.query.get_or_404(id)
+        return jsonify(classificacao.to_dict())
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/classificacoes', methods=['POST'])
+@jwt_required()
+def criar_classificacao():
+    """Cria uma nova classificação de grade"""
+    try:
+        current_user_id = get_jwt_identity()
+        usuario = Usuario.query.get(current_user_id)
+        if not usuario or usuario.tipo != 'admin':
+            return jsonify({'erro': 'Acesso não autorizado'}), 403
+        
+        dados = request.get_json()
+        
+        existente = ClassificacaoGrade.query.filter_by(nome=dados.get('nome')).first()
+        if existente:
+            return jsonify({'erro': 'Classificação com este nome já existe'}), 400
+        
+        classificacao = ClassificacaoGrade(
+            nome=dados.get('nome'),
+            categoria=dados.get('categoria', 'HIGH_GRADE'),
+            descricao=dados.get('descricao'),
+            codigo=dados.get('codigo'),
+            preco_estimado_kg=dados.get('preco_estimado_kg', 0),
+            is_teste=dados.get('is_teste', False),
+            criado_por=current_user_id
+        )
+        
+        db.session.add(classificacao)
+        db.session.commit()
+        
+        return jsonify(classificacao.to_dict()), 201
+    except ValueError as e:
+        return jsonify({'erro': str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/classificacoes/<int:id>', methods=['PUT'])
+@jwt_required()
+def atualizar_classificacao(id):
+    """Atualiza uma classificação de grade"""
+    try:
+        current_user_id = get_jwt_identity()
+        usuario = Usuario.query.get(current_user_id)
+        if not usuario or usuario.tipo != 'admin':
+            return jsonify({'erro': 'Acesso não autorizado'}), 403
+        
+        classificacao = ClassificacaoGrade.query.get_or_404(id)
+        dados = request.get_json()
+        
+        if 'nome' in dados:
+            existente = ClassificacaoGrade.query.filter(
+                ClassificacaoGrade.nome == dados['nome'],
+                ClassificacaoGrade.id != id
+            ).first()
+            if existente:
+                return jsonify({'erro': 'Classificação com este nome já existe'}), 400
+            classificacao.nome = dados['nome']
+        
+        if 'categoria' in dados:
+            classificacao.categoria = dados['categoria']
+        if 'descricao' in dados:
+            classificacao.descricao = dados['descricao']
+        if 'codigo' in dados:
+            classificacao.codigo = dados['codigo']
+        if 'preco_estimado_kg' in dados:
+            classificacao.preco_estimado_kg = dados['preco_estimado_kg']
+        if 'ativo' in dados:
+            classificacao.ativo = dados['ativo']
+        if 'is_teste' in dados:
+            classificacao.is_teste = dados['is_teste']
+        
+        db.session.commit()
+        return jsonify(classificacao.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+# ============================
+# ORDENS DE PRODUÇÃO
+# ============================
+
+@bp.route('/ordens', methods=['GET'])
+@jwt_required()
+def listar_ordens():
+    """Lista ordens de produção com filtros"""
+    try:
+        status = request.args.get('status')
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        tipo_material = request.args.get('tipo_material')
+        responsavel_id = request.args.get('responsavel_id')
+        
+        query = OrdemProducao.query
+        
+        if status:
+            query = query.filter(OrdemProducao.status == status)
+        if data_inicio:
+            query = query.filter(OrdemProducao.data_abertura >= datetime.fromisoformat(data_inicio))
+        if data_fim:
+            query = query.filter(OrdemProducao.data_abertura <= datetime.fromisoformat(data_fim))
+        if tipo_material:
+            query = query.filter(OrdemProducao.tipo_material.ilike(f'%{tipo_material}%'))
+        if responsavel_id:
+            query = query.filter(OrdemProducao.responsavel_id == int(responsavel_id))
+        
+        ordens = query.order_by(OrdemProducao.data_abertura.desc()).all()
+        return jsonify([op.to_dict() for op in ordens])
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/ordens/<int:id>', methods=['GET'])
+@jwt_required()
+def obter_ordem(id):
+    """Obtém detalhes de uma ordem de produção"""
+    try:
+        ordem = OrdemProducao.query.get_or_404(id)
+        resultado = ordem.to_dict()
+        resultado['itens_separados'] = [item.to_dict() for item in ordem.itens_separados]
+        return jsonify(resultado)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/ordens', methods=['POST'])
+@jwt_required()
+def criar_ordem():
+    """Cria uma nova ordem de produção"""
+    try:
+        current_user_id = get_jwt_identity()
+        dados = request.get_json()
+        
+        numero_op = OrdemProducao.gerar_numero_op()
+        
+        ordem = OrdemProducao(
+            numero_op=numero_op,
+            origem_tipo=dados.get('origem_tipo'),
+            fornecedor_id=dados.get('fornecedor_id'),
+            lote_origem_id=dados.get('lote_origem_id'),
+            tipo_material=dados.get('tipo_material'),
+            descricao_material=dados.get('descricao_material'),
+            peso_entrada=Decimal(str(dados.get('peso_entrada', 0))),
+            quantidade_entrada=dados.get('quantidade_entrada', 0),
+            custo_total=Decimal(str(dados.get('custo_total', 0))),
+            custo_unitario=Decimal(str(dados.get('custo_unitario', 0))),
+            responsavel_id=current_user_id,
+            observacoes=dados.get('observacoes'),
+            status='aberta'
+        )
+        
+        db.session.add(ordem)
+        db.session.commit()
+        
+        return jsonify(ordem.to_dict()), 201
+    except ValueError as e:
+        return jsonify({'erro': str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/ordens/<int:id>', methods=['PUT'])
+@jwt_required()
+def atualizar_ordem(id):
+    """Atualiza uma ordem de produção"""
+    try:
+        current_user_id = get_jwt_identity()
+        ordem = OrdemProducao.query.get_or_404(id)
+        dados = request.get_json()
+        
+        if ordem.status == 'finalizada':
+            return jsonify({'erro': 'Ordem de produção já finalizada não pode ser alterada'}), 400
+        
+        campos_atualizaveis = [
+            'tipo_material', 'descricao_material', 'peso_entrada', 
+            'quantidade_entrada', 'custo_total', 'custo_unitario', 'observacoes'
+        ]
+        
+        for campo in campos_atualizaveis:
+            if campo in dados:
+                if campo in ['peso_entrada', 'custo_total', 'custo_unitario']:
+                    setattr(ordem, campo, Decimal(str(dados[campo])))
+                else:
+                    setattr(ordem, campo, dados[campo])
+        
+        db.session.commit()
+        return jsonify(ordem.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/ordens/<int:id>/iniciar-separacao', methods=['POST'])
+@jwt_required()
+def iniciar_separacao(id):
+    """Inicia o processo de separação de uma OP"""
+    try:
+        ordem = OrdemProducao.query.get_or_404(id)
+        
+        if ordem.status != 'aberta':
+            return jsonify({'erro': 'Apenas ordens abertas podem iniciar separação'}), 400
+        
+        ordem.status = 'em_separacao'
+        ordem.data_inicio_separacao = datetime.utcnow()
+        
+        db.session.commit()
+        return jsonify(ordem.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/ordens/<int:id>/finalizar', methods=['POST'])
+@jwt_required()
+def finalizar_ordem(id):
+    """Finaliza uma ordem de produção"""
+    try:
+        current_user_id = get_jwt_identity()
+        ordem = OrdemProducao.query.get_or_404(id)
+        
+        if ordem.status not in ['aberta', 'em_separacao']:
+            return jsonify({'erro': 'Ordem não pode ser finalizada'}), 400
+        
+        peso_total_separado = sum(float(item.peso_kg) for item in ordem.itens_separados)
+        peso_entrada = float(ordem.peso_entrada) if ordem.peso_entrada else 0
+        peso_perdas = peso_entrada - peso_total_separado
+        percentual_perda = (peso_perdas / peso_entrada * 100) if peso_entrada > 0 else 0
+        
+        valor_estimado_total = sum(float(item.valor_estimado or 0) for item in ordem.itens_separados)
+        custo_total = float(ordem.custo_total) if ordem.custo_total else 0
+        lucro_prejuizo = valor_estimado_total - custo_total
+        
+        ordem.peso_total_separado = Decimal(str(peso_total_separado))
+        ordem.peso_perdas = Decimal(str(max(0, peso_perdas)))
+        ordem.percentual_perda = Decimal(str(max(0, percentual_perda)))
+        ordem.valor_estimado_total = Decimal(str(valor_estimado_total))
+        ordem.lucro_prejuizo = Decimal(str(lucro_prejuizo))
+        ordem.status = 'finalizada'
+        ordem.finalizado_por_id = current_user_id
+        ordem.data_finalizacao = datetime.utcnow()
+        
+        db.session.commit()
+        return jsonify(ordem.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/ordens/<int:id>/cancelar', methods=['POST'])
+@jwt_required()
+def cancelar_ordem(id):
+    """Cancela uma ordem de produção"""
+    try:
+        current_user_id = get_jwt_identity()
+        usuario = Usuario.query.get(current_user_id)
+        if not usuario or usuario.tipo != 'admin':
+            return jsonify({'erro': 'Apenas administradores podem cancelar OPs'}), 403
+        
+        ordem = OrdemProducao.query.get_or_404(id)
+        
+        if ordem.status == 'finalizada':
+            return jsonify({'erro': 'Ordem finalizada não pode ser cancelada'}), 400
+        
+        ordem.status = 'cancelada'
+        db.session.commit()
+        
+        return jsonify(ordem.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+# ============================
+# ITENS SEPARADOS
+# ============================
+
+@bp.route('/ordens/<int:op_id>/itens', methods=['GET'])
+@jwt_required()
+def listar_itens_ordem(op_id):
+    """Lista itens separados de uma OP"""
+    try:
+        ordem = OrdemProducao.query.get_or_404(op_id)
+        return jsonify([item.to_dict() for item in ordem.itens_separados])
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/ordens/<int:op_id>/itens', methods=['POST'])
+@jwt_required()
+def adicionar_item(op_id):
+    """Adiciona um item separado a uma OP"""
+    try:
+        current_user_id = get_jwt_identity()
+        ordem = OrdemProducao.query.get_or_404(op_id)
+        
+        if ordem.status not in ['aberta', 'em_separacao']:
+            return jsonify({'erro': 'Não é possível adicionar itens a esta OP'}), 400
+        
+        dados = request.get_json()
+        classificacao = ClassificacaoGrade.query.get(dados.get('classificacao_grade_id'))
+        
+        if not classificacao:
+            return jsonify({'erro': 'Classificação não encontrada'}), 404
+        
+        peso_kg = Decimal(str(dados.get('peso_kg', 0)))
+        custo_total = float(ordem.custo_total) if ordem.custo_total else 0
+        peso_entrada = float(ordem.peso_entrada) if ordem.peso_entrada else 1
+        custo_proporcional = (float(peso_kg) / peso_entrada) * custo_total
+        
+        preco_kg = float(classificacao.preco_estimado_kg) if classificacao.preco_estimado_kg else 0
+        valor_estimado = float(peso_kg) * preco_kg
+        
+        item = ItemSeparadoProducao(
+            ordem_producao_id=op_id,
+            classificacao_grade_id=dados.get('classificacao_grade_id'),
+            nome_item=dados.get('nome_item'),
+            peso_kg=peso_kg,
+            quantidade=dados.get('quantidade', 1),
+            custo_proporcional=Decimal(str(custo_proporcional)),
+            valor_estimado=Decimal(str(valor_estimado)),
+            separado_por_id=current_user_id,
+            observacoes=dados.get('observacoes')
+        )
+        
+        bag = encontrar_ou_criar_bag(classificacao, current_user_id)
+        if bag:
+            item.bag_id = bag.id
+            bag.peso_acumulado = Decimal(str(float(bag.peso_acumulado or 0) + float(peso_kg)))
+            bag.quantidade_itens = (bag.quantidade_itens or 0) + 1
+            
+            if ordem.id not in (bag.lotes_origem or []):
+                lotes = bag.lotes_origem or []
+                lotes.append(ordem.id)
+                bag.lotes_origem = lotes
+            
+            if float(bag.peso_acumulado) >= float(bag.peso_capacidade_max or 50):
+                bag.status = 'cheio'
+        
+        if ordem.status == 'aberta':
+            ordem.status = 'em_separacao'
+            ordem.data_inicio_separacao = datetime.utcnow()
+        
+        db.session.add(item)
+        db.session.commit()
+        
+        return jsonify(item.to_dict()), 201
+    except ValueError as e:
+        return jsonify({'erro': str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/itens/<int:id>', methods=['DELETE'])
+@jwt_required()
+def remover_item(id):
+    """Remove um item separado"""
+    try:
+        current_user_id = get_jwt_identity()
+        usuario = Usuario.query.get(current_user_id)
+        
+        item = ItemSeparadoProducao.query.get_or_404(id)
+        ordem = item.ordem_producao
+        
+        if ordem.status == 'finalizada':
+            return jsonify({'erro': 'Não é possível remover itens de OP finalizada'}), 400
+        
+        if item.bag:
+            bag = item.bag
+            bag.peso_acumulado = Decimal(str(max(0, float(bag.peso_acumulado or 0) - float(item.peso_kg))))
+            bag.quantidade_itens = max(0, (bag.quantidade_itens or 1) - 1)
+            if bag.status == 'cheio':
+                bag.status = 'aberto'
+        
+        db.session.delete(item)
+        db.session.commit()
+        
+        return jsonify({'mensagem': 'Item removido com sucesso'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+# ============================
+# BAGS
+# ============================
+
+def encontrar_ou_criar_bag(classificacao, usuario_id):
+    """Encontra um bag aberto ou cria um novo para a classificação"""
+    bag = BagProducao.query.filter(
+        BagProducao.classificacao_grade_id == classificacao.id,
+        BagProducao.status == 'aberto'
+    ).first()
+    
+    if not bag:
+        codigo = BagProducao.gerar_codigo_bag(classificacao.nome)
+        bag = BagProducao(
+            codigo=codigo,
+            classificacao_grade_id=classificacao.id,
+            criado_por_id=usuario_id,
+            status='aberto'
+        )
+        db.session.add(bag)
+        db.session.flush()
+    
+    return bag
+
+
+@bp.route('/bags', methods=['GET'])
+@jwt_required()
+def listar_bags():
+    """Lista todos os bags"""
+    try:
+        status = request.args.get('status')
+        classificacao_id = request.args.get('classificacao_id')
+        categoria = request.args.get('categoria')
+        
+        query = BagProducao.query
+        
+        if status:
+            query = query.filter(BagProducao.status == status)
+        if classificacao_id:
+            query = query.filter(BagProducao.classificacao_grade_id == int(classificacao_id))
+        if categoria:
+            query = query.join(ClassificacaoGrade).filter(ClassificacaoGrade.categoria == categoria)
+        
+        bags = query.order_by(BagProducao.data_criacao.desc()).all()
+        return jsonify([bag.to_dict() for bag in bags])
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/bags/<int:id>', methods=['GET'])
+@jwt_required()
+def obter_bag(id):
+    """Obtém detalhes de um bag"""
+    try:
+        bag = BagProducao.query.get_or_404(id)
+        resultado = bag.to_dict()
+        resultado['itens'] = [item.to_dict() for item in bag.itens]
+        return jsonify(resultado)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/bags/<int:id>/enviar-refinaria', methods=['POST'])
+@jwt_required()
+def enviar_bag_refinaria(id):
+    """Marca um bag como enviado para refinaria"""
+    try:
+        current_user_id = get_jwt_identity()
+        usuario = Usuario.query.get(current_user_id)
+        if not usuario or usuario.tipo != 'admin':
+            return jsonify({'erro': 'Apenas administradores podem enviar bags para refinaria'}), 403
+        
+        bag = BagProducao.query.get_or_404(id)
+        dados = request.get_json() or {}
+        
+        if bag.status == 'enviado_refinaria':
+            return jsonify({'erro': 'Bag já foi enviado para refinaria'}), 400
+        
+        bag.status = 'enviado_refinaria'
+        bag.data_envio_refinaria = datetime.utcnow()
+        bag.enviado_por_id = current_user_id
+        bag.numero_remessa = dados.get('numero_remessa')
+        
+        db.session.commit()
+        return jsonify(bag.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+# ============================
+# DASHBOARD E RELATÓRIOS
+# ============================
+
+@bp.route('/dashboard', methods=['GET'])
+@jwt_required()
+def dashboard_producao():
+    """Retorna dados para o dashboard de produção"""
+    try:
+        ops_abertas = OrdemProducao.query.filter(OrdemProducao.status.in_(['aberta', 'em_separacao'])).count()
+        ops_finalizadas = OrdemProducao.query.filter(OrdemProducao.status == 'finalizada').count()
+        
+        total_high_grade = db.session.query(
+            db.func.sum(BagProducao.peso_acumulado)
+        ).join(ClassificacaoGrade).filter(
+            ClassificacaoGrade.categoria == 'HIGH_GRADE',
+            BagProducao.status.in_(['aberto', 'cheio'])
+        ).scalar() or 0
+        
+        total_pronto_refinaria = db.session.query(
+            db.func.sum(BagProducao.peso_acumulado)
+        ).join(ClassificacaoGrade).filter(
+            ClassificacaoGrade.categoria == 'HIGH_GRADE',
+            BagProducao.status == 'cheio'
+        ).scalar() or 0
+        
+        lucro_medio = db.session.query(
+            db.func.avg(OrdemProducao.lucro_prejuizo)
+        ).filter(
+            OrdemProducao.status == 'finalizada',
+            OrdemProducao.lucro_prejuizo.isnot(None)
+        ).scalar() or 0
+        
+        bags_por_categoria = db.session.query(
+            ClassificacaoGrade.categoria,
+            db.func.count(BagProducao.id).label('quantidade'),
+            db.func.sum(BagProducao.peso_acumulado).label('peso_total')
+        ).join(ClassificacaoGrade).filter(
+            BagProducao.status.in_(['aberto', 'cheio'])
+        ).group_by(ClassificacaoGrade.categoria).all()
+        
+        return jsonify({
+            'ops_abertas': ops_abertas,
+            'ops_finalizadas': ops_finalizadas,
+            'total_high_grade_kg': float(total_high_grade),
+            'total_pronto_refinaria_kg': float(total_pronto_refinaria),
+            'lucro_medio_por_op': float(lucro_medio),
+            'bags_por_categoria': [
+                {'categoria': cat, 'quantidade': qtd, 'peso_total': float(peso or 0)}
+                for cat, qtd, peso in bags_por_categoria
+            ]
+        })
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/relatorio-refinaria', methods=['GET'])
+@jwt_required()
+def relatorio_refinaria():
+    """Gera relatório de materiais prontos para refinaria"""
+    try:
+        bags = BagProducao.query.join(ClassificacaoGrade).filter(
+            ClassificacaoGrade.categoria == 'HIGH_GRADE',
+            BagProducao.status.in_(['aberto', 'cheio'])
+        ).order_by(ClassificacaoGrade.nome).all()
+        
+        total_peso = sum(float(bag.peso_acumulado or 0) for bag in bags)
+        
+        return jsonify({
+            'bags': [bag.to_dict() for bag in bags],
+            'total_bags': len(bags),
+            'total_peso_kg': total_peso,
+            'data_geracao': datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/fornecedores', methods=['GET'])
+@jwt_required()
+def listar_fornecedores():
+    """Lista fornecedores ativos para seleção"""
+    try:
+        fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
+        return jsonify([{'id': f.id, 'nome': f.nome} for f in fornecedores])
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/lotes-estoque', methods=['GET'])
+@jwt_required()
+def listar_lotes_estoque():
+    """Lista lotes disponíveis no estoque para produção"""
+    try:
+        lotes = Lote.query.filter(
+            Lote.status.in_(['em_estoque', 'conferido'])
+        ).order_by(Lote.data_cadastro.desc()).all()
+        return jsonify([{
+            'id': l.id, 
+            'numero_lote': l.numero_lote,
+            'peso_liquido': float(l.peso_liquido) if l.peso_liquido else 0
+        } for l in lotes])
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+# ============================
+# PÁGINAS HTML
+# ============================
+
+@bp.route('/', methods=['GET'])
+def pagina_producao():
+    """Página principal do módulo de produção"""
+    return render_template('producao.html')
+
+
+@bp.route('/ordem/<int:id>', methods=['GET'])
+def pagina_ordem(id):
+    """Página de detalhes/separação de uma OP"""
+    return render_template('producao-ordem.html')
