@@ -613,17 +613,23 @@ def listar_fornecedores_producao():
     """Lista fornecedores ativos para seleção na criação de OP"""
     try:
         fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
+        
+        resultado = []
+        for f in fornecedores:
+            resultado.append({
+                'id': f.id,
+                'nome': f.nome,
+                'cnpj': f.cnpj if f.cnpj else '',
+                'cpf': f.cpf if f.cpf else '',
+                'documento': f.cnpj if f.cnpj else (f.cpf if f.cpf else 'N/A')
+            })
 
-        return jsonify([{
-            'id': f.id,
-            'nome': f.nome,
-            'cnpj': f.cnpj,
-            'cpf': f.cpf
-        } for f in fornecedores]), 200
+        logger.info(f'Retornando {len(resultado)} fornecedores')
+        return jsonify(resultado), 200
 
     except Exception as e:
         logger.error(f'Erro ao listar fornecedores: {str(e)}')
-        return jsonify({'erro': str(e)}), 500
+        return jsonify({'erro': str(e), 'fornecedores': []}), 500
 
 
 @bp.route('/lotes-estoque', methods=['GET'])
@@ -638,17 +644,30 @@ def listar_lotes_estoque():
             Lote.reservado == False
         ).order_by(Lote.numero_lote.desc()).limit(100).all()
 
-        return jsonify([{
-            'id': l.id,
-            'numero_lote': l.numero_lote,
-            'tipo_lote_nome': l.tipo_lote.nome if l.tipo_lote else 'N/A',
-            'peso_liquido': float(l.peso_liquido or 0),
-            'fornecedor_nome': l.fornecedor.nome if l.fornecedor else 'N/A'
-        } for l in lotes]), 200
+        resultado = []
+        for l in lotes:
+            tipo_lote_nome = 'N/A'
+            if l.tipo_lote:
+                tipo_lote_nome = l.tipo_lote.nome
+            
+            fornecedor_nome = 'N/A'
+            if l.fornecedor:
+                fornecedor_nome = l.fornecedor.nome
+                
+            resultado.append({
+                'id': l.id,
+                'numero_lote': l.numero_lote,
+                'tipo_lote_nome': tipo_lote_nome,
+                'peso_liquido': float(l.peso_liquido or 0),
+                'fornecedor_nome': fornecedor_nome
+            })
+
+        logger.info(f'Retornando {len(resultado)} lotes')
+        return jsonify(resultado), 200
 
     except Exception as e:
         logger.error(f'Erro ao listar lotes: {str(e)}')
-        return jsonify({'erro': str(e)}), 500
+        return jsonify({'erro': str(e), 'lotes': []}), 500
 
 
 # ============================

@@ -438,18 +438,24 @@
                 ]);
                 
                 if (respForn && respForn.ok) {
-                    fornecedores = await respForn.json();
-                    console.log(`✅ ${fornecedores.length} fornecedores carregados`);
+                    const dados = await respForn.json();
+                    fornecedores = Array.isArray(dados) ? dados : [];
+                    console.log(`✅ ${fornecedores.length} fornecedores carregados`, fornecedores);
                 } else {
-                    console.error('❌ Erro ao carregar fornecedores');
+                    console.error('❌ Erro ao carregar fornecedores:', respForn ? respForn.status : 'sem resposta');
+                    const erroTexto = respForn ? await respForn.text() : '';
+                    console.error('Detalhes:', erroTexto);
                     fornecedores = [];
                 }
                 
                 if (respLotes && respLotes.ok) {
-                    lotesEstoque = await respLotes.json();
-                    console.log(`✅ ${lotesEstoque.length} lotes carregados`);
+                    const dados = await respLotes.json();
+                    lotesEstoque = Array.isArray(dados) ? dados : [];
+                    console.log(`✅ ${lotesEstoque.length} lotes carregados`, lotesEstoque);
                 } else {
-                    console.error('❌ Erro ao carregar lotes');
+                    console.error('❌ Erro ao carregar lotes:', respLotes ? respLotes.status : 'sem resposta');
+                    const erroTexto = respLotes ? await respLotes.text() : '';
+                    console.error('Detalhes:', erroTexto);
                     lotesEstoque = [];
                 }
             } catch (error) {
@@ -477,9 +483,15 @@
             
             // Popular select de fornecedores
             const selectFornecedor = document.getElementById('opFornecedor');
-            if (fornecedores && fornecedores.length > 0) {
-                selectFornecedor.innerHTML = '<option value="">Selecione...</option>' + 
-                    fornecedores.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+            if (!selectFornecedor) {
+                console.error('❌ Select de fornecedor não encontrado no DOM');
+            } else if (fornecedores && fornecedores.length > 0) {
+                const opcoes = fornecedores.map(f => {
+                    const nome = f.nome || 'Sem nome';
+                    const doc = f.documento || '';
+                    return `<option value="${f.id}">${nome} ${doc ? '(' + doc + ')' : ''}</option>`;
+                }).join('');
+                selectFornecedor.innerHTML = '<option value="">Selecione...</option>' + opcoes;
                 console.log(`✅ Select de fornecedor populado com ${fornecedores.length} opções`);
             } else {
                 selectFornecedor.innerHTML = '<option value="">Nenhum fornecedor disponível</option>';
@@ -488,9 +500,16 @@
             
             // Popular select de lotes
             const selectLote = document.getElementById('opLote');
-            if (lotesEstoque && lotesEstoque.length > 0) {
-                selectLote.innerHTML = '<option value="">Selecione...</option>' + 
-                    lotesEstoque.map(l => `<option value="${l.id}">${l.numero_lote} - ${l.tipo_lote_nome} (${parseFloat(l.peso_liquido).toFixed(2)} kg)</option>`).join('');
+            if (!selectLote) {
+                console.error('❌ Select de lote não encontrado no DOM');
+            } else if (lotesEstoque && lotesEstoque.length > 0) {
+                const opcoes = lotesEstoque.map(l => {
+                    const numero = l.numero_lote || 'S/N';
+                    const tipo = l.tipo_lote_nome || 'N/A';
+                    const peso = parseFloat(l.peso_liquido || 0).toFixed(2);
+                    return `<option value="${l.id}">${numero} - ${tipo} (${peso} kg)</option>`;
+                }).join('');
+                selectLote.innerHTML = '<option value="">Selecione...</option>' + opcoes;
                 console.log(`✅ Select de lote populado com ${lotesEstoque.length} opções`);
             } else {
                 selectLote.innerHTML = '<option value="">Nenhum lote disponível</option>';
@@ -519,22 +538,64 @@
         async function salvarOP(event) {
             event.preventDefault();
             try {
+                const origemTipo = document.getElementById('opOrigemTipo').value;
+                const fornecedorId = document.getElementById('opFornecedor').value;
+                const loteId = document.getElementById('opLote').value;
+                const tipoMaterial = document.getElementById('opTipoMaterial').value;
+                const pesoEntrada = parseFloat(document.getElementById('opPesoEntrada').value) || 0;
+                const custoTotal = parseFloat(document.getElementById('opCustoTotal').value) || 0;
+
+                // Validações
+                if (!origemTipo) {
+                    showAlert('Selecione a origem do material', 'error');
+                    return;
+                }
+
+                if (origemTipo === 'fornecedor' && !fornecedorId) {
+                    showAlert('Selecione um fornecedor', 'error');
+                    return;
+                }
+
+                if (origemTipo === 'lote' && !loteId) {
+                    showAlert('Selecione um lote do estoque', 'error');
+                    return;
+                }
+
+                if (!tipoMaterial) {
+                    showAlert('Informe o tipo de material', 'error');
+                    return;
+                }
+
+                if (pesoEntrada <= 0) {
+                    showAlert('Peso de entrada deve ser maior que zero', 'error');
+                    return;
+                }
+
+                if (custoTotal < 0) {
+                    showAlert('Custo total não pode ser negativo', 'error');
+                    return;
+                }
+
                 const dados = {
-                    origem_tipo: document.getElementById('opOrigemTipo').value,
-                    fornecedor_id: document.getElementById('opFornecedor').value || null,
-                    lote_origem_id: document.getElementById('opLote').value || null,
-                    tipo_material: document.getElementById('opTipoMaterial').value,
+                    origem_tipo: origemTipo,
+                    fornecedor_id: fornecedorId || null,
+                    lote_origem_id: loteId || null,
+                    tipo_material: tipoMaterial,
                     descricao_material: document.getElementById('opDescricao').value,
-                    peso_entrada: parseFloat(document.getElementById('opPesoEntrada').value) || 0,
+                    peso_entrada: pesoEntrada,
                     quantidade_entrada: parseInt(document.getElementById('opQuantidade').value) || 0,
-                    custo_total: parseFloat(document.getElementById('opCustoTotal').value) || 0,
+                    custo_total: custoTotal,
                     custo_unitario: parseFloat(document.getElementById('opCustoUnitario').value) || 0,
                     observacoes: document.getElementById('opObservacoes').value
                 };
+
+                console.log('Enviando dados da OP:', dados);
+
                 const response = await fetchAPI('/producao/ordens', {
                     method: 'POST',
                     body: JSON.stringify(dados)
                 });
+                
                 if (response.ok) {
                     const ordem = await response.json();
                     showAlert('Ordem de Produção criada com sucesso!', 'success');
@@ -544,11 +605,12 @@
                     abrirOrdem(ordem.id);
                 } else {
                     const erro = await response.json();
+                    console.error('Erro na resposta:', erro);
                     showAlert(erro.erro || 'Erro ao criar OP', 'error');
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                showAlert('Erro ao criar ordem de produção', 'error');
+                console.error('Erro ao salvar OP:', error);
+                showAlert('Erro ao criar ordem de produção: ' + error.message, 'error');
             }
         }
 
