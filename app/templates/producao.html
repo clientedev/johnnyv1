@@ -577,7 +577,7 @@
                 }
 
                 const dados = {
-                    origem_tipo: origemTipo,
+                    origem_tipo: origemTipo === 'lote' ? 'estoque' : origemTipo,
                     fornecedor_id: fornecedorId || null,
                     lote_origem_id: loteId || null,
                     tipo_material: tipoMaterial,
