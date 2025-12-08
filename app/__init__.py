@@ -70,7 +70,8 @@ def create_app():
                                 perfis, veiculos, motoristas, auditoria, ordens_compra,
                                 ordens_servico, conferencias, estoque, separacao, wms, pages,
                                 materiais_base, tabelas_preco, autorizacoes_preco, compras,
-                                fornecedor_tabela_precos, metais, conquistas, assistente, scanner, rh, visitas)
+                                fornecedor_tabela_precos, metais, conquistas, assistente, scanner, rh, visitas,
+                                producao)
         from app.routes import solicitacoes_new as solicitacoes
         from app.routes import lotes_new as lotes
         from app.routes import entradas_new as entradas
@@ -110,6 +111,7 @@ def create_app():
         app.register_blueprint(scanner.bp)
         app.register_blueprint(rh.bp)
         app.register_blueprint(visitas.bp)
+        app.register_blueprint(producao.bp)
 
         def run_hr_migration():
             try:
@@ -175,5 +177,48 @@ def create_app():
 
         from app.auth import criar_admin_padrao
         criar_admin_padrao()
+
+        from app.models import ClassificacaoGrade
+        classificacoes_high_grade = [
+            'SUCATA PROCESSADOR CERAMICO A',
+            'SUCATA PROCESSADOR CERAMICO B',
+            'SUCATA PROCESSADOR CERAMICO C',
+            'SUCATA PROCESSADOR SLOT',
+            'SUCATA PROCESSADOR PLASTICO A',
+            'SUCATA PROCESSADOR PLASTICO B',
+            'SUCATA PROCESSADOR CHAPA A',
+            'SUCATA PROCESSADOR CHAPA B',
+            'SUCATA MEMORIA DOURADA',
+            'SUCATA MEMORIA PRATA',
+            'SUCATA PLACA DOURADA A',
+            'SUCATA PLACA DOURADA B',
+            'SUCATA PLACA CENTRAL A',
+            'SUCATA PLACA CENTRAL B',
+            'SUCATA PLACA CENTRAL S',
+            'SUCATA PLACA TAPETE A',
+            'SUCATA PLACA TAPETE B',
+            'SUCATA PLACA TAPETE C',
+            'SUCATA PLACA HD',
+            'SUCATA PLACA DE CELULAR',
+            'SUCATA APARELHO CELULAR A',
+            'SUCATA PLACA NOTEBOOK A',
+            'SUCATA PLACA NOTEBOOK B',
+            'SUCATA PLACA TABLET',
+            'SUCATA PLACA DRIVE',
+            'SUCATA METAL PRECIOSO',
+            'SUCATA PLACA LEVE A'
+        ]
+        nomes_existentes = {c.nome for c in ClassificacaoGrade.query.filter_by(categoria='HIGH_GRADE').all()}
+        nomes_faltantes = [n for n in classificacoes_high_grade if n not in nomes_existentes]
+        if nomes_faltantes:
+            for nome in nomes_faltantes:
+                classificacao = ClassificacaoGrade(
+                    nome=nome,
+                    categoria='HIGH_GRADE',
+                    ativo=True
+                )
+                db.session.add(classificacao)
+            db.session.commit()
+            print(f"✓ Adicionadas {len(nomes_faltantes)} classificações HIGH GRADE faltantes")
 
     return app
