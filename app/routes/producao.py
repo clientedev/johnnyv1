@@ -400,13 +400,19 @@ def finalizar_ordem(id):
         ordem.finalizado_por_id = current_user_id
         ordem.data_finalizacao = datetime.utcnow()
 
-        if categorias_mistas and categoria_manual:
-            bag_ids = set(item.bag_id for item in ordem.itens_separados if item.bag_id)
-            for bag_id in bag_ids:
-                bag = BagProducao.query.get(bag_id)
-                if bag:
+        # Atualizar bags conforme o tipo de categoria
+        bag_ids = set(item.bag_id for item in ordem.itens_separados if item.bag_id)
+        for bag_id in bag_ids:
+            bag = BagProducao.query.get(bag_id)
+            if bag:
+                if categorias_mistas and categoria_manual:
+                    # Bag com categorias mistas - usar categoria manual
                     bag.categoria_manual = categoria_manual
                     bag.categorias_mistas = True
+                elif len(categorias) == 1:
+                    # Bag com categoria única - garantir que está marcado corretamente
+                    bag.categorias_mistas = False
+                    bag.categoria_manual = None
 
         db.session.commit()
         return jsonify(ordem.to_dict())
