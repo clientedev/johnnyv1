@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, render_template, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import (
-    db, Usuario, Fornecedor, Lote, ClassificacaoGrade, 
+    db, Usuario, Fornecedor, Lote, ClassificacaoGrade,
     OrdemProducao, ItemSeparadoProducao, BagProducao
 )
 from app.auth import admin_required
@@ -39,6 +39,7 @@ def listar_classificacoes():
         classificacoes = query.order_by(ClassificacaoGrade.categoria, ClassificacaoGrade.nome).all()
         return jsonify([c.to_dict() for c in classificacoes])
     except Exception as e:
+        logger.error(f'Erro ao listar classificações: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -50,6 +51,7 @@ def obter_classificacao(id):
         classificacao = ClassificacaoGrade.query.get_or_404(id)
         return jsonify(classificacao.to_dict())
     except Exception as e:
+        logger.error(f'Erro ao obter classificação {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -84,9 +86,11 @@ def criar_classificacao():
 
         return jsonify(classificacao.to_dict()), 201
     except ValueError as e:
+        logger.error(f'Erro de valor ao criar classificação: {str(e)}')
         return jsonify({'erro': str(e)}), 400
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao criar classificação: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -129,6 +133,7 @@ def atualizar_classificacao(id):
         return jsonify(classificacao.to_dict())
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao atualizar classificação {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -158,6 +163,7 @@ def deletar_classificacao(id):
         return jsonify({'mensagem': 'Classificação deletada com sucesso'})
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao deletar classificação {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -167,18 +173,19 @@ def listar_categorias():
     """Lista todas as categorias disponíveis (incluindo personalizadas)"""
     try:
         categorias_padrao = ['HIGH_GRADE', 'MID_GRADE', 'LOW_GRADE', 'RESIDUO', 'OUTRO']
-        
+
         categorias_customizadas = db.session.query(
             ClassificacaoGrade.categoria
         ).distinct().all()
-        
+
         todas_categorias = set(categorias_padrao)
         for (cat,) in categorias_customizadas:
             if cat:
                 todas_categorias.add(cat)
-        
+
         return jsonify(sorted(list(todas_categorias)))
     except Exception as e:
+        logger.error(f'Erro ao listar categorias: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -194,12 +201,13 @@ def criar_categoria():
 
         dados = request.get_json()
         nome_categoria = dados.get('nome', '').strip().upper().replace(' ', '_')
-        
+
         if not nome_categoria:
             return jsonify({'erro': 'Nome da categoria é obrigatório'}), 400
-        
+
         return jsonify({'categoria': nome_categoria, 'mensagem': 'Categoria criada com sucesso'})
     except Exception as e:
+        logger.error(f'Erro ao criar categoria: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -234,6 +242,7 @@ def listar_ordens():
         ordens = query.order_by(OrdemProducao.data_abertura.desc()).all()
         return jsonify([op.to_dict() for op in ordens])
     except Exception as e:
+        logger.error(f'Erro ao listar ordens de produção: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -247,6 +256,7 @@ def obter_ordem(id):
         resultado['itens_separados'] = [item.to_dict() for item in ordem.itens_separados]
         return jsonify(resultado)
     except Exception as e:
+        logger.error(f'Erro ao obter ordem de produção {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -259,11 +269,11 @@ def criar_ordem():
         dados = request.get_json()
 
         numero_op = OrdemProducao.gerar_numero_op()
-        
+
         lotes_ids = dados.get('lotes_ids', [])
         fornecedores_ids = dados.get('fornecedores_ids', [])
         outros_origens = dados.get('outros_origens', [])
-        
+
         peso_entrada = Decimal(str(dados.get('peso_entrada', 0)))
         if lotes_ids and len(lotes_ids) > 0:
             peso_total_lotes = Decimal('0')
@@ -298,9 +308,11 @@ def criar_ordem():
 
         return jsonify(ordem.to_dict()), 201
     except ValueError as e:
+        logger.error(f'Erro de valor ao criar ordem de produção: {str(e)}')
         return jsonify({'erro': str(e)}), 400
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao criar ordem de produção: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -317,7 +329,7 @@ def atualizar_ordem(id):
             return jsonify({'erro': 'Ordem de produção já finalizada não pode ser alterada'}), 400
 
         campos_atualizaveis = [
-            'tipo_material', 'descricao_material', 'peso_entrada', 
+            'tipo_material', 'descricao_material', 'peso_entrada',
             'quantidade_entrada', 'custo_total', 'custo_unitario', 'observacoes'
         ]
 
@@ -332,6 +344,7 @@ def atualizar_ordem(id):
         return jsonify(ordem.to_dict())
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao atualizar ordem de produção {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -352,6 +365,7 @@ def iniciar_separacao(id):
         return jsonify(ordem.to_dict())
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao iniciar separação da ordem {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -371,10 +385,10 @@ def finalizar_ordem(id):
         for item in ordem.itens_separados:
             if item.classificacao_grade:
                 categorias.add(item.classificacao_grade.categoria)
-        
+
         categorias_mistas = len(categorias) > 1
         categoria_manual = dados.get('categoria_manual')
-        
+
         if categorias_mistas and not categoria_manual:
             return jsonify({
                 'erro': 'Este bag possui categorias mistas. Por favor, defina uma categoria manual.',
@@ -419,7 +433,10 @@ def finalizar_ordem(id):
         return jsonify(ordem.to_dict())
     except Exception as e:
         db.session.rollback()
-        return jsonify({'erro': str(e)}), 500
+        logger.error(f'Erro ao finalizar ordem {id}: {str(e)}')
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'erro': f'Erro ao finalizar OP: {str(e)}'}), 500
 
 
 @bp.route('/ordens/<int:id>/cancelar', methods=['POST'])
@@ -443,6 +460,7 @@ def cancelar_ordem(id):
         return jsonify(ordem.to_dict())
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao cancelar ordem {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -458,6 +476,7 @@ def listar_itens_ordem(op_id):
         ordem = OrdemProducao.query.get_or_404(op_id)
         return jsonify([item.to_dict() for item in ordem.itens_separados])
     except Exception as e:
+        logger.error(f'Erro ao listar itens da ordem {op_id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -521,9 +540,11 @@ def adicionar_item(op_id):
 
         return jsonify(item.to_dict()), 201
     except ValueError as e:
+        logger.error(f'Erro de valor ao adicionar item na ordem {op_id}: {str(e)}')
         return jsonify({'erro': str(e)}), 400
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao adicionar item na ordem {op_id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -554,6 +575,7 @@ def remover_item(id):
         return jsonify({'mensagem': 'Item removido com sucesso'})
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao remover item {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -603,6 +625,7 @@ def listar_bags():
         bags = query.order_by(BagProducao.data_criacao.desc()).all()
         return jsonify([bag.to_dict() for bag in bags])
     except Exception as e:
+        logger.error(f'Erro ao listar bags: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -616,6 +639,7 @@ def obter_bag(id):
         resultado['itens'] = [item.to_dict() for item in bag.itens]
         return jsonify(resultado)
     except Exception as e:
+        logger.error(f'Erro ao obter bag {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -644,6 +668,7 @@ def enviar_bag_refinaria(id):
         return jsonify(bag.to_dict())
     except Exception as e:
         db.session.rollback()
+        logger.error(f'Erro ao enviar bag {id} para refinaria: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -723,6 +748,7 @@ def relatorio_refinaria():
             'data_geracao': datetime.utcnow().isoformat()
         })
     except Exception as e:
+        logger.error(f'Erro ao gerar relatório de refinaria: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
@@ -732,7 +758,7 @@ def listar_fornecedores_producao():
     """Lista fornecedores ativos para seleção na criação de OP"""
     try:
         fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
-        
+
         resultado = []
         for f in fornecedores:
             resultado.append({
@@ -768,11 +794,11 @@ def listar_lotes_estoque():
             tipo_lote_nome = 'N/A'
             if l.tipo_lote:
                 tipo_lote_nome = l.tipo_lote.nome
-            
+
             fornecedor_nome = 'N/A'
             if l.fornecedor:
                 fornecedor_nome = l.fornecedor.nome
-                
+
             resultado.append({
                 'id': l.id,
                 'numero_lote': l.numero_lote,
@@ -876,9 +902,9 @@ def exportar_op_html(id):
         .status-finalizada {{ background: #c3e6cb; color: #155724; }}
         .status-cancelada {{ background: #f5c6cb; color: #721c24; }}
         .footer {{ margin-top: 30px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #ddd; padding-top: 10px; }}
-        @media print {{ 
-            body {{ margin: 0; }} 
-            .no-print {{ display: none !important; }} 
+        @media print {{
+            body {{ margin: 0; }}
+            .no-print {{ display: none !important; }}
         }}
     </style>
 </head>
