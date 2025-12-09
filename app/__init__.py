@@ -142,6 +142,38 @@ def create_app():
                 print(f"Migration check: {e}")
 
         run_hr_migration()
+        
+        def run_producao_migration():
+            try:
+                from sqlalchemy import text
+                columns_to_add = [
+                    ("lotes_ids", "JSONB DEFAULT '[]'"),
+                    ("fornecedores_ids", "JSONB DEFAULT '[]'"),
+                    ("outros_origens", "JSONB DEFAULT '[]'")
+                ]
+                
+                with db.engine.connect() as conn:
+                    result = conn.execute(text("""
+                        SELECT table_name FROM information_schema.tables 
+                        WHERE table_name = 'ordens_producao'
+                    """))
+                    
+                    if result.fetchone() is not None:
+                        for column_name, column_type in columns_to_add:
+                            result = conn.execute(text(f"""
+                                SELECT column_name 
+                                FROM information_schema.columns 
+                                WHERE table_name = 'ordens_producao' AND column_name = '{column_name}'
+                            """))
+                            
+                            if result.fetchone() is None:
+                                conn.execute(text(f"ALTER TABLE ordens_producao ADD COLUMN {column_name} {column_type}"))
+                                conn.commit()
+                                print(f"✓ Added column ordens_producao.{column_name}")
+            except Exception as e:
+                print(f"Producao migration check: {e}")
+        
+        run_producao_migration()
         db.create_all()
 
         # Inicializar tabelas de preço

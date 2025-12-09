@@ -259,15 +259,32 @@ def criar_ordem():
         dados = request.get_json()
 
         numero_op = OrdemProducao.gerar_numero_op()
+        
+        lotes_ids = dados.get('lotes_ids', [])
+        fornecedores_ids = dados.get('fornecedores_ids', [])
+        outros_origens = dados.get('outros_origens', [])
+        
+        peso_entrada = Decimal(str(dados.get('peso_entrada', 0)))
+        if lotes_ids and len(lotes_ids) > 0:
+            peso_total_lotes = Decimal('0')
+            for lote_id in lotes_ids:
+                lote = Lote.query.get(lote_id)
+                if lote and lote.peso_liquido:
+                    peso_total_lotes += Decimal(str(lote.peso_liquido))
+            if peso_total_lotes > 0:
+                peso_entrada = peso_total_lotes
 
         ordem = OrdemProducao(
             numero_op=numero_op,
             origem_tipo=dados.get('origem_tipo'),
             fornecedor_id=dados.get('fornecedor_id'),
             lote_origem_id=dados.get('lote_origem_id'),
+            lotes_ids=lotes_ids if lotes_ids else None,
+            fornecedores_ids=fornecedores_ids if fornecedores_ids else None,
+            outros_origens=outros_origens if outros_origens else None,
             tipo_material=dados.get('tipo_material'),
             descricao_material=dados.get('descricao_material'),
-            peso_entrada=Decimal(str(dados.get('peso_entrada', 0))),
+            peso_entrada=peso_entrada,
             quantidade_entrada=dados.get('quantidade_entrada', 0),
             custo_total=Decimal(str(dados.get('custo_total', 0))),
             custo_unitario=Decimal(str(dados.get('custo_unitario', 0))),

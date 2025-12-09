@@ -2073,10 +2073,15 @@ class OrdemProducao(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True)
     numero_op = db.Column(db.String(50), unique=True, nullable=False)
     
-    # Origem do material
-    origem_tipo = db.Column(db.String(20), nullable=False)  # 'fornecedor' ou 'estoque'
+    # Origem do material - suporta múltiplas origens
+    origem_tipo = db.Column(db.String(20), nullable=False)  # 'fornecedor', 'estoque', 'outro'
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedores.id'), nullable=True)
     lote_origem_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=True)
+    
+    # Múltiplas origens (JSON arrays)
+    lotes_ids = db.Column(db.JSON, default=list, nullable=True)  # Lista de IDs de lotes
+    fornecedores_ids = db.Column(db.JSON, default=list, nullable=True)  # Lista de IDs de fornecedores
+    outros_origens = db.Column(db.JSON, default=list, nullable=True)  # Lista de origens "outro" (texto livre)
     
     # Tipo de material processado
     tipo_material = db.Column(db.String(100), nullable=False)  # celulares, placas, processadores, etc.
@@ -2122,8 +2127,8 @@ class OrdemProducao(db.Model):  # type: ignore
     def __init__(self, **kwargs: Any) -> None:
         if 'status' in kwargs and kwargs['status'] not in ['aberta', 'em_separacao', 'finalizada', 'cancelada']:
             raise ValueError('Status deve ser: aberta, em_separacao, finalizada ou cancelada')
-        if 'origem_tipo' in kwargs and kwargs['origem_tipo'] not in ['fornecedor', 'estoque']:
-            raise ValueError('Origem deve ser: fornecedor ou estoque')
+        if 'origem_tipo' in kwargs and kwargs['origem_tipo'] not in ['fornecedor', 'estoque', 'outro']:
+            raise ValueError('Origem deve ser: fornecedor, estoque ou outro')
         super().__init__(**kwargs)
 
     @staticmethod
@@ -2152,6 +2157,9 @@ class OrdemProducao(db.Model):  # type: ignore
             'fornecedor_nome': self.fornecedor.nome if self.fornecedor else None,
             'lote_origem_id': self.lote_origem_id,
             'lote_origem_numero': self.lote_origem.numero_lote if self.lote_origem else None,
+            'lotes_ids': self.lotes_ids or [],
+            'fornecedores_ids': self.fornecedores_ids or [],
+            'outros_origens': self.outros_origens or [],
             'tipo_material': self.tipo_material,
             'descricao_material': self.descricao_material,
             'peso_entrada': float(self.peso_entrada) if self.peso_entrada else 0,
