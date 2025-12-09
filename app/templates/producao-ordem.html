@@ -237,7 +237,15 @@
         function renderizarOrdem() {
             document.getElementById('headerNumeroOP').textContent = ordem.numero_op;
             document.getElementById('opNumero').textContent = ordem.numero_op;
-            document.getElementById('opTipo').textContent = ordem.tipo_material || 'Material não especificado';
+            const tipoContainer = document.getElementById('opTipo');
+            const tiposMaterial = (ordem.tipo_material || 'Material não especificado').split(', ').filter(t => t.trim());
+            if (tiposMaterial.length > 1) {
+                tipoContainer.innerHTML = tiposMaterial.map(tipo => 
+                    `<span class="badge badge-success" style="margin-right: 0.25rem;">${tipo.trim()}</span>`
+                ).join('');
+            } else {
+                tipoContainer.textContent = tiposMaterial[0] || 'Material não especificado';
+            }
             
             const badgeEl = document.getElementById('opStatusBadge');
             badgeEl.textContent = getStatusLabel(ordem.status);

@@ -198,7 +198,14 @@
                 
                 <div class="form-group">
                     <label>Tipo de Material</label>
-                    <input type="text" id="opTipoMaterial" placeholder="Ex: Placas-mãe, Processadores" required>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="opTipoMaterialInput" placeholder="Ex: Placas-mãe, Processadores" style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="adicionarTipoMaterial()">
+                            <i class="fas fa-plus"></i> Adicionar
+                        </button>
+                    </div>
+                    <div id="tiposMaterialSelecionados" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.25rem;"></div>
+                    <input type="hidden" id="opTipoMaterial">
                 </div>
                 <div class="form-group">
                     <label>Descrição</label>
@@ -341,12 +348,17 @@
                 container.innerHTML = '<div class="card" style="text-align: center; color: var(--gray-500);">Nenhuma ordem de produção encontrada</div>';
                 return;
             }
-            container.innerHTML = ordens.map(op => `
+            container.innerHTML = ordens.map(op => {
+                const tiposMaterial = (op.tipo_material || 'Material não especificado').split(', ').filter(t => t.trim());
+                const tiposHtml = tiposMaterial.length > 1 
+                    ? tiposMaterial.map(t => `<span class="badge badge-success" style="font-size: 0.7rem; margin-right: 0.25rem;">${t.trim()}</span>`).join('')
+                    : `<span style="color: var(--gray-600);">${tiposMaterial[0] || 'Material não especificado'}</span>`;
+                return `
                 <div class="card op-card ${op.status}" onclick="abrirOrdem(${op.id})" style="cursor: pointer;">
                     <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 0.5rem;">
                         <div>
                             <h4 style="margin: 0 0 0.25rem 0; color: var(--primary-color);">${op.numero_op}</h4>
-                            <p style="margin: 0; font-size: 0.875rem; color: var(--gray-600);">${op.tipo_material || 'Material não especificado'}</p>
+                            <p style="margin: 0; font-size: 0.875rem; display: flex; flex-wrap: wrap; gap: 0.25rem;">${tiposHtml}</p>
                         </div>
                         <span class="badge ${getBadgeClass(op.status)}">${getStatusLabel(op.status)}</span>
                     </div>
@@ -359,7 +371,8 @@
                         ${formatarData(op.data_abertura)}
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         async function carregarBags() {
@@ -512,9 +525,11 @@
             document.getElementById('lotesSelecionados').innerHTML = '';
             document.getElementById('fornecedoresSelecionados').innerHTML = '';
             document.getElementById('outrosOrigens').innerHTML = '';
+            document.getElementById('tiposMaterialSelecionados').innerHTML = '';
             document.getElementById('opPesoEntrada').readOnly = false;
             
             outrosOrigensLista = [];
+            tiposMaterialLista = [];
             
             await carregarFornecedoresELotes();
             
@@ -557,6 +572,43 @@
         }
 
         let outrosOrigensLista = [];
+        let tiposMaterialLista = [];
+        
+        function adicionarTipoMaterial() {
+            const input = document.getElementById('opTipoMaterialInput');
+            const tipo = input.value.trim();
+            
+            if (!tipo) {
+                showAlert('Digite um tipo de material', 'error');
+                return;
+            }
+            
+            if (!tiposMaterialLista.includes(tipo)) {
+                tiposMaterialLista.push(tipo);
+                renderizarTiposMaterial();
+            }
+            
+            input.value = '';
+        }
+        
+        function removerTipoMaterial(index) {
+            tiposMaterialLista.splice(index, 1);
+            renderizarTiposMaterial();
+        }
+        
+        function renderizarTiposMaterial() {
+            const container = document.getElementById('tiposMaterialSelecionados');
+            container.innerHTML = tiposMaterialLista.map((tipo, idx) => 
+                `<span class="badge badge-success" style="display: flex; align-items: center; gap: 0.25rem;">
+                    ${tipo}
+                    <button type="button" onclick="removerTipoMaterial(${idx})" style="background: none; border: none; cursor: pointer; padding: 0; color: inherit;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </span>`
+            ).join('');
+            
+            document.getElementById('opTipoMaterial').value = tiposMaterialLista.join(', ');
+        }
         
         function atualizarOrigemOP() {
             const tipo = document.getElementById('opOrigemTipo').value;
@@ -663,7 +715,7 @@
                 const origemTipo = document.getElementById('opOrigemTipo').value;
                 const selectFornecedor = document.getElementById('opFornecedor');
                 const selectLote = document.getElementById('opLote');
-                const tipoMaterial = document.getElementById('opTipoMaterial').value;
+                const tipoMaterial = tiposMaterialLista.join(', ');
                 const pesoEntrada = parseFloat(document.getElementById('opPesoEntrada').value) || 0;
                 const custoTotal = parseFloat(document.getElementById('opCustoTotal').value) || 0;
                 
@@ -690,8 +742,8 @@
                     return;
                 }
 
-                if (!tipoMaterial) {
-                    showAlert('Informe o tipo de material', 'error');
+                if (tiposMaterialLista.length === 0) {
+                    showAlert('Adicione pelo menos um tipo de material', 'error');
                     return;
                 }
 
