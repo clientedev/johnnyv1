@@ -100,6 +100,9 @@
                 </div>
             </div>
 
+            <!-- Banner de Análise de Categoria -->
+            <div id="categoriaAnaliseContainer" style="display: none; margin-top: 1rem;"></div>
+
             <div class="section-title">
                 <i class="fas fa-boxes" style="color: var(--primary-color);"></i>
                 Itens Separados
@@ -162,6 +165,30 @@
         </div>
     </div>
 
+    <!-- Modal de Categoria Manual para Bags Mistos -->
+    <div class="modal" id="modalCategoriaManual">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Definir Categoria do Bag</h3>
+                <span class="modal-close" onclick="fecharModal('modalCategoriaManual')">&times;</span>
+            </div>
+            <div style="padding: 1rem; background: #fef3c7; border-radius: 0.5rem; margin-bottom: 1rem;">
+                <i class="fas fa-exclamation-triangle" style="color: #92400e;"></i>
+                <span style="color: #92400e;">Este bag contém itens de categorias diferentes. Por favor, defina um nome para identificar a categoria deste bag.</span>
+            </div>
+            <form id="formCategoriaManual" onsubmit="confirmarFinalizacaoComCategoria(event)">
+                <div class="form-group">
+                    <label>Nome da Categoria do Bag</label>
+                    <input type="text" id="inputCategoriaManual" placeholder="Ex: High Grade Misto, Teste Processadores" required>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('modalCategoriaManual')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Finalizar OP</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="/static/js/utils.js"></script>
     <script src="/static/js/rbac.js"></script>
@@ -171,6 +198,7 @@
         let ordemId = null;
         let ordem = null;
         let classificacoes = [];
+        let analiseCategoria = { misto: false, categorias: [], categoriaUnica: null };
 
         async function carregarPagina() {
             const user = await verificarAuth();

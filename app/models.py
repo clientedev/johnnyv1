@@ -2283,6 +2283,10 @@ class BagProducao(db.Model):  # type: ignore
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     observacoes = db.Column(db.Text, nullable=True)
+    
+    # Categoria manual para bags com categorias mistas
+    categoria_manual = db.Column(db.String(100), nullable=True)
+    categorias_mistas = db.Column(db.Boolean, default=False, nullable=False)
 
     # Relacionamentos
     classificacao_grade = db.relationship('ClassificacaoGrade', backref='bags')
@@ -2316,6 +2320,13 @@ class BagProducao(db.Model):  # type: ignore
             return min(100, (float(self.peso_acumulado or 0) / float(self.peso_capacidade_max)) * 100)
         return 0
 
+    @property
+    def categoria_exibicao(self):
+        """Retorna a categoria para exibição - manual se definida, senão a da classificação"""
+        if self.categoria_manual:
+            return self.categoria_manual
+        return self.classificacao_grade.categoria if self.classificacao_grade else None
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -2323,6 +2334,9 @@ class BagProducao(db.Model):  # type: ignore
             'classificacao_grade_id': self.classificacao_grade_id,
             'classificacao_nome': self.classificacao_grade.nome if self.classificacao_grade else None,
             'classificacao_categoria': self.classificacao_grade.categoria if self.classificacao_grade else None,
+            'categoria_manual': self.categoria_manual,
+            'categorias_mistas': self.categorias_mistas,
+            'categoria_exibicao': self.categoria_exibicao,
             'peso_acumulado': float(self.peso_acumulado) if self.peso_acumulado else 0,
             'quantidade_itens': self.quantidade_itens or 0,
             'peso_capacidade_max': float(self.peso_capacidade_max) if self.peso_capacidade_max else 50,
