@@ -405,11 +405,12 @@ def finalizar_ordem(id):
         for bag_id in bag_ids:
             bag = BagProducao.query.get(bag_id)
             if bag:
-                if categorias_mistas and categoria_manual:
-                    # Bag com categorias mistas - usar categoria manual
-                    bag.categoria_manual = categoria_manual
-                    bag.categorias_mistas = True
-                elif len(categorias) == 1:
+                if categorias_mistas:
+                    # Bag com categorias mistas - requer categoria manual
+                    if categoria_manual:
+                        bag.categoria_manual = categoria_manual
+                        bag.categorias_mistas = True
+                else:
                     # Bag com categoria única - garantir que está marcado corretamente
                     bag.categorias_mistas = False
                     bag.categoria_manual = None
