@@ -132,6 +132,77 @@ def atualizar_classificacao(id):
         return jsonify({'erro': str(e)}), 500
 
 
+@bp.route('/classificacoes/<int:id>', methods=['DELETE'])
+@jwt_required()
+def deletar_classificacao(id):
+    """Deleta uma classificação de grade"""
+    try:
+        current_user_id = get_jwt_identity()
+        usuario = Usuario.query.get(current_user_id)
+        if not usuario or usuario.tipo != 'admin':
+            return jsonify({'erro': 'Acesso não autorizado'}), 403
+
+        classificacao = ClassificacaoGrade.query.get_or_404(id)
+
+        itens_usando = ItemSeparadoProducao.query.filter_by(classificacao_grade_id=id).count()
+        bags_usando = BagProducao.query.filter_by(classificacao_grade_id=id).count()
+
+        if itens_usando > 0 or bags_usando > 0:
+            return jsonify({
+                'erro': f'Não é possível deletar. Esta classificação está sendo usada em {itens_usando} item(ns) e {bags_usando} bag(s).'
+            }), 400
+
+        db.session.delete(classificacao)
+        db.session.commit()
+
+        return jsonify({'mensagem': 'Classificação deletada com sucesso'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/categorias', methods=['GET'])
+@jwt_required()
+def listar_categorias():
+    """Lista todas as categorias disponíveis (incluindo personalizadas)"""
+    try:
+        categorias_padrao = ['HIGH_GRADE', 'MID_GRADE', 'LOW_GRADE', 'RESIDUO', 'OUTRO']
+        
+        categorias_customizadas = db.session.query(
+            ClassificacaoGrade.categoria
+        ).distinct().all()
+        
+        todas_categorias = set(categorias_padrao)
+        for (cat,) in categorias_customizadas:
+            if cat:
+                todas_categorias.add(cat)
+        
+        return jsonify(sorted(list(todas_categorias)))
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/categorias', methods=['POST'])
+@jwt_required()
+def criar_categoria():
+    """Cria uma nova categoria personalizada"""
+    try:
+        current_user_id = get_jwt_identity()
+        usuario = Usuario.query.get(current_user_id)
+        if not usuario or usuario.tipo != 'admin':
+            return jsonify({'erro': 'Acesso não autorizado'}), 403
+
+        dados = request.get_json()
+        nome_categoria = dados.get('nome', '').strip().upper().replace(' ', '_')
+        
+        if not nome_categoria:
+            return jsonify({'erro': 'Nome da categoria é obrigatório'}), 400
+        
+        return jsonify({'categoria': nome_categoria, 'mensagem': 'Categoria criada com sucesso'})
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
 # ============================
 # ORDENS DE PRODUÇÃO
 # ============================

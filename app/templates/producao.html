@@ -233,12 +233,18 @@
                 </div>
                 <div class="form-group">
                     <label>Categoria</label>
-                    <select id="classificacaoCategoria" required>
-                        <option value="HIGH_GRADE">High Grade</option>
-                        <option value="MID_GRADE">Mid Grade</option>
-                        <option value="LOW_GRADE">Low Grade</option>
-                        <option value="RESIDUO">Resíduo</option>
-                    </select>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <select id="classificacaoCategoria" required style="flex: 1;">
+                            <option value="HIGH_GRADE">High Grade</option>
+                            <option value="MID_GRADE">Mid Grade</option>
+                            <option value="LOW_GRADE">Low Grade</option>
+                            <option value="RESIDUO">Resíduo</option>
+                            <option value="OUTRO">Outro</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary" onclick="abrirModalNovaCategoria()" title="Adicionar nova categoria">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Código</label>
@@ -277,7 +283,8 @@
                 carregarDashboard(),
                 carregarOrdens(),
                 carregarFornecedoresELotes(),
-                carregarClassificacoes()
+                carregarClassificacoes(),
+                carregarCategorias()
             ]);
             await atualizarNotificacoes();
         }
@@ -419,9 +426,14 @@
                             ${c.codigo ? `<span style="color: var(--gray-500); font-size: 0.75rem;"> (${c.codigo})</span>` : ''}
                             ${c.preco_estimado_kg ? `<span style="margin-left: 1rem; color: var(--success-color);">R$ ${parseFloat(c.preco_estimado_kg).toFixed(2)}/kg</span>` : ''}
                         </div>
-                        <button class="btn btn-secondary btn-sm" onclick="editarClassificacao(${c.id})">
-                            <i class="fas fa-edit"></i>
-                        </button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary btn-sm" onclick="editarClassificacao(${c.id})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deletarClassificacao(${c.id}, '${c.nome.replace(/'/g, "\\'")}')" title="Deletar" style="background: var(--danger-color); color: white;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `).join('');
             });
@@ -656,6 +668,7 @@
                     showAlert('Classificação salva com sucesso!', 'success');
                     fecharModal('modalNovaClassificacao');
                     carregarClassificacoes();
+                    carregarCategorias();
                 } else {
                     const erro = await response.json();
                     showAlert(erro.erro || 'Erro ao salvar', 'error');
@@ -664,6 +677,70 @@
                 console.error('Erro:', error);
                 showAlert('Erro ao salvar classificação', 'error');
             }
+        }
+
+        async function deletarClassificacao(id, nome) {
+            if (!confirm(`Tem certeza que deseja deletar a classificação "${nome}"?\n\nEsta ação não pode ser desfeita.`)) return;
+            try {
+                const response = await fetchAPI(`/producao/classificacoes/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showAlert('Classificação deletada com sucesso!', 'success');
+                    carregarClassificacoes();
+                } else {
+                    const erro = await response.json();
+                    showAlert(erro.erro || 'Erro ao deletar', 'error');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showAlert('Erro ao deletar classificação', 'error');
+            }
+        }
+
+        async function carregarCategorias() {
+            try {
+                const response = await fetchAPI('/producao/categorias');
+                if (response.ok) {
+                    const categorias = await response.json();
+                    const select = document.getElementById('classificacaoCategoria');
+                    const valorAtual = select.value;
+                    select.innerHTML = categorias.map(cat => 
+                        `<option value="${cat}">${getCategoriaLabel(cat)}</option>`
+                    ).join('');
+                    if (valorAtual && categorias.includes(valorAtual)) {
+                        select.value = valorAtual;
+                    }
+                    const selectFiltro = document.getElementById('filtroCategoriaBag');
+                    if (selectFiltro) {
+                        selectFiltro.innerHTML = '<option value="">Todas</option>' + 
+                            categorias.map(cat => `<option value="${cat}">${getCategoriaLabel(cat)}</option>`).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar categorias:', error);
+            }
+        }
+
+        function abrirModalNovaCategoria() {
+            const nome = prompt('Digite o nome da nova categoria:');
+            if (!nome || !nome.trim()) return;
+            
+            const nomeFormatado = nome.trim().toUpperCase().replace(/\s+/g, '_');
+            const select = document.getElementById('classificacaoCategoria');
+            
+            const opcaoExistente = Array.from(select.options).find(opt => opt.value === nomeFormatado);
+            if (opcaoExistente) {
+                select.value = nomeFormatado;
+                showAlert('Esta categoria já existe. Selecionada automaticamente.', 'info');
+                return;
+            }
+            
+            const novaOpcao = document.createElement('option');
+            novaOpcao.value = nomeFormatado;
+            novaOpcao.textContent = getCategoriaLabel(nomeFormatado);
+            select.appendChild(novaOpcao);
+            select.value = nomeFormatado;
+            
+            showAlert(`Categoria "${getCategoriaLabel(nomeFormatado)}" adicionada!`, 'success');
         }
 
         async function enviarParaRefinaria(bagId) {
@@ -708,8 +785,9 @@
         }
 
         function getCategoriaLabel(cat) {
-            const labels = { HIGH_GRADE: 'High Grade', MID_GRADE: 'Mid Grade', LOW_GRADE: 'Low Grade', RESIDUO: 'Resíduo' };
-            return labels[cat] || cat;
+            const labels = { HIGH_GRADE: 'High Grade', MID_GRADE: 'Mid Grade', LOW_GRADE: 'Low Grade', RESIDUO: 'Resíduo', OUTRO: 'Outro' };
+            if (labels[cat]) return labels[cat];
+            return cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
 
         function formatarData(data) {

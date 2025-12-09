@@ -2042,8 +2042,6 @@ class ClassificacaoGrade(db.Model):  # type: ignore
     criador = db.relationship('Usuario', backref='classificacoes_grade_criadas')
 
     def __init__(self, **kwargs: Any) -> None:
-        if 'categoria' in kwargs and kwargs['categoria'] not in ['HIGH_GRADE', 'MID_GRADE', 'LOW_GRADE', 'RESIDUO', 'OUTRO']:
-            raise ValueError('Categoria deve ser: HIGH_GRADE, MID_GRADE, LOW_GRADE, RESIDUO ou OUTRO')
         super().__init__(**kwargs)
 
     def to_dict(self):
