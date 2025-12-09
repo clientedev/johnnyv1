@@ -362,9 +362,25 @@ def finalizar_ordem(id):
     try:
         current_user_id = get_jwt_identity()
         ordem = OrdemProducao.query.get_or_404(id)
+        dados = request.get_json() or {}
 
         if ordem.status not in ['aberta', 'em_separacao']:
             return jsonify({'erro': 'Ordem não pode ser finalizada'}), 400
+
+        categorias = set()
+        for item in ordem.itens_separados:
+            if item.classificacao_grade:
+                categorias.add(item.classificacao_grade.categoria)
+        
+        categorias_mistas = len(categorias) > 1
+        categoria_manual = dados.get('categoria_manual')
+        
+        if categorias_mistas and not categoria_manual:
+            return jsonify({
+                'erro': 'Este bag possui categorias mistas. Por favor, defina uma categoria manual.',
+                'categorias_mistas': True,
+                'categorias': list(categorias)
+            }), 400
 
         peso_total_separado = sum(float(item.peso_kg) for item in ordem.itens_separados)
         peso_entrada = float(ordem.peso_entrada) if ordem.peso_entrada else 0
@@ -383,6 +399,14 @@ def finalizar_ordem(id):
         ordem.status = 'finalizada'
         ordem.finalizado_por_id = current_user_id
         ordem.data_finalizacao = datetime.utcnow()
+
+        if categorias_mistas and categoria_manual:
+            bag_ids = set(item.bag_id for item in ordem.itens_separados if item.bag_id)
+            for bag_id in bag_ids:
+                bag = BagProducao.query.get(bag_id)
+                if bag:
+                    bag.categoria_manual = categoria_manual
+                    bag.categorias_mistas = True
 
         db.session.commit()
         return jsonify(ordem.to_dict())

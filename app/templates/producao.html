@@ -403,7 +403,10 @@
                     <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 0.5rem;">
                         <div>
                             <h4 style="margin: 0 0 0.25rem 0; color: var(--primary-color);">${bag.codigo}</h4>
-                            <p style="margin: 0; font-size: 0.875rem; color: var(--gray-600);">${bag.classificacao_nome || 'Sem classificação'}</p>
+                            <p style="margin: 0; font-size: 0.875rem; color: var(--gray-600);">
+                                ${bag.categoria_exibicao ? getCategoriaLabel(bag.categoria_exibicao) : (bag.classificacao_nome || 'Sem classificação')}
+                                ${bag.categorias_mistas ? '<span class="badge badge-warning" style="margin-left: 0.5rem; font-size: 0.65rem;">Misto</span>' : ''}
+                            </p>
                         </div>
                         <span class="badge ${getBagBadgeClass(bag.status)}">${getBagStatusLabel(bag.status)}</span>
                     </div>

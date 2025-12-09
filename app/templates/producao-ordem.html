@@ -220,6 +220,9 @@
 
         async function carregarOrdem() {
             try {
+                if (classificacoes.length === 0) {
+                    await carregarClassificacoes();
+                }
                 const response = await fetchAPI(`/producao/ordens/${ordemId}`);
                 if (response.ok) {
                     ordem = await response.json();
@@ -302,6 +305,50 @@
             
             renderizarItens(ordem.itens_separados || []);
             atualizarBotoes();
+            analisarCategorias();
+        }
+
+        function analisarCategorias() {
+            const container = document.getElementById('categoriaAnaliseContainer');
+            const itens = ordem.itens_separados || [];
+            
+            if (itens.length === 0) {
+                container.style.display = 'none';
+                analiseCategoria = { misto: false, categorias: [], categoriaUnica: null };
+                return;
+            }
+            
+            const categoriasSet = new Set();
+            itens.forEach(item => {
+                const classif = classificacoes.find(c => c.id === item.classificacao_grade_id);
+                if (classif) categoriasSet.add(classif.categoria);
+            });
+            
+            const categoriasArray = Array.from(categoriasSet);
+            analiseCategoria.categorias = categoriasArray;
+            
+            if (categoriasArray.length === 1) {
+                analiseCategoria.misto = false;
+                analiseCategoria.categoriaUnica = categoriasArray[0];
+                container.innerHTML = `
+                    <div class="card" style="background: #d1fae5; border: 1px solid #059669;">
+                        <i class="fas fa-check-circle" style="color: #059669;"></i>
+                        <span style="color: #065f46; margin-left: 0.5rem;">Todos os itens pertencem à categoria: <strong>${getCategoriaLabel(categoriasArray[0])}</strong></span>
+                    </div>`;
+                container.style.display = 'block';
+            } else if (categoriasArray.length > 1) {
+                analiseCategoria.misto = true;
+                analiseCategoria.categoriaUnica = null;
+                const labels = categoriasArray.map(c => getCategoriaLabel(c)).join(', ');
+                container.innerHTML = `
+                    <div class="card" style="background: #fef3c7; border: 1px solid #f59e0b;">
+                        <i class="fas fa-exclamation-triangle" style="color: #92400e;"></i>
+                        <span style="color: #92400e; margin-left: 0.5rem;">Categorias mistas detectadas: <strong>${labels}</strong>. Ao finalizar, será necessário definir um nome para a categoria do bag.</span>
+                    </div>`;
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
         }
 
         function renderizarItens(itens) {
@@ -414,18 +461,50 @@
 
         async function finalizarOP() {
             if (!confirm('Confirma a finalização desta Ordem de Produção?')) return;
+            
+            if (analiseCategoria.misto) {
+                document.getElementById('modalCategoriaManual').style.display = 'flex';
+                return;
+            }
+            
+            await executarFinalizacao();
+        }
+
+        async function executarFinalizacao(categoriaManual = null) {
             try {
-                const response = await fetchAPI(`/producao/ordens/${ordemId}/finalizar`, { method: 'POST' });
+                const body = categoriaManual ? JSON.stringify({ categoria_manual: categoriaManual }) : null;
+                const response = await fetchAPI(`/producao/ordens/${ordemId}/finalizar`, {
+                    method: 'POST',
+                    body: body
+                });
                 if (response.ok) {
                     showAlert('OP finalizada com sucesso!', 'success');
+                    fecharModal('modalCategoriaManual');
                     carregarOrdem();
                 } else {
                     const erro = await response.json();
-                    showAlert(erro.erro || 'Erro ao finalizar', 'error');
+                    if (erro.categorias_mistas) {
+                        analiseCategoria.misto = true;
+                        analiseCategoria.categorias = erro.categorias || [];
+                        document.getElementById('modalCategoriaManual').style.display = 'flex';
+                        showAlert('Por favor, defina uma categoria para este bag misto.', 'warning');
+                    } else {
+                        showAlert(erro.erro || 'Erro ao finalizar', 'error');
+                    }
                 }
             } catch (error) {
                 showAlert('Erro ao finalizar OP', 'error');
             }
+        }
+
+        async function confirmarFinalizacaoComCategoria(event) {
+            event.preventDefault();
+            const categoriaManual = document.getElementById('inputCategoriaManual').value.trim();
+            if (!categoriaManual) {
+                showAlert('Por favor, informe a categoria', 'error');
+                return;
+            }
+            await executarFinalizacao(categoriaManual);
         }
 
         async function cancelarOP() {
