@@ -376,7 +376,12 @@ def finalizar_ordem(id):
     try:
         current_user_id = get_jwt_identity()
         ordem = OrdemProducao.query.get_or_404(id)
-        dados = request.get_json() or {}
+        
+        # Tentar obter JSON, mas aceitar requisições sem corpo
+        try:
+            dados = request.get_json(silent=True) or {}
+        except:
+            dados = {}
 
         if ordem.status not in ['aberta', 'em_separacao']:
             return jsonify({'erro': 'Ordem não pode ser finalizada'}), 400
