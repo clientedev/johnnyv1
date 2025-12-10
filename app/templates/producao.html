@@ -415,10 +415,20 @@
                         <div><strong>Itens:</strong> ${bag.quantidade_itens || 0}</div>
                     </div>
                     ${bag.status === 'cheio' ? `
-                        <div style="margin-top: 1rem;">
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn btn-success btn-sm" onclick="event.stopPropagation(); devolverAoEstoque(${bag.id})">
+                                <i class="fas fa-warehouse"></i> Devolver ao Estoque
+                            </button>
                             <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); enviarParaRefinaria(${bag.id})">
                                 <i class="fas fa-industry"></i> Enviar para Refinaria
                             </button>
+                        </div>
+                    ` : ''}
+                    ${bag.status === 'devolvido_estoque' ? `
+                        <div style="margin-top: 1rem;">
+                            <span class="badge badge-success" style="font-size: 0.8rem;">
+                                <i class="fas fa-check-circle"></i> No Estoque Ativo
+                            </span>
                         </div>
                     ` : ''}
                 </div>
@@ -934,6 +944,23 @@
             }
         }
 
+        async function devolverAoEstoque(bagId) {
+            if (!confirm('Confirma devolução deste bag ao estoque ativo?')) return;
+            try {
+                const response = await fetchAPI(`/producao/bags/${bagId}/devolver-estoque`, { method: 'POST' });
+                if (response.ok) {
+                    showAlert('Bag devolvido ao estoque!', 'success');
+                    carregarBags();
+                    carregarDashboard();
+                } else {
+                    const erro = await response.json();
+                    showAlert(erro.erro || 'Erro ao devolver', 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao devolver bag ao estoque', 'error');
+            }
+        }
+
         function fecharModal(id) {
             document.getElementById(id).style.display = 'none';
         }
@@ -949,12 +976,12 @@
         }
 
         function getBagBadgeClass(status) {
-            const classes = { aberto: 'badge-success', cheio: 'badge-warning', enviado_refinaria: 'badge-info' };
+            const classes = { aberto: 'badge-success', cheio: 'badge-warning', enviado_refinaria: 'badge-info', devolvido_estoque: 'badge-success' };
             return classes[status] || 'badge-info';
         }
 
         function getBagStatusLabel(status) {
-            const labels = { aberto: 'Aberto', cheio: 'Cheio', enviado_refinaria: 'Enviado' };
+            const labels = { aberto: 'Aberto', cheio: 'Cheio', enviado_refinaria: 'Enviado', devolvido_estoque: 'No Estoque' };
             return labels[status] || status;
         }
 

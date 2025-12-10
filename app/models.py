@@ -2270,7 +2270,7 @@ class BagProducao(db.Model):  # type: ignore
     # Lotes de origem (para rastreabilidade)
     lotes_origem = db.Column(db.JSON, default=lambda: [], nullable=True)  # Lista de IDs das OPs
     
-    # Status: aberto, cheio, enviado_refinaria
+    # Status: aberto, cheio, enviado_refinaria, devolvido_estoque
     status = db.Column(db.String(30), default='aberto', nullable=False)
     
     # Envio para refinaria
@@ -2294,8 +2294,8 @@ class BagProducao(db.Model):  # type: ignore
     enviado_por = db.relationship('Usuario', foreign_keys=[enviado_por_id], backref='bags_enviados')
 
     def __init__(self, **kwargs: Any) -> None:
-        if 'status' in kwargs and kwargs['status'] not in ['aberto', 'cheio', 'enviado_refinaria']:
-            raise ValueError('Status deve ser: aberto, cheio ou enviado_refinaria')
+        if 'status' in kwargs and kwargs['status'] not in ['aberto', 'cheio', 'enviado_refinaria', 'devolvido_estoque']:
+            raise ValueError('Status deve ser: aberto, cheio, enviado_refinaria ou devolvido_estoque')
         super().__init__(**kwargs)
 
     @staticmethod

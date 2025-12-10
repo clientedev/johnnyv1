@@ -87,3 +87,11 @@ def planejamento_conquistas():
 @bp.route('/assistente.html')
 def assistente():
     return render_template('assistente.html')
+
+@bp.route('/estoque-ativo.html')
+def estoque_ativo():
+    return render_template('estoque-ativo.html')
+
+@bp.route('/producao.html')
+def producao():
+    return render_template('producao.html')

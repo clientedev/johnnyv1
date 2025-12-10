@@ -71,7 +71,7 @@ def create_app():
                                 ordens_servico, conferencias, estoque, separacao, wms, pages,
                                 materiais_base, tabelas_preco, autorizacoes_preco, compras,
                                 fornecedor_tabela_precos, metais, conquistas, assistente, scanner, rh, visitas,
-                                producao)
+                                producao, estoque_ativo)
         from app.routes import solicitacoes_new as solicitacoes
         from app.routes import lotes_new as lotes
         from app.routes import entradas_new as entradas
@@ -112,6 +112,7 @@ def create_app():
         app.register_blueprint(rh.bp)
         app.register_blueprint(visitas.bp)
         app.register_blueprint(producao.bp)
+        app.register_blueprint(estoque_ativo.bp)
 
         def run_hr_migration():
             try:

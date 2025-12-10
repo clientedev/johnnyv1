@@ -304,6 +304,14 @@ def criar_ordem():
         )
 
         db.session.add(ordem)
+        
+        if lotes_ids and len(lotes_ids) > 0:
+            for lote_id in lotes_ids:
+                lote = Lote.query.get(lote_id)
+                if lote:
+                    lote.status = 'em_producao'
+                    logger.info(f'Lote {lote.numero_lote} marcado como em_producao para OP {numero_op}')
+        
         db.session.commit()
 
         return jsonify(ordem.to_dict()), 201
@@ -679,6 +687,36 @@ def enviar_bag_refinaria(id):
     except Exception as e:
         db.session.rollback()
         logger.error(f'Erro ao enviar bag {id} para refinaria: {str(e)}')
+        return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/bags/<int:id>/devolver-estoque', methods=['POST'])
+@jwt_required()
+def devolver_bag_estoque(id):
+    """Devolve um bag ao estoque ativo"""
+    try:
+        current_user_id = get_jwt_identity()
+        usuario = Usuario.query.get(current_user_id)
+        if not usuario or usuario.tipo != 'admin':
+            return jsonify({'erro': 'Apenas administradores podem devolver bags ao estoque'}), 403
+
+        bag = BagProducao.query.get_or_404(id)
+
+        if bag.status == 'devolvido_estoque':
+            return jsonify({'erro': 'Bag já está no estoque'}), 400
+
+        if bag.status == 'enviado_refinaria':
+            return jsonify({'erro': 'Bag já foi enviado para refinaria e não pode ser devolvido'}), 400
+
+        bag.status = 'devolvido_estoque'
+        bag.data_atualizacao = datetime.utcnow()
+
+        db.session.commit()
+        logger.info(f'Bag {bag.codigo} devolvido ao estoque por {usuario.nome}')
+        return jsonify(bag.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erro ao devolver bag {id} ao estoque: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
