@@ -419,9 +419,6 @@
                             <button class="btn btn-success btn-sm" onclick="event.stopPropagation(); devolverAoEstoque(${bag.id})">
                                 <i class="fas fa-warehouse"></i> Devolver ao Estoque
                             </button>
-                            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); enviarParaRefinaria(${bag.id})">
-                                <i class="fas fa-industry"></i> Enviar para Refinaria
-                            </button>
                         </div>
                     ` : ''}
                     ${bag.status === 'devolvido_estoque' ? `
