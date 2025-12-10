@@ -531,8 +531,8 @@
                     <tr>
                         <th>Material</th>
                         <th>Preco Fornecedor</th>
-                        <th>Media Sistema / Estrelas</th>
-                        <th>Diferenca da Media</th>
+                        <th>Valores por Estrela</th>
+                        <th>Diferenca da Estrela Proxima</th>
                         <th>Acoes</th>
                     </tr>
                 </thead>
@@ -681,25 +681,55 @@
             }
             
             tbody.innerHTML = itens.map(item => {
-                const diferencaIcon = item.diferenca_percentual > 0 ? 'fa-arrow-up' : 
-                                     item.diferenca_percentual < 0 ? 'fa-arrow-down' : 'fa-minus';
-                const diferencaClass = item.status_comparacao === 'acima' ? 'acima' :
-                                      item.status_comparacao === 'abaixo' ? 'abaixo' : 'media';
+                const precoFornecedor = item.preco_fornecedor || 0;
+                const precosEstrela = item.precos_por_estrela || {};
                 
-                const estrelasMedia = item.estrelas_media || 0;
+                const preco1 = precosEstrela[1] || 0;
+                const preco2 = precosEstrela[2] || 0;
+                const preco3 = precosEstrela[3] || 0;
+                
+                let estrelaMaisProxima = 0;
+                let valorMaisProximo = 0;
+                let menorDiferenca = Infinity;
+                
+                [1, 2, 3].forEach(nivel => {
+                    const precoEstrela = precosEstrela[nivel];
+                    if (precoEstrela && precoEstrela > 0) {
+                        const diff = Math.abs(precoFornecedor - precoEstrela);
+                        if (diff < menorDiferenca) {
+                            menorDiferenca = diff;
+                            estrelaMaisProxima = nivel;
+                            valorMaisProximo = precoEstrela;
+                        }
+                    }
+                });
+                
                 let estrelas = '';
                 for (let i = 1; i <= 3; i++) {
-                    if (i <= Math.floor(estrelasMedia)) {
+                    if (i <= estrelaMaisProxima) {
                         estrelas += `<i class="fas fa-star estrela"></i>`;
-                    } else if (i === Math.ceil(estrelasMedia) && estrelasMedia % 1 !== 0) {
-                        estrelas += `<i class="fas fa-star-half-alt estrela"></i>`;
                     } else {
                         estrelas += `<i class="fas fa-star estrela vazia"></i>`;
                     }
                 }
                 
-                const statusTexto = item.status_comparacao === 'acima' ? 'acima da media' :
-                                   item.status_comparacao === 'abaixo' ? 'abaixo da media' : 'na media';
+                let diferencaPercentual = 0;
+                let diferencaClass = 'media';
+                let statusTexto = 'na estrela';
+                
+                if (valorMaisProximo > 0) {
+                    diferencaPercentual = ((precoFornecedor - valorMaisProximo) / valorMaisProximo) * 100;
+                    if (diferencaPercentual > 0) {
+                        diferencaClass = 'acima';
+                        statusTexto = 'acima da estrela';
+                    } else if (diferencaPercentual < 0) {
+                        diferencaClass = 'abaixo';
+                        statusTexto = 'abaixo da estrela';
+                    }
+                }
+                
+                const diferencaIcon = diferencaPercentual > 0 ? 'fa-arrow-up' : 
+                                     diferencaPercentual < 0 ? 'fa-arrow-down' : 'fa-minus';
                 
                 const materialNomeEscaped = (item.material_nome || '').replace(/'/g, "\\'");
                 
@@ -712,23 +742,33 @@
                             </div>
                         </td>
                         <td>
-                            <span class="preco-cell">R$ ${item.preco_fornecedor.toFixed(2)}</span>
+                            <span class="preco-cell">R$ ${precoFornecedor.toFixed(2)}</span>
                         </td>
                         <td>
                             <div class="comparacao-cell">
-                                <span class="media-valor">R$ ${(item.media_sistema || 0).toFixed(2)}</span>
-                                <div class="estrelas-cell">${estrelas}</div>
+                                <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem;">
+                                    <span style="color: ${estrelaMaisProxima === 1 ? '#059669; font-weight: 600;' : '#6b7280;'}">
+                                        <i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i> R$ ${preco1.toFixed(2)}
+                                    </span>
+                                    <span style="color: ${estrelaMaisProxima === 2 ? '#059669; font-weight: 600;' : '#6b7280;'}">
+                                        <i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i><i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i> R$ ${preco2.toFixed(2)}
+                                    </span>
+                                    <span style="color: ${estrelaMaisProxima === 3 ? '#059669; font-weight: 600;' : '#6b7280;'}">
+                                        <i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i><i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i><i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i> R$ ${preco3.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div class="estrelas-cell" style="margin-top: 0.5rem;">${estrelas}</div>
                             </div>
                         </td>
                         <td>
                             <span class="diferenca-badge ${diferencaClass}">
                                 <i class="fas ${diferencaIcon}"></i>
-                                ${Math.abs(item.diferenca_percentual).toFixed(2)}%
+                                ${Math.abs(diferencaPercentual).toFixed(2)}%
                             </span>
                             <div class="valor-35">${statusTexto}</div>
                         </td>
                         <td>
-                            <button class="btn-edit" onclick="abrirModalEditar(${item.id}, '${materialNomeEscaped}', ${item.preco_fornecedor})" title="Editar preco">
+                            <button class="btn-edit" onclick="abrirModalEditar(${item.id}, '${materialNomeEscaped}', ${precoFornecedor})" title="Editar preco">
                                 <i class="fas fa-edit"></i>
                             </button>
                         </td>
