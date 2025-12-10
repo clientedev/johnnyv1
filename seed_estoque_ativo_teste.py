@@ -127,9 +127,17 @@ def criar_lotes_com_separacao():
             # Buscar ou criar tipo de lote específico para o material
             tipo_sublote = TipoLote.query.filter_by(nome=classificacao.nome).first()
             if not tipo_sublote:
+                # Gerar código único verificando se já existe
+                codigo_base = f'MAT-{sep_idx:03d}'
+                contador = 0
+                codigo = codigo_base
+                while TipoLote.query.filter_by(codigo=codigo).first():
+                    contador += 1
+                    codigo = f'MAT-{sep_idx:03d}-{contador}'
+                
                 tipo_sublote = TipoLote(
                     nome=classificacao.nome,
-                    codigo=f'MAT-{sep_idx:03d}',
+                    codigo=codigo,
                     ativo=True
                 )
                 db.session.add(tipo_sublote)
@@ -270,6 +278,19 @@ def main():
             return
         
         print(f"👤 Admin: {admin.nome}")
+        
+        # Limpar dados de teste anteriores (lotes com números começando com LT-202512)
+        print("\n🗑️  Limpando dados de teste anteriores...")
+        lotes_teste = Lote.query.filter(Lote.numero_lote.like('LT-202512%')).all()
+        for lote in lotes_teste:
+            # Deletar sublotes primeiro
+            sublotes = Lote.query.filter_by(lote_pai_id=lote.id).all()
+            for sublote in sublotes:
+                db.session.delete(sublote)
+            # Deletar lote principal
+            db.session.delete(lote)
+        db.session.commit()
+        print(f"✅ {len(lotes_teste)} lotes de teste removidos")
         
         # Criar dados
         lotes_separados = criar_lotes_com_separacao()
