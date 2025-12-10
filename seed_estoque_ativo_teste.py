@@ -101,11 +101,14 @@ def criar_lotes_com_separacao():
             status='em_estoque',
             qualidade_recebida='Boa',
             localizacao_atual=f'SETOR-{chr(65+idx)}1',
+            lote_pai_id=None,  # Explicitamente definir como lote principal
             data_criacao=datetime.utcnow() - timedelta(days=random.randint(5, 15)),
             observacoes=f'{lote_data["material"]} - Lote recebido e separado'
         )
         db.session.add(lote_principal)
         db.session.flush()
+        
+        logger.info(f"✅ Lote principal {numero} criado com ID {lote_principal.id}")
         
         print(f"\n✅ Lote principal criado: {numero}")
         print(f"   Material: {lote_data['material']}")

@@ -14,23 +14,25 @@ LOTES_ATIVOS_STATUS = ['em_estoque', 'disponivel', 'aprovado', 'em_producao']
 @jwt_required()
 def dashboard_estoque_ativo():
     try:
-        # Contar lotes ativos (incluindo sublotes)
+        # Contar APENAS lotes PRINCIPAIS ativos (sem lote_pai_id)
         lotes_ativos = Lote.query.filter(
             Lote.status.in_(LOTES_ATIVOS_STATUS),
-            Lote.bloqueado == False
+            Lote.bloqueado == False,
+            Lote.lote_pai_id.is_(None)
         ).count()
 
-        # Contar lotes em produção (incluindo sublotes)
+        # Contar lotes principais em produção
         em_producao = Lote.query.filter(
             Lote.status == 'em_producao',
-            Lote.bloqueado == False
+            Lote.bloqueado == False,
+            Lote.lote_pai_id.is_(None)
         ).count()
 
         bags_estoque = BagProducao.query.filter(
             BagProducao.status.in_(['devolvido_estoque', 'cheio', 'aberto'])
         ).count()
 
-        # Somar peso de lotes ativos (incluindo sublotes)
+        # Somar peso de TODOS os lotes ativos (principais e sublotes)
         peso_total_lotes = db.session.query(
             db.func.sum(db.func.coalesce(Lote.peso_liquido, Lote.peso_total_kg))
         ).filter(
@@ -66,7 +68,10 @@ def listar_lotes_ativos():
         query = Lote.query.options(
             joinedload(Lote.tipo_lote),
             joinedload(Lote.fornecedor),
-            selectinload(Lote.sublotes).joinedload(Lote.tipo_lote)
+            selectinload(Lote.sublotes).options(
+                joinedload(Lote.tipo_lote),
+                joinedload(Lote.fornecedor)
+            )
         ).filter(
             Lote.bloqueado == False,
             Lote.lote_pai_id.is_(None)  # Apenas lotes principais
