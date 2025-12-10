@@ -36,24 +36,118 @@ def init_database(drop_existing=False):
             db.create_all()
             print("✅ Tabelas criadas/verificadas com sucesso!")
 
-            # Executar migração 020 se necessário (inline, sem arquivo)
+            # Executar migrações automáticas
+            from sqlalchemy import text
+            
+            print("🔄 Verificando e aplicando migrações...")
+            
+            # Migração: bags_producao - colunas faltantes para módulo de produção
             try:
-                from sqlalchemy import text
-                result = db.session.execute(text(
-                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'fornecedores' AND column_name = 'tabela_preco_status'"
-                ))
-                if not result.fetchone():
-                    print("🔄 Aplicando migração 020 (colunas de tabela de preço)...")
-                    migration_sql = """
-                    DO $$
-                    BEGIN
+                migration_producao = """
+                DO $$
+                BEGIN
+                    -- Colunas para bags_producao
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'bags_producao') THEN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'bags_producao' 
+                            AND column_name = 'categoria_manual'
+                        ) THEN
+                            ALTER TABLE bags_producao ADD COLUMN categoria_manual VARCHAR(100);
+                            RAISE NOTICE 'Adicionada coluna bags_producao.categoria_manual';
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'bags_producao' 
+                            AND column_name = 'categorias_mistas'
+                        ) THEN
+                            ALTER TABLE bags_producao ADD COLUMN categorias_mistas BOOLEAN DEFAULT FALSE NOT NULL;
+                            RAISE NOTICE 'Adicionada coluna bags_producao.categorias_mistas';
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'bags_producao' 
+                            AND column_name = 'observacoes'
+                        ) THEN
+                            ALTER TABLE bags_producao ADD COLUMN observacoes TEXT;
+                            RAISE NOTICE 'Adicionada coluna bags_producao.observacoes';
+                        END IF;
+                    END IF;
+
+                    -- Colunas para usuarios
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'usuarios') THEN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'usuarios' 
+                            AND column_name = 'foto_path'
+                        ) THEN
+                            ALTER TABLE usuarios ADD COLUMN foto_path VARCHAR(255);
+                            RAISE NOTICE 'Adicionada coluna usuarios.foto_path';
+                        END IF;
+                    END IF;
+
+                    -- Colunas para itens_producao
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'itens_producao') THEN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'itens_producao' 
+                            AND column_name = 'custo_proporcional'
+                        ) THEN
+                            ALTER TABLE itens_producao ADD COLUMN custo_proporcional NUMERIC(10,2) DEFAULT 0;
+                            RAISE NOTICE 'Adicionada coluna itens_producao.custo_proporcional';
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'itens_producao' 
+                            AND column_name = 'valor_estimado'
+                        ) THEN
+                            ALTER TABLE itens_producao ADD COLUMN valor_estimado NUMERIC(10,2) DEFAULT 0;
+                            RAISE NOTICE 'Adicionada coluna itens_producao.valor_estimado';
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'itens_producao' 
+                            AND column_name = 'entrada_estoque_id'
+                        ) THEN
+                            ALTER TABLE itens_producao ADD COLUMN entrada_estoque_id INTEGER;
+                            RAISE NOTICE 'Adicionada coluna itens_producao.entrada_estoque_id';
+                        END IF;
+                    END IF;
+
+                    -- Colunas para ordens_producao
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ordens_producao') THEN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'ordens_producao' 
+                            AND column_name = 'custo_total_aquisicao'
+                        ) THEN
+                            ALTER TABLE ordens_producao ADD COLUMN custo_total_aquisicao NUMERIC(12,2) DEFAULT 0;
+                            RAISE NOTICE 'Adicionada coluna ordens_producao.custo_total_aquisicao';
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'ordens_producao' 
+                            AND column_name = 'valor_total_estimado'
+                        ) THEN
+                            ALTER TABLE ordens_producao ADD COLUMN valor_total_estimado NUMERIC(12,2) DEFAULT 0;
+                            RAISE NOTICE 'Adicionada coluna ordens_producao.valor_total_estimado';
+                        END IF;
+                    END IF;
+
+                    -- Colunas para fornecedores (migração 020)
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'fornecedores') THEN
                         IF NOT EXISTS (
                             SELECT 1 FROM information_schema.columns 
                             WHERE table_name = 'fornecedores' 
                             AND column_name = 'tabela_preco_status'
                         ) THEN
-                            ALTER TABLE fornecedores 
-                            ADD COLUMN tabela_preco_status VARCHAR(20) DEFAULT 'pendente';
+                            ALTER TABLE fornecedores ADD COLUMN tabela_preco_status VARCHAR(20) DEFAULT 'pendente';
+                            RAISE NOTICE 'Adicionada coluna fornecedores.tabela_preco_status';
                         END IF;
 
                         IF NOT EXISTS (
@@ -61,8 +155,8 @@ def init_database(drop_existing=False):
                             WHERE table_name = 'fornecedores' 
                             AND column_name = 'tabela_preco_aprovada_em'
                         ) THEN
-                            ALTER TABLE fornecedores 
-                            ADD COLUMN tabela_preco_aprovada_em TIMESTAMP;
+                            ALTER TABLE fornecedores ADD COLUMN tabela_preco_aprovada_em TIMESTAMP;
+                            RAISE NOTICE 'Adicionada coluna fornecedores.tabela_preco_aprovada_em';
                         END IF;
 
                         IF NOT EXISTS (
@@ -70,22 +164,34 @@ def init_database(drop_existing=False):
                             WHERE table_name = 'fornecedores' 
                             AND column_name = 'tabela_preco_aprovada_por_id'
                         ) THEN
-                            ALTER TABLE fornecedores 
-                            ADD COLUMN tabela_preco_aprovada_por_id INTEGER REFERENCES usuarios(id);
+                            ALTER TABLE fornecedores ADD COLUMN tabela_preco_aprovada_por_id INTEGER;
+                            RAISE NOTICE 'Adicionada coluna fornecedores.tabela_preco_aprovada_por_id';
                         END IF;
-                    END $$;
+                    END IF;
 
-                    CREATE INDEX IF NOT EXISTS idx_fornecedores_tabela_preco_status 
-                    ON fornecedores(tabela_preco_status);
+                    -- Colunas para entradas_estoque
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'entradas_estoque') THEN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'entradas_estoque' 
+                            AND column_name = 'usado_producao'
+                        ) THEN
+                            ALTER TABLE entradas_estoque ADD COLUMN usado_producao BOOLEAN DEFAULT FALSE;
+                            RAISE NOTICE 'Adicionada coluna entradas_estoque.usado_producao';
+                        END IF;
+                    END IF;
+                END $$;
 
-                    CREATE INDEX IF NOT EXISTS idx_fornecedores_tabela_preco_aprovada_por 
-                    ON fornecedores(tabela_preco_aprovada_por_id);
-                    """
-                    db.session.execute(text(migration_sql))
-                    db.session.commit()
-                    print("✅ Migração 020 aplicada!")
+                -- Criar índices se não existirem
+                CREATE INDEX IF NOT EXISTS idx_bag_classificacao ON bags_producao(classificacao_grade_id);
+                CREATE INDEX IF NOT EXISTS idx_bag_status ON bags_producao(status);
+                CREATE INDEX IF NOT EXISTS idx_fornecedores_tabela_preco_status ON fornecedores(tabela_preco_status);
+                """
+                db.session.execute(text(migration_producao))
+                db.session.commit()
+                print("✅ Migrações de produção aplicadas!")
             except Exception as e:
-                print(f"⚠️  Aviso ao verificar migração: {e}")
+                print(f"⚠️  Aviso ao aplicar migrações: {e}")
                 db.session.rollback()
 
             # Lista as tabelas criadas

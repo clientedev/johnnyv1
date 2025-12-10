@@ -42,6 +42,11 @@ python -c "from app import create_app; print('✅ App importado com sucesso')" |
     exit 1
 }
 
+# Executa migrações de produção (adiciona colunas faltantes)
+echo ""
+echo "🔄 Executando migrações de produção..."
+python migrate_production.py 2>/dev/null || echo "⚠️  Migrações opcionais não aplicadas (pode ser primeira execução)"
+
 # Inicializa o banco de dados
 echo ""
 echo "📊 Inicializando banco de dados..."
