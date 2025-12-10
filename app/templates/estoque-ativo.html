@@ -488,23 +488,27 @@
         }
 
         function getBadgeClassLote(status) {
-            switch(status) {
+            const s = (status || '').toLowerCase();
+            switch(s) {
                 case 'em_estoque': return 'badge-success';
                 case 'disponivel': return 'badge-info';
                 case 'aprovado': return 'badge-success';
                 case 'em_producao': return 'badge-warning';
                 case 'processado': return 'badge-purple';
+                case 'criado_separacao': return 'badge-success';
                 default: return 'badge-info';
             }
         }
 
         function getStatusLabelLote(status) {
-            switch(status) {
+            const s = (status || '').toLowerCase();
+            switch(s) {
                 case 'em_estoque': return 'Em Estoque';
                 case 'disponivel': return 'Disponível';
                 case 'aprovado': return 'Aprovado';
                 case 'em_producao': return 'Em Produção';
                 case 'processado': return 'Processado';
+                case 'criado_separacao': return 'Em Estoque';
                 default: return status || 'N/A';
             }
         }

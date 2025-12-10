@@ -8,7 +8,8 @@ logger = logging.getLogger(__name__)
 
 bp = Blueprint('estoque_ativo', __name__, url_prefix='/api/estoque-ativo')
 
-LOTES_ATIVOS_STATUS = ['em_estoque', 'disponivel', 'aprovado', 'em_producao']
+# Status de lotes ativos (incluindo sublotes criados na separação)
+LOTES_ATIVOS_STATUS = ['em_estoque', 'disponivel', 'aprovado', 'em_producao', 'CRIADO_SEPARACAO', 'PROCESSADO', 'criado_separacao', 'processado']
 
 @bp.route('/dashboard', methods=['GET'])
 @jwt_required()
