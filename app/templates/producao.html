@@ -413,7 +413,6 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; margin-top: 1rem; font-size: 0.875rem;">
                         <div><strong>Peso:</strong> ${parseFloat(bag.peso_acumulado || 0).toFixed(2)} kg</div>
                         <div><strong>Itens:</strong> ${bag.quantidade_itens || 0}</div>
-                        <div><strong>Capacidade:</strong> ${parseFloat(bag.peso_capacidade_max || 50).toFixed(0)} kg</div>
                     </div>
                     ${bag.status === 'cheio' ? `
                         <div style="margin-top: 1rem;">
