@@ -139,6 +139,7 @@ def criar_lotes_com_separacao():
                 numero_lote=numero_sublote,
                 fornecedor_id=fornecedor.id,
                 tipo_lote_id=tipo_sublote.id,
+                peso_bruto_recebido=peso_sublote,
                 peso_total_kg=peso_sublote,
                 peso_liquido=peso_sublote,
                 quantidade_itens=qtd,
