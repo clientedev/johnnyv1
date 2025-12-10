@@ -419,11 +419,16 @@ def finalizar_ordem(id):
         ordem.finalizado_por_id = current_user_id
         ordem.data_finalizacao = datetime.utcnow()
 
-        # Atualizar bags conforme o tipo de categoria
+        # Atualizar bags conforme o tipo de categoria e marcar como cheio
         bag_ids = set(item.bag_id for item in ordem.itens_separados if item.bag_id)
         for bag_id in bag_ids:
             bag = BagProducao.query.get(bag_id)
             if bag:
+                # Marcar bag como cheio quando a OP é finalizada
+                if bag.status == 'aberto':
+                    bag.status = 'cheio'
+                    bag.data_atualizacao = datetime.utcnow()
+                
                 if categorias_mistas:
                     # Bag com categorias mistas - requer categoria manual
                     if categoria_manual:
