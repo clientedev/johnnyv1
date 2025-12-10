@@ -63,7 +63,7 @@ def listar_lotes_ativos():
         query = Lote.query.options(
             joinedload(Lote.tipo_lote),
             joinedload(Lote.fornecedor),
-            selectinload(Lote.sublotes)
+            selectinload(Lote.sublotes).joinedload(Lote.tipo_lote)
         ).filter(
             Lote.bloqueado == False,
             Lote.lote_pai_id == None
@@ -80,13 +80,30 @@ def listar_lotes_ativos():
         for lote in lotes:
             lote_dict = lote.to_dict()
             
+            # Carregar sublotes com informações completas
             sublotes_data = []
+            peso_total_sublotes = 0
             if lote.sublotes:
                 for sublote in lote.sublotes:
-                    sublote_dict = sublote.to_dict()
+                    sublote_dict = {
+                        'id': sublote.id,
+                        'numero_lote': sublote.numero_lote,
+                        'tipo_lote_id': sublote.tipo_lote_id,
+                        'tipo_lote_nome': sublote.tipo_lote.nome if sublote.tipo_lote else 'N/A',
+                        'peso_total_kg': float(sublote.peso_total_kg) if sublote.peso_total_kg else 0,
+                        'peso_liquido': float(sublote.peso_liquido) if sublote.peso_liquido else 0,
+                        'status': sublote.status,
+                        'qualidade_recebida': sublote.qualidade_recebida,
+                        'localizacao_atual': sublote.localizacao_atual,
+                        'observacoes': sublote.observacoes,
+                        'data_criacao': sublote.data_criacao.isoformat() if sublote.data_criacao else None
+                    }
                     sublotes_data.append(sublote_dict)
+                    peso_total_sublotes += float(sublote.peso_total_kg) if sublote.peso_total_kg else 0
             
             lote_dict['sublotes'] = sublotes_data
+            lote_dict['total_sublotes'] = len(sublotes_data)
+            lote_dict['peso_total_sublotes'] = round(peso_total_sublotes, 2)
             resultado.append(lote_dict)
 
         return jsonify(resultado)
