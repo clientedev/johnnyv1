@@ -61,14 +61,15 @@ def listar_lotes_ativos():
     try:
         status = request.args.get('status')
         
-        # Incluir tanto lotes principais quanto sublotes que estejam ativos
+        # Carregar apenas LOTES PRINCIPAIS (sem lote_pai_id)
+        # Os sublotes serão carregados através do relacionamento
         query = Lote.query.options(
             joinedload(Lote.tipo_lote),
             joinedload(Lote.fornecedor),
-            joinedload(Lote.lote_pai),  # Carregar info do pai se for sublote
             selectinload(Lote.sublotes).joinedload(Lote.tipo_lote)
         ).filter(
-            Lote.bloqueado == False
+            Lote.bloqueado == False,
+            Lote.lote_pai_id.is_(None)  # Apenas lotes principais
         )
 
         if status:
@@ -78,6 +79,8 @@ def listar_lotes_ativos():
 
         lotes = query.order_by(Lote.data_criacao.desc()).limit(200).all()
 
+        logger.info(f'📦 Encontrados {len(lotes)} lotes principais ativos')
+
         resultado = []
         for lote in lotes:
             lote_dict = lote.to_dict()
@@ -85,8 +88,13 @@ def listar_lotes_ativos():
             # Carregar sublotes com informações completas
             sublotes_data = []
             peso_total_sublotes = 0
+            
             if lote.sublotes:
+                logger.info(f'   Lote {lote.numero_lote} tem {len(lote.sublotes)} sublotes')
                 for sublote in lote.sublotes:
+                    # Usar peso_liquido se disponível, senão peso_total_kg
+                    peso_sublote = float(sublote.peso_liquido) if sublote.peso_liquido else float(sublote.peso_total_kg) if sublote.peso_total_kg else 0
+                    
                     sublote_dict = {
                         'id': sublote.id,
                         'numero_lote': sublote.numero_lote,
@@ -101,16 +109,23 @@ def listar_lotes_ativos():
                         'data_criacao': sublote.data_criacao.isoformat() if sublote.data_criacao else None
                     }
                     sublotes_data.append(sublote_dict)
-                    peso_total_sublotes += float(sublote.peso_total_kg) if sublote.peso_total_kg else 0
+                    peso_total_sublotes += peso_sublote
             
             lote_dict['sublotes'] = sublotes_data
             lote_dict['total_sublotes'] = len(sublotes_data)
             lote_dict['peso_total_sublotes'] = round(peso_total_sublotes, 2)
+            
+            logger.info(f'   → {lote.numero_lote}: {len(sublotes_data)} sublotes, {peso_total_sublotes:.2f} kg separados')
+            
             resultado.append(lote_dict)
 
+        logger.info(f'✅ Retornando {len(resultado)} lotes com sublotes')
         return jsonify(resultado)
+        
     except Exception as e:
-        logger.error(f'Erro ao listar lotes ativos: {str(e)}')
+        logger.error(f'❌ Erro ao listar lotes ativos: {str(e)}')
+        import traceback
+        traceback.print_exc()
         return jsonify({'erro': str(e)}), 500
 
 
