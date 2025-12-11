@@ -564,16 +564,50 @@
             if (!selectLote) {
                 console.error('❌ Select de lote não encontrado no DOM');
             } else if (lotesEstoque && lotesEstoque.length > 0) {
-                const opcoes = lotesEstoque.map(l => {
+                // Separar lotes principais e sublotes
+                const lotesPrincipais = lotesEstoque.filter(l => !l.is_sublote);
+                const sublotes = lotesEstoque.filter(l => l.is_sublote);
+                
+                // Criar mapa de sublotes por lote pai
+                const sublotesPorPai = {};
+                sublotes.forEach(s => {
+                    if (!sublotesPorPai[s.lote_pai_id]) {
+                        sublotesPorPai[s.lote_pai_id] = [];
+                    }
+                    sublotesPorPai[s.lote_pai_id].push(s);
+                });
+                
+                let opcoes = '';
+                
+                // Primeiro adicionar lotes principais com seus sublotes abaixo
+                lotesPrincipais.forEach(l => {
                     const numero = l.numero_lote || 'S/N';
                     const tipo = l.tipo_lote_nome || 'N/A';
                     const peso = parseFloat(l.peso_liquido || 0).toFixed(2);
-                    const qualidade = l.qualidade || '';
-                    // Indicar se é sublote (material separado)
-                    const prefixo = l.is_sublote ? '↳ ' : '';
-                    const qualidadeInfo = qualidade && qualidade !== 'N/A' ? ` [${qualidade}]` : '';
-                    return `<option value="${l.id}">${prefixo}${numero} - ${tipo} (${peso} kg)${qualidadeInfo}</option>`;
-                }).join('');
+                    opcoes += `<option value="${l.id}">${numero} - ${tipo} (${peso} kg)</option>`;
+                    
+                    // Adicionar sublotes deste lote pai
+                    if (sublotesPorPai[l.id]) {
+                        sublotesPorPai[l.id].forEach(s => {
+                            const sNumero = s.numero_lote || 'S/N';
+                            const sTipo = s.tipo_lote_nome || 'N/A';
+                            const sPeso = parseFloat(s.peso_liquido || 0).toFixed(2);
+                            opcoes += `<option value="${s.id}">  ↳ ${sNumero} - ${sTipo} (${sPeso} kg)</option>`;
+                        });
+                    }
+                });
+                
+                // Adicionar sublotes órfãos (cujo lote pai não está na lista)
+                sublotes.forEach(s => {
+                    const paiNaLista = lotesPrincipais.some(l => l.id === s.lote_pai_id);
+                    if (!paiNaLista) {
+                        const sNumero = s.numero_lote || 'S/N';
+                        const sTipo = s.tipo_lote_nome || 'N/A';
+                        const sPeso = parseFloat(s.peso_liquido || 0).toFixed(2);
+                        opcoes += `<option value="${s.id}">↳ ${sNumero} - ${sTipo} (${sPeso} kg)</option>`;
+                    }
+                });
+                
                 selectLote.innerHTML = '<option value="">Selecione...</option>' + opcoes;
                 console.log(`✅ Select de lote populado com ${lotesEstoque.length} opções`);
             } else {
