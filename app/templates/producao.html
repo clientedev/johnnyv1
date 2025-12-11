@@ -20,7 +20,21 @@
         }
         @media (max-width: 480px) {
             .stats-grid { grid-template-columns: 1fr !important; }
-            .btn { width: 100%; margin-top: 0.5rem; }
+        }
+        /* Fix para campos com input + botão lado a lado */
+        .input-group-inline {
+            display: flex;
+            gap: 0.5rem;
+            align-items: stretch;
+        }
+        .input-group-inline input,
+        .input-group-inline select {
+            flex: 1;
+            min-width: 0;
+        }
+        .input-group-inline .btn {
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         main.container { min-height: calc(100vh - 140px); }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
@@ -198,8 +212,8 @@
                 
                 <div class="form-group">
                     <label>Tipo de Material</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="opTipoMaterialInput" placeholder="Ex: Placas-mãe, Processadores" style="flex: 1;">
+                    <div class="input-group-inline">
+                        <input type="text" id="opTipoMaterialInput" placeholder="Ex: Placas-mãe, Processadores">
                         <button type="button" class="btn btn-secondary" onclick="adicionarTipoMaterial()">
                             <i class="fas fa-plus"></i> Adicionar
                         </button>
@@ -257,8 +271,8 @@
                 </div>
                 <div class="form-group">
                     <label>Categoria</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <select id="classificacaoCategoria" required style="flex: 1;">
+                    <div class="input-group-inline">
+                        <select id="classificacaoCategoria" required>
                             <option value="HIGH_GRADE">High Grade</option>
                             <option value="MID_GRADE">Mid Grade</option>
                             <option value="LOW_GRADE">Low Grade</option>
