@@ -747,25 +747,30 @@
                         <td>
                             <div class="comparacao-cell">
                                 <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem;">
-                                    <span style="color: ${estrelaMaisProxima === 1 ? '#059669; font-weight: 600;' : '#6b7280;'}">
+                                    <span style="color: ${estrelaMaisProxima === 1 ? '#059669; font-weight: 600;' : '#6b7280'}; display: flex; align-items: center; gap: 0.25rem;">
                                         <i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i> R$ ${preco1.toFixed(2)}
+                                        ${estrelaMaisProxima === 1 ? '<span style="background: #059669; color: white; font-size: 0.6rem; padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem;">Referência</span>' : ''}
                                     </span>
-                                    <span style="color: ${estrelaMaisProxima === 2 ? '#059669; font-weight: 600;' : '#6b7280;'}">
+                                    <span style="color: ${estrelaMaisProxima === 2 ? '#059669; font-weight: 600;' : '#6b7280'}; display: flex; align-items: center; gap: 0.25rem;">
                                         <i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i><i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i> R$ ${preco2.toFixed(2)}
+                                        ${estrelaMaisProxima === 2 ? '<span style="background: #059669; color: white; font-size: 0.6rem; padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem;">Referência</span>' : ''}
                                     </span>
-                                    <span style="color: ${estrelaMaisProxima === 3 ? '#059669; font-weight: 600;' : '#6b7280;'}">
+                                    <span style="color: ${estrelaMaisProxima === 3 ? '#059669; font-weight: 600;' : '#6b7280'}; display: flex; align-items: center; gap: 0.25rem;">
                                         <i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i><i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i><i class="fas fa-star" style="color: #fbbf24; font-size: 0.7rem;"></i> R$ ${preco3.toFixed(2)}
+                                        ${estrelaMaisProxima === 3 ? '<span style="background: #059669; color: white; font-size: 0.6rem; padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem;">Referência</span>' : ''}
                                     </span>
                                 </div>
-                                <div class="estrelas-cell" style="margin-top: 0.5rem;">${estrelas}</div>
                             </div>
                         </td>
                         <td>
-                            <span class="diferenca-badge ${diferencaClass}">
-                                <i class="fas ${diferencaIcon}"></i>
-                                ${Math.abs(diferencaPercentual).toFixed(2)}%
-                            </span>
-                            <div class="valor-35">${statusTexto}</div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;">
+                                <span style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">Estrela ${estrelaMaisProxima}:</span>
+                                <span class="diferenca-badge ${diferencaClass}">
+                                    <i class="fas ${diferencaIcon}"></i>
+                                    ${Math.abs(diferencaPercentual).toFixed(2)}% diferença
+                                </span>
+                                <div class="valor-35">${statusTexto}</div>
+                            </div>
                         </td>
                         <td>
                             <button class="btn-edit" onclick="abrirModalEditar(${item.id}, '${materialNomeEscaped}', ${precoFornecedor})" title="Editar preco">
