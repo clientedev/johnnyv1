@@ -828,14 +828,23 @@ def listar_fornecedores_producao():
 @bp.route('/lotes-estoque', methods=['GET'])
 @jwt_required()
 def listar_lotes_estoque():
-    """Lista lotes disponíveis em estoque para seleção na criação de OP"""
+    """Lista lotes disponíveis em estoque para seleção na criação de OP.
+    Inclui lotes principais e sublotes (materiais separados) com status ativo.
+    """
     try:
-        # Buscar lotes que estão em estoque e disponíveis
+        # Status válidos para lotes disponíveis para produção
+        # Inclui sublotes criados na separação com status 'CRIADO_SEPARACAO', 'criado_separacao', 'em_estoque'
+        status_disponiveis = [
+            'em_estoque', 'disponivel', 'aprovado',
+            'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque'
+        ]
+        
+        # Buscar lotes que estão em estoque e disponíveis (inclui sublotes)
         lotes = Lote.query.filter(
-            Lote.status.in_(['em_estoque', 'disponivel', 'aprovado']),
+            Lote.status.in_(status_disponiveis),
             Lote.bloqueado == False,
             Lote.reservado == False
-        ).order_by(Lote.numero_lote.desc()).limit(100).all()
+        ).order_by(Lote.numero_lote.desc()).limit(200).all()
 
         resultado = []
         for l in lotes:
@@ -846,16 +855,23 @@ def listar_lotes_estoque():
             fornecedor_nome = 'N/A'
             if l.fornecedor:
                 fornecedor_nome = l.fornecedor.nome
+            
+            # Indicar se é sublote
+            is_sublote = l.lote_pai_id is not None
+            peso = float(l.peso_liquido or l.peso_total_kg or 0)
 
             resultado.append({
                 'id': l.id,
                 'numero_lote': l.numero_lote,
                 'tipo_lote_nome': tipo_lote_nome,
-                'peso_liquido': float(l.peso_liquido or 0),
-                'fornecedor_nome': fornecedor_nome
+                'peso_liquido': peso,
+                'fornecedor_nome': fornecedor_nome,
+                'is_sublote': is_sublote,
+                'lote_pai_id': l.lote_pai_id,
+                'qualidade': l.qualidade_recebida or 'N/A'
             })
 
-        logger.info(f'Retornando {len(resultado)} lotes')
+        logger.info(f'Retornando {len(resultado)} lotes (incluindo sublotes)')
         return jsonify(resultado), 200
 
     except Exception as e:

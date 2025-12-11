@@ -568,7 +568,11 @@
                     const numero = l.numero_lote || 'S/N';
                     const tipo = l.tipo_lote_nome || 'N/A';
                     const peso = parseFloat(l.peso_liquido || 0).toFixed(2);
-                    return `<option value="${l.id}">${numero} - ${tipo} (${peso} kg)</option>`;
+                    const qualidade = l.qualidade || '';
+                    // Indicar se é sublote (material separado)
+                    const prefixo = l.is_sublote ? '↳ ' : '';
+                    const qualidadeInfo = qualidade && qualidade !== 'N/A' ? ` [${qualidade}]` : '';
+                    return `<option value="${l.id}">${prefixo}${numero} - ${tipo} (${peso} kg)${qualidadeInfo}</option>`;
                 }).join('');
                 selectLote.innerHTML = '<option value="">Selecione...</option>' + opcoes;
                 console.log(`✅ Select de lote populado com ${lotesEstoque.length} opções`);

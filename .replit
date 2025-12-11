@@ -31,66 +31,6 @@ outputType = "webview"
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 32775
-externalPort = 3000
-
-[[ports]]
-localPort = 34221
-externalPort = 8099
-
-[[ports]]
-localPort = 35821
-externalPort = 3002
-
-[[ports]]
-localPort = 36571
-externalPort = 6800
-
-[[ports]]
-localPort = 36667
-externalPort = 6000
-
-[[ports]]
-localPort = 39415
-externalPort = 5000
-
-[[ports]]
-localPort = 39857
-externalPort = 5173
-
-[[ports]]
-localPort = 40609
-externalPort = 8000
-
-[[ports]]
-localPort = 41483
-externalPort = 8080
-
-[[ports]]
-localPort = 42665
-externalPort = 3003
-
-[[ports]]
-localPort = 43565
-externalPort = 3001
-
-[[ports]]
-localPort = 44729
-externalPort = 9000
-
-[[ports]]
-localPort = 45623
-externalPort = 8081
-
-[[ports]]
-localPort = 46157
-externalPort = 8008
-
-[[ports]]
-localPort = 46557
-externalPort = 4200
-
 [nix]
 channel = "stable-25_05"
 packages = ["cargo", "freetype", "glibcLocales", "iana-etc", "lcms2", "libev", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zlib"]
