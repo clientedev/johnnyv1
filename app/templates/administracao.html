@@ -162,33 +162,9 @@
                     </div>
                 </div>
 
-                <!-- Modal do Scanner -->
-                <div class="modal" id="modalScanner" style="display: none;">
-                    <div class="modal-content" style="max-width: 95%; height: 90vh; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
-                        <div class="modal-header" style="padding: 1rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0;">
-                            <h2 style="font-size: 1.25rem;">Scanner de PCB</h2>
-                            <span class="modal-close" onclick="fecharScanner()">&times;</span>
-                        </div>
-                        <div style="flex-grow: 1; position: relative;">
-                            <iframe id="iframeScanner" src="" style="width: 100%; height: 100%; border: none;"></iframe>
-                        </div>
-                    </div>
-                </div>
-
                 <script>
-                    const SCANNER_URL = "{{ config['SCANNER_URL'] or 'https://scanv1-production.up.railway.app/' }}";
                     function abrirScanner() {
-                        const modal = document.getElementById('modalScanner');
-                        const iframe = document.getElementById('iframeScanner');
-                        
-                        // Garante que o iframe aponte apenas para a URL externa
-                        iframe.src = SCANNER_URL;
-                        
-                        modal.style.display = 'flex';
-                    }
-                    function fecharScanner() {
-                        document.getElementById('modalScanner').style.display = 'none';
-                        document.getElementById('iframeScanner').src = '';
+                        window.location.href = "{{ config['SCANNER_URL'] or 'https://scanv1-production.up.railway.app/' }}";
                     }
                 </script>
 
