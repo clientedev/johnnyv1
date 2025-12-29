@@ -1,5 +1,5 @@
 function toggleScannerWidget() {
-    window.location.href = 'https://scanv1-production.up.railway.app/';
+    window.location.href = '/scanner-view';
 }
 
 function initScannerWidget() {
@@ -23,7 +23,7 @@ function initScannerWidget() {
     
     const widgetHTML = `
         <div id="scannerWidgetContainer" class="scanner-widget-container" style="position: fixed; bottom: 90px; right: 20px; z-index: 9999;">
-            <div id="scannerWidgetBubble" class="scanner-widget-bubble" onclick="window.location.href='https://scanv1-production.up.railway.app/'" title="Abrir Scanner" style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); box-shadow: 0 4px 20px rgba(13, 148, 136, 0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; color: white;">
+            <div id="scannerWidgetBubble" class="scanner-widget-bubble" onclick="window.location.href='/scanner-view'" title="Abrir Scanner" style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); box-shadow: 0 4px 20px rgba(13, 148, 136, 0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; color: white;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
                     <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
