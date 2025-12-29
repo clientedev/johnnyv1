@@ -180,7 +180,10 @@
                     function abrirScanner() {
                         const modal = document.getElementById('modalScanner');
                         const iframe = document.getElementById('iframeScanner');
+                        
+                        // Garante que o iframe aponte apenas para a URL externa
                         iframe.src = SCANNER_URL;
+                        
                         modal.style.display = 'flex';
                     }
                     function fecharScanner() {
