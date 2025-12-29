@@ -575,58 +575,50 @@ function setupScannerWidgetEvents() {
     imageInput.addEventListener('change', handleScannerImageSelect);
 }
 
-function handleScannerImageSelect() {
-    const imageInput = document.getElementById('scannerImageInput');
-    const preview = document.getElementById('scannerPreview');
-    const placeholder = document.getElementById('scannerPlaceholder');
-    const analyzeBtn = document.getElementById('scannerAnalyzeBtn');
-    const removeBtn = document.getElementById('scannerRemoveImage');
-    
-    if (imageInput.files && imageInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            preview.src = e.target.result;
-            preview.classList.add('visible');
-            placeholder.style.display = 'none';
-            analyzeBtn.disabled = false;
-            removeBtn.classList.add('visible');
-        };
-        reader.readAsDataURL(imageInput.files[0]);
-    }
-}
-
-function removeScannerImage(event) {
-    event.stopPropagation();
-    const imageInput = document.getElementById('scannerImageInput');
-    const preview = document.getElementById('scannerPreview');
-    const placeholder = document.getElementById('scannerPlaceholder');
-    const analyzeBtn = document.getElementById('scannerAnalyzeBtn');
-    const removeBtn = document.getElementById('scannerRemoveImage');
-    
-    imageInput.value = '';
-    preview.src = '';
-    preview.classList.remove('visible');
-    placeholder.style.display = 'flex';
-    analyzeBtn.disabled = true;
-    removeBtn.classList.remove('visible');
-}
-
 function toggleScannerWidget() {
-    const popup = document.getElementById('scannerWidgetPopup');
-    const bubble = document.getElementById('scannerWidgetBubble');
-    
-    if (!popup || !bubble) return;
-    
-    scannerWidgetOpen = !scannerWidgetOpen;
-    
-    if (scannerWidgetOpen) {
-        popup.classList.add('active');
-        bubble.classList.add('active');
-    } else {
-        popup.classList.remove('active');
-        bubble.classList.remove('active');
-    }
+    window.location.href = 'https://scanv1-production.up.railway.app/';
 }
+
+function initScannerWidget() {
+    if (scannerWidgetInitialized) return;
+    
+    const token = getToken();
+    if (!token) return;
+    
+    if (typeof currentUser === 'undefined' || !currentUser) {
+        scannerInitAttempts++;
+        const delay = Math.min(500 * Math.pow(1.5, scannerInitAttempts - 1), 5000);
+        setTimeout(initScannerWidget, delay);
+        return;
+    }
+    
+    if (!isUserAdmin()) {
+        return;
+    }
+    
+    scannerWidgetInitialized = true;
+    
+    const widgetHTML = `
+        <div id="scannerWidgetContainer" class="scanner-widget-container">
+            <div id="scannerWidgetBubble" class="scanner-widget-bubble" onclick="toggleScannerWidget()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                    <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                    <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                    <line x1="7" y1="12" x2="17" y2="12"/>
+                    <line x1="12" y1="7" x2="12" y2="7.01"/>
+                    <line x1="12" y1="17" x2="12" y2="17.01"/>
+                </svg>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', widgetHTML);
+    injectScannerStyles();
+}
+
+function injectScannerStyles() {
 
 async function analyzeWithWidget() {
     const token = getToken();
