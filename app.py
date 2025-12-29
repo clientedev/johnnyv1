@@ -98,54 +98,6 @@ def handle_connect(auth):
         print(f'Erro ao conectar WebSocket: {e}')
         return False
 
-@app.route('/scanner-view')
-def scanner_view():
-    scanner_url = os.environ.get('SCANNER_URL', 'https://scanv1-production.up.railway.app/')
-    return f"""
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Scanner - MRX Systems</title>
-        <style>
-            body, html {{ margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: sans-serif; }}
-            .back-button {{
-                position: fixed;
-                top: 15px;
-                left: 15px;
-                z-index: 10000;
-                background: #059669;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: bold;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                text-decoration: none;
-                transition: transform 0.2s;
-            }}
-            .back-button:hover {{ transform: scale(1.05); background: #047857; }}
-            iframe {{ width: 100%; height: 100%; border: none; }}
-        </style>
-    </head>
-    <body>
-        <a href="javascript:history.back()" class="back-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            Voltar para o Sistema
-        </a>
-        <iframe src="{scanner_url}"></iframe>
-    </body>
-    </html>
-    """
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)
