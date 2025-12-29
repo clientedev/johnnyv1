@@ -38,3 +38,8 @@ packages = ["cargo", "freetype", "glibcLocales", "iana-etc", "lcms2", "libev", "
 [deployment]
 deploymentTarget = "autoscale"
 run = ["gunicorn", "--bind=0.0.0.0:5000", "--reuse-port", "--workers=2", "app:application"]
+
+[userenv]
+
+[userenv.shared]
+SCANNER_URL = "https://scanv1-production.up.railway.app/"

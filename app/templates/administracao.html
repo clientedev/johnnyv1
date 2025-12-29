@@ -154,13 +154,40 @@
                     </div>
                 </div>
 
-                <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='/scanner'">
+                <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="abrirScanner()">
                     <div style="text-align: center; padding: var(--spacing-lg);">
                         <i class="fas fa-microchip" style="font-size: 3rem; color: #0d9488;"></i>
                         <h3 style="margin-top: var(--spacing-md); font-size: 1.1rem;">Scanner de PCB</h3>
                         <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">Analisar placas eletrônicas com IA</p>
                     </div>
                 </div>
+
+                <!-- Modal do Scanner -->
+                <div class="modal" id="modalScanner" style="display: none;">
+                    <div class="modal-content" style="max-width: 95%; height: 90vh; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                        <div class="modal-header" style="padding: 1rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0;">
+                            <h2 style="font-size: 1.25rem;">Scanner de PCB</h2>
+                            <span class="modal-close" onclick="fecharScanner()">&times;</span>
+                        </div>
+                        <div style="flex-grow: 1; position: relative;">
+                            <iframe id="iframeScanner" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    const SCANNER_URL = "{{ config['SCANNER_URL'] or 'https://scanv1-production.up.railway.app/' }}";
+                    function abrirScanner() {
+                        const modal = document.getElementById('modalScanner');
+                        const iframe = document.getElementById('iframeScanner');
+                        iframe.src = SCANNER_URL;
+                        modal.style.display = 'flex';
+                    }
+                    function fecharScanner() {
+                        document.getElementById('modalScanner').style.display = 'none';
+                        document.getElementById('iframeScanner').src = '';
+                    }
+                </script>
 
                 <div class="card" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='/api/producao/'">
                     <div style="text-align: center; padding: var(--spacing-lg);">
