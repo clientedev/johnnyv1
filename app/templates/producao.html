@@ -237,7 +237,7 @@
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
-                        <label>Custo Total (R$)</label>
+                        <label>Custo Total (R$) <span id="custoLockInfo" style="display: none; color: var(--info-color); font-size: 0.75rem;">(Travado pelo lote)</span></label>
                         <input type="number" id="opCustoTotal" step="0.01" min="0" required>
                     </div>
                     <div class="form-group">
@@ -679,12 +679,16 @@
             
             const pesoInput = document.getElementById('opPesoEntrada');
             const pesoLockInfo = document.getElementById('pesoLockInfo');
+            const custoInput = document.getElementById('opCustoTotal');
+            const custoLockInfo = document.getElementById('custoLockInfo');
             
             if (tipo === 'lote') {
                 atualizarPesoLotes();
             } else {
                 pesoInput.readOnly = false;
                 pesoLockInfo.style.display = 'none';
+                custoInput.readOnly = false;
+                custoLockInfo.style.display = 'none';
             }
         }
         
@@ -693,11 +697,14 @@
             const selectedOptions = Array.from(selectLote.selectedOptions);
             const pesoInput = document.getElementById('opPesoEntrada');
             const pesoLockInfo = document.getElementById('pesoLockInfo');
+            const custoInput = document.getElementById('opCustoTotal');
+            const custoLockInfo = document.getElementById('custoLockInfo');
             const pesoTotalInfo = document.getElementById('pesoTotalLotes');
             const lotesSelecionadosDiv = document.getElementById('lotesSelecionados');
             
             if (selectedOptions.length > 0) {
                 let pesoTotal = 0;
+                let custoTotal = 0;
                 let badges = [];
                 
                 selectedOptions.forEach(opt => {
@@ -705,15 +712,22 @@
                     const lote = lotesEstoque.find(l => l.id === loteId);
                     if (lote) {
                         const pesoLote = parseFloat(lote.peso_liquido || 0);
+                        const custoLote = parseFloat(lote.valor_total || 0);
                         pesoTotal += pesoLote;
-                        badges.push(`<span class="badge badge-info">${lote.numero_lote || 'S/N'} (${pesoLote.toFixed(2)} kg)</span>`);
+                        custoTotal += custoLote;
+                        badges.push(`<span class="badge badge-info">${lote.numero_lote || 'S/N'} (${pesoLote.toFixed(2)} kg - R$ ${custoLote.toFixed(2)})</span>`);
                     }
                 });
                 
                 pesoInput.value = pesoTotal.toFixed(3);
                 pesoInput.readOnly = true;
                 pesoLockInfo.style.display = 'inline';
-                pesoTotalInfo.textContent = `Peso total: ${pesoTotal.toFixed(2)} kg`;
+                
+                custoInput.value = custoTotal.toFixed(2);
+                custoInput.readOnly = true;
+                custoLockInfo.style.display = 'inline';
+                
+                pesoTotalInfo.textContent = `Peso total: ${pesoTotal.toFixed(2)} kg | Custo total: R$ ${custoTotal.toFixed(2)}`;
                 pesoTotalInfo.style.display = 'block';
                 lotesSelecionadosDiv.innerHTML = badges.join('');
                 
@@ -721,6 +735,8 @@
             } else {
                 pesoInput.readOnly = false;
                 pesoLockInfo.style.display = 'none';
+                custoInput.readOnly = false;
+                custoLockInfo.style.display = 'none';
                 pesoTotalInfo.style.display = 'none';
                 lotesSelecionadosDiv.innerHTML = '';
             }
