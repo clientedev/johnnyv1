@@ -191,6 +191,16 @@ def criar_sublote(id):
         ).count() + 1
         numero_lote = f"{ano}-{str(numero_sequencial).zfill(5)}"
 
+        tipo_lote_id = data.get('tipo_lote_id')
+        tipo_lote_nome = data.get('tipo_lote_nome')
+
+        # Se não informou ID mas informou nome, tenta encontrar
+        if not tipo_lote_id and tipo_lote_nome:
+            from app.models import TipoLote
+            tipo_lote = TipoLote.query.filter_by(nome=tipo_lote_nome).first()
+            if tipo_lote:
+                tipo_lote_id = tipo_lote.id
+
         sublote = Lote(
             numero_lote=numero_lote,
             fornecedor_id=lote_pai.fornecedor_id,
