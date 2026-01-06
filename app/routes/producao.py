@@ -860,20 +860,35 @@ def listar_lotes_estoque():
             is_sublote = l.lote_pai_id is not None
             peso = float(l.peso_liquido or l.peso_total_kg or 0)
             
-            # Para sublotes, se valor_total estiver zerado mas tivermos itens, podemos tentar calcular
-            # IMPORTANTE: Pegar o valor_total do banco para lotes principais
-            valor_total = float(l.valor_total or 0)
+            # Tentar pegar o valor mais preciso possível
+            valor_total = 0
             
-            # Se for sublote e o valor_total estiver zerado, tenta somar os itens ou proporcionalizar
-            if is_sublote and valor_total == 0:
+            if is_sublote:
+                # Prioridade 1: Itens de separação vinculados diretamente a este sublote
                 if l.itens:
                     valor_total = sum(float(item.valor_calculado or 0) for item in l.itens)
-                elif l.lote_pai and l.lote_pai.valor_total and l.lote_pai.peso_total_kg:
-                    # Se não tem itens mas tem pai, calcula proporcional ao peso
-                    pai_valor = float(l.lote_pai.valor_total)
-                    pai_peso = float(l.lote_pai.peso_total_kg)
+                
+                # Prioridade 2: Proporcional ao lote pai se o valor acima for 0
+                if valor_total == 0 and l.lote_pai:
+                    pai_valor = float(l.lote_pai.valor_total or 0)
+                    pai_peso = float(l.lote_pai.peso_total_kg or 1)
                     if pai_peso > 0:
                         valor_total = (peso / pai_peso) * pai_valor
+            else:
+                # Para lotes principais
+                # Prioridade 1: Itens da solicitação original específicos para este tipo de lote
+                from app.models import ItemSolicitacao
+                itens_solic = ItemSolicitacao.query.filter_by(
+                    solicitacao_id=l.solicitacao_origem_id,
+                    tipo_lote_id=l.tipo_lote_id
+                ).all()
+                
+                if itens_solic:
+                    valor_total = sum(float(item.valor_calculado or 0) for item in itens_solic)
+                
+                # Prioridade 2: Valor total do lote no banco se não achou itens específicos
+                if valor_total == 0:
+                    valor_total = float(l.valor_total or 0)
 
             resultado.append({
                 'id': l.id,
