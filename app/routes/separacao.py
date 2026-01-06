@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import db, Lote, LoteSeparacao, Residuo, Usuario, Notificacao, MovimentacaoEstoque
 from app.auth import admin_required
 from datetime import datetime
+from decimal import Decimal
 
 bp = Blueprint('separacao', __name__, url_prefix='/api/separacao')
 
