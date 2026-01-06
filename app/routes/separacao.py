@@ -177,27 +177,12 @@ def criar_sublote(id):
         if not lote_pai:
             return jsonify({'erro': 'Lote pai não encontrado'}), 404
 
-        tipo_lote_id = data.get('tipo_lote_id')
+        peso_sublote = Decimal(str(data['peso']))
+        peso_lote_pai = Decimal(str(lote_pai.peso_total_kg or lote_pai.peso_liquido or 1))
+        valor_total_pai = Decimal(str(lote_pai.valor_total or 0))
         
-        if not tipo_lote_id and data.get('tipo_lote_nome'):
-            from app.models import TipoLote
-            tipo_lote_nome = data['tipo_lote_nome'].strip()
-            
-            tipo_lote_existente = TipoLote.query.filter(
-                db.func.lower(TipoLote.nome) == db.func.lower(tipo_lote_nome)
-            ).first()
-            
-            if tipo_lote_existente:
-                tipo_lote_id = tipo_lote_existente.id
-            else:
-                novo_tipo_lote = TipoLote(
-                    nome=tipo_lote_nome,
-                    descricao=f'Tipo criado automaticamente durante separação',
-                    ativo=True
-                )
-                db.session.add(novo_tipo_lote)
-                db.session.flush()
-                tipo_lote_id = novo_tipo_lote.id
+        # Cálculo proporcional do valor para o sublote
+        valor_sublote = (peso_sublote / peso_lote_pai) * valor_total_pai
 
         ano = datetime.now().year
         numero_sequencial = Lote.query.filter(
@@ -209,7 +194,8 @@ def criar_sublote(id):
             numero_lote=numero_lote,
             fornecedor_id=lote_pai.fornecedor_id,
             tipo_lote_id=tipo_lote_id,
-            peso_total_kg=data['peso'],
+            peso_total_kg=float(peso_sublote),
+            valor_total=float(valor_sublote),
             qualidade_recebida=data.get('qualidade'),
             status='CRIADO_SEPARACAO',
             lote_pai_id=lote_pai.id,  # Vincula ao lote pai
@@ -226,7 +212,8 @@ def criar_sublote(id):
                 'device_id': data.get('device_id') or separacao.device_id,
                 'separacao_id': separacao.id,
                 'lote_pai_id': lote_pai.id,
-                'lote_pai_numero': lote_pai.numero_lote
+                'lote_pai_numero': lote_pai.numero_lote,
+                'valor_proporcional': float(valor_sublote)
             }],
             data_criacao=datetime.utcnow()
         )
