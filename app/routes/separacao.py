@@ -183,7 +183,12 @@ def criar_sublote(id):
         valor_total_pai = Decimal(str(lote_pai.valor_total or 0))
         
         # Cálculo proporcional do valor para o sublote
-        valor_sublote = (peso_sublote / peso_lote_pai) * valor_total_pai
+        valor_sublote = Decimal('0')
+        if peso_lote_pai > 0:
+            valor_sublote = (peso_sublote / peso_lote_pai) * valor_total_pai
+        
+        # Arredondar para 2 casas decimais para evitar problemas de precisão
+        valor_sublote = valor_sublote.quantize(Decimal('0.01'))
 
         ano = datetime.now().year
         numero_sequencial = Lote.query.filter(

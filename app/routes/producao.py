@@ -843,7 +843,7 @@ def listar_lotes_estoque():
             Lote.status.in_(status_disponiveis),
             Lote.bloqueado == False,
             Lote.reservado == False
-        ).order_by(Lote.numero_lote.desc()).limit(200).all()
+        ).order_by(Lote.id.desc()).limit(200).all()
 
         resultado = []
         for l in lotes:
@@ -863,11 +863,14 @@ def listar_lotes_estoque():
             valor_total = 0
             
             if is_sublote:
-                # Prioridade 1: Itens de separação vinculados diretamente a este sublote
-                if l.itens:
+                # Prioridade 1: Valor total registrado no sublote
+                valor_total = float(l.valor_total or 0)
+                
+                # Prioridade 2: Itens de separação vinculados diretamente a este sublote
+                if valor_total == 0 and l.itens:
                     valor_total = sum(float(item.valor_calculado or 0) for item in l.itens)
                 
-                # Prioridade 2: Proporcional ao lote pai se o valor acima for 0
+                # Prioridade 3: Proporcional ao lote pai se o valor acima for 0
                 if valor_total == 0 and l.lote_pai:
                     pai_valor = float(l.lote_pai.valor_total or 0)
                     pai_peso = float(l.lote_pai.peso_total_kg or 1)
