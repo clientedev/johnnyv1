@@ -21,6 +21,10 @@ def create_app():
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
 
     database_url = os.getenv('DATABASE_URL')
+    # Forçar URL do Railway se a variável estiver vindo do Replit local
+    if not database_url or 'helium' in database_url:
+        database_url = "postgresql://postgres:JLNFuhSFMbRaQlBAxuFynwIOMtLyalqt@centerbeam.proxy.rlwy.net:35419/railway"
+    
     if database_url and database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url

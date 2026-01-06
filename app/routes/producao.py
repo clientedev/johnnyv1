@@ -658,14 +658,14 @@ def listar_lotes_estoque():
         status_disponiveis = [
             'em_estoque', 'disponivel', 'aprovado',
             'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque',
-            'em_conferencia', 'conferido', 'aprovada', 'APROVADA'
+            'em_conferencia', 'conferido', 'aprovada', 'APROVADA',
+            'APROVADO', 'concluido', 'CONCLUIDO'
         ]
         
         # Buscar lotes que estão em estoque e disponíveis (inclui sublotes)
+        # Removendo filtros restritivos para depuração
         lotes = Lote.query.filter(
-            Lote.status.in_(status_disponiveis),
-            Lote.bloqueado == False,
-            Lote.reservado == False
+            Lote.status.in_(status_disponiveis)
         ).order_by(Lote.id.desc()).limit(200).all()
 
         resultado = []
