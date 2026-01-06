@@ -865,17 +865,33 @@ def listar_lotes_estoque():
             if is_sublote:
                 # Prioridade 1: Valor total registrado no sublote
                 valor_total = float(l.valor_total or 0)
+                logger.info(f"DEBUG LOTE {l.numero_lote}: is_sublote=True, valor_total_db={valor_total}")
                 
                 # Prioridade 2: Itens de separação vinculados diretamente a este sublote
-                if valor_total == 0 and l.itens:
+                if valor_total <= 0 and l.itens:
                     valor_total = sum(float(item.valor_calculado or 0) for item in l.itens)
+                    logger.info(f"DEBUG LOTE {l.numero_lote}: valor_dos_itens={valor_total}")
                 
                 # Prioridade 3: Proporcional ao lote pai se o valor acima for 0
-                if valor_total == 0 and l.lote_pai:
+                if valor_total <= 0 and l.lote_pai:
                     pai_valor = float(l.lote_pai.valor_total or 0)
                     pai_peso = float(l.lote_pai.peso_total_kg or 1)
                     if pai_peso > 0:
                         valor_total = (peso / pai_peso) * pai_valor
+                        logger.info(f"DEBUG LOTE {l.numero_lote}: valor_proporcional_pai={valor_total} (pai_val={pai_valor}, pai_peso={pai_peso})")
+                
+                # Fallback final: se ainda for 0, tenta buscar nos itens da solicitação do pai
+                if valor_total <= 0 and l.lote_pai and l.lote_pai.solicitacao_origem_id:
+                    from app.models import ItemSolicitacao
+                    itens_solic = ItemSolicitacao.query.filter_by(
+                        solicitacao_id=l.lote_pai.solicitacao_origem_id,
+                        tipo_lote_id=l.tipo_lote_id
+                    ).all()
+                    if itens_solic:
+                        valor_total = sum(float(item.valor_calculado or 0) for item in itens_solic)
+                        # Como é um sublote, aplicamos a proporção do peso se necessário, 
+                        # mas aqui vamos considerar o valor total dos itens se for compatível
+                        logger.info(f"DEBUG LOTE {l.numero_lote}: valor_itens_solic_pai={valor_total}")
             else:
                 # Para lotes principais
                 # Prioridade 1: Itens da solicitação original específicos para este tipo de lote

@@ -189,6 +189,9 @@ def criar_sublote(id):
         
         # Arredondar para 2 casas decimais para evitar problemas de precisão
         valor_sublote = valor_sublote.quantize(Decimal('0.01'))
+        
+        # LOG DE DEBUG - MUITO IMPORTANTE
+        print(f"DEBUG VALOR SUBLOTE: peso_sublote={peso_sublote}, peso_pai={peso_lote_pai}, valor_pai={valor_total_pai}, RESULTADO={valor_sublote}")
 
         ano = datetime.now().year
         numero_sequencial = Lote.query.filter(
