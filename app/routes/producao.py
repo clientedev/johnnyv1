@@ -295,7 +295,6 @@ def criar_ordem():
             tipo_material=dados.get('tipo_material'),
             descricao_material=dados.get('descricao_material'),
             peso_entrada=peso_entrada,
-            quantidade_entrada=dados.get('quantidade_entrada', 0),
             custo_total=Decimal(str(dados.get('custo_total', 0))),
             custo_unitario=Decimal(str(dados.get('custo_unitario', 0))),
             responsavel_id=current_user_id,
@@ -338,7 +337,7 @@ def atualizar_ordem(id):
 
         campos_atualizaveis = [
             'tipo_material', 'descricao_material', 'peso_entrada',
-            'quantidade_entrada', 'custo_total', 'custo_unitario', 'observacoes'
+            'custo_total', 'custo_unitario', 'observacoes'
         ]
 
         for campo in campos_atualizaveis:

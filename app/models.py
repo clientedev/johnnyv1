@@ -2091,7 +2091,6 @@ class OrdemProducao(db.Model):  # type: ignore
     
     # Dados de entrada
     peso_entrada = db.Column(db.Numeric(10, 3), nullable=False)
-    quantidade_entrada = db.Column(db.Integer, nullable=True, default=0)
     custo_total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     custo_unitario = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     
@@ -2165,7 +2164,6 @@ class OrdemProducao(db.Model):  # type: ignore
             'tipo_material': self.tipo_material,
             'descricao_material': self.descricao_material,
             'peso_entrada': float(self.peso_entrada) if self.peso_entrada else 0,
-            'quantidade_entrada': self.quantidade_entrada or 0,
             'custo_total': float(self.custo_total) if self.custo_total else 0,
             'custo_unitario': float(self.custo_unitario) if self.custo_unitario else 0,
             'peso_total_separado': float(self.peso_total_separado) if self.peso_total_separado else 0,

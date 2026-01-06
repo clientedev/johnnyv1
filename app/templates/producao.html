@@ -225,14 +225,10 @@
                     <label>Descrição</label>
                     <textarea id="opDescricao" rows="2" placeholder="Descrição detalhada do material"></textarea>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
                     <div class="form-group">
                         <label>Peso de Entrada (kg) <span id="pesoLockInfo" style="display: none; color: var(--info-color); font-size: 0.75rem;">(Travado pelo lote)</span></label>
                         <input type="number" id="opPesoEntrada" step="0.001" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Quantidade</label>
-                        <input type="number" id="opQuantidade" min="0" value="0">
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -712,7 +708,7 @@
                     const lote = lotesEstoque.find(l => l.id === loteId);
                     if (lote) {
                         const pesoLote = parseFloat(lote.peso_liquido || 0);
-                        const custoLote = parseFloat(lote.valor_total || 0);
+                        const custoLote = parseFloat(lote.valor_pago || lote.custo_total || 0);
                         pesoTotal += pesoLote;
                         custoTotal += custoLote;
                         badges.push(`<span class="badge badge-info">${lote.numero_lote || 'S/N'} (${pesoLote.toFixed(2)} kg - R$ ${custoLote.toFixed(2)})</span>`);
@@ -843,8 +839,7 @@
                     outros_origens: outrosOrigensLista,
                     tipo_material: tipoMaterial,
                     descricao_material: document.getElementById('opDescricao').value,
-                    peso_entrada: pesoEntrada,
-                    quantidade_entrada: parseInt(document.getElementById('opQuantidade').value) || 0,
+                    peso_entrada: peso_entrada,
                     custo_total: custoTotal,
                     custo_unitario: parseFloat(document.getElementById('opCustoUnitario').value) || 0,
                     observacoes: document.getElementById('opObservacoes').value
