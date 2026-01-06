@@ -910,6 +910,26 @@ def listar_bags_producao():
         logger.error(f'Erro ao listar bags na produção: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
+@bp.route('/bags/<int:bag_id>/devolver-estoque', methods=['POST'])
+@jwt_required()
+def devolver_bag_estoque(bag_id):
+    """Marca um bag como devolvido ao estoque"""
+    try:
+        bag = BagProducao.query.get_or_404(bag_id)
+        
+        if bag.status not in ['aberto', 'cheio']:
+            return jsonify({'erro': 'Apenas bags abertos ou cheios podem ser devolvidos ao estoque'}), 400
+            
+        bag.status = 'devolvido_estoque'
+        bag.data_atualizacao = datetime.utcnow()
+        
+        db.session.commit()
+        return jsonify(bag.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erro ao devolver bag {bag_id} ao estoque: {str(e)}')
+        return jsonify({'erro': str(e)}), 500
+
 @bp.route('/dashboard', methods=['GET'])
 @jwt_required()
 def dashboard_producao():
