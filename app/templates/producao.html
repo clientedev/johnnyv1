@@ -708,7 +708,7 @@
                     const lote = lotesEstoque.find(l => l.id === loteId);
                     if (lote) {
                         const pesoLote = parseFloat(lote.peso_liquido || 0);
-                        const custoLote = parseFloat(lote.valor_pago || lote.custo_total || 0);
+                        const custoLote = parseFloat(lote.valor_total || 0);
                         pesoTotal += pesoLote;
                         custoTotal += custoLote;
                         badges.push(`<span class="badge badge-info">${lote.numero_lote || 'S/N'} (${pesoLote.toFixed(2)} kg - R$ ${custoLote.toFixed(2)})</span>`);
