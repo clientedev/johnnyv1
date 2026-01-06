@@ -881,43 +881,60 @@ def exportar_op_excel(id):
         return jsonify({'erro': str(e)}), 500
 
 
-@bp.route('/relatorio-geral', methods=['GET'])
-@admin_required
-def relatorio_geral_producao():
-    """Gera um relatório Excel de todas as OPs finalizadas"""
+@bp.route('/bags', methods=['GET'])
+@jwt_required()
+def listar_bags_producao():
+    """Lista todos os bags disponíveis para a produção"""
     try:
-        ordens = OrdemProducao.query.filter_by(status='finalizada').all()
+        status = request.args.get('status')
+        categoria = request.args.get('categoria')
         
-        data = []
-        for op in ordens:
-            data.append({
-                'OP': op.numero_op,
-                'Abertura': op.data_abertura.strftime('%d/%m/%Y %H:%M'),
-                'Finalização': op.data_finalizacao.strftime('%d/%m/%Y %H:%M') if op.data_finalizacao else '',
-                'Material': op.tipo_material,
-                'Peso Entrada (kg)': float(op.peso_entrada or 0),
-                'Peso Saída (kg)': float(op.peso_total_separado or 0),
-                'Perda (kg)': float(op.peso_perdas or 0),
-                'Perda (%)': float(op.percentual_perda or 0),
-                'Custo Total (R$)': float(op.custo_total or 0),
-                'Valor Est. (R$)': float(op.valor_estimado_total or 0),
-                'Lucro/Prejuízo (R$)': float(op.lucro_prejuizo or 0)
-            })
-
-        df = pd.DataFrame(data)
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Relatório Produção')
+        query = BagProducao.query
         
-        output.seek(0)
-        
-        filename = f"Relatorio_Producao_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=filename
-        )
+        if status:
+            query = query.filter(BagProducao.status == status)
+        else:
+            # Por padrão, mostrar bags que não foram enviados para refinaria
+            query = query.filter(BagProducao.status.in_(['aberto', 'cheio', 'devolvido_estoque']))
+            
+        if categoria:
+            # Filtrar por categoria (seja manual ou da classificação)
+            query = query.join(ClassificacaoGrade).filter(
+                (BagProducao.categoria_manual == categoria) | 
+                (ClassificacaoGrade.categoria == categoria)
+            )
+            
+        bags = query.order_by(BagProducao.data_criacao.desc()).all()
+        return jsonify([b.to_dict() for b in bags])
     except Exception as e:
-        logger.error(f'Erro ao gerar relatório geral: {str(e)}')
+        logger.error(f'Erro ao listar bags na produção: {str(e)}')
+        return jsonify({'erro': str(e)}), 500
+
+@bp.route('/dashboard', methods=['GET'])
+@jwt_required()
+def dashboard_producao():
+    """Dados para o dashboard de produção"""
+    try:
+        ops_abertas = OrdemProducao.query.filter(OrdemProducao.status.in_(['aberta', 'em_separacao'])).count()
+        ops_finalizadas = OrdemProducao.query.filter_by(status='finalizada').count()
+        
+        # Total de High Grade em bags no estoque
+        total_high_grade = db.session.query(db.func.sum(BagProducao.peso_acumulado)).join(ClassificacaoGrade).filter(
+            ClassificacaoGrade.categoria == 'HIGH_GRADE',
+            BagProducao.status.in_(['aberto', 'cheio', 'devolvido_estoque'])
+        ).scalar() or 0
+        
+        # Total pronto para refinaria (bags cheios)
+        total_pronto = db.session.query(db.func.sum(BagProducao.peso_acumulado)).filter(
+            BagProducao.status == 'cheio'
+        ).scalar() or 0
+        
+        return jsonify({
+            'ops_abertas': ops_abertas,
+            'ops_finalizadas': ops_finalizadas,
+            'total_high_grade_kg': float(total_high_grade),
+            'total_pronto_refinaria_kg': float(total_pronto)
+        })
+    except Exception as e:
+        logger.error(f'Erro no dashboard de produção: {str(e)}')
         return jsonify({'erro': str(e)}), 500
