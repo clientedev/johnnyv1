@@ -787,9 +787,9 @@ class Lote(db.Model):  # type: ignore
             'tipo_lote_id': self.tipo_lote_id,
             'fornecedor_id': self.fornecedor_id,
             'peso_total_kg': self.peso_total_kg,
-            'peso_liquido': self.peso_liquido,  # ADICIONAR peso_liquido
-            'peso_bruto_recebido': self.peso_bruto_recebido,  # ADICIONAR peso_bruto
-            'valor_total': self.valor_total,
+            'peso_liquido': self.peso_liquido,
+            'peso_bruto_recebido': self.peso_bruto_recebido,
+            'valor_total': float(self.valor_total) if self.valor_total else 0.0,
             'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
             'status': self.status,
             'localizacao_atual': self.localizacao_atual,

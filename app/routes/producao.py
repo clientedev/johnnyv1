@@ -859,12 +859,14 @@ def listar_lotes_estoque():
             # Indicar se é sublote
             is_sublote = l.lote_pai_id is not None
             peso = float(l.peso_liquido or l.peso_total_kg or 0)
+            valor_total = float(l.valor_total or 0)
 
             resultado.append({
                 'id': l.id,
                 'numero_lote': l.numero_lote,
                 'tipo_lote_nome': tipo_lote_nome,
                 'peso_liquido': peso,
+                'valor_total': valor_total,
                 'fornecedor_nome': fornecedor_nome,
                 'is_sublote': is_sublote,
                 'lote_pai_id': l.lote_pai_id,
