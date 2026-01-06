@@ -613,6 +613,7 @@ def encontrar_ou_criar_bag(classificacao, usuario_id):
             codigo=codigo,
             classificacao_grade_id=classificacao.id,
             status='aberto',
+            criado_por_id=usuario_id,
             responsavel_id=usuario_id,
             data_criacao=datetime.utcnow()
         )
