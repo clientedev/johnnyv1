@@ -205,6 +205,13 @@ def criar_sublote(id):
             tipo_lote = TipoLote.query.filter_by(nome=tipo_lote_nome).first()
             if tipo_lote:
                 tipo_lote_id = tipo_lote.id
+        
+        # Se ainda assim estiver nulo, tenta usar o tipo do lote pai como último recurso
+        if not tipo_lote_id:
+            tipo_lote_id = lote_pai.tipo_lote_id
+
+        if not tipo_lote_id:
+            return jsonify({'erro': 'Não foi possível determinar o tipo do lote (tipo_lote_id ausente)'}), 400
 
         sublote = Lote(
             numero_lote=numero_lote,
