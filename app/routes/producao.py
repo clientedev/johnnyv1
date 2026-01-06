@@ -659,7 +659,7 @@ def listar_lotes_estoque():
             'em_estoque', 'disponivel', 'aprovado',
             'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque',
             'em_conferencia', 'conferido', 'aprovada', 'APROVADA',
-            'APROVADO', 'concluido', 'CONCLUIDO'
+            'APROVADO', 'concluido', 'CONCLUIDO', 'RECEBIDO', 'recebido'
         ]
         
         # Buscar lotes que estão em estoque e disponíveis (inclui sublotes)
