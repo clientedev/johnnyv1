@@ -62,8 +62,4 @@ def clear_database_except_users():
         session.close()
 
 if __name__ == "__main__":
-    confirm = input("AVISO: Isso apagará TODOS os dados de produção e estoque. Apenas usuários serão mantidos. Digitar 'SIM' para confirmar: ")
-    if confirm == "SIM":
-        clear_database_except_users()
-    else:
-        print("Operação cancelada.")
+    clear_database_except_users()
