@@ -657,7 +657,8 @@ def listar_lotes_estoque():
         # Status válidos para lotes disponíveis para produção
         status_disponiveis = [
             'em_estoque', 'disponivel', 'aprovado',
-            'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque'
+            'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque',
+            'em_conferencia', 'conferido'
         ]
         
         # Buscar lotes que estão em estoque e disponíveis (inclui sublotes)
