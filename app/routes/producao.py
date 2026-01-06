@@ -690,9 +690,21 @@ def listar_lotes_estoque():
                 
                 # Prioridade 2: Proporcional ao lote pai se o valor acima for 0
                 if valor_total <= 0 and l.lote_pai:
+                    # Garantir que pegamos o valor do lote pai corretamente
+                    # Se o pai não tem valor_total, tentamos buscar nos itens da solicitação do pai
                     pai_valor = float(l.lote_pai.valor_total or 0)
-                    pai_peso = float(l.lote_pai.peso_total_kg or l.lote_pai.peso_liquido or 1)
-                    if pai_peso > 0:
+                    
+                    if pai_valor <= 0 and l.lote_pai.solicitacao_origem_id:
+                        from app.models import ItemSolicitacao
+                        itens_solic_pai = ItemSolicitacao.query.filter_by(
+                            solicitacao_id=l.lote_pai.solicitacao_origem_id,
+                            tipo_lote_id=l.lote_pai.tipo_lote_id
+                        ).all()
+                        if itens_solic_pai:
+                            pai_valor = sum(float(item.valor_calculado or 0) for item in itens_solic_pai)
+                    
+                    pai_peso = float(l.lote_pai.peso_liquido or l.lote_pai.peso_total_kg or 1)
+                    if pai_peso > 0 and pai_valor > 0:
                         valor_total = (peso / pai_peso) * pai_valor
                         logger.info(f"DEBUG LOTE {l.numero_lote}: valor_proporcional_pai={valor_total} (pai_val={pai_valor}, pai_peso={pai_peso})")
                 
@@ -704,13 +716,22 @@ def listar_lotes_estoque():
                 # Fallback final: se ainda for 0, tenta buscar nos itens da solicitação do pai
                 if valor_total <= 0 and l.lote_pai and l.lote_pai.solicitacao_origem_id:
                     from app.models import ItemSolicitacao
+                    # Buscar itens do tipo de lote do SUBLOTE na solicitação do pai
                     itens_solic = ItemSolicitacao.query.filter_by(
                         solicitacao_id=l.lote_pai.solicitacao_origem_id,
                         tipo_lote_id=l.tipo_lote_id
                     ).all()
+                    
+                    # Se não encontrar pelo tipo do sublote, tenta pelo tipo do PAI (fallback)
+                    if not itens_solic:
+                        itens_solic = ItemSolicitacao.query.filter_by(
+                            solicitacao_id=l.lote_pai.solicitacao_origem_id,
+                            tipo_lote_id=l.lote_pai.tipo_lote_id
+                        ).all()
+
                     if itens_solic:
                         valor_total_solic = sum(float(item.valor_calculado or 0) for item in itens_solic)
-                        pai_peso = float(l.lote_pai.peso_total_kg or l.lote_pai.peso_liquido or 1)
+                        pai_peso = float(l.lote_pai.peso_liquido or l.lote_pai.peso_total_kg or 1)
                         if pai_peso > 0:
                             valor_total = (peso / pai_peso) * valor_total_solic
                             logger.info(f"DEBUG LOTE {l.numero_lote}: valor_itens_solic_pai_proporcional={valor_total}")
