@@ -27,16 +27,24 @@ def seed_data():
 
         # 3. Criar Fornecedores
         forn_data = [
-            {"nome": "Recicla Tech Ltda", "documento": "12.345.678/0001-90", "tipo": "PJ"},
-            {"nome": "João da Sucata", "documento": "123.456.789-00", "tipo": "PF"},
-            {"nome": "Eco Logística S.A.", "documento": "98.765.432/0001-10", "tipo": "PJ"}
+            {"nome": "Recicla Tech Ltda", "cnpj": "12.345.678/0001-90", "tipo_documento": "cnpj"},
+            {"nome": "João da Sucata", "cpf": "123.456.789-00", "tipo_documento": "cpf"},
+            {"nome": "Eco Logística S.A.", "cnpj": "98.765.432/0001-10", "tipo_documento": "cnpj"}
         ]
         
         fornecedores = []
         for data in forn_data:
-            f = Fornecedor.query.filter_by(documento=data['documento']).first()
+            if data['tipo_documento'] == 'cnpj':
+                f = Fornecedor.query.filter_by(cnpj=data['cnpj']).first()
+            else:
+                f = Fornecedor.query.filter_by(cpf=data['cpf']).first()
+                
             if not f:
-                f = Fornecedor(nome=data['nome'], documento=data['documento'], tipo=data['tipo'], ativo=True)
+                f = Fornecedor(nome=data['nome'], tipo_documento=data['tipo_documento'], ativo=True)
+                if data['tipo_documento'] == 'cnpj':
+                    f.cnpj = data['cnpj']
+                else:
+                    f.cpf = data['cpf']
                 db.session.add(f)
             fornecedores.append(f)
         
