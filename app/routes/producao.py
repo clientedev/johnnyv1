@@ -612,197 +612,19 @@ def encontrar_ou_criar_bag(classificacao, usuario_id):
         bag = BagProducao(
             codigo=codigo,
             classificacao_grade_id=classificacao.id,
-            criado_por_id=usuario_id,
-            status='aberto'
+            status='aberto',
+            responsavel_id=usuario_id,
+            data_criacao=datetime.utcnow()
         )
         db.session.add(bag)
         db.session.flush()
-
     return bag
-
-
-@bp.route('/bags', methods=['GET'])
-@jwt_required()
-def listar_bags():
-    """Lista todos os bags"""
-    try:
-        status = request.args.get('status')
-        classificacao_id = request.args.get('classificacao_id')
-        categoria = request.args.get('categoria')
-
-        query = BagProducao.query
-
-        if status:
-            query = query.filter(BagProducao.status == status)
-        if classificacao_id:
-            query = query.filter(BagProducao.classificacao_grade_id == int(classificacao_id))
-        if categoria:
-            query = query.join(ClassificacaoGrade).filter(ClassificacaoGrade.categoria == categoria)
-
-        bags = query.order_by(BagProducao.data_criacao.desc()).all()
-        return jsonify([bag.to_dict() for bag in bags])
-    except Exception as e:
-        logger.error(f'Erro ao listar bags: {str(e)}')
-        return jsonify({'erro': str(e)}), 500
-
-
-@bp.route('/bags/<int:id>', methods=['GET'])
-@jwt_required()
-def obter_bag(id):
-    """Obtém detalhes de um bag"""
-    try:
-        bag = BagProducao.query.get_or_404(id)
-        resultado = bag.to_dict()
-        resultado['itens'] = [item.to_dict() for item in bag.itens]
-        return jsonify(resultado)
-    except Exception as e:
-        logger.error(f'Erro ao obter bag {id}: {str(e)}')
-        return jsonify({'erro': str(e)}), 500
-
-
-@bp.route('/bags/<int:id>/enviar-refinaria', methods=['POST'])
-@jwt_required()
-def enviar_bag_refinaria(id):
-    """Marca um bag como enviado para refinaria"""
-    try:
-        current_user_id = get_jwt_identity()
-        usuario = Usuario.query.get(current_user_id)
-        if not usuario or usuario.tipo != 'admin':
-            return jsonify({'erro': 'Apenas administradores podem enviar bags para refinaria'}), 403
-
-        bag = BagProducao.query.get_or_404(id)
-        dados = request.get_json() or {}
-
-        if bag.status == 'enviado_refinaria':
-            return jsonify({'erro': 'Bag já foi enviado para refinaria'}), 400
-
-        bag.status = 'enviado_refinaria'
-        bag.data_envio_refinaria = datetime.utcnow()
-        bag.enviado_por_id = current_user_id
-        bag.numero_remessa = dados.get('numero_remessa')
-
-        db.session.commit()
-        return jsonify(bag.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f'Erro ao enviar bag {id} para refinaria: {str(e)}')
-        return jsonify({'erro': str(e)}), 500
-
-
-@bp.route('/bags/<int:id>/devolver-estoque', methods=['POST'])
-@jwt_required()
-def devolver_bag_estoque(id):
-    """Devolve um bag ao estoque ativo"""
-    try:
-        current_user_id = get_jwt_identity()
-        usuario = Usuario.query.get(current_user_id)
-        if not usuario or usuario.tipo != 'admin':
-            return jsonify({'erro': 'Apenas administradores podem devolver bags ao estoque'}), 403
-
-        bag = BagProducao.query.get_or_404(id)
-
-        if bag.status == 'devolvido_estoque':
-            return jsonify({'erro': 'Bag já está no estoque'}), 400
-
-        if bag.status == 'enviado_refinaria':
-            return jsonify({'erro': 'Bag já foi enviado para refinaria e não pode ser devolvido'}), 400
-
-        bag.status = 'devolvido_estoque'
-        bag.data_atualizacao = datetime.utcnow()
-
-        db.session.commit()
-        logger.info(f'Bag {bag.codigo} devolvido ao estoque por {usuario.nome}')
-        return jsonify(bag.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f'Erro ao devolver bag {id} ao estoque: {str(e)}')
-        return jsonify({'erro': str(e)}), 500
-
-
-# ============================
-# DASHBOARD E RELATÓRIOS
-# ============================
-
-@bp.route('/dashboard', methods=['GET'])
-@jwt_required()
-def dashboard_producao():
-    """Retorna dados para o dashboard de produção"""
-    try:
-        ops_abertas = OrdemProducao.query.filter(OrdemProducao.status.in_(['aberta', 'em_separacao'])).count()
-        ops_finalizadas = OrdemProducao.query.filter(OrdemProducao.status == 'finalizada').count()
-
-        total_high_grade = db.session.query(
-            db.func.sum(BagProducao.peso_acumulado)
-        ).join(ClassificacaoGrade).filter(
-            ClassificacaoGrade.categoria == 'HIGH_GRADE',
-            BagProducao.status.in_(['aberto', 'cheio'])
-        ).scalar() or 0
-
-        total_pronto_refinaria = db.session.query(
-            db.func.sum(BagProducao.peso_acumulado)
-        ).join(ClassificacaoGrade).filter(
-            ClassificacaoGrade.categoria == 'HIGH_GRADE',
-            BagProducao.status == 'cheio'
-        ).scalar() or 0
-
-        lucro_medio = db.session.query(
-            db.func.avg(OrdemProducao.lucro_prejuizo)
-        ).filter(
-            OrdemProducao.status == 'finalizada',
-            OrdemProducao.lucro_prejuizo.isnot(None)
-        ).scalar() or 0
-
-        bags_por_categoria = db.session.query(
-            ClassificacaoGrade.categoria,
-            db.func.count(BagProducao.id).label('quantidade'),
-            db.func.sum(BagProducao.peso_acumulado).label('peso_total')
-        ).join(ClassificacaoGrade).filter(
-            BagProducao.status.in_(['aberto', 'cheio'])
-        ).group_by(ClassificacaoGrade.categoria).all()
-
-        return jsonify({
-            'ops_abertas': ops_abertas,
-            'ops_finalizadas': ops_finalizadas,
-            'total_high_grade_kg': float(total_high_grade),
-            'total_pronto_refinaria_kg': float(total_pronto_refinaria),
-            'lucro_medio_por_op': float(lucro_medio),
-            'bags_por_categoria': [
-                {'categoria': cat, 'quantidade': qtd, 'peso_total': float(peso or 0)}
-                for cat, qtd, peso in bags_por_categoria
-            ]
-        })
-    except Exception as e:
-        logger.error(f'Erro ao obter dashboard: {str(e)}')
-        return jsonify({'erro': str(e)}), 500
-
-
-@bp.route('/relatorio-refinaria', methods=['GET'])
-@jwt_required()
-def relatorio_refinaria():
-    """Gera relatório de materiais prontos para refinaria"""
-    try:
-        bags = BagProducao.query.join(ClassificacaoGrade).filter(
-            ClassificacaoGrade.categoria == 'HIGH_GRADE',
-            BagProducao.status.in_(['aberto', 'cheio'])
-        ).order_by(ClassificacaoGrade.nome).all()
-
-        total_peso = sum(float(bag.peso_acumulado or 0) for bag in bags)
-
-        return jsonify({
-            'bags': [bag.to_dict() for bag in bags],
-            'total_bags': len(bags),
-            'total_peso_kg': total_peso,
-            'data_geracao': datetime.utcnow().isoformat()
-        })
-    except Exception as e:
-        logger.error(f'Erro ao gerar relatório de refinaria: {str(e)}')
-        return jsonify({'erro': str(e)}), 500
 
 
 @bp.route('/fornecedores', methods=['GET'])
 @jwt_required()
 def listar_fornecedores_producao():
-    """Lista fornecedores ativos para seleção na criação de OP"""
+    """Lista fornecedores ativos"""
     try:
         fornecedores = Fornecedor.query.filter_by(ativo=True).order_by(Fornecedor.nome).all()
 
@@ -832,7 +654,6 @@ def listar_lotes_estoque():
     """
     try:
         # Status válidos para lotes disponíveis para produção
-        # Inclui sublotes criados na separação com status 'CRIADO_SEPARACAO', 'criado_separacao', 'em_estoque'
         status_disponiveis = [
             'em_estoque', 'disponivel', 'aprovado',
             'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque'
@@ -973,234 +794,59 @@ def exportar_op_html(id):
 
             bag_codigo = item.bag.codigo if item.bag else 'N/A'
             itens_por_categoria[cat].append({
-                'nome': item.nome_item or (item.classificacao_grade.nome if item.classificacao_grade else 'N/A'),
-                'peso_kg': float(item.peso_kg or 0),
-                'quantidade': item.quantidade or 1,
-                'valor_estimado': float(item.valor_estimado or 0),
-                'custo_proporcional': float(item.custo_proporcional or 0),
-                'bag_codigo': bag_codigo,
-                'data_separacao': item.data_separacao.strftime('%d/%m/%Y %H:%M') if item.data_separacao else 'N/A'
+                'item': item.nome_item,
+                'peso': float(item.peso_kg),
+                'bag': bag_codigo,
+                'observacoes': item.observacoes or ''
             })
 
-        lote_info = f"Lote: {lote_origem.numero_lote}" if lote_origem else "Lote: N/A"
-
-        html_content = f'''
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>OP {ordem.numero_op}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }}
-        .header {{ text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }}
-        .header h1 {{ margin: 0; color: #333; }}
-        .header p {{ margin: 5px 0; color: #666; }}
-        .print-btn {{ background: #4CAF50; color: white; padding: 10px 20px; border: none; cursor: pointer; margin: 10px; font-size: 14px; }}
-        .info-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }}
-        .info-box {{ border: 1px solid #ddd; padding: 10px; border-radius: 5px; }}
-        .info-box h3 {{ margin: 0 0 10px 0; color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px; }}
-        .info-row {{ display: flex; justify-content: space-between; margin: 5px 0; }}
-        .info-label {{ font-weight: bold; color: #666; }}
-        table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background: #f5f5f5; font-weight: bold; }}
-        .categoria-header {{ background: #333; color: white; font-weight: bold; padding: 10px; margin-top: 15px; }}
-        .totals {{ margin-top: 20px; background: #f9f9f9; padding: 15px; border-radius: 5px; }}
-        .totals-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }}
-        .total-item {{ text-align: center; }}
-        .total-value {{ font-size: 18px; font-weight: bold; color: #333; }}
-        .total-label {{ font-size: 11px; color: #666; }}
-        .status {{ display: inline-block; padding: 3px 10px; border-radius: 3px; font-weight: bold; }}
-        .status-aberta {{ background: #ffeeba; color: #856404; }}
-        .status-em_separacao {{ background: #b8daff; color: #004085; }}
-        .status-finalizada {{ background: #c3e6cb; color: #155724; }}
-        .status-cancelada {{ background: #f5c6cb; color: #721c24; }}
-        .footer {{ margin-top: 30px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #ddd; padding-top: 10px; }}
-        @media print {{
-            body {{ margin: 0; }}
-            .no-print {{ display: none !important; }}
-        }}
-    </style>
-</head>
-<body>
-    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-        <button class="print-btn" onclick="window.print()">Imprimir / Salvar como PDF</button>
-    </div>
-
-    <div class="header">
-        <h1>ORDEM DE PRODUÇÃO</h1>
-        <p><strong>{ordem.numero_op}</strong></p>
-        <p>Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
-    </div>
-
-    <div class="info-grid">
-        <div class="info-box">
-            <h3>Informações Gerais</h3>
-            <div class="info-row"><span class="info-label">Status:</span><span class="status status-{ordem.status}">{ordem.status.upper().replace('_', ' ')}</span></div>
-            <div class="info-row"><span class="info-label">Data Abertura:</span><span>{ordem.data_abertura.strftime('%d/%m/%Y %H:%M') if ordem.data_abertura else 'N/A'}</span></div>
-            <div class="info-row"><span class="info-label">Responsável:</span><span>{responsavel.nome if responsavel else 'N/A'}</span></div>
-            <div class="info-row"><span class="info-label">Origem:</span><span>{ordem.origem_tipo or 'N/A'}</span></div>
-            <div class="info-row"><span class="info-label">Fornecedor:</span><span>{fornecedor.nome if fornecedor else 'N/A'}</span></div>
-            <div class="info-row"><span class="info-label">{lote_info}</span></div>
-        </div>
-        <div class="info-box">
-            <h3>Material</h3>
-            <div class="info-row"><span class="info-label">Tipo:</span><span>{ordem.tipo_material or 'N/A'}</span></div>
-            <div class="info-row"><span class="info-label">Descrição:</span><span>{ordem.descricao_material or 'N/A'}</span></div>
-            <div class="info-row"><span class="info-label">Peso Entrada:</span><span>{float(ordem.peso_entrada or 0):.2f} kg</span></div>
-            <div class="info-row"><span class="info-label">Quantidade:</span><span>{ordem.quantidade_entrada or 0}</span></div>
-            <div class="info-row"><span class="info-label">Custo Total:</span><span>R$ {float(ordem.custo_total or 0):,.2f}</span></div>
-            <div class="info-row"><span class="info-label">Data Finalização:</span><span>{ordem.data_finalizacao.strftime('%d/%m/%Y %H:%M') if ordem.data_finalizacao else 'N/A'}</span></div>
-        </div>
-    </div>
-
-    <h3>Itens Separados</h3>
-'''
-
-        if itens_por_categoria:
-            for categoria, lista_itens in itens_por_categoria.items():
-                html_content += f'<div class="categoria-header">{categoria}</div>'
-                html_content += '''
-    <table>
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th>Peso (kg)</th>
-                <th>Qtd</th>
-                <th>Custo Prop.</th>
-                <th>Valor Est.</th>
-                <th>Bag</th>
-                <th>Data Separação</th>
-            </tr>
-        </thead>
-        <tbody>
-'''
-                for item in lista_itens:
-                    html_content += f'''
-            <tr>
-                <td>{item['nome']}</td>
-                <td>{item['peso_kg']:.3f}</td>
-                <td>{item['quantidade']}</td>
-                <td>R$ {item['custo_proporcional']:,.2f}</td>
-                <td>R$ {item['valor_estimado']:,.2f}</td>
-                <td>{item['bag_codigo']}</td>
-                <td>{item['data_separacao']}</td>
-            </tr>
-'''
-                html_content += '</tbody></table>'
-        else:
-            html_content += '<p style="color: #666; font-style: italic;">Nenhum item separado ainda.</p>'
-
-        peso_separado = float(ordem.peso_total_separado or 0)
-        peso_perdas = float(ordem.peso_perdas or 0)
-        percentual_perda = float(ordem.percentual_perda or 0)
-        valor_estimado = float(ordem.valor_estimado_total or 0)
-        custo_total = float(ordem.custo_total or 0)
-        lucro = float(ordem.lucro_prejuizo or 0)
-
-        html_content += f'''
-    <div class="totals">
-        <h3>Resumo Financeiro</h3>
-        <div class="totals-grid">
-            <div class="total-item">
-                <div class="total-value">{peso_separado:.2f} kg</div>
-                <div class="total-label">Peso Total Separado</div>
-            </div>
-            <div class="total-item">
-                <div class="total-value">{peso_perdas:.2f} kg ({percentual_perda:.1f}%)</div>
-                <div class="total-label">Perdas</div>
-            </div>
-            <div class="total-item">
-                <div class="total-value">R$ {valor_estimado:,.2f}</div>
-                <div class="total-label">Valor Estimado Total</div>
-            </div>
-            <div class="total-item">
-                <div class="total-value">R$ {custo_total:,.2f}</div>
-                <div class="total-label">Custo Total</div>
-            </div>
-            <div class="total-item">
-                <div class="total-value" style="color: {'green' if lucro >= 0 else 'red'}">R$ {lucro:,.2f}</div>
-                <div class="total-label">{'Lucro' if lucro >= 0 else 'Prejuízo'}</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>MRX System - Gestão de Compras de Sucata Eletrônica</p>
-        <p>Este documento foi gerado automaticamente pelo sistema.</p>
-        <p>Para salvar como PDF: Use Ctrl+P e selecione "Salvar como PDF" como destino.</p>
-    </div>
-</body>
-</html>
-'''
-
-        return Response(
-            html_content,
-            mimetype='text/html',
-            headers={
-                'Content-Disposition': f'inline; filename=OP_{ordem.numero_op}.html'
-            }
+        return render_template(
+            'exportar-op.html',
+            ordem=ordem,
+            itens_por_categoria=itens_por_categoria,
+            responsavel=responsavel,
+            fornecedor=fornecedor,
+            lote_origem=lote_origem,
+            datetime=datetime
         )
     except Exception as e:
-        logger.error(f'Erro ao exportar OP para HTML: {str(e)}')
-        return jsonify({'erro': str(e)}), 500
+        logger.error(f'Erro ao exportar OP {id}: {str(e)}')
+        return f"Erro ao exportar OP: {str(e)}", 500
 
 
-@bp.route('/exportar-high-grade-excel', methods=['GET'])
+@bp.route('/ordens/<int:id>/exportar-excel', methods=['GET'])
 @admin_required
-def exportar_high_grade_excel():
+def exportar_op_excel(id):
     """
-    Exporta inventário High Grade para Excel.
-    Restrito a administradores. Limitado a MAX_EXPORT_LIMIT registros.
-    Inclui: lotes de origem, números de remessa, datas completas.
+    Exporta os itens de uma Ordem de Produção para Excel.
+    Restrito a administradores.
     """
     try:
-        limite = min(int(request.args.get('limite', MAX_EXPORT_LIMIT)), MAX_EXPORT_LIMIT)
+        ordem = OrdemProducao.query.get_or_404(id)
+        itens = ordem.itens_separados
 
-        bags = BagProducao.query.join(ClassificacaoGrade).filter(
-            ClassificacaoGrade.categoria == 'HIGH_GRADE',
-            BagProducao.status.in_(['aberto', 'cheio', 'enviado_refinaria'])
-        ).order_by(ClassificacaoGrade.nome, BagProducao.data_criacao.desc()).limit(limite).all()
-
-        dados = []
-        for bag in bags:
-            classificacao = bag.classificacao_grade
-            criado_por = Usuario.query.get(bag.criado_por_id) if bag.criado_por_id else None
-            enviado_por = Usuario.query.get(bag.enviado_por_id) if bag.enviado_por_id else None
-
-            lotes_str = ''
-            if bag.lotes_origem:
-                op_ids = bag.lotes_origem if isinstance(bag.lotes_origem, list) else []
-                ordens = OrdemProducao.query.filter(OrdemProducao.id.in_(op_ids)).all()
-                lotes_str = ', '.join([op.numero_op for op in ordens])
-
-            dados.append({
-                'Código Bag': bag.codigo,
-                'Classificação': classificacao.nome if classificacao else 'N/A',
-                'Categoria': classificacao.categoria if classificacao else 'N/A',
-                'Peso Acumulado (kg)': float(bag.peso_acumulado or 0),
-                'Quantidade Itens': bag.quantidade_itens or 0,
-                'Status': bag.status,
-                'Peso Capacidade Máx (kg)': float(bag.peso_capacidade_max or 50),
-                'Preço Estimado/kg (R$)': float(classificacao.preco_estimado_kg or 0) if classificacao else 0,
-                'Valor Estimado Total (R$)': float(bag.peso_acumulado or 0) * float(classificacao.preco_estimado_kg or 0) if classificacao else 0,
-                'Lotes de Origem (OPs)': lotes_str,
-                'Data Criação': bag.data_criacao.strftime('%d/%m/%Y %H:%M') if bag.data_criacao else '',
-                'Criado Por': criado_por.nome if criado_por else 'N/A',
-                'Data Envio Refinaria': bag.data_envio_refinaria.strftime('%d/%m/%Y %H:%M') if bag.data_envio_refinaria else '',
-                'Enviado Por': enviado_por.nome if enviado_por else '',
-                'Número Remessa': bag.numero_remessa or ''
+        data = []
+        for item in itens:
+            data.append({
+                'OP': ordem.numero_op,
+                'Data': ordem.data_abertura.strftime('%d/%m/%Y'),
+                'Item': item.nome_item,
+                'Categoria': item.classificacao_grade.categoria if item.classificacao_grade else 'N/A',
+                'Peso (kg)': float(item.peso_kg),
+                'Quantidade': item.quantidade,
+                'Bag': item.bag.codigo if item.bag else 'N/A',
+                'Valor Est. (R$)': float(item.valor_estimado or 0),
+                'Observações': item.observacoes or ''
             })
 
-        df = pd.DataFrame(dados)
-
+        df = pd.DataFrame(data)
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Inventário High Grade')
+            df.to_excel(writer, index=False, sheet_name='Itens OP')
+        
         output.seek(0)
-
-        filename = f'inventario_high_grade_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-
+        
+        filename = f"OP_{ordem.numero_op}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1208,76 +854,41 @@ def exportar_high_grade_excel():
             download_name=filename
         )
     except Exception as e:
-        logger.error(f'Erro ao exportar High Grade para Excel: {str(e)}')
+        logger.error(f'Erro ao exportar Excel da OP {id}: {str(e)}')
         return jsonify({'erro': str(e)}), 500
 
 
-@bp.route('/exportar-relatorio-refinaria-excel', methods=['GET'])
+@bp.route('/relatorio-geral', methods=['GET'])
 @admin_required
-def exportar_relatorio_refinaria_excel():
-    """
-    Exporta relatório de materiais prontos para refinaria em Excel.
-    Restrito a administradores. Limitado a MAX_EXPORT_LIMIT registros.
-    Inclui totais consolidados.
-    """
+def relatorio_geral_producao():
+    """Gera um relatório Excel de todas as OPs finalizadas"""
     try:
-        limite = min(int(request.args.get('limite', MAX_EXPORT_LIMIT)), MAX_EXPORT_LIMIT)
-
-        bags = BagProducao.query.join(ClassificacaoGrade).filter(
-            ClassificacaoGrade.categoria == 'HIGH_GRADE',
-            BagProducao.status.in_(['aberto', 'cheio'])
-        ).order_by(ClassificacaoGrade.nome).limit(limite).all()
-
-        dados = []
-        for bag in bags:
-            classificacao = bag.classificacao_grade
-            valor_estimado = float(bag.peso_acumulado or 0) * float(classificacao.preco_estimado_kg or 0) if classificacao else 0
-
-            lotes_str = ''
-            if bag.lotes_origem:
-                op_ids = bag.lotes_origem if isinstance(bag.lotes_origem, list) else []
-                ordens = OrdemProducao.query.filter(OrdemProducao.id.in_(op_ids)).all()
-                lotes_str = ', '.join([op.numero_op for op in ordens])
-
-            dados.append({
-                'Código Bag': bag.codigo,
-                'Classificação': classificacao.nome if classificacao else 'N/A',
-                'Peso (kg)': float(bag.peso_acumulado or 0),
-                'Quantidade Itens': bag.quantidade_itens or 0,
-                'Status': 'Pronto' if bag.status == 'cheio' else 'Em Preenchimento',
-                'Preço/kg (R$)': float(classificacao.preco_estimado_kg or 0) if classificacao else 0,
-                'Valor Estimado (R$)': valor_estimado,
-                'Lotes de Origem (OPs)': lotes_str,
-                'Data Criação': bag.data_criacao.strftime('%d/%m/%Y %H:%M') if bag.data_criacao else ''
+        ordens = OrdemProducao.query.filter_by(status='finalizada').all()
+        
+        data = []
+        for op in ordens:
+            data.append({
+                'OP': op.numero_op,
+                'Abertura': op.data_abertura.strftime('%d/%m/%Y %H:%M'),
+                'Finalização': op.data_finalizacao.strftime('%d/%m/%Y %H:%M') if op.data_finalizacao else '',
+                'Material': op.tipo_material,
+                'Peso Entrada (kg)': float(op.peso_entrada or 0),
+                'Peso Saída (kg)': float(op.peso_total_separado or 0),
+                'Perda (kg)': float(op.peso_perdas or 0),
+                'Perda (%)': float(op.percentual_perda or 0),
+                'Custo Total (R$)': float(op.custo_total or 0),
+                'Valor Est. (R$)': float(op.valor_estimado_total or 0),
+                'Lucro/Prejuízo (R$)': float(op.lucro_prejuizo or 0)
             })
 
-        df = pd.DataFrame(dados)
-
-        total_peso = df['Peso (kg)'].sum() if len(df) > 0 else 0
-        total_valor = df['Valor Estimado (R$)'].sum() if len(df) > 0 else 0
-        total_itens = df['Quantidade Itens'].sum() if len(df) > 0 else 0
-
-        dados.append({
-            'Código Bag': '',
-            'Classificação': 'TOTAL',
-            'Peso (kg)': total_peso,
-            'Quantidade Itens': total_itens,
-            'Status': '',
-            'Preço/kg (R$)': '',
-            'Valor Estimado (R$)': total_valor,
-            'Lotes de Origem (OPs)': '',
-            'Data Criação': f'Gerado em: {datetime.now().strftime("%d/%m/%Y %H:%M")}'
-        })
-
-        df = pd.DataFrame(dados)
-
+        df = pd.DataFrame(data)
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Pronto para Refinaria')
+            df.to_excel(writer, index=False, sheet_name='Relatório Produção')
+        
         output.seek(0)
-
-        filename = f'relatorio_refinaria_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-
+        
+        filename = f"Relatorio_Producao_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1285,5 +896,5 @@ def exportar_relatorio_refinaria_excel():
             download_name=filename
         )
     except Exception as e:
-        logger.error(f'Erro ao exportar relatório de refinaria para Excel: {str(e)}')
+        logger.error(f'Erro ao gerar relatório geral: {str(e)}')
         return jsonify({'erro': str(e)}), 500
