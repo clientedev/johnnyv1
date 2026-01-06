@@ -655,15 +655,23 @@ def listar_lotes_estoque():
     """
     try:
         # Status válidos para lotes disponíveis para produção
+        # Expandindo para incluir qualquer status que indique disponibilidade ou aprovação
         status_disponiveis = [
             'em_estoque', 'disponivel', 'aprovado',
             'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque',
             'em_conferencia', 'conferido', 'aprovada', 'APROVADA',
-            'APROVADO', 'concluido', 'CONCLUIDO', 'RECEBIDO', 'recebido'
+            'APROVADO', 'concluido', 'CONCLUIDO', 'RECEBIDO', 'recebido',
+            'aprovada_adm', 'APROVADA_ADM', 'concluido_conferencia',
+            'liberado', 'LIBERADO', 'disponivel_producao', 'ATIVO', 'ativo'
         ]
-        
+
+        # Debug: Log de todos os lotes no banco
+        all_lotes = Lote.query.all()
+        logger.info(f"DEBUG: Total de lotes no banco: {len(all_lotes)}")
+        for l in all_lotes:
+            logger.info(f"Lote ID: {l.id}, Numero: {l.numero_lote}, Status: '{l.status}', Bloqueado: {l.bloqueado}")
+
         # Buscar lotes que estão em estoque e disponíveis (inclui sublotes)
-        # Removendo filtros restritivos para depuração
         lotes = Lote.query.filter(
             Lote.status.in_(status_disponiveis)
         ).order_by(Lote.id.desc()).limit(200).all()

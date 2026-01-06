@@ -22,7 +22,8 @@ def create_app():
 
     database_url = os.getenv('DATABASE_URL')
     # Forçar URL do Railway explicitamente
-    database_url = "postgresql://postgres:JLNFuhSFMbRaQlBAxuFynwIOMtLyalqt@centerbeam.proxy.rlwy.net:35419/railway"
+    if not database_url or 'helium' in database_url or 'localhost' in database_url:
+        database_url = "postgresql://postgres:JLNFuhSFMbRaQlBAxuFynwIOMtLyalqt@centerbeam.proxy.rlwy.net:35419/railway"
     
     if database_url and database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
