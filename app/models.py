@@ -2280,6 +2280,7 @@ class BagProducao(db.Model):  # type: ignore
     
     # Controle
     criado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    responsavel_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     observacoes = db.Column(db.Text, nullable=True)
@@ -2292,6 +2293,7 @@ class BagProducao(db.Model):  # type: ignore
     classificacao_grade = db.relationship('ClassificacaoGrade', backref='bags')
     criado_por = db.relationship('Usuario', foreign_keys=[criado_por_id], backref='bags_criados')
     enviado_por = db.relationship('Usuario', foreign_keys=[enviado_por_id], backref='bags_enviados')
+    responsavel = db.relationship('Usuario', foreign_keys=[responsavel_id], backref='bags_sob_responsabilidade')
 
     def __init__(self, **kwargs: Any) -> None:
         if 'status' in kwargs and kwargs['status'] not in ['aberto', 'cheio', 'enviado_refinaria', 'devolvido_estoque']:
@@ -2347,6 +2349,8 @@ class BagProducao(db.Model):  # type: ignore
             'enviado_por_id': self.enviado_por_id,
             'enviado_por_nome': self.enviado_por.nome if self.enviado_por else None,
             'numero_remessa': self.numero_remessa,
+            'responsavel_id': self.responsavel_id,
+            'responsavel_nome': self.responsavel.nome if self.responsavel else None,
             'criado_por_id': self.criado_por_id,
             'criado_por_nome': self.criado_por.nome if self.criado_por else None,
             'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None,
