@@ -1925,6 +1925,17 @@
             }
         }
 
+        function safeFormatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return 'N/A';
+                return date.toLocaleString('pt-BR');
+            } catch (e) {
+                return 'N/A';
+            }
+        }
+
         async function verDetalhesOC(ocId) {
             try {
                 const response = await fetchAPI(`/ordens-compra/${ocId}`);
@@ -1944,7 +1955,7 @@
                         <p><strong>Fornecedor:</strong> ${ocAtual.fornecedor_nome}</p>
                         <p><strong>Status:</strong> <span class="badge badge-${ocAtual.status}">${ocAtual.status.toUpperCase()}</span></p>
                         <p><strong>Aprovador:</strong> ${ocAtual.aprovador_nome || 'N/A'}</p>
-                        <p><strong>Data:</strong> ${formatDate(ocAtual.data_criacao || ocAtual.data_envio)}</p>
+                        <p><strong>Data:</strong> ${safeFormatDate(ocAtual.data_criacao || ocAtual.data_envio || ocAtual.data_atualizacao)}</p>
                     </div>
                 `;
 
@@ -2025,8 +2036,9 @@
                 doc.text("Informações da OC", 14, 55);
                 doc.line(14, 57, 196, 57);
 
+                const dataFormatada = safeFormatDate(ocAtual.data_criacao || ocAtual.data_envio || ocAtual.data_atualizacao);
                 const body = [
-                    ["OC ID:", `#${ocAtual.id}`, "Data:", formatDate(ocAtual.data_criacao || ocAtual.data_envio)],
+                    ["OC ID:", `#${ocAtual.id}`, "Data:", dataFormatada],
                     ["Pedido Orig.:", `#${ocAtual.solicitacao_id}`, "Aprovador:", ocAtual.aprovador_nome || "-"],
                     ["Fornecedor:", ocAtual.fornecedor_nome, "", ""]
                 ];
