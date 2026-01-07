@@ -296,7 +296,7 @@
                                 <i class="fas fa-box"></i> ${lote.numero_lote}
                             </h4>
                             <p style="margin: 0; font-size: 0.875rem; color: var(--gray-600);">
-                                ${lote.tipo_lote_nome || 'Tipo não especificado'}
+                                ${lote.observacoes && lote.observacoes.startsWith('MATERIAL_MANUAL:') ? lote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim() : (lote.tipo_lote_nome || 'Tipo não especificado')}
                             </p>
                         </div>
                         <span class="badge ${getBadgeClassLote(lote.status)}">${getStatusLabelLote(lote.status)}</span>
@@ -327,7 +327,7 @@
                                                 <strong style="color: var(--primary-color);">${sublote.numero_lote}</strong>
                                             </div>
                                             <div style="font-size: 0.8rem; color: var(--gray-700); margin-left: 2rem;">
-                                                <i class="fas fa-tag"></i> <strong>Material:</strong> ${sublote.tipo_lote_nome || 'N/A'}
+                                                <i class="fas fa-tag"></i> <strong>Material:</strong> ${sublote.observacoes && sublote.observacoes.startsWith('MATERIAL_MANUAL:') ? sublote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim() : (sublote.tipo_lote_nome || 'N/A')}
                                             </div>
                                             <div style="font-size: 0.8rem; color: var(--gray-700); margin-left: 2rem;">
                                                 <i class="fas fa-weight"></i> <strong>Peso:</strong> <span style="color: var(--success-color); font-weight: bold;">${parseFloat(sublote.peso_liquido || sublote.peso_total_kg || 0).toFixed(2)} kg</span>

@@ -987,9 +987,9 @@
                     if (lote.divergencias && lote.divergencias.length > 0) indicadores.push('<span class="indicator indicator-divergente" title="Divergência"></span>');
 
                     return `
-                        <tr>
+                        <tr onclick="verDetalhesLote(${lote.id})" style="cursor: pointer;">
                             <td><strong>${lote.numero_lote}</strong></td>
-                            <td>${lote.tipo_lote_nome || '—'}</td>
+                            <td>${lote.observacoes && lote.observacoes.startsWith('MATERIAL_MANUAL:') ? lote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim() : (lote.tipo_lote_nome || '—')}</td>
                             <td>${lote.peso_total_kg.toFixed(2)}</td>
                             <td>${lote.fornecedor_nome || '—'}</td>
                             <td>${origem}</td>
@@ -1101,7 +1101,7 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
                         <div>
                             <h4>Informações Básicas</h4>
-                            <p><strong>Material:</strong> ${lote.tipo_lote_nome}</p>
+                            <p><strong>Material:</strong> ${lote.observacoes && lote.observacoes.startsWith('MATERIAL_MANUAL:') ? lote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim() : (lote.tipo_lote_nome || '—')}</p>
                             <p><strong>Fornecedor:</strong> ${lote.fornecedor_nome}</p>
                             <p><strong>Peso Total:</strong> ${lote.peso_total_kg} kg</p>
                             <p><strong>Valor Total:</strong> R$ ${lote.valor_total}</p>
