@@ -202,6 +202,17 @@ def criar_sublote(id):
         tipo_lote_id = data.get('tipo_lote_id')
         tipo_lote_nome = data.get('tipo_lote_nome')
 
+        # Se for material manual, tenta encontrar ou criar o tipo de material
+        if data.get('is_manual') and tipo_lote_nome:
+            from app.models import TipoLote
+            tipo_lote = TipoLote.query.filter_by(nome=tipo_lote_nome).first()
+            if tipo_lote:
+                tipo_lote_id = tipo_lote.id
+            else:
+                # Opcional: Criar um novo tipo de lote se não existir
+                # Por enquanto, se não encontrar e for manual, vamos garantir que o ID não sobrescreva o nome depois
+                pass
+
         # Se não informou ID mas informou nome, tenta encontrar
         if not tipo_lote_id and tipo_lote_nome:
             from app.models import TipoLote
@@ -209,9 +220,21 @@ def criar_sublote(id):
             if tipo_lote:
                 tipo_lote_id = tipo_lote.id
         
-        # Se ainda assim estiver nulo, tenta usar o tipo do lote pai como último recurso
-        if not tipo_lote_id:
+        # Se ainda assim estiver nulo e NÃO for manual, tenta usar o tipo do lote pai
+        if not tipo_lote_id and not data.get('is_manual'):
             tipo_lote_id = lote_pai.tipo_lote_id
+
+        # Se for manual e ainda não tiver ID, precisamos de um ID válido para o modelo Lote
+        # Vamos buscar um tipo de lote "Genérico" ou "Outros" se existir, ou usar o do pai como fallback técnico
+        if not tipo_lote_id and data.get('is_manual'):
+            # Tenta buscar um tipo genérico primeiro
+            from app.models import TipoLote
+            generico = TipoLote.query.filter(TipoLote.nome.ilike('%generico%')).first() or \
+                       TipoLote.query.filter(TipoLote.nome.ilike('%outros%')).first()
+            if generico:
+                tipo_lote_id = generico.id
+            else:
+                tipo_lote_id = lote_pai.tipo_lote_id
 
         if not tipo_lote_id:
             return jsonify({'erro': 'Não foi possível determinar o tipo do lote (tipo_lote_id ausente)'}), 400
@@ -226,7 +249,7 @@ def criar_sublote(id):
             status='CRIADO_SEPARACAO',
             lote_pai_id=lote_pai.id,  # Vincula ao lote pai
             quantidade_itens=data.get('quantidade', 1),
-            observacoes=data.get('observacoes', ''),
+            observacoes=f"{tipo_lote_nome} - {data.get('observacoes', '')}" if data.get('is_manual') else data.get('observacoes', ''),
             anexos=data.get('fotos', []),
             auditoria=[{
                 'acao': 'SUBLOTE_CRIADO_NA_SEPARACAO',
