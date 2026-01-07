@@ -1581,14 +1581,25 @@
                         <div style="display: flex; justify-content: space-between;"><span><strong>Peso total:</strong></span><span>${solicitacaoAtual.total_peso_kg.toFixed(2)} kg</span></div>
                         <div style="display: flex; justify-content: space-between;"><span><strong>Valor total:</strong></span><span style="font-size: 1.2rem; color: var(--primary-color);">R$ ${solicitacaoAtual.total_valor.toFixed(2)}</span></div>
                     </div>
-                    <div style="margin-top: 1rem; position: relative; z-index: 9999;">
-                        <button class="btn btn-secondary w-full" onclick="exportarPDF()" style="cursor: pointer !important; opacity: 1 !important; pointer-events: auto !important;">
-                            <i class="fas fa-file-pdf"></i> Exportar para PDF
-                        </button>
-                    </div>
                 `;
 
                 document.getElementById('detalhesConteudo').innerHTML = html;
+
+                // Adicionar botão de PDF fora do container de detalhes para evitar problemas de clique
+                const btnPdfContainer = document.createElement('div');
+                btnPdfContainer.style.marginTop = '1rem';
+                btnPdfContainer.innerHTML = `
+                    <button id="btnExportarPDF" class="btn btn-secondary w-full" style="cursor: pointer !important;">
+                        <i class="fas fa-file-pdf"></i> Exportar para PDF
+                    </button>
+                `;
+                document.getElementById('detalhesConteudo').appendChild(btnPdfContainer);
+                
+                document.getElementById('btnExportarPDF').onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    exportarPDF();
+                };
 
                 const acoesDiv = document.getElementById('acoesAdmin');
                 if (usuarioAtual.tipo === 'admin' && solicitacaoAtual.status === 'pendente') {
