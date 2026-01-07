@@ -655,7 +655,6 @@ def listar_lotes_estoque():
     """
     try:
         # Status válidos para lotes disponíveis para produção
-        # Expandindo para incluir qualquer status que indique disponibilidade ou aprovação
         status_disponiveis = [
             'em_estoque', 'disponivel', 'aprovado',
             'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque',
@@ -673,9 +672,27 @@ def listar_lotes_estoque():
             logger.info(f"Lote ID: {l.id}, Numero: {l.numero_lote}, Status: '{l.status}', Bloqueado: {l.bloqueado}")
 
         # Buscar lotes que estão em estoque e disponíveis (inclui sublotes)
+        # Usamos uma subquery ou agrupamento para evitar duplicatas se o JOIN com sublotes causar isso
+        # No entanto, a query original é simples. Vamos garantir que pegamos apenas registros únicos por numero_lote se necessário,
+        # ou investigar se há registros duplicados no banco.
         lotes = Lote.query.filter(
             Lote.status.in_(status_disponiveis)
-        ).order_by(Lote.id.desc()).limit(200).all()
+        ).order_by(Lote.id.desc()).all()
+
+        # Remover duplicatas baseadas no número do lote, priorizando o que tem peso/valor
+        lotes_unicos = {}
+        for l in lotes:
+            if l.numero_lote not in lotes_unicos:
+                lotes_unicos[l.numero_lote] = l
+            else:
+                # Se já existe, prefere o que tem valor total ou peso maior
+                lote_existente = lotes_unicos[l.numero_lote]
+                if (l.valor_total or 0) > (lote_existente.valor_total or 0) or (l.peso_liquido or 0) > (lote_existente.peso_liquido or 0):
+                    lotes_unicos[l.numero_lote] = l
+        
+        lotes = list(lotes_unicos.values())
+        lotes.sort(key=lambda x: x.id, reverse=True)
+        lotes = lotes[:200]
 
         resultado = []
         for l in lotes:
