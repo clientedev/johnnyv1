@@ -1344,79 +1344,161 @@
         });
 
         function exportarPDF() {
-            if (!solicitacaoAtual) return;
+            console.log("Iniciando exportação de PDF...");
+            if (!solicitacaoAtual) {
+                console.error("Erro: solicitacaoAtual não definida");
+                return;
+            }
             
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            // Título
-            doc.setFontSize(18);
-            doc.text("Detalhes do Pedido de Compra", 14, 22);
-            
-            // Informações Gerais
-            doc.setFontSize(12);
-            doc.text("Informações Gerais", 14, 32);
-            
-            const infoGeral = [
-                ["ID:", `#${solicitacaoAtual.id}`],
-                ["Funcionário:", solicitacaoAtual.funcionario_nome || "-"],
-                ["Fornecedor:", solicitacaoAtual.fornecedor_nome || "-"],
-                ["Tipo de Retirada:", solicitacaoAtual.tipo_retirada === 'buscar' ? 'Buscar no fornecedor' : 'Fornecedor entrega'],
-                ["Modalidade de Frete:", solicitacaoAtual.modalidade_frete || "-"],
-                ["Status:", solicitacaoAtual.status.toUpperCase()],
-                ["Data de Envio:", formatDate(solicitacaoAtual.data_envio)],
-                ["Data de Confirmação:", solicitacaoAtual.data_confirmacao ? formatDate(solicitacaoAtual.data_confirmacao) : "-"]
-            ];
-            
-            doc.autoTable({
-                startY: 35,
-                head: [],
-                body: infoGeral,
-                theme: 'plain',
-                styles: { fontSize: 10, cellPadding: 1 }
-            });
-            
-            // Observações
-            let finalY = doc.lastAutoTable.finalY + 10;
-            doc.setFontSize(12);
-            doc.text("Observações", 14, finalY);
-            doc.setFontSize(10);
-            const splitObs = doc.splitTextToSize(solicitacaoAtual.observacoes || "Nenhuma observação", 180);
-            doc.text(splitObs, 14, finalY + 7);
-            
-            // Itens
-            finalY = finalY + 7 + (splitObs.length * 5) + 5;
-            doc.setFontSize(12);
-            doc.text(`Itens (${solicitacaoAtual.itens.length})`, 14, finalY);
-            
-            const tableData = solicitacaoAtual.itens.map(item => [
-                item.material_nome || item.tipo_lote_nome || 'N/A',
-                item.material_codigo || "-",
-                item.classificacao ? item.classificacao.toUpperCase() : "-",
-                `${item.peso_kg} kg`,
-                `R$ ${item.preco_por_kg_snapshot ? item.preco_por_kg_snapshot.toFixed(2) : '0.00'}`,
-                `R$ ${item.valor_calculado.toFixed(2)}`,
-                item.lote_numero || "-"
-            ]);
-            
-            doc.autoTable({
-                startY: finalY + 5,
-                head: [['Material', 'Código', 'Classif.', 'Peso', 'Preço/kg', 'Total', 'Lote']],
-                body: tableData,
-                theme: 'striped',
-                headStyles: { fillColor: [5, 150, 105] }
-            });
-            
-            // Total
-            finalY = doc.lastAutoTable.finalY + 10;
-            doc.setFontSize(11);
-            doc.text(`Total de itens: ${solicitacaoAtual.total_itens}`, 14, finalY);
-            doc.text(`Peso total: ${solicitacaoAtual.total_peso_kg.toFixed(2)} kg`, 14, finalY + 7);
-            doc.setFontSize(13);
-            doc.setTextColor(5, 150, 105);
-            doc.text(`Valor Total: R$ ${solicitacaoAtual.total_valor.toFixed(2)}`, 14, finalY + 16);
-            
-            doc.save(`pedido_compra_${solicitacaoAtual.id}.pdf`);
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Configurações de Cores do Sistema
+                const primaryColor = [5, 150, 105]; // Emerald-600 (Padrão MRX)
+                
+                // Cabeçalho Estilizado
+                doc.setFillColor(243, 244, 246);
+                doc.rect(0, 0, 210, 40, 'F');
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(22);
+                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.text("MRX SYSTEMS", 14, 25);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(107, 114, 128);
+                doc.text("Relatório de Pedido de Compra", 14, 32);
+                
+                // Selo de Status
+                const status = solicitacaoAtual.status.toUpperCase();
+                let statusColor = [146, 64, 14]; // Pendente (Amber-800)
+                if (status === 'APROVADA') statusColor = [6, 95, 70]; // Aprovada (Emerald-800)
+                if (status === 'REJEITADA') statusColor = [153, 27, 27]; // Rejeitada (Red-800)
+                
+                doc.setFillColor(255, 255, 255);
+                doc.roundedRect(140, 15, 55, 15, 2, 2, 'FD');
+                doc.setFontSize(9);
+                doc.setTextColor(107, 114, 128);
+                doc.text("STATUS DO PEDIDO", 145, 21);
+                doc.setFontSize(11);
+                doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+                doc.text(status, 145, 27);
+
+                // Informações Gerais
+                doc.setFontSize(14);
+                doc.setTextColor(31, 41, 55);
+                doc.text("Informações Gerais", 14, 55);
+                doc.setDrawColor(229, 231, 235);
+                doc.line(14, 57, 196, 57);
+
+                const infoGeral = [
+                    ["ID do Pedido:", `#${solicitacaoAtual.id}`, "Data de Envio:", formatDate(solicitacaoAtual.data_envio)],
+                    ["Funcionário:", solicitacaoAtual.funcionario_nome || "-", "Retirada:", solicitacaoAtual.tipo_retirada === 'buscar' ? 'Buscar no fornecedor' : 'Fornecedor entrega'],
+                    ["Fornecedor:", solicitacaoAtual.fornecedor_nome || "-", "Frete:", solicitacaoAtual.modalidade_frete || "FOB"],
+                    ["Endereço:", solicitacaoAtual.endereco_completo || "Não informado", "GPS:", solicitacaoAtual.localizacao_lat ? `${solicitacaoAtual.localizacao_lat.toFixed(6)}, ${solicitacaoAtual.localizacao_lng.toFixed(6)}` : "Não capturado"]
+                ];
+
+                doc.autoTable({
+                    startY: 62,
+                    body: infoGeral,
+                    theme: 'plain',
+                    styles: { fontSize: 9, cellPadding: 2 },
+                    columnStyles: {
+                        0: { fontStyle: 'bold', textColor: [107, 114, 128], cellWidth: 35 },
+                        1: { textColor: [31, 41, 55], cellWidth: 60 },
+                        2: { fontStyle: 'bold', textColor: [107, 114, 128], cellWidth: 35 },
+                        3: { textColor: [31, 41, 55] }
+                    }
+                });
+
+                // Observações
+                let currentY = doc.lastAutoTable.finalY + 15;
+                if (solicitacaoAtual.observacoes) {
+                    doc.setFontSize(14);
+                    doc.setTextColor(31, 41, 55);
+                    doc.text("Observações", 14, currentY);
+                    doc.line(14, currentY + 2, 196, currentY + 2);
+                    
+                    doc.setFontSize(10);
+                    doc.setFont("helvetica", "normal");
+                    doc.setTextColor(55, 65, 81);
+                    const splitObs = doc.splitTextToSize(solicitacaoAtual.observacoes, 180);
+                    doc.text(splitObs, 14, currentY + 10);
+                    currentY += (splitObs.length * 5) + 10;
+                }
+
+                // Tabela de Itens
+                doc.setFontSize(14);
+                doc.setTextColor(31, 41, 55);
+                doc.text(`Itens do Pedido (${solicitacaoAtual.itens.length})`, 14, currentY);
+                doc.line(14, currentY + 2, 196, currentY + 2);
+
+                const tableData = solicitacaoAtual.itens.map(item => [
+                    item.material_nome || item.tipo_lote_nome || 'N/A',
+                    item.material_codigo || "-",
+                    item.classificacao ? item.classificacao.toUpperCase() : "-",
+                    `${item.peso_kg} kg`,
+                    `R$ ${item.preco_por_kg_snapshot ? item.preco_por_kg_snapshot.toFixed(2) : '0.00'}`,
+                    `R$ ${item.valor_calculado.toFixed(2)}`,
+                    item.lote_numero || "-"
+                ]);
+
+                doc.autoTable({
+                    startY: currentY + 7,
+                    head: [['Material', 'Código', 'Classif.', 'Peso', 'Preço/kg', 'Total', 'Lote']],
+                    body: tableData,
+                    theme: 'striped',
+                    headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+                    styles: { fontSize: 9, cellPadding: 3 },
+                    columnStyles: {
+                        5: { fontStyle: 'bold', halign: 'right' },
+                        3: { halign: 'center' }
+                    }
+                });
+
+                // Resumo Financeiro
+                currentY = doc.lastAutoTable.finalY + 15;
+                if (currentY > 250) { doc.addPage(); currentY = 20; }
+
+                doc.setFillColor(249, 250, 251);
+                doc.rect(130, currentY, 66, 35, 'F');
+                doc.setDrawColor(229, 231, 235);
+                doc.rect(130, currentY, 66, 35, 'S');
+
+                doc.setFontSize(10);
+                doc.setTextColor(107, 114, 128);
+                doc.text("Total de Itens:", 135, currentY + 10);
+                doc.setTextColor(31, 41, 55);
+                doc.text(`${solicitacaoAtual.total_itens}`, 185, currentY + 10, { align: 'right' });
+
+                doc.setTextColor(107, 114, 128);
+                doc.text("Peso Total:", 135, currentY + 18);
+                doc.setTextColor(31, 41, 55);
+                doc.text(`${solicitacaoAtual.total_peso_kg.toFixed(2)} kg`, 185, currentY + 18, { align: 'right' });
+
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.text("VALOR TOTAL:", 135, currentY + 28);
+                doc.text(`R$ ${solicitacaoAtual.total_valor.toFixed(2)}`, 185, currentY + 28, { align: 'right' });
+
+                // Rodapé
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(156, 163, 175);
+                    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')} - MRX Systems Internal Report`, 14, 285);
+                    doc.text(`Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
+                }
+
+                doc.save(`Pedido_Compra_MRX_${solicitacaoAtual.id}.pdf`);
+                showAlert("PDF gerado com sucesso!", "success");
+            } catch (err) {
+                console.error("Erro ao gerar PDF:", err);
+                showAlert("Erro ao gerar PDF. Verifique o console.", "error");
+            }
         }
 
         async function verDetalhes(id) {
@@ -1499,8 +1581,8 @@
                         <div style="display: flex; justify-content: space-between;"><span><strong>Peso total:</strong></span><span>${solicitacaoAtual.total_peso_kg.toFixed(2)} kg</span></div>
                         <div style="display: flex; justify-content: space-between;"><span><strong>Valor total:</strong></span><span style="font-size: 1.2rem; color: var(--primary-color);">R$ ${solicitacaoAtual.total_valor.toFixed(2)}</span></div>
                     </div>
-                    <div style="margin-top: 1rem;">
-                        <button class="btn btn-secondary w-full" onclick="exportarPDF()">
+                    <div style="margin-top: 1rem; position: relative; z-index: 9999;">
+                        <button class="btn btn-secondary w-full" onclick="exportarPDF()" style="cursor: pointer !important; opacity: 1 !important; pointer-events: auto !important;">
                             <i class="fas fa-file-pdf"></i> Exportar para PDF
                         </button>
                     </div>
