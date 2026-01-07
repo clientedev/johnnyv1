@@ -1946,6 +1946,18 @@
 
                 ocAtual = await response.json();
                 
+                // Se a OC não tem itens ou data, vamos buscar do pedido original
+                if ((!ocAtual.itens || ocAtual.itens.length === 0) && ocAtual.solicitacao_id) {
+                    const respPed = await fetchAPI(`/solicitacoes/${ocAtual.solicitacao_id}`);
+                    if (respPed && respPed.ok) {
+                        const pedidoOriginal = await respPed.json();
+                        ocAtual.itens = pedidoOriginal.itens;
+                        if (!ocAtual.data_criacao && !ocAtual.data_envio) {
+                            ocAtual.data_criacao = pedidoOriginal.data_envio;
+                        }
+                    }
+                }
+                
                 // Usamos o mesmo modal de detalhes, mas adaptado para OC
                 let html = `
                     <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
