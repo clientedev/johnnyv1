@@ -91,6 +91,17 @@ def listar_lotes_ativos():
         for lote in lotes:
             lote_dict = lote.to_dict()
             
+            # Lógica para priorizar nome manual se existir no lote principal
+            nome_material_principal = None
+            if lote.observacoes and lote.observacoes.startswith('MATERIAL_MANUAL:'):
+                try:
+                    nome_material_principal = lote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').strip()
+                except:
+                    pass
+            
+            if nome_material_principal:
+                lote_dict['tipo_lote_nome'] = nome_material_principal
+            
             # Carregar sublotes com informações completas
             sublotes_data = []
             peso_total_sublotes = 0
@@ -105,7 +116,9 @@ def listar_lotes_ativos():
                         'id': sublote.id,
                         'numero_lote': sublote.numero_lote,
                         'tipo_lote_id': sublote.tipo_lote_id,
-                        'tipo_lote_nome': sublote.tipo_lote.nome if sublote.tipo_lote else 'N/A',
+                        'tipo_lote_nome': (sublote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim() 
+                                           if sublote.observacoes and sublote.observacoes.startswith('MATERIAL_MANUAL:') 
+                                           else (sublote.tipo_lote.nome if sublote.tipo_lote else 'N/A')),
                         'peso_total_kg': float(sublote.peso_total_kg) if sublote.peso_total_kg else 0,
                         'peso_liquido': float(sublote.peso_liquido) if sublote.peso_liquido else 0,
                         'status': sublote.status,

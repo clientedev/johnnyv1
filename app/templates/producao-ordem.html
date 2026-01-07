@@ -357,10 +357,15 @@
                 container.innerHTML = '<div class="card" style="text-align: center; color: var(--gray-500);">Nenhum item separado ainda</div>';
                 return;
             }
-            container.innerHTML = itens.map(item => `
+            container.innerHTML = itens.map(item => {
+                let nomeMaterial = item.nome_item || getClassificacaoNome(item.classificacao_grade_id);
+                if (item.observacoes && item.observacoes.startsWith('MATERIAL_MANUAL:')) {
+                    nomeMaterial = item.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim();
+                }
+                return `
                 <div class="item-card">
                     <div style="flex: 1;">
-                        <strong>${item.nome_item || getClassificacaoNome(item.classificacao_grade_id)}</strong>
+                        <strong>${nomeMaterial}</strong>
                         <div style="font-size: 0.875rem; color: var(--gray-600);">
                             ${item.peso_kg ? `${parseFloat(item.peso_kg).toFixed(3)} kg` : ''} 
                             ${item.quantidade ? `- ${item.quantidade} un.` : ''}
@@ -373,7 +378,7 @@
                         </button>
                     ` : ''}
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function getClassificacaoNome(id) {
