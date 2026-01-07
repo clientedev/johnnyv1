@@ -662,7 +662,8 @@ def listar_lotes_estoque():
             'em_conferencia', 'conferido', 'aprovada', 'APROVADA',
             'APROVADO', 'concluido', 'CONCLUIDO', 'RECEBIDO', 'recebido',
             'aprovada_adm', 'APROVADA_ADM', 'concluido_conferencia',
-            'liberado', 'LIBERADO', 'disponivel_producao', 'ATIVO', 'ativo'
+            'liberado', 'LIBERADO', 'disponivel_producao', 'ATIVO', 'ativo',
+            'AGUARDANDO_SEPARACAO', 'aguardando_separacao', 'PROCESSADO', 'processado', 'aberto', 'ABERTO'
         ]
 
         # Debug: Log de todos os lotes no banco
