@@ -654,38 +654,35 @@ def listar_lotes_estoque():
     Inclui lotes principais e sublotes (materiais separados) com status ativo.
     """
     try:
-        # Status que indicam que o lote ainda está disponível para ser processado pela produção
-        status_disponiveis = [
-            'em_estoque', 'disponivel', 'aprovado',
-            'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque',
-            'em_conferencia', 'conferido', 'aprovada', 'APROVADA',
-            'APROVADO', 'concluido', 'CONCLUIDO', 'RECEBIDO', 'recebido',
-            'aprovada_adm', 'APROVADA_ADM', 'concluido_conferencia',
-            'liberado', 'LIBERADO', 'disponivel_producao', 'ATIVO', 'ativo'
-        ]
+        # Query direta para buscar lotes em estoque
+        # Simplificando a query para evitar problemas de filtragem no SQL
+        lotes_estoque = Lote.query.all()
 
-        # Status de fluxo intermediário que não devem aparecer na seleção de produção
-        # pois já estão vinculados a processos específicos (como Separação)
-        status_bloqueados = [
-            'PROCESSADO', 'AGUARDANDO_SEPARACAO', 'EM_SEPARACAO', 'aberto', 'ABERTO'
-        ]
-
-        # Buscar lotes que estão em estoque e NÃO estão em fluxo de separação/processamento
-        lotes = Lote.query.filter(
-            Lote.status.in_(status_disponiveis),
-            ~Lote.status.in_(status_bloqueados)
-        ).order_by(Lote.id.desc()).all()
-
-        # Remover duplicatas baseadas no número do lote, priorizando o que tem peso/valor
+        # Filtragem MANUAL no Python para garantir precisão absoluta
+        status_bloqueados = ['PROCESSADO', 'AGUARDANDO_SEPARACAO', 'EM_SEPARACAO', 'aberto', 'ABERTO']
+        status_validos = ['em_estoque', 'disponivel', 'aprovado', 'Em Estoque', 'ATIVO', 'ativo', 'aprovada', 'APROVADA', 'APROVADO']
+        
         lotes_unicos = {}
-        for l in lotes:
-            if l.numero_lote not in lotes_unicos:
-                lotes_unicos[l.numero_lote] = l
+        for l in lotes_estoque:
+            status_limpo = str(l.status).strip()
+            
+            # 1. Ignorar se estiver nos status bloqueados (intermediários)
+            if status_limpo in status_bloqueados:
+                continue
+            
+            # 2. Ignorar se NÃO estiver nos status válidos de estoque
+            if status_limpo not in status_validos:
+                continue
+            
+            # 3. Desduplicação por número de lote
+            num = str(l.numero_lote).strip()
+            if num not in lotes_unicos:
+                lotes_unicos[num] = l
             else:
-                # Se já existe, prefere o que tem valor total ou peso maior
-                lote_existente = lotes_unicos[l.numero_lote]
-                if (l.valor_total or 0) > (lote_existente.valor_total or 0) or (l.peso_liquido or 0) > (lote_existente.peso_liquido or 0):
-                    lotes_unicos[l.numero_lote] = l
+                # Prioriza o registro que tem valor financeiro preenchido
+                lote_existente = lotes_unicos[num]
+                if float(l.valor_total or 0) > float(lote_existente.valor_total or 0):
+                    lotes_unicos[num] = l
         
         lotes = list(lotes_unicos.values())
         lotes.sort(key=lambda x: x.id, reverse=True)
