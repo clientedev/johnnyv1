@@ -545,13 +545,18 @@
 
     <!-- Modal Detalhes -->
     <div class="modal" id="modalDetalhes">
-        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header">
                 <h2>Detalhes do Pedido de Compra</h2>
                 <button class="modal-close" onclick="fecharModalDetalhes()">&times;</button>
             </div>
-            <div id="detalhesConteudo"></div>
-            <div id="acoesAdmin" style="margin-top: 1.5rem; display: flex; gap: 1rem;"></div>
+            <div id="detalhesConteudo" style="flex: 1; overflow-y: auto; padding-right: 5px;"></div>
+            <div id="footerDetalhes" style="padding: 1.5rem 0 0 0; border-top: 1px solid #e5e7eb; margin-top: 1rem;">
+                <button id="btnExportarPDF" class="btn btn-secondary w-full" style="cursor: pointer !important; z-index: 10000; position: relative;">
+                    <i class="fas fa-file-pdf"></i> Exportar para PDF
+                </button>
+            </div>
+            <div id="acoesAdmin" style="margin-top: 1rem; display: flex; gap: 1rem;"></div>
         </div>
     </div>
 
@@ -1584,22 +1589,16 @@
                 `;
 
                 document.getElementById('detalhesConteudo').innerHTML = html;
-
-                // Adicionar botão de PDF fora do container de detalhes para evitar problemas de clique
-                const btnPdfContainer = document.createElement('div');
-                btnPdfContainer.style.marginTop = '1rem';
-                btnPdfContainer.innerHTML = `
-                    <button id="btnExportarPDF" class="btn btn-secondary w-full" style="cursor: pointer !important;">
-                        <i class="fas fa-file-pdf"></i> Exportar para PDF
-                    </button>
-                `;
-                document.getElementById('detalhesConteudo').appendChild(btnPdfContainer);
                 
-                document.getElementById('btnExportarPDF').onclick = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    exportarPDF();
-                };
+                // Configura o evento do botão de PDF que agora está fixo no rodapé do modal
+                const btnPdf = document.getElementById('btnExportarPDF');
+                if (btnPdf) {
+                    btnPdf.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        exportarPDF();
+                    };
+                }
 
                 const acoesDiv = document.getElementById('acoesAdmin');
                 if (usuarioAtual.tipo === 'admin' && solicitacaoAtual.status === 'pendente') {
