@@ -500,12 +500,11 @@
                     peso: peso,
                     qualidade: document.getElementById('qualidadeSublote').value,
                     observacoes: document.getElementById('observacoesSublote').value,
-                    is_manual: usaMaterialManual
+                    is_manual: usaMaterialManual,
+                    tipo_lote_nome: usaMaterialManual ? tipoLoteNome : document.getElementById('tipoLoteSublote').options[document.getElementById('tipoLoteSublote').selectedIndex].text
                 };
 
-                if (usaMaterialManual) {
-                    requestBody.tipo_lote_nome = tipoLoteNome;
-                } else {
+                if (!usaMaterialManual) {
                     requestBody.tipo_lote_id = tipoLoteId;
                 }
 
