@@ -594,7 +594,7 @@
                 // Primeiro adicionar lotes principais com seus sublotes abaixo
                 lotesPrincipais.forEach(l => {
                     const numero = l.numero_lote || 'S/N';
-                    const tipo = l.tipo_lote_nome || 'N/A';
+                    const tipo = l.observacoes && l.observacoes.startsWith('MATERIAL_MANUAL:') ? l.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim() : (l.tipo_lote_nome || 'N/A');
                     const peso = parseFloat(l.peso_liquido || 0).toFixed(2);
                     opcoes += `<option value="${l.id}">${numero} - ${tipo} (${peso} kg)</option>`;
                     
@@ -602,7 +602,7 @@
                     if (sublotesPorPai[l.id]) {
                         sublotesPorPai[l.id].forEach(s => {
                             const sNumero = s.numero_lote || 'S/N';
-                            const sTipo = s.tipo_lote_nome || 'N/A';
+                            const sTipo = s.observacoes && s.observacoes.startsWith('MATERIAL_MANUAL:') ? s.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim() : (s.tipo_lote_nome || 'N/A');
                             const sPeso = parseFloat(s.peso_liquido || 0).toFixed(2);
                             opcoes += `<option value="${s.id}">  ↳ ${sNumero} - ${sTipo} (${sPeso} kg)</option>`;
                         });
@@ -614,7 +614,7 @@
                     const paiNaLista = lotesPrincipais.some(l => l.id === s.lote_pai_id);
                     if (!paiNaLista) {
                         const sNumero = s.numero_lote || 'S/N';
-                        const sTipo = s.tipo_lote_nome || 'N/A';
+                        const sTipo = s.observacoes && s.observacoes.startsWith('MATERIAL_MANUAL:') ? s.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim() : (s.tipo_lote_nome || 'N/A');
                         const sPeso = parseFloat(s.peso_liquido || 0).toFixed(2);
                         opcoes += `<option value="${s.id}">↳ ${sNumero} - ${sTipo} (${sPeso} kg)</option>`;
                     }
