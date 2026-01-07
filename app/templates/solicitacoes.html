@@ -2052,12 +2052,13 @@
                 });
 
                 // Itens
-                const tableData = ocAtual.itens.map(item => [
-                    item.material_nome,
+                const itens = ocAtual.itens || [];
+                const tableData = itens.map(item => [
+                    item.material_nome || 'N/A',
                     item.material_codigo || "-",
-                    `${item.peso_kg} kg`,
-                    `R$ ${item.preco_unitario.toFixed(2)}`,
-                    `R$ ${item.valor_total.toFixed(2)}`
+                    `${item.peso_kg || 0} kg`,
+                    `R$ ${(item.preco_unitario || 0).toFixed(2)}`,
+                    `R$ ${(item.valor_total || 0).toFixed(2)}`
                 ]);
 
                 doc.autoTable({
