@@ -1976,11 +1976,11 @@
                         <h3 style="margin: 1.5rem 0 1rem 0;"> Itens (${ocAtual.itens.length})</h3>
                         ${ocAtual.itens.map(item => `
                             <div class="card" style="margin-bottom: 1rem;">
-                                <p><strong>Material:</strong> ${item.material_nome || 'N/A'}</p>
+                                <p><strong>Material:</strong> ${item.material_nome || item.tipo_lote_nome || 'N/A'}</p>
                                 <p><strong>Código:</strong> ${item.material_codigo || '-'}</p>
-                                <p><strong>Peso:</strong> ${item.peso_kg} kg</p>
-                                <p><strong>Preço/kg:</strong> R$ ${item.preco_unitario.toFixed(2)}</p>
-                                <p><strong>Valor Total:</strong> R$ ${item.valor_total.toFixed(2)}</p>
+                                <p><strong>Peso:</strong> ${item.peso_kg || 0} kg</p>
+                                <p><strong>Preço/kg:</strong> R$ ${(item.preco_unitario || item.preco_por_kg_snapshot || 0).toFixed(2)}</p>
+                                <p><strong>Valor Total:</strong> R$ ${(item.valor_total || item.valor_calculado || 0).toFixed(2)}</p>
                             </div>
                         `).join('')}
                     `;
@@ -1988,7 +1988,7 @@
 
                 html += `
                     <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
-                        <div style="display: flex; justify-content: space-between;"><span><strong>Valor Total OC:</strong></span><span style="font-size: 1.2rem; color: var(--primary-color);">R$ ${ocAtual.valor_total.toFixed(2)}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span><strong>Valor Total OC:</strong></span><span style="font-size: 1.2rem; color: var(--primary-color);">R$ ${(ocAtual.valor_total || ocAtual.total_valor || 0).toFixed(2)}</span></div>
                     </div>
                 `;
 
