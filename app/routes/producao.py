@@ -654,29 +654,26 @@ def listar_lotes_estoque():
     Inclui lotes principais e sublotes (materiais separados) com status ativo.
     """
     try:
-        # Status válidos para lotes disponíveis para produção
+        # Status que indicam que o lote ainda está disponível para ser processado pela produção
         status_disponiveis = [
             'em_estoque', 'disponivel', 'aprovado',
             'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque',
             'em_conferencia', 'conferido', 'aprovada', 'APROVADA',
             'APROVADO', 'concluido', 'CONCLUIDO', 'RECEBIDO', 'recebido',
             'aprovada_adm', 'APROVADA_ADM', 'concluido_conferencia',
-            'liberado', 'LIBERADO', 'disponivel_producao', 'ATIVO', 'ativo',
-            'AGUARDANDO_SEPARACAO', 'aguardando_separacao', 'PROCESSADO', 'processado', 'aberto', 'ABERTO'
+            'liberado', 'LIBERADO', 'disponivel_producao', 'ATIVO', 'ativo'
         ]
 
-        # Debug: Log de todos os lotes no banco
-        all_lotes = Lote.query.all()
-        logger.info(f"DEBUG: Total de lotes no banco: {len(all_lotes)}")
-        for l in all_lotes:
-            logger.info(f"Lote ID: {l.id}, Numero: {l.numero_lote}, Status: '{l.status}', Bloqueado: {l.bloqueado}")
+        # Status de fluxo intermediário que não devem aparecer na seleção de produção
+        # pois já estão vinculados a processos específicos (como Separação)
+        status_bloqueados = [
+            'PROCESSADO', 'AGUARDANDO_SEPARACAO', 'EM_SEPARACAO', 'aberto', 'ABERTO'
+        ]
 
-        # Buscar lotes que estão em estoque e disponíveis (inclui sublotes)
-        # Usamos uma subquery ou agrupamento para evitar duplicatas se o JOIN com sublotes causar isso
-        # No entanto, a query original é simples. Vamos garantir que pegamos apenas registros únicos por numero_lote se necessário,
-        # ou investigar se há registros duplicados no banco.
+        # Buscar lotes que estão em estoque e NÃO estão em fluxo de separação/processamento
         lotes = Lote.query.filter(
-            Lote.status.in_(status_disponiveis)
+            Lote.status.in_(status_disponiveis),
+            ~Lote.status.in_(status_bloqueados)
         ).order_by(Lote.id.desc()).all()
 
         # Remover duplicatas baseadas no número do lote, priorizando o que tem peso/valor

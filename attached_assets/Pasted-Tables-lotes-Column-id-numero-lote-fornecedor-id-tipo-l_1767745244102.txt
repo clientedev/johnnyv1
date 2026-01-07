@@ -1,0 +1,14 @@
+Tables
+/
+
+lotes
+
+
+
+Column
+id	numero_lote	fornecedor_id	tipo_lote_id	solicitacao_origem_id	oc_id	os_id	conferencia_id	peso_bruto_recebido	peso_liquido	peso_total_kg	valor_total	quantidade_itens	estrelas_media	classificacao_predominante	qualidade_recebida	status	tipo_retirada	localizacao_atual	reservado	reservado_para	reservado_por_id	reservado_em	bloqueado	tipo_bloqueio	bloqueado_por_id	bloqueado_em	motivo_bloqueio	gps_inicio	gps_fim	ip_inicio	device_id	data_criacao	data_fechamento	data_aprovacao	conferente_id	anexos	divergencias	observacoes	auditoria	lote_pai_id	observacoes_qualidade	fotos_qualidade	avaliacao_qualidade	
+1	2026-0E4DE	1	1	1	NULL	NULL	NULL	NULL	NULL	2500	125000	1	3	leve	NULL	aberto	entregar	NULL	false	NULL	NULL		false	NULL	NULL		NULL	NULL	NULL	NULL	NULL	2026-01-06 22:34:46			NULL	[]	[]	NULL	[]	NULL	NULL	NULL	NULL	
+2	2026-00002	1	1	1	1	1	1	2500	2500	2500	0	0	NULL	NULL	BOA	PROCESSADO	NULL	NULL	false	NULL	NULL		false	NULL	NULL		NULL	NULL	NULL	NULL	NULL	2026-01-06 22:41:09			NULL	[]	[]	NULL	[{"acao": "LOTE_CRIADO_APOS_CONFERENCIA", "usuario_id": "1", "timestamp": "2026-01-06T22:41:09.332873", "ip": "100.64.0.5", "device_id": null, "gps": null, "detalhes": {"conferencia_id": 1, "os_id": 1, "oc_id": 1, "decisao": "ACEITAR", "divergencia": false, "tipo_divergencia": null}}]	NULL	NULL	NULL	NULL	
+3	2026-D3823	1	1	2	NULL	NULL	NULL	NULL	NULL	3333	166650	1	3	leve	NULL	aberto	entregar	NULL	false	NULL	NULL		false	NULL	NULL		NULL	NULL	NULL	NULL	NULL	2026-01-06 23:17:02			NULL	[]	[]	NULL	[]	NULL	NULL	NULL	NULL	
+4	2026-00004	1	1	2	2	2	2	3333	3333	3333	0	0	NULL	NULL	BOA	AGUARDANDO_SEPARACAO	NULL	NULL	false	NULL	NULL		false	NULL	NULL		NULL	NULL	NULL	NULL	NULL	2026-01-06 23:17:32			NULL	[]	[]	NULL	[{"acao": "LOTE_CRIADO_APOS_CONFERENCIA", "usuario_id": "1", "timestamp": "2026-01-06T23:17:32.839159", "ip": "100.64.0.3", "device_id": null, "gps": null, "detalhes": {"conferencia_id": 2, "os_id": 2, "oc_id": 2, "decisao": "ACEITAR", "divergencia": false, "tipo_divergencia": null}}]	NULL	NULL	NULL	NULL	
+
