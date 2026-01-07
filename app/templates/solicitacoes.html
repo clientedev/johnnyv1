@@ -1933,11 +1933,143 @@
                     return;
                 }
 
-                const oc = await response.json();
-                alert(`Ordem de Compra #${oc.id}\n\nStatus: ${oc.status}\nFornecedor: ${oc.fornecedor_nome}\nValor: R$ ${oc.valor_total.toFixed(2)}\nAprovador: ${oc.aprovador_nome || '-'}\n${oc.observacao ? '\nObservação: ' + oc.observacao : ''}`);
+                ocAtual = await response.json();
+                
+                // Usamos o mesmo modal de detalhes, mas adaptado para OC
+                let html = `
+                    <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h3 style="margin: 0 0 1rem 0;">Informações da Ordem de Compra</h3>
+                        <p><strong>OC ID:</strong> #${ocAtual.id}</p>
+                        <p><strong>Pedido Original:</strong> #${ocAtual.solicitacao_id}</p>
+                        <p><strong>Fornecedor:</strong> ${ocAtual.fornecedor_nome}</p>
+                        <p><strong>Status:</strong> <span class="badge badge-${ocAtual.status}">${ocAtual.status.toUpperCase()}</span></p>
+                        <p><strong>Aprovador:</strong> ${ocAtual.aprovador_nome || 'N/A'}</p>
+                        <p><strong>Data:</strong> ${formatDate(ocAtual.data_criacao)}</p>
+                    </div>
+                `;
+
+                if (ocAtual.itens && ocAtual.itens.length > 0) {
+                    html += `
+                        <h3 style="margin: 1.5rem 0 1rem 0;"> Itens (${ocAtual.itens.length})</h3>
+                        ${ocAtual.itens.map(item => `
+                            <div class="card" style="margin-bottom: 1rem;">
+                                <p><strong>Material:</strong> ${item.material_nome || 'N/A'}</p>
+                                <p><strong>Código:</strong> ${item.material_codigo || '-'}</p>
+                                <p><strong>Peso:</strong> ${item.peso_kg} kg</p>
+                                <p><strong>Preço/kg:</strong> R$ ${item.preco_unitario.toFixed(2)}</p>
+                                <p><strong>Valor Total:</strong> R$ ${item.valor_total.toFixed(2)}</p>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+
+                html += `
+                    <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between;"><span><strong>Valor Total OC:</strong></span><span style="font-size: 1.2rem; color: var(--primary-color);">R$ ${ocAtual.valor_total.toFixed(2)}</span></div>
+                    </div>
+                `;
+
+                document.getElementById('detalhesConteudo').innerHTML = html;
+                
+                // Configura o evento do botão de PDF que agora está fixo no rodapé do modal
+                const btnPdf = document.getElementById('btnExportarPDF');
+                if (btnPdf) {
+                    btnPdf.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        exportarPDF_OC();
+                    };
+                }
+
+                document.getElementById('acoesAdmin').innerHTML = '';
+                document.getElementById('modalDetalhes').classList.add('active');
             } catch (error) {
                 console.error('Erro ao carregar detalhes da OC:', error);
                 showAlert('Erro ao carregar detalhes', 'error');
+            }
+        }
+
+        function exportarPDF_OC() {
+            if (!ocAtual) return;
+            
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const primaryColor = [5, 150, 105];
+
+                // Cabeçalho
+                doc.setFillColor(243, 244, 246);
+                doc.rect(0, 0, 210, 40, 'F');
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(22);
+                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.text("MRX SYSTEMS", 14, 25);
+                doc.setFontSize(10);
+                doc.setTextColor(107, 114, 128);
+                doc.text("Ordem de Compra Oficial", 14, 32);
+
+                // Status
+                const status = ocAtual.status.toUpperCase();
+                doc.setFillColor(255, 255, 255);
+                doc.roundedRect(140, 15, 55, 15, 2, 2, 'FD');
+                doc.setFontSize(9);
+                doc.setTextColor(107, 114, 128);
+                doc.text("STATUS DA OC", 145, 21);
+                doc.setFontSize(11);
+                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.text(status, 145, 27);
+
+                // Info
+                doc.setFontSize(14);
+                doc.setTextColor(31, 41, 55);
+                doc.text("Informações da OC", 14, 55);
+                doc.line(14, 57, 196, 57);
+
+                const body = [
+                    ["OC ID:", `#${ocAtual.id}`, "Data:", formatDate(ocAtual.data_criacao)],
+                    ["Pedido Orig.:", `#${ocAtual.solicitacao_id}`, "Aprovador:", ocAtual.aprovador_nome || "-"],
+                    ["Fornecedor:", ocAtual.fornecedor_nome, "", ""]
+                ];
+
+                doc.autoTable({
+                    startY: 62,
+                    body: body,
+                    theme: 'plain',
+                    styles: { fontSize: 9 },
+                    columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } }
+                });
+
+                // Itens
+                const tableData = ocAtual.itens.map(item => [
+                    item.material_nome,
+                    item.material_codigo || "-",
+                    `${item.peso_kg} kg`,
+                    `R$ ${item.preco_unitario.toFixed(2)}`,
+                    `R$ ${item.valor_total.toFixed(2)}`
+                ]);
+
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 10,
+                    head: [['Material', 'Código', 'Peso', 'Preço/kg', 'Total']],
+                    body: tableData,
+                    theme: 'striped',
+                    headStyles: { fillColor: primaryColor }
+                });
+
+                // Total
+                let currentY = doc.lastAutoTable.finalY + 15;
+                doc.setFillColor(249, 250, 251);
+                doc.rect(120, currentY, 76, 15, 'F');
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.text("VALOR TOTAL:", 125, currentY + 10);
+                doc.text(`R$ ${ocAtual.valor_total.toFixed(2)}`, 190, currentY + 10, { align: 'right' });
+
+                doc.save(`OC_MRX_${ocAtual.id}.pdf`);
+            } catch (err) {
+                console.error(err);
+                showAlert("Erro ao gerar PDF da OC");
             }
         }
 
