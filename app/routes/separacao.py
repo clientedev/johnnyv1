@@ -249,7 +249,7 @@ def criar_sublote(id):
             status='CRIADO_SEPARACAO',
             lote_pai_id=lote_pai.id,  # Vincula ao lote pai
             quantidade_itens=data.get('quantidade', 1),
-            observacoes=f"{tipo_lote_nome} - {data.get('observacoes', '')}" if data.get('is_manual') else data.get('observacoes', ''),
+            observacoes=f"MATERIAL_MANUAL:{tipo_lote_nome} | {data.get('observacoes', '')}" if data.get('is_manual') else data.get('observacoes', ''),
             anexos=data.get('fotos', []),
             auditoria=[{
                 'acao': 'SUBLOTE_CRIADO_NA_SEPARACAO',

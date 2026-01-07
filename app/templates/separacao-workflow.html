@@ -346,7 +346,7 @@
                         </div>
                         <div>
                             <p style="color: var(--gray-600); margin: 0; font-size: 0.875rem;">Tipo de Material</p>
-                            <p style="margin: 0.25rem 0 0 0; font-weight: bold;">${sublote.observacoes && sublote.observacoes.includes(' - ') ? sublote.observacoes.split(' - ')[0] : (sublote.tipo_lote_nome || sublote.tipo_lote?.nome || '-')}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-weight: bold;">${sublote.observacoes && sublote.observacoes.startsWith('MATERIAL_MANUAL:') ? sublote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim() : (sublote.tipo_lote_nome || sublote.tipo_lote?.nome || '-')}</p>
                         </div>
                         <div>
                             <p style="color: var(--gray-600); margin: 0; font-size: 0.875rem;">Peso</p>

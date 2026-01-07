@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Lote, ItemSolicitacao, Fornecedor, TipoLote, MovimentacaoEstoque, MaterialBase
+from app.models import db, Lote, ItemSolicitacao, Fornecedor, TipoLote, MovimentacaoEstoque, MaterialBase, Usuario, Inventario, InventarioContagem
 from app.auth import admin_required
 from datetime import datetime
+from sqlalchemy.orm import joinedload, selectinload
 import json
 
 bp = Blueprint('wms', __name__, url_prefix='/api/wms')
@@ -47,7 +48,16 @@ def listar_lotes_wms():
         resultado = []
         for lote in lotes:
             lote_dict = lote.to_dict()
-            lote_dict['tipo_lote_nome'] = lote.tipo_lote.nome if lote.tipo_lote else None
+            
+            # Lógica para priorizar nome manual se existir
+            nome_material = None
+            if lote.observacoes and lote.observacoes.startswith('MATERIAL_MANUAL:'):
+                try:
+                    nome_material = lote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').strip()
+                except:
+                    pass
+            
+            lote_dict['tipo_lote_nome'] = nome_material or (lote.tipo_lote.nome if lote.tipo_lote else None)
             lote_dict['fornecedor_nome'] = lote.fornecedor.nome if lote.fornecedor else None
             lote_dict['itens_count'] = len(lote.itens) if lote.itens else 0
             lote_dict['sublotes_count'] = len(lote.sublotes)
@@ -83,12 +93,19 @@ def obter_lote_detalhado(lote_id):
         if not lote:
             return jsonify({'erro': 'Lote não encontrado'}), 404
 
-        print(f'\n🔍 API /lotes/{lote_id}')
-        print(f'   Lote: {lote.numero_lote}')
-        print(f'   Sublotes carregados: {lote.sublotes}')
-        print(f'   Quantidade de sublotes: {len(lote.sublotes) if lote.sublotes else 0}')
-
         lote_dict = lote.to_dict()
+        
+        # Lógica para priorizar nome manual se existir
+        nome_material = None
+        if lote.observacoes and lote.observacoes.startswith('MATERIAL_MANUAL:'):
+            try:
+                nome_material = lote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').strip()
+            except:
+                pass
+        
+        if nome_material:
+            lote_dict['tipo_lote_nome'] = nome_material
+
         lote_dict['itens'] = [item.to_dict() for item in lote.itens] if lote.itens else []
         lote_dict['sublotes'] = [sublote.to_dict() for sublote in lote.sublotes] if lote.sublotes else []
         lote_dict['movimentacoes'] = [mov.to_dict() for mov in lote.movimentacoes] if lote.movimentacoes else []
@@ -136,7 +153,16 @@ def obter_sublotes_lote(lote_id):
         resultado = []
         for sublote in sublotes:
             sublote_dict = sublote.to_dict()
-            sublote_dict['tipo_lote_nome'] = sublote.tipo_lote.nome if sublote.tipo_lote else None
+            
+            # Lógica para priorizar nome manual se existir
+            nome_material = None
+            if sublote.observacoes and sublote.observacoes.startswith('MATERIAL_MANUAL:'):
+                try:
+                    nome_material = sublote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').strip()
+                except:
+                    pass
+            
+            sublote_dict['tipo_lote_nome'] = nome_material or (sublote.tipo_lote.nome if sublote.tipo_lote else None)
             sublote_dict['fornecedor_nome'] = sublote.fornecedor.nome if sublote.fornecedor else None
             resultado.append(sublote_dict)
 
@@ -173,6 +199,18 @@ def obter_lote_por_numero(numero_lote):
             return jsonify({'erro': 'Lote não encontrado'}), 404
 
         lote_dict = lote.to_dict()
+        
+        # Lógica para priorizar nome manual se existir
+        nome_material = None
+        if lote.observacoes and lote.observacoes.startswith('MATERIAL_MANUAL:'):
+            try:
+                nome_material = lote.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').strip()
+            except:
+                pass
+        
+        if nome_material:
+            lote_dict['tipo_lote_nome'] = nome_material
+
         lote_dict['itens'] = [item.to_dict() for item in lote.itens] if lote.itens else []
         lote_dict['sublotes'] = [sublote.to_dict() for sublote in lote.sublotes] if lote.sublotes else []
         lote_dict['movimentacoes'] = [mov.to_dict() for mov in lote.movimentacoes] if lote.movimentacoes else []
