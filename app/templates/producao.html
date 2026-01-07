@@ -360,23 +360,16 @@
             }
             container.innerHTML = ordens.map(op => {
                 const tiposMaterial = (op.tipo_material || 'Material não especificado').split(', ').filter(t => t.trim());
-                let tiposHtml = tiposMaterial.length > 1 
+                const tiposHtml = tiposMaterial.length > 1 
                     ? tiposMaterial.map(t => `<span class="badge badge-success" style="font-size: 0.7rem; margin-right: 0.25rem;">${t.trim()}</span>`).join('')
                     : `<span style="color: var(--gray-600);">${tiposMaterial[0] || 'Material não especificado'}</span>`;
-                
-                // Lógica para priorizar nome manual se existir nas observações da OP
-                if (op.observacoes && op.observacoes.startsWith('MATERIAL_MANUAL:')) {
-                    const nomeManual = op.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim();
-                    tiposHtml = `<span class="badge badge-success" style="font-size: 0.7rem; margin-right: 0.25rem;">${nomeManual}</span>`;
-                }
-
                 return `
                 <div class="card op-card ${op.status}" onclick="abrirOrdem(${op.id})" style="cursor: pointer;">
                     <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 0.5rem;">
                         <div>
                             <h4 style="margin: 0 0 0.25rem 0; color: var(--primary-color);">${op.numero_op}</h4>
                             <p style="margin: 0; font-size: 0.875rem; display: flex; flex-wrap: wrap; gap: 0.25rem;">
-                                ${tiposHtml}
+                                ${op.observacoes && op.observacoes.startsWith('MATERIAL_MANUAL:') ? `<span class="badge badge-success" style="font-size: 0.7rem; margin-right: 0.25rem;">${op.observacoes.split('|')[0].replace('MATERIAL_MANUAL:', '').trim()}</span>` : tiposHtml}
                             </p>
                         </div>
                         <span class="badge ${getBadgeClass(op.status)}">${getStatusLabel(op.status)}</span>
