@@ -654,53 +654,27 @@ def listar_lotes_estoque():
     Inclui lotes principais e sublotes (materiais separados) com status ativo.
     """
     try:
-        # Query direta para buscar lotes no banco
-        lotes_all = Lote.query.all()
+        # Status válidos para lotes disponíveis para produção
+        # Expandindo para incluir qualquer status que indique disponibilidade ou aprovação
+        status_disponiveis = [
+            'em_estoque', 'disponivel', 'aprovado',
+            'CRIADO_SEPARACAO', 'criado_separacao', 'Em Estoque',
+            'em_conferencia', 'conferido', 'aprovada', 'APROVADA',
+            'APROVADO', 'concluido', 'CONCLUIDO', 'RECEBIDO', 'recebido',
+            'aprovada_adm', 'APROVADA_ADM', 'concluido_conferencia',
+            'liberado', 'LIBERADO', 'disponivel_producao', 'ATIVO', 'ativo'
+        ]
 
-        # Filtragem MANUAL no Python para garantir precisão absoluta
-        # Queremos:
-        # 1. Lotes em estoque ('Em Estoque', 'ATIVO', 'ativo', etc)
-        # 2. OU Sublotes (tem lote_pai_id) que estejam com status de estoque
-        
-        status_validos = ['em_estoque', 'disponivel', 'aprovado', 'Em Estoque', 'ATIVO', 'ativo', 'aprovada', 'APROVADA', 'APROVADO']
-        status_bloqueados_pai = ['PROCESSADO', 'AGUARDANDO_SEPARACAO', 'EM_SEPARACAO', 'aberto', 'ABERTO']
-        
-        lotes_selecionados = []
-        for l in lotes_all:
-            status_limpo = str(l.status).strip()
-            
-            # Se for Lote PAI (sem lote_pai_id), bloqueia se estiver em fluxo
-            if l.lote_pai_id is None:
-                if status_limpo in status_bloqueados_pai:
-                    continue
-                if status_limpo not in status_validos:
-                    continue
-            else:
-                # Se for SUBLOTE (tem lote_pai_id), permite se estiver em estoque
-                if status_limpo not in status_validos:
-                    continue
+        # Debug: Log de todos os lotes no banco
+        all_lotes = Lote.query.all()
+        logger.info(f"DEBUG: Total de lotes no banco: {len(all_lotes)}")
+        for l in all_lotes:
+            logger.info(f"Lote ID: {l.id}, Numero: {l.numero_lote}, Status: '{l.status}', Bloqueado: {l.bloqueado}")
 
-            lotes_selecionados.append(l)
-        
-        # REMOVER DUPLICATAS POR NUMERO DE LOTE
-        # Se houver duplicatas, prioriza o sublote ou o que tiver valor
-        lotes_unicos = {}
-        for l in lotes_selecionados:
-            num = str(l.numero_lote).strip()
-            if num not in lotes_unicos:
-                lotes_unicos[num] = l
-            else:
-                lote_existente = lotes_unicos[num]
-                # Se o novo for sublote e o existente não, troca
-                if l.lote_pai_id and not lote_existente.lote_pai_id:
-                    lotes_unicos[num] = l
-                # Se ambos forem do mesmo tipo, pega o com maior valor
-                elif (float(l.valor_total or 0) >= float(lote_existente.valor_total or 0)):
-                     lotes_unicos[num] = l
-        
-        lotes = list(lotes_unicos.values())
-        lotes.sort(key=lambda x: x.id, reverse=True)
-        lotes = lotes[:200]
+        # Buscar lotes que estão em estoque e disponíveis (inclui sublotes)
+        lotes = Lote.query.filter(
+            Lote.status.in_(status_disponiveis)
+        ).order_by(Lote.id.desc()).limit(200).all()
 
         resultado = []
         for l in lotes:
