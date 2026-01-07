@@ -1464,29 +1464,30 @@
 
                 // Resumo Financeiro
                 currentY = doc.lastAutoTable.finalY + 15;
-                if (currentY > 250) { doc.addPage(); currentY = 20; }
+                if (currentY > 240) { doc.addPage(); currentY = 20; }
 
                 doc.setFillColor(249, 250, 251);
-                doc.rect(130, currentY, 66, 35, 'F');
+                doc.rect(120, currentY, 76, 35, 'F');
                 doc.setDrawColor(229, 231, 235);
-                doc.rect(130, currentY, 66, 35, 'S');
+                doc.rect(120, currentY, 76, 35, 'S');
 
                 doc.setFontSize(10);
                 doc.setTextColor(107, 114, 128);
-                doc.text("Total de Itens:", 135, currentY + 10);
+                doc.text("Total de Itens:", 125, currentY + 10);
                 doc.setTextColor(31, 41, 55);
-                doc.text(`${solicitacaoAtual.total_itens}`, 185, currentY + 10, { align: 'right' });
+                doc.text(`${solicitacaoAtual.total_itens}`, 190, currentY + 10, { align: 'right' });
 
                 doc.setTextColor(107, 114, 128);
-                doc.text("Peso Total:", 135, currentY + 18);
+                doc.text("Peso Total:", 125, currentY + 18);
                 doc.setTextColor(31, 41, 55);
-                doc.text(`${solicitacaoAtual.total_peso_kg.toFixed(2)} kg`, 185, currentY + 18, { align: 'right' });
+                doc.text(`${solicitacaoAtual.total_peso_kg.toFixed(2)} kg`, 190, currentY + 18, { align: 'right' });
 
-                doc.setFontSize(12);
+                doc.setFontSize(11);
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                doc.text("VALOR TOTAL:", 135, currentY + 28);
-                doc.text(`R$ ${solicitacaoAtual.total_valor.toFixed(2)}`, 185, currentY + 28, { align: 'right' });
+                doc.text("VALOR TOTAL:", 125, currentY + 28);
+                doc.setFontSize(12);
+                doc.text(`R$ ${solicitacaoAtual.total_valor.toFixed(2)}`, 190, currentY + 28, { align: 'right' });
 
                 // Rodapé
                 const pageCount = doc.internal.getNumberOfPages();
