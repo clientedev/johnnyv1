@@ -590,6 +590,8 @@
     </div>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="/static/js/utils.js"></script>
     <script src="/static/js/rbac.js"></script>
     <script src="/static/js/app.js"></script>
@@ -1341,6 +1343,82 @@
             }
         });
 
+        function exportarPDF() {
+            if (!solicitacaoAtual) return;
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Título
+            doc.setFontSize(18);
+            doc.text("Detalhes do Pedido de Compra", 14, 22);
+            
+            // Informações Gerais
+            doc.setFontSize(12);
+            doc.text("Informações Gerais", 14, 32);
+            
+            const infoGeral = [
+                ["ID:", `#${solicitacaoAtual.id}`],
+                ["Funcionário:", solicitacaoAtual.funcionario_nome || "-"],
+                ["Fornecedor:", solicitacaoAtual.fornecedor_nome || "-"],
+                ["Tipo de Retirada:", solicitacaoAtual.tipo_retirada === 'buscar' ? 'Buscar no fornecedor' : 'Fornecedor entrega'],
+                ["Modalidade de Frete:", solicitacaoAtual.modalidade_frete || "-"],
+                ["Status:", solicitacaoAtual.status.toUpperCase()],
+                ["Data de Envio:", formatDate(solicitacaoAtual.data_envio)],
+                ["Data de Confirmação:", solicitacaoAtual.data_confirmacao ? formatDate(solicitacaoAtual.data_confirmacao) : "-"]
+            ];
+            
+            doc.autoTable({
+                startY: 35,
+                head: [],
+                body: infoGeral,
+                theme: 'plain',
+                styles: { fontSize: 10, cellPadding: 1 }
+            });
+            
+            // Observações
+            let finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(12);
+            doc.text("Observações", 14, finalY);
+            doc.setFontSize(10);
+            const splitObs = doc.splitTextToSize(solicitacaoAtual.observacoes || "Nenhuma observação", 180);
+            doc.text(splitObs, 14, finalY + 7);
+            
+            // Itens
+            finalY = finalY + 7 + (splitObs.length * 5) + 5;
+            doc.setFontSize(12);
+            doc.text(`Itens (${solicitacaoAtual.itens.length})`, 14, finalY);
+            
+            const tableData = solicitacaoAtual.itens.map(item => [
+                item.material_nome || item.tipo_lote_nome || 'N/A',
+                item.material_codigo || "-",
+                item.classificacao ? item.classificacao.toUpperCase() : "-",
+                `${item.peso_kg} kg`,
+                `R$ ${item.preco_por_kg_snapshot ? item.preco_por_kg_snapshot.toFixed(2) : '0.00'}`,
+                `R$ ${item.valor_calculado.toFixed(2)}`,
+                item.lote_numero || "-"
+            ]);
+            
+            doc.autoTable({
+                startY: finalY + 5,
+                head: [['Material', 'Código', 'Classif.', 'Peso', 'Preço/kg', 'Total', 'Lote']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [5, 150, 105] }
+            });
+            
+            // Total
+            finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(11);
+            doc.text(`Total de itens: ${solicitacaoAtual.total_itens}`, 14, finalY);
+            doc.text(`Peso total: ${solicitacaoAtual.total_peso_kg.toFixed(2)} kg`, 14, finalY + 7);
+            doc.setFontSize(13);
+            doc.setTextColor(5, 150, 105);
+            doc.text(`Valor Total: R$ ${solicitacaoAtual.total_valor.toFixed(2)}`, 14, finalY + 16);
+            
+            doc.save(`pedido_compra_${solicitacaoAtual.id}.pdf`);
+        }
+
         async function verDetalhes(id) {
             try {
                 const response = await fetchAPI(`/solicitacoes/${id}`);
@@ -1420,6 +1498,11 @@
                         <div style="display: flex; justify-content: space-between;"><span><strong>Total de itens:</strong></span><span>${solicitacaoAtual.total_itens}</span></div>
                         <div style="display: flex; justify-content: space-between;"><span><strong>Peso total:</strong></span><span>${solicitacaoAtual.total_peso_kg.toFixed(2)} kg</span></div>
                         <div style="display: flex; justify-content: space-between;"><span><strong>Valor total:</strong></span><span style="font-size: 1.2rem; color: var(--primary-color);">R$ ${solicitacaoAtual.total_valor.toFixed(2)}</span></div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <button class="btn btn-secondary w-full" onclick="exportarPDF()">
+                            <i class="fas fa-file-pdf"></i> Exportar para PDF
+                        </button>
                     </div>
                 `;
 
