@@ -1944,7 +1944,7 @@
                         <p><strong>Fornecedor:</strong> ${ocAtual.fornecedor_nome}</p>
                         <p><strong>Status:</strong> <span class="badge badge-${ocAtual.status}">${ocAtual.status.toUpperCase()}</span></p>
                         <p><strong>Aprovador:</strong> ${ocAtual.aprovador_nome || 'N/A'}</p>
-                        <p><strong>Data:</strong> ${formatDate(ocAtual.data_criacao)}</p>
+                        <p><strong>Data:</strong> ${formatDate(ocAtual.data_criacao || ocAtual.data_envio)}</p>
                     </div>
                 `;
 
@@ -2026,7 +2026,7 @@
                 doc.line(14, 57, 196, 57);
 
                 const body = [
-                    ["OC ID:", `#${ocAtual.id}`, "Data:", formatDate(ocAtual.data_criacao)],
+                    ["OC ID:", `#${ocAtual.id}`, "Data:", formatDate(ocAtual.data_criacao || ocAtual.data_envio)],
                     ["Pedido Orig.:", `#${ocAtual.solicitacao_id}`, "Aprovador:", ocAtual.aprovador_nome || "-"],
                     ["Fornecedor:", ocAtual.fornecedor_nome, "", ""]
                 ];
