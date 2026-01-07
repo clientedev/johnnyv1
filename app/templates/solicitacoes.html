@@ -2066,11 +2066,11 @@
                 // Itens
                 const itens = ocAtual.itens || [];
                 const tableData = itens.map(item => [
-                    item.material_nome || 'N/A',
+                    item.material_nome || item.tipo_lote_nome || 'N/A',
                     item.material_codigo || "-",
                     `${item.peso_kg || 0} kg`,
-                    `R$ ${(item.preco_unitario || 0).toFixed(2)}`,
-                    `R$ ${(item.valor_total || 0).toFixed(2)}`
+                    `R$ ${(item.preco_unitario || item.preco_por_kg_snapshot || 0).toFixed(2)}`,
+                    `R$ ${(item.valor_total || item.valor_calculado || 0).toFixed(2)}`
                 ]);
 
                 doc.autoTable({
@@ -2089,7 +2089,7 @@
                 doc.setFont("helvetica", "bold");
                 doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
                 doc.text("VALOR TOTAL:", 125, currentY + 10);
-                doc.text(`R$ ${ocAtual.valor_total.toFixed(2)}`, 190, currentY + 10, { align: 'right' });
+                doc.text(`R$ ${(ocAtual.valor_total || ocAtual.total_valor || 0).toFixed(2)}`, 190, currentY + 10, { align: 'right' });
 
                 doc.save(`OC_MRX_${ocAtual.id}.pdf`);
             } catch (err) {
