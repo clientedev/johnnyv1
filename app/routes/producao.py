@@ -654,38 +654,49 @@ def listar_lotes_estoque():
     Inclui lotes principais e sublotes (materiais separados) com status ativo.
     """
     try:
-        # Query direta para buscar lotes em estoque
-        # Simplificando a query para evitar problemas de filtragem no SQL
-        lotes_estoque = Lote.query.all()
+        # Query direta para buscar lotes no banco
+        lotes_all = Lote.query.all()
 
         # Filtragem MANUAL no Python para garantir precisão absoluta
-        status_bloqueados = ['PROCESSADO', 'AGUARDANDO_SEPARACAO', 'EM_SEPARACAO', 'aberto', 'ABERTO']
-        status_validos = ['em_estoque', 'disponivel', 'aprovado', 'Em Estoque', 'ATIVO', 'ativo', 'aprovada', 'APROVADA', 'APROVADO']
+        # Queremos:
+        # 1. Lotes em estoque ('Em Estoque', 'ATIVO', 'ativo', etc)
+        # 2. OU Sublotes (tem lote_pai_id) que estejam com status de estoque
         
-        lotes_unicos = {}
-        for l in lotes_estoque:
+        status_validos = ['em_estoque', 'disponivel', 'aprovado', 'Em Estoque', 'ATIVO', 'ativo', 'aprovada', 'APROVADA', 'APROVADO']
+        status_bloqueados_pai = ['PROCESSADO', 'AGUARDANDO_SEPARACAO', 'EM_SEPARACAO', 'aberto', 'ABERTO']
+        
+        lotes_selecionados = []
+        for l in lotes_all:
             status_limpo = str(l.status).strip()
             
-            # 1. Ignorar se estiver nos status bloqueados (intermediários de lotes principais)
-            # Mas ATENÇÃO: Se for um sublote (tem lote_pai_id), ele deve aparecer se estiver 'Em Estoque'
-            if l.lote_pai_id is None and status_limpo in status_bloqueados:
-                continue
-            
-            # 2. Ignorar se NÃO estiver nos status válidos de estoque
-            if status_limpo not in status_validos:
-                continue
-            
-            # 3. Desduplicação por número de lote
+            # Se for Lote PAI (sem lote_pai_id), bloqueia se estiver em fluxo
+            if l.lote_pai_id is None:
+                if status_limpo in status_bloqueados_pai:
+                    continue
+                if status_limpo not in status_validos:
+                    continue
+            else:
+                # Se for SUBLOTE (tem lote_pai_id), permite se estiver em estoque
+                if status_limpo not in status_validos:
+                    continue
+
+            lotes_selecionados.append(l)
+        
+        # REMOVER DUPLICATAS POR NUMERO DE LOTE
+        # Se houver duplicatas, prioriza o sublote ou o que tiver valor
+        lotes_unicos = {}
+        for l in lotes_selecionados:
             num = str(l.numero_lote).strip()
             if num not in lotes_unicos:
                 lotes_unicos[num] = l
             else:
-                # Prioriza o registro que tem valor financeiro ou o que for sublote
                 lote_existente = lotes_unicos[num]
-                # Se o novo for sublote e o antigo não, ou se o novo tiver mais valor
-                if (l.lote_pai_id and not lote_existente.lote_pai_id) or \
-                   (float(l.valor_total or 0) > float(lote_existente.valor_total or 0)):
+                # Se o novo for sublote e o existente não, troca
+                if l.lote_pai_id and not lote_existente.lote_pai_id:
                     lotes_unicos[num] = l
+                # Se ambos forem do mesmo tipo, pega o com maior valor
+                elif (float(l.valor_total or 0) >= float(lote_existente.valor_total or 0)):
+                     lotes_unicos[num] = l
         
         lotes = list(lotes_unicos.values())
         lotes.sort(key=lambda x: x.id, reverse=True)
