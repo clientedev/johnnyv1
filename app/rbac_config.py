@@ -179,6 +179,26 @@ PERFIL_CONFIG = {
         ],
         'menus': [],
         'ocultar_menu_inferior': True
+    },
+    'Produção': {
+        'tela_inicial': '/producao.html',
+        'rotas_api_permitidas': [
+            '/api/producao',
+            '/api/estoque-ativo',
+            '/api/notificacoes',
+            '/api/lotes',
+            '/api/lotes-estoque'
+        ],
+        'paginas_permitidas': [
+            '/producao.html',
+            '/producao-ordem.html',
+            '/estoque-ativo.html',
+            '/notificacoes.html'
+        ],
+        'menus': [
+            {'id': 'estoque-ativo', 'nome': 'Estoque Ativo', 'url': '/estoque-ativo.html', 'icone': 'warehouse'},
+            {'id': 'producao', 'nome': 'Produção', 'url': '/producao.html', 'icone': 'precision_manufacturing'}
+        ]
     }
 }
 
