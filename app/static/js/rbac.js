@@ -1,6 +1,7 @@
 let currentUserData = null;
 let currentMenus = [];
 let paginasPermitidas = [];
+let ocultarBotaoAdicionar = false;
 let rbacCarregado = false;
 
 async function carregarUsuarioERBAC() {
@@ -31,9 +32,11 @@ async function carregarUsuarioERBAC() {
             const menusData = await menusResponse.json();
             currentMenus = menusData.menus || [];
             paginasPermitidas = menusData.paginas_permitidas || [];
+            ocultarBotaoAdicionar = menusData.ocultar_botao_adicionar || false;
         } else {
             currentMenus = [];
             paginasPermitidas = [];
+            ocultarBotaoAdicionar = false;
         }
 
         rbacCarregado = true;
@@ -42,6 +45,7 @@ async function carregarUsuarioERBAC() {
         console.error('Erro ao carregar dados do usuário:', error);
         currentMenus = [];
         paginasPermitidas = [];
+        ocultarBotaoAdicionar = false;
         rbacCarregado = true;
         return currentUserData;
     }
@@ -132,7 +136,9 @@ function renderizarMenusMobile(containerId = 'navMenuMobile') {
         'local_shipping': 'fas fa-truck',
         'notifications': 'fas fa-bell',
         'receipt_long': 'fas fa-receipt',
-        'verified': 'fas fa-shield-alt'
+        'verified': 'fas fa-shield-alt',
+        'warehouse': 'fas fa-warehouse',
+        'precision_manufacturing': 'fas fa-industry'
     };
 
     currentMenus.forEach((menu, index) => {
@@ -156,31 +162,33 @@ function renderizarMenusMobile(containerId = 'navMenuMobile') {
         a.appendChild(span);
         container.appendChild(a);
 
-        // Adicionar FAB button no centro do menu
-        // Para 2 menus: após o primeiro (índice 0)
-        // Para 4+ menus: após o segundo (índice 1)
-        const addFabAfterIndex = currentMenus.length === 2 ? 0 : 1;
-        if (index === addFabAfterIndex) {
-            const fabContainer = document.createElement('div');
-            fabContainer.className = 'fab-container';
-            
-            const fabButton = document.createElement('button');
-            fabButton.className = 'fab-button';
-            fabButton.setAttribute('aria-label', 'Nova Compra');
-            fabButton.onclick = function() {
-                if (typeof abrirModalNovaSolicitacao === 'function') {
-                    abrirModalNovaSolicitacao();
-                } else {
-                    window.location.href = '/solicitacoes.html';
-                }
-            };
-            
-            const fabIcon = document.createElement('i');
-            fabIcon.className = 'fas fa-plus icon';
-            
-            fabButton.appendChild(fabIcon);
-            fabContainer.appendChild(fabButton);
-            container.appendChild(fabContainer);
+        // Adicionar FAB button no centro do menu (se não estiver oculto)
+        if (!ocultarBotaoAdicionar) {
+            // Para 2 menus: após o primeiro (índice 0)
+            // Para 4+ menus: após o segundo (índice 1)
+            const addFabAfterIndex = currentMenus.length === 2 ? 0 : 1;
+            if (index === addFabAfterIndex) {
+                const fabContainer = document.createElement('div');
+                fabContainer.className = 'fab-container';
+                
+                const fabButton = document.createElement('button');
+                fabButton.className = 'fab-button';
+                fabButton.setAttribute('aria-label', 'Nova Compra');
+                fabButton.onclick = function() {
+                    if (typeof abrirModalNovaSolicitacao === 'function') {
+                        abrirModalNovaSolicitacao();
+                    } else {
+                        window.location.href = '/solicitacoes.html';
+                    }
+                };
+                
+                const fabIcon = document.createElement('i');
+                fabIcon.className = 'fas fa-plus icon';
+                
+                fabButton.appendChild(fabIcon);
+                fabContainer.appendChild(fabButton);
+                container.appendChild(fabContainer);
+            }
         }
     });
 }
@@ -260,7 +268,16 @@ function verificarAcessoPagina() {
     }
 
     const paginaPermitida = paginasPermitidas.some(pagPermitida => {
-        return paginaAtual === pagPermitida || paginaAtual.endsWith(pagPermitida);
+        // Verifica igualdade exata ou se termina com (ex: /dashboard.html)
+        if (paginaAtual === pagPermitida || paginaAtual.endsWith(pagPermitida)) {
+            return true;
+        }
+        // Verifica se é uma sub-rota (apenas se a permissão não for um arquivo .html)
+        // Ex: pagPermitida='api/producao', paginaAtual='/api/producao/ordem/7'
+        if ((!pagPermitida.endsWith('.html')) && paginaAtual.startsWith(pagPermitida)) {
+            return true;
+        }
+        return false;
     });
     
     if (!paginaPermitida) {

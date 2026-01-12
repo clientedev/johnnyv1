@@ -193,12 +193,15 @@ PERFIL_CONFIG = {
             '/producao.html',
             '/producao-ordem.html',
             '/estoque-ativo.html',
-            '/notificacoes.html'
+            '/notificacoes.html',
+            '/api/producao',
+            '/api/estoque-ativo'
         ],
         'menus': [
             {'id': 'estoque-ativo', 'nome': 'Estoque Ativo', 'url': '/estoque-ativo.html', 'icone': 'warehouse'},
             {'id': 'producao', 'nome': 'Produção', 'url': '/producao.html', 'icone': 'precision_manufacturing'}
-        ]
+        ],
+        'ocultar_botao_adicionar': True
     }
 }
 
@@ -264,6 +267,11 @@ def check_pagina_permitida(perfil_nome, pagina):
     for pagina_permitida in paginas_permitidas:
         if pagina == pagina_permitida or pagina.endswith(pagina_permitida):
             return True
+            
+        # Suporte para sub-rotas como /api/producao/ordem/7
+        if pagina_permitida.startswith('/') and not pagina_permitida.endswith('.html'):
+             if pagina.startswith(pagina_permitida):
+                 return True
 
     return False
 
@@ -276,3 +284,8 @@ def get_ocultar_menu_inferior(perfil_nome):
     """Retorna se o perfil deve ocultar o menu inferior"""
     config = get_perfil_config(perfil_nome)
     return config.get('ocultar_menu_inferior', False)
+
+def get_ocultar_botao_adicionar(perfil_nome):
+    """Retorna se o perfil deve ocultar o botão de adicionar (+)"""
+    config = get_perfil_config(perfil_nome)
+    return config.get('ocultar_botao_adicionar', False)
