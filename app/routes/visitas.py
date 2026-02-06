@@ -131,6 +131,77 @@ def obter_visita(id):
         return jsonify({'erro': 'Erro ao obter visita'}), 500
 
 
+@bp.route('/<int:id>', methods=['PUT'])
+@jwt_required()
+def atualizar_visita(id):
+    """Atualiza todos os dados de uma visita"""
+    try:
+        usuario_id = int(get_jwt_identity())
+        usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
+        visita = VisitaFornecedor.query.get(id)
+        
+        if not visita:
+            return jsonify({'erro': 'Visita não encontrada'}), 404
+        
+        # Apenas o criador ou admin pode editar
+        if usuario.tipo != 'admin' and visita.usuario_id != usuario_id:
+            return jsonify({'erro': 'Acesso negado'}), 403
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'erro': 'Dados não fornecidos'}), 400
+        
+        # Atualizar campos se fornecidos
+        if 'nome_fornecedor' in data:
+            nome = data.get('nome_fornecedor', '').strip()
+            if not nome:
+                return jsonify({'erro': 'Nome do fornecedor é obrigatório'}), 400
+            visita.nome_fornecedor = nome
+        
+        if 'contato_nome' in data:
+            contato = data.get('contato_nome', '').strip()
+            if not contato:
+                return jsonify({'erro': 'Nome do contato é obrigatório'}), 400
+            visita.contato_nome = contato
+        
+        if 'contato_email' in data:
+            visita.contato_email = data.get('contato_email', '').strip() or None
+        
+        if 'contato_telefone' in data:
+            visita.contato_telefone = data.get('contato_telefone', '').strip() or None
+        
+        if 'observacoes' in data:
+            visita.observacoes = data.get('observacoes', '').strip() or None
+        
+        # Atualizar coordenadas se fornecidas
+        if 'latitude' in data and 'longitude' in data:
+            latitude = data.get('latitude')
+            longitude = data.get('longitude')
+            
+            if latitude is not None and longitude is not None:
+                try:
+                    visita.latitude = float(latitude)
+                    visita.longitude = float(longitude)
+                except (ValueError, TypeError):
+                    return jsonify({'erro': 'Coordenadas inválidas'}), 400
+        
+        db.session.commit()
+        
+        logger.info(f'Visita {id} atualizada por usuário {usuario_id}')
+        
+        return jsonify(visita.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erro ao atualizar visita: {str(e)}')
+        return jsonify({'erro': 'Erro ao atualizar visita'}), 500
+
+
 @bp.route('/<int:id>/status', methods=['PUT'])
 @jwt_required()
 def atualizar_status_visita(id):
